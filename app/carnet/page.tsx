@@ -119,9 +119,12 @@ export default function CarnetPage() {
         )}
 
         {tab === "map" && (
-          <div className="relative h-[calc(100vh-94px-150px-49px)] min-h-[480px]">
+          <div className="relative h-[calc(100dvh-330px)] sm:h-[calc(100dvh-280px)] min-h-[400px]">
             <ParisMap cards={mapCards} />
-            <div className="absolute bottom-3 left-3 z-[400] mono text-[10px] tracking-widest bg-paper border border-ink px-2 py-1">
+            <div
+              className="absolute left-3 z-[400] mono text-[10px] tracking-widest bg-paper border border-ink px-2 py-1"
+              style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
+            >
               YOUR CONSTELLATION · {mapCards.length} PIN{mapCards.length === 1 ? "" : "S"}
             </div>
           </div>

@@ -70,14 +70,17 @@ export function Feed({ view }: { view: "feed" | "map" }) {
 
   if (view === "map") {
     return (
-      <div className="relative h-[calc(100vh-94px)]">
+      <div className="relative h-[calc(100dvh-128px)] sm:h-[calc(100dvh-88px)]">
         <ParisMap
           cards={cards}
           freshIds={freshIds}
           onSelectCard={(id) => router.push(`/post/${id}`)}
           height="100%"
         />
-        <div className="absolute bottom-3 left-3 z-[400] mono text-[10px] tracking-widest bg-paper border border-ink px-2 py-1 flex items-center gap-2">
+        <div
+          className="absolute left-3 z-[400] mono text-[10px] tracking-widest bg-paper border border-ink px-2 py-1 flex items-center gap-2"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
+        >
           <span className="tabular-nums">{clock}</span>
           <span>·</span>
           <span>{TOD_LABEL[tod]}</span>
