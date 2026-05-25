@@ -12,6 +12,7 @@ import { downloadCarnetPoster, exportCarnetPrintable, shareCard } from "@/lib/sh
 import { ACTIVITY_LABEL, activityFromTitle, type Activity } from "@/lib/vibe";
 import { cardColor, categoryColor, isDark } from "@/lib/color";
 import { Constellation } from "@/components/Constellation";
+import { ProfileEditor } from "@/components/ProfileEditor";
 
 type Tab = "track" | "carnet";
 
@@ -63,6 +64,7 @@ export default function CarnetPage() {
   const [track, setTrack] = useState<TrackEntry[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [exporting, setExporting] = useState<"png" | "pdf" | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   const refresh = useCallback(() => {
     if (!user) return;
@@ -148,7 +150,15 @@ export default function CarnetPage() {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="mono text-[10px] tracking-widest opacity-60">CARNET</div>
+            <div className="mono text-[10px] tracking-widest opacity-60 flex items-center gap-3">
+              <span>CARNET</span>
+              <button
+                onClick={() => setEditingProfile(true)}
+                className="mono text-[10px] tracking-widest border border-ink px-2 py-0.5 hover:bg-ink hover:text-paper"
+              >
+                ✎ EDIT
+              </button>
+            </div>
             <h1 className="editorial font-black text-[34px] sm:text-[56px] leading-none mt-1 truncate">
               @{displayName}
             </h1>
@@ -332,6 +342,14 @@ export default function CarnetPage() {
 
       </div>
       </main>
+
+      {editingProfile && profile && (
+        <ProfileEditor
+          profile={profile}
+          onClose={() => setEditingProfile(false)}
+          onSaved={refresh}
+        />
+      )}
     </div>
   );
 }

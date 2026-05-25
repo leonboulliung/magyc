@@ -234,6 +234,14 @@ export function ParisMap({
         iconAnchor: [5, 5],
       });
       const m = L.marker([c.location.lat, c.location.lng], { icon, riseOnHover: true });
+      // Editorial title tooltip on hover (desktop).
+      // On touch, tap opens the rich preview below instead.
+      m.bindTooltip(c.title.toUpperCase(), {
+        direction: "right",
+        offset: [10, 0],
+        opacity: 1,
+        className: "cp-pin-tooltip",
+      });
       m.on("click", (e: L.LeafletMouseEvent) => {
         if (!ref.current || !mapRef.current) return;
         const pt = mapRef.current.latLngToContainerPoint([c.location.lat, c.location.lng]);

@@ -150,6 +150,31 @@ body {
 }
 .leaflet-marker-icon, .leaflet-marker-shadow { outline: none; }
 
+/* Map pin tooltip — editorial title chip on hover. */
+.cp-pin-tooltip.leaflet-tooltip {
+  background: #fafafa !important;
+  color: #0a0a0a !important;
+  border: 1.5px solid #0a0a0a !important;
+  border-radius: 0 !important;
+  padding: 6px 10px !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+  font-weight: 500 !important;
+  box-shadow: 0 6px 20px rgba(10, 10, 10, 0.18) !important;
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.cp-pin-tooltip.leaflet-tooltip-right::before,
+.cp-pin-tooltip.leaflet-tooltip-left::before,
+.cp-pin-tooltip.leaflet-tooltip-top::before,
+.cp-pin-tooltip.leaflet-tooltip-bottom::before {
+  display: none;
+}
+
 /* Custom pin — two-ring structure:
    inner disc (user's custom color) + outer ring (category color) + white halo. */
 .cp-pin {

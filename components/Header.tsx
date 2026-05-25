@@ -70,7 +70,7 @@ export function Header({
               href="/carnet"
               className="ml-1 mono text-[10px] tracking-widest px-3 py-1.5 border border-ink hover:bg-ink hover:text-paper"
             >
-              CARNET
+              PROFILE
             </Link>
             <div className="ml-1 [&_.cl-userButtonAvatarBox]:!w-9 [&_.cl-userButtonAvatarBox]:!h-9 [&_.cl-userButtonAvatarBox]:!rounded-none [&_.cl-userButtonAvatarBox]:!border [&_.cl-userButtonAvatarBox]:!border-ink">
               <UserButton afterSignOutUrl="/" />
@@ -122,7 +122,7 @@ export function Header({
               href="/carnet"
               className="flex-1 py-2.5 border-l border-ink text-center"
             >
-              CARNET
+              PROFILE
             </Link>
           </SignedIn>
         </div>
