@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { parisNow, parisTimeOfDay, formatParisClock } from "@/lib/time";
 import { TOD_LABEL } from "@/lib/vibe";
-import { Ticker } from "./Ticker";
 
 export function Header() {
   const [clock, setClock] = useState("");
@@ -107,7 +106,6 @@ export function Header() {
         </SignedIn>
       )}
 
-      <Ticker />
     </header>
   );
 }

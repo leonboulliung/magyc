@@ -151,7 +151,7 @@ export default function CarnetPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="mono text-[10px] tracking-widest opacity-60 flex items-center gap-3">
-              <span>CARNET</span>
+              <span>PROFILE</span>
               <button
                 onClick={() => setEditingProfile(true)}
                 className="mono text-[10px] tracking-widest border border-ink px-2 py-0.5 hover:bg-ink hover:text-paper"
