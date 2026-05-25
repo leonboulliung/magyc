@@ -9,11 +9,11 @@ import { TOD_LABEL } from "@/lib/vibe";
 import { Ticker } from "./Ticker";
 
 export function Header({
-  view,
-  onViewChange,
+  panelOpen,
+  onTogglePanel,
 }: {
-  view?: "feed" | "map";
-  onViewChange?: (v: "feed" | "map") => void;
+  panelOpen?: boolean;
+  onTogglePanel?: () => void;
 }) {
   const [clock, setClock] = useState("");
 
@@ -32,7 +32,10 @@ export function Header({
   const pathname = usePathname() || "/";
   const onProfileSurface = pathname.startsWith("/carnet") || pathname.startsWith("/u/");
   const altDest = onProfileSurface ? "/" : "/carnet";
-  const altLabel = onProfileSurface ? "FEED" : "PROFILE";
+  const altLabel = onProfileSurface ? "PARIS" : "PROFILE";
+
+  const showListToggle = !!onTogglePanel;
+  const listLabel = panelOpen ? "HIDE LIST" : "LIST";
 
   return (
     <header className="shrink-0 z-50 bg-paper border-b border-ink safe-top">
@@ -55,23 +58,18 @@ export function Header({
           <span className="hidden sm:inline opacity-80 truncate">{todLabel}</span>
         </div>
 
-        {/* Desktop: view toggle + carnet + avatar all inline */}
+        {/* Desktop: LIST toggle + profile switch + avatar */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">
-          {view && onViewChange && (
-            <div className="flex border border-ink mono text-[10px] tracking-widest">
-              <button
-                onClick={() => onViewChange("feed")}
-                className={`px-3 py-1.5 ${view === "feed" ? "bg-ink text-paper" : "bg-paper text-ink"}`}
-              >
-                FEED
-              </button>
-              <button
-                onClick={() => onViewChange("map")}
-                className={`px-3 py-1.5 border-l border-ink ${view === "map" ? "bg-ink text-paper" : "bg-paper text-ink"}`}
-              >
-                MAP
-              </button>
-            </div>
+          {showListToggle && (
+            <button
+              onClick={onTogglePanel}
+              className={`mono text-[10px] tracking-widest px-3 py-1.5 border border-ink transition ${
+                panelOpen ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-ink hover:text-paper"
+              }`}
+              aria-pressed={panelOpen}
+            >
+              {listLabel}
+            </button>
           )}
           <SignedIn>
             <Link
@@ -110,20 +108,15 @@ export function Header({
         </div>
       </div>
 
-      {/* Row 2 (mobile only) — view toggle + carnet, full width tabs */}
-      {view && onViewChange && (
+      {/* Row 2 (mobile only) — LIST toggle + profile switch */}
+      {showListToggle && (
         <div className="flex sm:hidden border-t border-ink mono text-[11px] tracking-widest">
           <button
-            onClick={() => onViewChange("feed")}
-            className={`flex-1 py-2.5 ${view === "feed" ? "bg-ink text-paper" : "bg-paper text-ink"}`}
+            onClick={onTogglePanel}
+            className={`flex-1 py-2.5 ${panelOpen ? "bg-ink text-paper" : "bg-paper text-ink"}`}
+            aria-pressed={panelOpen}
           >
-            FEED
-          </button>
-          <button
-            onClick={() => onViewChange("map")}
-            className={`flex-1 py-2.5 border-l border-ink ${view === "map" ? "bg-ink text-paper" : "bg-paper text-ink"}`}
-          >
-            MAP
+            {listLabel}
           </button>
           <SignedIn>
             <Link

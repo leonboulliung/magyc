@@ -84,38 +84,38 @@ body {
   transition: filter 1.8s ease-out;
   will-change: filter;
 }
-/* Dawn (06–08): warm peach, soft pink wash. */
+/* Dawn — warm peach wash, sky just brightening. */
 .cp-map[data-tod="dawn"] .leaflet-tile-pane {
-  filter: sepia(0.22) hue-rotate(-8deg) saturate(0.95) brightness(1.03);
+  filter: sepia(0.42) hue-rotate(-10deg) saturate(1.25) brightness(1.04);
 }
-.cp-map[data-tod="dawn"] .leaflet-overlay-pane { filter: sepia(0.18) brightness(0.95); }
-.cp-map[data-tod="dawn"] .leaflet-container { background: #f7e1d0 !important; }
+.cp-map[data-tod="dawn"] .leaflet-overlay-pane { filter: sepia(0.25) brightness(0.95); }
+.cp-map[data-tod="dawn"] .leaflet-container { background: #f7d8c0 !important; }
 
-/* Morning (08–11): clear, slightly cool, bright. */
+/* Morning — clear, slightly cool, lively. */
 .cp-map[data-tod="morning"] .leaflet-tile-pane {
-  filter: saturate(0.78) brightness(1.05);
+  filter: saturate(0.95) brightness(1.05) hue-rotate(-2deg);
 }
 .cp-map[data-tod="morning"] .leaflet-container { background: #e9eef3 !important; }
 
-/* Midday (11–15): bleached, very high brightness, low saturation. */
+/* Midday — bleached, near-white, very low saturation. */
 .cp-map[data-tod="midday"] .leaflet-tile-pane {
-  filter: contrast(0.93) saturate(0.55) brightness(1.08);
+  filter: contrast(0.94) saturate(0.55) brightness(1.1);
 }
 .cp-map[data-tod="midday"] .leaflet-container { background: #f4f4f0 !important; }
 
-/* Golden hour (15–18): honey, warm low sun. */
+/* Golden hour — honey wash, low warm sun. */
 .cp-map[data-tod="golden"] .leaflet-tile-pane {
-  filter: sepia(0.28) hue-rotate(-10deg) saturate(1.15) brightness(0.97);
+  filter: sepia(0.55) hue-rotate(-12deg) saturate(1.55) brightness(1.0);
 }
-.cp-map[data-tod="golden"] .leaflet-overlay-pane { filter: sepia(0.2) brightness(0.92); }
-.cp-map[data-tod="golden"] .leaflet-container { background: #efd3a8 !important; }
+.cp-map[data-tod="golden"] .leaflet-overlay-pane { filter: sepia(0.3) brightness(0.92); }
+.cp-map[data-tod="golden"] .leaflet-container { background: #edc488 !important; }
 
-/* Evening (18–21): muted pink-purple, dusk. */
+/* Evening — dusky pink-purple, painterly. */
 .cp-map[data-tod="evening"] .leaflet-tile-pane {
-  filter: sepia(0.25) hue-rotate(-22deg) saturate(0.85) brightness(0.88);
+  filter: sepia(0.5) hue-rotate(-30deg) saturate(1.4) brightness(0.96);
 }
-.cp-map[data-tod="evening"] .leaflet-overlay-pane { filter: brightness(0.85) saturate(0.9); }
-.cp-map[data-tod="evening"] .leaflet-container { background: #3e2c43 !important; }
+.cp-map[data-tod="evening"] .leaflet-overlay-pane { filter: hue-rotate(-20deg) saturate(1.2) brightness(0.92); }
+.cp-map[data-tod="evening"] .leaflet-container { background: #d4a2c4 !important; }
 
 /* Night (21–06): inverted base, deep blue sky, light labels. */
 .cp-map[data-tod="night"] .leaflet-tile-pane {
