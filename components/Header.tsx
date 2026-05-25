@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { parisHour, parisNow, formatParisClock } from "@/lib/time";
@@ -25,6 +26,13 @@ export function Header({
 
   const todLabel = TOD_LABEL[timeOfDayFromHour(parisHour())];
   const shortClock = clock ? clock.slice(0, 5) : "--:--";
+
+  // The toggle button: on profile-ish routes we send the user back to the
+  // city layer; everywhere else we offer the profile.
+  const pathname = usePathname() || "/";
+  const onProfileSurface = pathname.startsWith("/carnet") || pathname.startsWith("/u/");
+  const altDest = onProfileSurface ? "/" : "/carnet";
+  const altLabel = onProfileSurface ? "FEED" : "PROFILE";
 
   return (
     <header className="shrink-0 z-50 bg-paper border-b border-ink safe-top">
@@ -67,10 +75,10 @@ export function Header({
           )}
           <SignedIn>
             <Link
-              href="/carnet"
+              href={altDest}
               className="ml-1 mono text-[10px] tracking-widest px-3 py-1.5 border border-ink hover:bg-ink hover:text-paper"
             >
-              PROFILE
+              {altLabel}
             </Link>
             <div className="ml-1 [&_.cl-userButtonAvatarBox]:!w-9 [&_.cl-userButtonAvatarBox]:!h-9 [&_.cl-userButtonAvatarBox]:!rounded-none [&_.cl-userButtonAvatarBox]:!border [&_.cl-userButtonAvatarBox]:!border-ink">
               <UserButton afterSignOutUrl="/" />
@@ -119,10 +127,10 @@ export function Header({
           </button>
           <SignedIn>
             <Link
-              href="/carnet"
+              href={altDest}
               className="flex-1 py-2.5 border-l border-ink text-center"
             >
-              PROFILE
+              {altLabel}
             </Link>
           </SignedIn>
         </div>

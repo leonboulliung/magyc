@@ -133,7 +133,7 @@ export default function PublicProfilePage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="mono text-[10px] tracking-widest opacity-60">PROFILE</div>
-              <h1 className="editorial font-black text-[34px] sm:text-[56px] leading-none mt-1 truncate">
+              <h1 className="editorial font-black text-[34px] sm:text-[56px] leading-[1.05] mt-1 pb-1 truncate">
                 @{profile.displayName}
               </h1>
               <div className="mono text-[11px] mt-2 opacity-70">
@@ -289,9 +289,15 @@ function PublicTrackRow({ entry }: { entry: TrackEntry }) {
           <div className={`absolute left-2 top-2 mono text-[9px] tracking-widest px-1.5 py-0.5 ${dark ? "bg-paper text-ink" : "bg-ink text-paper"}`}>
             {ACTIVITY_LABEL[activity]}
           </div>
-          <div className={`absolute right-2 bottom-2 mono text-[9px] tracking-widest px-1.5 py-0.5 ${dark ? "bg-paper text-ink" : "bg-ink text-paper"}`}>
-            {status}
-          </div>
+          {status === "ACTIVE" ? (
+            <div className={`absolute right-2 bottom-2 mono text-[9px] tracking-widest px-1.5 py-0.5 font-medium ${dark ? "bg-paper text-ink" : "bg-ink text-paper"}`}>
+              ● ACTIVE
+            </div>
+          ) : (
+            <div className={`absolute right-2 bottom-2 mono text-[9px] tracking-widest px-1.5 py-0.5 border border-dashed bg-transparent ${dark ? "text-paper/70 border-paper/50" : "text-ink/55 border-ink/40"}`}>
+              ◌ ARCHIVED
+            </div>
+          )}
         </Link>
         <div className="flex-1 px-4 sm:px-6 py-4 sm:py-5 min-w-0">
           <div className="mono text-[10px] tracking-widest flex items-center gap-2 opacity-70 flex-wrap">
