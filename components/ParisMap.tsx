@@ -125,12 +125,14 @@ export function ParisMap({
         minZoom: 11,
         maxZoom: 18,
         // Continuous zoom (Google-Maps-style) instead of integer steps.
-        // zoomSnap=0 lets the map land at any zoom value; zoomDelta keeps
-        // the +/- buttons sensible; wheelPxPerZoomLevel = how many pixels
-        // of wheel input per zoom unit — smaller = more responsive.
+        // zoomSnap=0 → map can rest at any fractional zoom (the "fine" feel).
+        // zoomDelta=1 → +/- buttons + double-click do a full, satisfying level.
+        // wheelPxPerZoomLevel: fewer px per zoom unit = MORE zoom per scroll.
+        // 45 is snappier than Leaflet's default 60, so trackpad/​wheel both
+        // move noticeably per gesture while staying smooth.
         zoomSnap: 0,
-        zoomDelta: 0.5,
-        wheelPxPerZoomLevel: 80,
+        zoomDelta: 1,
+        wheelPxPerZoomLevel: 45,
         zoomAnimation: true,
         ...(gestureHandling
           ? ({
