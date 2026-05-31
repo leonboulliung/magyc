@@ -407,6 +407,37 @@ async function fetchParisTiles(
   return out;
 }
 
+// Fan out pins that share a coordinate (e.g. several cards all pinned to the
+// "Le Marais" quartier centre) into a small deterministic circle, so every pin
+// stays visible on the poster instead of stacking into one. Mirrors the live
+// Constellation de-collision. Longitude offset is scaled by 1/cos(lat) so the
+// fan reads round at Paris latitude.
+function fanCoincident<T extends { lat: number; lng: number }>(
+  items: T[],
+  latR = 0.0009, // ~100m default; the poster passes a larger value because it
+                 // projects onto the whole-Paris extent where 100m is ~6px.
+): T[] {
+  const groups = new Map<string, T[]>();
+  const keyOf = (it: T) => `${it.lat.toFixed(4)},${it.lng.toFixed(4)}`;
+  for (const it of items) {
+    const k = keyOf(it);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(it);
+  }
+  return items.map((it) => {
+    const group = groups.get(keyOf(it))!;
+    if (group.length === 1) return it;
+    const idx = group.indexOf(it);
+    const angle = (2 * Math.PI * idx) / group.length - Math.PI / 2;
+    const lngR = latR / Math.max(0.3, Math.cos((it.lat * Math.PI) / 180));
+    return {
+      ...it,
+      lat: it.lat + latR * Math.sin(angle),
+      lng: it.lng + lngR * Math.cos(angle),
+    };
+  });
+}
+
 // Carnet poster: stitches together the user's whole pin constellation,
 // on top of a real Paris map (CARTO Positron no-labels tiles).
 export async function renderCarnetPoster(
@@ -511,7 +542,9 @@ export async function renderCarnetPoster(
     };
   };
 
-  const ordered = [...cards].sort((a, b) => a.createdAt - b.createdAt);
+  // Larger fan radius for the poster — it projects onto the full Paris extent,
+  // so coincident pins need ~600m of spread to read as a distinct cluster.
+  const ordered = fanCoincident(cards, 0.006).sort((a, b) => a.createdAt - b.createdAt);
 
   // chronological dashed connector
   if (ordered.length > 1) {

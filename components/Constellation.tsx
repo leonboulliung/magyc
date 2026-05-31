@@ -16,32 +16,64 @@ interface Props {
 
 type LatLngTuple = [number, number];
 
-/** Bounds that frame the actual pins (with small buffer), falling back
- *  to a sensible zoom for 0 or 1 pins. */
-function boundsForEntries(entries: TrackEntry[]): [LatLngTuple, LatLngTuple] {
-  if (entries.length === 0) return PARIS_BOUNDS;
+/** A plotted point: an entry with its (possibly fanned-out) coordinates. */
+type PlottedPoint = { entry: TrackEntry; lat: number; lng: number };
 
-  if (entries.length === 1) {
-    const e = entries[0];
-    const off = 0.012; // ~roughly 1.3km square
+/**
+ * De-collide coincident pins. Picking a quartier suggestion (e.g. "Le Marais")
+ * gives every card the identical quartier centre, so multiple cards stack into
+ * a single marker. We fan any group that shares a coordinate out into a small
+ * circle around their common centre — deterministic, so the layout is stable —
+ * and scale the longitude offset by 1/cos(lat) so the fan reads visually round
+ * at Paris latitude. Single points are left untouched.
+ */
+function deCollide(entries: TrackEntry[]): PlottedPoint[] {
+  const groups = new Map<string, TrackEntry[]>();
+  const keyOf = (e: TrackEntry) =>
+    `${e.card.location!.lat.toFixed(4)},${e.card.location!.lng.toFixed(4)}`;
+  for (const e of entries) {
+    const k = keyOf(e);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(e);
+  }
+
+  const LAT_R = 0.0009; // ~100m fan radius
+
+  return entries.map((e) => {
+    const { lat, lng } = e.card.location!;
+    const group = groups.get(keyOf(e))!;
+    if (group.length === 1) return { entry: e, lat, lng };
+
+    const idx = group.indexOf(e);
+    const n = group.length;
+    // Start at the top, distribute clockwise around the shared centre.
+    const angle = (2 * Math.PI * idx) / n - Math.PI / 2;
+    const lngR = LAT_R / Math.max(0.3, Math.cos((lat * Math.PI) / 180));
+    return {
+      entry: e,
+      lat: lat + LAT_R * Math.sin(angle),
+      lng: lng + lngR * Math.cos(angle),
+    };
+  });
+}
+
+/** Bounds that frame a set of already-plotted points (with small buffer). */
+function boundsForPoints(pts: PlottedPoint[]): [LatLngTuple, LatLngTuple] {
+  if (pts.length === 0) return PARIS_BOUNDS;
+  if (pts.length === 1) {
+    const off = 0.012; // ~1.3km square
     return [
-      [e.card.location!.lat - off, e.card.location!.lng - off],
-      [e.card.location!.lat + off, e.card.location!.lng + off],
+      [pts[0].lat - off, pts[0].lng - off],
+      [pts[0].lat + off, pts[0].lng + off],
     ];
   }
-
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  let minLng = Infinity;
-  let maxLng = -Infinity;
-  for (const e of entries) {
-    const { lat, lng } = e.card.location!;
-    if (lat < minLat) minLat = lat;
-    if (lat > maxLat) maxLat = lat;
-    if (lng < minLng) minLng = lng;
-    if (lng > maxLng) maxLng = lng;
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const p of pts) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
   }
-  // Padding so pins aren't flush against the frame
   const padLat = Math.max(0.004, (maxLat - minLat) * 0.18);
   const padLng = Math.max(0.004, (maxLng - minLng) * 0.18);
   return [
@@ -63,7 +95,9 @@ export function Constellation({ entries, className = "", aspect = "4 / 3" }: Pro
     () => entries.filter((e) => !!e.card.location),
     [entries],
   );
-  const fitBounds = useMemo(() => boundsForEntries(geoEntries), [geoEntries]);
+  // Fan out coincident pins so every entry stays visible, then frame to that.
+  const plotted = useMemo(() => deCollide(geoEntries), [geoEntries]);
+  const fitBounds = useMemo(() => boundsForPoints(plotted), [plotted]);
 
   // Mount the Leaflet map once.
   useEffect(() => {
@@ -106,7 +140,7 @@ export function Constellation({ entries, className = "", aspect = "4 / 3" }: Pro
 
       const invalidateAndFit = () => {
         map.invalidateSize({ animate: false });
-        const b = boundsForEntries(entries.filter((e) => !!e.card.location));
+        const b = boundsForPoints(deCollide(entries.filter((e) => !!e.card.location)));
         map.fitBounds(b as unknown as L.LatLngBoundsExpression, {
           padding: [16, 16],
           animate: false,
@@ -155,13 +189,12 @@ export function Constellation({ entries, className = "", aspect = "4 / 3" }: Pro
     if (!map || !L || !group) return;
     group.clearLayers();
 
-    const ordered = geoEntries.slice().sort((a, b) => a.at - b.at);
+    // Use the de-collided coordinates so stacked pins fan out and every
+    // entry is distinct. Chronological order drives the numbering + path.
+    const ordered = plotted.slice().sort((a, b) => a.entry.at - b.entry.at);
 
     if (ordered.length > 1) {
-      const latlngs: LatLngTuple[] = ordered.map((e) => [
-        e.card.location!.lat,
-        e.card.location!.lng,
-      ]);
+      const latlngs: LatLngTuple[] = ordered.map((p) => [p.lat, p.lng]);
       L.polyline(latlngs, {
         color: "#0a0a0a",
         opacity: 0.45,
@@ -171,8 +204,8 @@ export function Constellation({ entries, className = "", aspect = "4 / 3" }: Pro
       }).addTo(group);
     }
 
-    ordered.forEach((e, i) => {
-      const inner = cardColor(e.card);
+    ordered.forEach((p, i) => {
+      const inner = cardColor(p.entry.card);
       // Outer ring used to come from the category; we now use ink for a
       // clean, editorial look that reads against any tile palette.
       const outer = "#0a0a0a";
@@ -199,20 +232,20 @@ export function Constellation({ entries, className = "", aspect = "4 / 3" }: Pro
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
-      L.marker([e.card.location!.lat, e.card.location!.lng], {
+      L.marker([p.lat, p.lng], {
         icon,
         interactive: false,
         keyboard: false,
       }).addTo(group);
     });
 
-    // Always refit to the entries' actual bounds when they change.
+    // Always refit to the fanned-out bounds when they change.
     map.invalidateSize({ animate: false });
     map.fitBounds(fitBounds as unknown as L.LatLngBoundsExpression, {
       padding: [16, 16],
       animate: false,
     });
-  }, [geoEntries, ready, fitBounds]);
+  }, [plotted, ready, fitBounds]);
 
   return (
     <div
