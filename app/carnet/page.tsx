@@ -14,6 +14,7 @@ import { Constellation } from "@/components/Constellation";
 import { ProfileEditor } from "@/components/ProfileEditor";
 
 type Tab = "track" | "carnet";
+type TrackFilter = "all" | "ideas" | "things";
 
 interface MonthGroup {
   key: string;
@@ -64,6 +65,7 @@ function mapProfileRow(p: Record<string, unknown>): Profile {
 export default function CarnetPage() {
   const { user, isLoaded } = useUser();
   const [tab, setTab] = useState<Tab>("track");
+  const [trackFilter, setTrackFilter] = useState<TrackFilter>("all");
   const [track, setTrack] = useState<TrackEntry[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [exporting, setExporting] = useState<"png" | "pdf" | null>(null);
@@ -111,6 +113,18 @@ export default function CarnetPage() {
     })();
     return { created, joined, total: track.length, rolesPlayed, quartiers, monthsSpan };
   }, [track]);
+
+  // Track filter: lets the user isolate just their ideas (the latent layer)
+  // or just their things (the concrete one) from a mixed track record.
+  const filterCounts = useMemo(() => {
+    const ideas = track.filter((t) => t.card.kind === "idea").length;
+    return { all: track.length, ideas, things: track.length - ideas };
+  }, [track]);
+  const filteredTrack = useMemo(() => {
+    if (trackFilter === "all") return track;
+    const want: "idea" | "thing" = trackFilter === "ideas" ? "idea" : "thing";
+    return track.filter((t) => t.card.kind === want);
+  }, [track, trackFilter]);
 
   // Username can change 1×/week. If we're still inside the cooldown, surface
   // when the next change becomes possible (mirrors the rule in ProfileEditor).
@@ -247,13 +261,32 @@ export default function CarnetPage() {
                 <Link href="/" className="btn inline-block mt-6">＋ POST ONE THING</Link>
               </div>
             ) : (
-              track.map((t) => (
-                <TrackRow
-                  key={`${t.card.id}-${t.isCreator ? "c" : "j"}`}
-                  entry={t}
-                  avatarUrl={user.imageUrl}
-                />
-              ))
+              <>
+                <div className="px-4 sm:px-8 py-3 border-b border-rule flex flex-wrap gap-2 items-center">
+                  {(["all", "ideas", "things"] as TrackFilter[]).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setTrackFilter(f)}
+                      className={`mono text-[10px] tracking-widest px-3 py-1.5 rounded-full border transition-colors ${trackFilter === f ? "bg-ink text-paper border-ink" : "bg-paper text-ink border-rule-strong hover:bg-ink hover:text-paper"}`}
+                    >
+                      {f.toUpperCase()} · {filterCounts[f]}
+                    </button>
+                  ))}
+                </div>
+                {filteredTrack.length === 0 ? (
+                  <div className="px-6 py-16 text-center mono text-[11px] tracking-widest opacity-60">
+                    NO {trackFilter.toUpperCase()} YET.
+                  </div>
+                ) : (
+                  filteredTrack.map((t) => (
+                    <TrackRow
+                      key={`${t.card.id}-${t.isCreator ? "c" : "j"}`}
+                      entry={t}
+                      avatarUrl={user.imageUrl}
+                    />
+                  ))
+                )}
+              </>
             )}
           </div>
         )}

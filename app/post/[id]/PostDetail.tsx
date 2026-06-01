@@ -355,7 +355,7 @@ export function PostDetail({ id }: { id: string }) {
         {/* IDEA-only: optional loose place line + mini-map if pinned */}
         {isIdea && card.location && (
           <div className="rounded-2xl overflow-hidden border border-rule shadow-sm h-56">
-            <ParisMap cards={[card]} highlightId={card.id} />
+            <ParisMap cards={[card]} highlightId={card.id} focusedCard={card} />
           </div>
         )}
 
