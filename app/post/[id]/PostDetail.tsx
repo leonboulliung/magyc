@@ -226,11 +226,14 @@ export function PostDetail({ id }: { id: string }) {
           </div>
         </div>
       ) : (
-        // THING hero — the card's color tints a live mini-Paris-map.
-        // Map is purely visual here (pointer-events disabled); the real map
-        // is the Home surface, and the place tile below opens external maps.
+        // THING hero — the Paris-map fully tinted with the card's color.
+        // `isolate` is required so Leaflet's pane z-indexes stay contained;
+        // without it, the blend overlay sits below the tile pane (z=200) and
+        // has no effect. With multiply at full opacity the map is rendered
+        // entirely in the card's color, streets reading as darker tones.
+        // Title lives below the hero (in the content column).
         <div
-          className="relative h-[52vh] sm:h-[60vh] border-b border-rule overflow-hidden"
+          className="relative isolate h-[36vh] sm:h-[44vh] border-b border-rule overflow-hidden"
           style={{ backgroundColor: color }}
         >
           {card.location && (
@@ -243,33 +246,27 @@ export function PostDetail({ id }: { id: string }) {
                 style={{
                   backgroundColor: color,
                   mixBlendMode: "multiply",
-                  opacity: dark ? 0.5 : 0.6,
-                }}
-                aria-hidden
-              />
-              <div
-                className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
-                style={{
-                  background: `linear-gradient(to top, ${color}, transparent)`,
                 }}
                 aria-hidden
               />
             </>
           )}
-          <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-8 pointer-events-none">
-            <div className={`flex items-center gap-2 ${dark ? "text-white" : "text-[#0d0d0d]"}`}>
-              <span className={`mono text-[10px] tracking-widest px-2.5 py-1 rounded-full ${dark ? "bg-white/90 text-[#0d0d0d]" : "bg-[#0d0d0d]/90 text-white"}`}>
-                {headlineTag}
-              </span>
-            </div>
-            <h1 className={`editorial font-black text-[42px] sm:text-[88px] mt-3 max-w-[20ch] ${dark ? "text-white" : "text-[#0d0d0d]"}`}>
-              {card.title}
-            </h1>
-          </div>
         </div>
       )}
 
-      <div className="px-4 sm:px-8 py-6 max-w-4xl w-full mx-auto space-y-6">
+      <div className="px-4 sm:px-8 pt-8 sm:pt-10 pb-6 max-w-4xl w-full mx-auto space-y-6">
+        {/* THING title — sits below the tinted map, editorial size on paper. */}
+        {!isIdea && (
+          <div>
+            <div className="mono text-[10px] tracking-widest opacity-80">
+              {headlineTag}
+            </div>
+            <h1 className="editorial font-black text-[42px] sm:text-[88px] leading-[0.95] max-w-[20ch] mt-2">
+              {card.title}
+            </h1>
+          </div>
+        )}
+
         {/* author + meta row */}
         <div className="flex items-center gap-3 mono text-[11px]">
           {card.owner.avatarUrl ? (
