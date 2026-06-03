@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Card } from "@/lib/types";
 import { CardItem } from "./CardItem";
 import { IdeaItem } from "./IdeaItem";
@@ -48,28 +48,60 @@ export function FeedPanel({
   const total = ideas.length + things.length;
   const collapseLabel = isDesktop ? "HIDE ›" : "MAP ↓";
 
-  // Mobile drag-to-close on the top grip-handle. Touch handlers only fire on
-  // the handle row, so the cards list inside the sheet stays freely
-  // scrollable. The sheet visually follows the finger while dragging, and
-  // collapses if the user releases past a small threshold.
-  const dragStartY = useRef<number | null>(null);
+  // Mobile drag-to-close on the top grip-handle. We attach native touch
+  // listeners (not React synthetic events) because React's onTouchMove is
+  // passive by default in modern versions — we can't call preventDefault()
+  // there, and without it iOS Safari treats the swipe as a page scroll
+  // instead of a sheet drag. The sheet visually follows the finger while
+  // dragging and collapses past an 80px threshold.
+  const gripRef = useRef<HTMLDivElement>(null);
   const [dragOffset, setDragOffset] = useState(0);
-  const handleDragStart = (e: React.TouchEvent) => {
-    dragStartY.current = e.touches[0].clientY;
-    setDragOffset(0);
-  };
-  const handleDragMove = (e: React.TouchEvent) => {
-    if (dragStartY.current === null) return;
-    const delta = e.touches[0].clientY - dragStartY.current;
-    setDragOffset(Math.max(0, delta));
-  };
-  const handleDragEnd = () => {
-    if (dragStartY.current === null) return;
-    const delta = dragOffset;
-    dragStartY.current = null;
-    setDragOffset(0);
-    if (delta > 80) onExpandedChange(false);
-  };
+  // Latest values mirrored into refs so the touch-end handler reads the
+  // current delta without re-binding listeners on every state change.
+  const startYRef = useRef<number | null>(null);
+  const lastDeltaRef = useRef(0);
+
+  useEffect(() => {
+    if (isDesktop || !expanded) return;
+    const grip = gripRef.current;
+    if (!grip) return;
+
+    const onStart = (e: TouchEvent) => {
+      startYRef.current = e.touches[0].clientY;
+      lastDeltaRef.current = 0;
+      setDragOffset(0);
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startYRef.current === null) return;
+      const delta = e.touches[0].clientY - startYRef.current;
+      if (delta > 0) {
+        // We own this gesture — block the page from scrolling underneath.
+        e.preventDefault();
+        lastDeltaRef.current = delta;
+        setDragOffset(delta);
+      }
+    };
+    const onEnd = () => {
+      if (startYRef.current === null) return;
+      const delta = lastDeltaRef.current;
+      startYRef.current = null;
+      lastDeltaRef.current = 0;
+      setDragOffset(0);
+      if (delta > 80) onExpandedChange(false);
+    };
+
+    grip.addEventListener("touchstart", onStart, { passive: true });
+    grip.addEventListener("touchmove", onMove, { passive: false });
+    grip.addEventListener("touchend", onEnd, { passive: true });
+    grip.addEventListener("touchcancel", onEnd, { passive: true });
+
+    return () => {
+      grip.removeEventListener("touchstart", onStart);
+      grip.removeEventListener("touchmove", onMove);
+      grip.removeEventListener("touchend", onEnd);
+      grip.removeEventListener("touchcancel", onEnd);
+    };
+  }, [isDesktop, expanded, onExpandedChange]);
 
   // Cards from people you follow lead the field as a prioritized section.
   const isFollowed = (c: Card) => !!followingIds?.has(c.ownerId);
@@ -210,25 +242,32 @@ export function FeedPanel({
         />
       )}
       <div
-        className={`absolute inset-x-0 bottom-0 z-[600] flex flex-col bg-paper/95 backdrop-blur-md border-t border-rule rounded-t-2xl shadow-lg overflow-hidden ${dragOffset > 0 ? "" : "transition-[height,transform] duration-300 ease-out"}`}
+        className="absolute inset-x-0 bottom-0 z-[600] flex flex-col bg-paper/95 backdrop-blur-md border-t border-rule rounded-t-2xl shadow-lg overflow-hidden"
         style={{
           height: expanded ? "80dvh" : "52px",
           maxHeight: "calc(100dvh - 80px)",
-          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          transform: `translateY(${dragOffset}px)`,
+          transition: dragOffset > 0
+            ? "none"
+            : "height 300ms ease-out, transform 200ms ease-out",
         }}
         aria-label="The field"
       >
         {expanded ? (
           <>
             <div
-              className="flex justify-center items-center pt-2.5 pb-2 shrink-0 cursor-grab touch-none select-none"
-              onTouchStart={handleDragStart}
-              onTouchMove={handleDragMove}
-              onTouchEnd={handleDragEnd}
-              onTouchCancel={() => { dragStartY.current = null; setDragOffset(0); }}
-              aria-label="Drag to close"
+              ref={gripRef}
+              className="flex flex-col justify-center items-center pt-3 pb-3 shrink-0 select-none"
+              style={{
+                touchAction: "none",
+                WebkitUserSelect: "none",
+                WebkitTouchCallout: "none",
+                cursor: "grab",
+              }}
+              role="separator"
+              aria-label="Drag to close the field"
             >
-              <div className="h-1.5 w-12 bg-ink/30 rounded-full" />
+              <div className="h-1.5 w-14 bg-ink/40 rounded-full" />
             </div>
             {body}
           </>

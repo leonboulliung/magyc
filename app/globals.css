@@ -49,6 +49,13 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Contain overscroll so iOS rubber-band doesn't reveal blank space
+     past the bottom of the content. The body already has
+     overscroll-behavior-y: none, but inner scroll containers need it
+     too — otherwise a downward swipe past the last element still
+     "stretches" the surface. */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .app-shell > main.no-scroll {
   overflow: hidden;
