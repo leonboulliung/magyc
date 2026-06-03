@@ -8,7 +8,7 @@ import { fetchTrackRecord } from "@/lib/db";
 import { useRealtimeCards } from "@/lib/realtime";
 import type { Profile, TrackEntry } from "@/lib/types";
 import { expiresIn, timeAgo } from "@/lib/time";
-import { downloadCarnetPoster, exportCarnetPrintable, shareCard } from "@/lib/share";
+import { downloadCarnetPoster, shareCard } from "@/lib/share";
 import { cardColor, isDark } from "@/lib/color";
 import { Constellation } from "@/components/Constellation";
 import { ProfileEditor } from "@/components/ProfileEditor";
@@ -68,7 +68,7 @@ export default function CarnetPage() {
   const [trackFilter, setTrackFilter] = useState<TrackFilter>("all");
   const [track, setTrack] = useState<TrackEntry[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [exporting, setExporting] = useState<"png" | "pdf" | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
 
   const refresh = useCallback(() => {
@@ -311,7 +311,7 @@ export default function CarnetPage() {
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={async () => {
-                        setExporting("png");
+                        setExporting(true);
                         try {
                           await downloadCarnetPoster(
                             mapCards.map((c) => ({
@@ -326,20 +326,13 @@ export default function CarnetPage() {
                             displayName,
                           );
                         } finally {
-                          setExporting(null);
+                          setExporting(false);
                         }
                       }}
-                      disabled={exporting !== null}
+                      disabled={exporting}
                       className="btn"
                     >
-                      {exporting === "png" ? "RENDERING…" : "↓ PNG POSTER"}
-                    </button>
-                    <button
-                      onClick={() => exportCarnetPrintable(mapCards, displayName)}
-                      className="btn ghost"
-                      disabled={exporting !== null}
-                    >
-                      ↓ PDF
+                      {exporting ? "RENDERING…" : "↓ PNG POSTER"}
                     </button>
                   </div>
                 </div>

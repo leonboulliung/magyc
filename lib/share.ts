@@ -411,11 +411,13 @@ async function fetchParisTiles(
 // fan reads round at Paris latitude.
 function fanCoincident<T extends { lat: number; lng: number }>(
   items: T[],
-  latR = 0.0009, // ~100m default; the poster passes a larger value because it
-                 // projects onto the whole-Paris extent where 100m is ~6px.
+  latR = 0.0014, // ~155m default — matches the live Constellation's fan
+                 // radius so the poster reads as the same layout.
 ): T[] {
+  // Three-decimal key (~110m) groups cards pinned to the same quartier or
+  // to nearby points within a block — same threshold as the live map.
   const groups = new Map<string, T[]>();
-  const keyOf = (it: T) => `${it.lat.toFixed(4)},${it.lng.toFixed(4)}`;
+  const keyOf = (it: T) => `${it.lat.toFixed(3)},${it.lng.toFixed(3)}`;
   for (const it of items) {
     const k = keyOf(it);
     if (!groups.has(k)) groups.set(k, []);
@@ -433,6 +435,33 @@ function fanCoincident<T extends { lat: number; lng: number }>(
       lng: it.lng + lngR * Math.cos(angle),
     };
   });
+}
+
+// Bounds that frame the user's plotted pins, with a comfortable buffer
+// so the poster reads like the live Constellation (zoomed onto the
+// person's footprint, not the whole metro area).
+function boundsForPoints(pts: { lat: number; lng: number }[]): [[number, number], [number, number]] {
+  if (pts.length === 0) return PARIS_BOUNDS;
+  if (pts.length === 1) {
+    const off = 0.012; // ~1.3km square
+    return [
+      [pts[0].lat - off, pts[0].lng - off],
+      [pts[0].lat + off, pts[0].lng + off],
+    ];
+  }
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const p of pts) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  }
+  const padLat = Math.max(0.004, (maxLat - minLat) * 0.18);
+  const padLng = Math.max(0.004, (maxLng - minLng) * 0.18);
+  return [
+    [minLat - padLat, minLng - padLng],
+    [maxLat + padLat, maxLng + padLng],
+  ];
 }
 
 // Carnet poster: stitches together the user's whole pin constellation,
@@ -487,9 +516,14 @@ export async function renderCarnetPoster(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(mx, my, mw, mh);
 
-  // Fetch & paint real CARTO tiles for the Paris bbox.
+  // Frame the poster to the user's own pins (with a buffer) — same idea
+  // as the live Constellation, so the printable view matches what's on
+  // screen instead of zooming out to all of Paris.
+  const posterBounds = boundsForPoints(cards);
+
+  // Fetch & paint real CARTO tiles for the user's bbox.
   try {
-    const tileCanvas = await fetchParisTiles(13, PARIS_BOUNDS);
+    const tileCanvas = await fetchParisTiles(14, posterBounds);
     // draw with light desaturation by lowering alpha slightly to keep pins prominent
     ctx.save();
     ctx.globalAlpha = 0.92;
@@ -528,7 +562,7 @@ export async function renderCarnetPoster(
   ctx.lineWidth = 2;
   ctx.strokeRect(mx + 1, my + 1, mw - 2, mh - 2);
 
-  const [[minLat, minLng], [maxLat, maxLng]] = PARIS_BOUNDS;
+  const [[minLat, minLng], [maxLat, maxLng]] = posterBounds;
 
   const projectPoint = (lat: number, lng: number) => {
     const nx = (lng - minLng) / (maxLng - minLng);
@@ -539,9 +573,9 @@ export async function renderCarnetPoster(
     };
   };
 
-  // Larger fan radius for the poster — it projects onto the full Paris extent,
-  // so coincident pins need ~600m of spread to read as a distinct cluster.
-  const ordered = fanCoincident(cards, 0.006).sort((a, b) => a.createdAt - b.createdAt);
+  // Same fan radius as the live Constellation, so coincident pins land
+  // in the same relative positions across both surfaces.
+  const ordered = fanCoincident(cards).sort((a, b) => a.createdAt - b.createdAt);
 
   // chronological dashed connector
   if (ordered.length > 1) {
@@ -624,56 +658,3 @@ export async function downloadCarnetPoster(
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-// Stitched cards PDF — emitted as a multi-page printable HTML doc (browser print → PDF)
-export function exportCarnetPrintable(cards: Card[], email: string) {
-  const w = window.open("", "_blank");
-  if (!w) return;
-  const css = `
-    @page { size: A4; margin: 12mm; }
-    body { font-family: Inter, sans-serif; color: #0a0a0a; background: #fafafa; }
-    .card { page-break-after: always; padding: 16mm; border: 2px solid #0a0a0a; margin-bottom: 8mm; }
-    .card:last-child { page-break-after: auto; }
-    h1 { font-size: 40pt; line-height: .95; letter-spacing: -0.04em; margin: 0 0 8mm; }
-    .meta { font-family: 'JetBrains Mono', monospace; font-size: 10pt; letter-spacing: .04em; text-transform: uppercase; }
-    .hero { height: 60mm; margin-bottom: 6mm; }
-    .desc { font-size: 14pt; line-height: 1.4; }
-    .wm { font-family: 'JetBrains Mono', monospace; font-size: 9pt; letter-spacing: .12em; margin-top: 12mm; }
-  `;
-  const blocks = cards
-    .map((c) => {
-      const color = cardColor(c);
-      const expiryStr = c.expiresAt
-        ? new Date(c.expiresAt).toLocaleString("en-GB", {
-            weekday: "short",
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "";
-      return `<div class="card">
-        <div class="meta">${email.toUpperCase()} · ${new Date(c.createdAt).toISOString().slice(0,10)}</div>
-        <div class="hero" style="background:${color}"></div>
-        <h1>${escapeHtml(c.title)}</h1>
-        <div class="meta">${c.kind === "idea"
-          ? `idea · ${c.location?.label ? escapeHtml(c.location.label) + " · " : ""}${c.signals.length} resonating`
-          : `${escapeHtml(c.location?.label || "Paris")} · starts ${escapeHtml(expiryStr)} · ${c.joiners.length}/${c.spots ?? "—"} spots`}</div>
-        <p class="desc">${escapeHtml(c.description || "")}</p>
-        <div class="wm">CREATOR.PARIS</div>
-      </div>`;
-    })
-    .join("");
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Carnet — ${escapeHtml(email)}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <style>${css}</style></head><body>${blocks}<script>setTimeout(()=>window.print(),500)</script></body></html>`);
-  w.document.close();
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
