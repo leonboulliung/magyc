@@ -55,6 +55,14 @@ export function PostDetail({ id }: { id: string }) {
   const [suggestError, setSuggestError] = useState<string>("");
   const [savingFields, setSavingFields] = useState(false);
 
+  // Roadmap editor state — sibling to custom fields. AI proposes step
+  // labels abstracted from the creator's intent; the creator owns the
+  // order + wording.
+  const [roadmapDraft, setRoadmapDraft] = useState<string[] | null>(null);
+  const [suggestingRoadmap, setSuggestingRoadmap] = useState(false);
+  const [roadmapError, setRoadmapError] = useState<string>("");
+  const [savingRoadmap, setSavingRoadmap] = useState(false);
+
   const { user } = useUser();
 
   const refresh = useCallback(() => {
@@ -236,6 +244,61 @@ export function PostDetail({ id }: { id: string }) {
     } finally {
       setSavingFields(false);
     }
+  }
+
+  // Roadmap: ask the AI for 3-5 step labels, then let the owner edit.
+  async function suggestRoadmap() {
+    if (!card) return;
+    setSuggestingRoadmap(true);
+    setRoadmapError("");
+    try {
+      const res = await fetch(`/api/cards/${card.id}/suggest-roadmap`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setRoadmapError(json?.error || "suggest_failed");
+        return;
+      }
+      const aiSteps: string[] = Array.isArray(json.steps) ? json.steps : [];
+      // Merge existing user steps after the new suggestions, so an iterate
+      // doesn't blow away what was already written.
+      const merged = [...aiSteps];
+      for (const s of card.roadmap) {
+        if (!merged.includes(s)) merged.push(s);
+      }
+      setRoadmapDraft(merged.length ? merged : [""]);
+    } catch (e) {
+      setRoadmapError((e as Error).message);
+    } finally {
+      setSuggestingRoadmap(false);
+    }
+  }
+  async function saveRoadmap() {
+    if (!card || !roadmapDraft) return;
+    setSavingRoadmap(true);
+    try {
+      const cleaned = roadmapDraft.map((s) => s.trim()).filter(Boolean);
+      await fetch(`/api/cards/${card.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ roadmap: cleaned }),
+      });
+      setRoadmapDraft(null);
+      refresh();
+    } finally {
+      setSavingRoadmap(false);
+    }
+  }
+  function moveRoadmapStep(i: number, dir: -1 | 1) {
+    setRoadmapDraft((d) => {
+      if (!d) return d;
+      const j = i + dir;
+      if (j < 0 || j >= d.length) return d;
+      const next = d.slice();
+      const tmp = next[i];
+      next[i] = next[j];
+      next[j] = tmp;
+      return next;
+    });
   }
 
   // Banner copy depends on what just happened.
@@ -552,6 +615,138 @@ export function PostDetail({ id }: { id: string }) {
                 {!fieldsDraft && suggestError && (
                   <p className="mono text-[10px] text-red-700 mt-2">
                     {suggestError.toUpperCase()}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ROADMAP — ordered list of abstract steps the creator
+                needs to make this thing happen. AI proposes the
+                labels; the creator owns the order + wording. Same
+                discipline as custom fields — no invented specifics. */}
+            {(card.roadmap.length > 0 || mine) && (
+              <div className="border-t border-rule pt-5">
+                {roadmapDraft ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="mono text-[10px] tracking-widest opacity-70">ROADMAP</span>
+                      <button
+                        onClick={() => { setRoadmapDraft(null); setRoadmapError(""); }}
+                        className="mono text-[10px] opacity-60 hover:opacity-100"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                    {roadmapDraft.map((step, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="mono text-[10px] tracking-widest opacity-60 pt-3 tabular-nums w-6 shrink-0">
+                          {String(i + 1).padStart(2, "0")}
+                        </div>
+                        <input
+                          value={step}
+                          onChange={(e) =>
+                            setRoadmapDraft((d) =>
+                              d ? d.map((x, idx) => (idx === i ? e.target.value : x)) : d,
+                            )
+                          }
+                          placeholder="An abstract step…"
+                          maxLength={160}
+                          className="input flex-1"
+                        />
+                        <div className="flex flex-col gap-0.5 pt-2 shrink-0">
+                          <button
+                            onClick={() => moveRoadmapStep(i, -1)}
+                            disabled={i === 0}
+                            className="mono text-[11px] opacity-50 hover:opacity-100 disabled:opacity-20 leading-none"
+                            aria-label="Move up"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            onClick={() => moveRoadmapStep(i, 1)}
+                            disabled={i === roadmapDraft.length - 1}
+                            className="mono text-[11px] opacity-50 hover:opacity-100 disabled:opacity-20 leading-none"
+                            aria-label="Move down"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setRoadmapDraft((d) => (d ? d.filter((_, idx) => idx !== i) : d))
+                          }
+                          className="mono text-[14px] opacity-50 hover:opacity-100 pt-3 shrink-0"
+                          aria-label="Remove step"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                      <button
+                        onClick={() =>
+                          setRoadmapDraft((d) => (d ? [...d, ""].slice(0, 8) : d))
+                        }
+                        disabled={roadmapDraft.length >= 8}
+                        className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100 disabled:opacity-30"
+                      >
+                        + ADD STEP
+                      </button>
+                      <div className="ml-auto flex items-center gap-2">
+                        <button
+                          onClick={suggestRoadmap}
+                          disabled={suggestingRoadmap}
+                          className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100"
+                        >
+                          {suggestingRoadmap ? "✦ thinking…" : "✦ Re-suggest"}
+                        </button>
+                        <button onClick={saveRoadmap} disabled={savingRoadmap} className="btn">
+                          {savingRoadmap ? "Saving…" : "Save roadmap"}
+                        </button>
+                      </div>
+                    </div>
+                    {roadmapError && (
+                      <p className="mono text-[10px] text-red-700">
+                        {roadmapError.toUpperCase()}
+                      </p>
+                    )}
+                  </div>
+                ) : card.roadmap.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="mono text-[10px] tracking-widest opacity-70">ROADMAP</span>
+                      {mine && (
+                        <button
+                          onClick={() => setRoadmapDraft(card.roadmap.slice())}
+                          className="mono text-[10px] opacity-60 hover:opacity-100"
+                        >
+                          ✎ EDIT
+                        </button>
+                      )}
+                    </div>
+                    <ol className="space-y-1.5">
+                      {card.roadmap.map((step, i) => (
+                        <li key={i} className="flex items-start gap-3 text-[14px]">
+                          <span className="mono text-[10px] tracking-widest opacity-50 pt-1 tabular-nums w-6 shrink-0">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <span className="leading-snug">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : mine ? (
+                  <button
+                    onClick={suggestRoadmap}
+                    disabled={suggestingRoadmap}
+                    className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100 underline underline-offset-2"
+                  >
+                    {suggestingRoadmap ? "✦ thinking…" : "✦ Suggest a roadmap"}
+                  </button>
+                ) : null}
+                {!roadmapDraft && roadmapError && (
+                  <p className="mono text-[10px] text-red-700 mt-2">
+                    {roadmapError.toUpperCase()}
                   </p>
                 )}
               </div>

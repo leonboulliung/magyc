@@ -27,6 +27,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     spots?: number;
     permission?: "public" | "request";
     customFields?: Record<string, string>;
+    roadmap?: unknown[];
   };
 
   const patch: Record<string, unknown> = {};
@@ -38,6 +39,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     patch.permission = body.permission;
   if (body.customFields && typeof body.customFields === "object") {
     patch.custom_fields = sanitizeCustomFields(body.customFields);
+  }
+  if (Array.isArray(body.roadmap)) {
+    patch.roadmap = sanitizeRoadmap(body.roadmap);
   }
 
   if (!Object.keys(patch).length) return NextResponse.json({ ok: true });
@@ -62,6 +66,21 @@ function sanitizeCustomFields(raw: Record<string, unknown>): Record<string, stri
     if (!value) continue;
     out[key] = value;
     if (Object.keys(out).length >= 6) break;
+  }
+  return out;
+}
+
+// Roadmap: an ordered list of short step labels. Cap each item, drop
+// empties, hard ceiling of 8 steps so a misbehaving client can't
+// blow up the JSONB column.
+function sanitizeRoadmap(raw: unknown[]): string[] {
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v !== "string") continue;
+    const cleaned = v.trim().replace(/\s+/g, " ").slice(0, 160);
+    if (!cleaned) continue;
+    out.push(cleaned);
+    if (out.length >= 8) break;
   }
   return out;
 }

@@ -56,6 +56,7 @@ type CardRow = {
   duration_days: number | null;
   archived: boolean;
   custom_fields: Record<string, unknown> | null;
+  roadmap: unknown[] | null;
   forked_from_card_id: string | null;
   forked_from_owner_id: string | null;
   forked_from_title: string | null;
@@ -76,6 +77,19 @@ function mapCustomFields(raw: Record<string, unknown> | null): Record<string, st
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
     if (typeof k === "string" && k && typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+/** JSONB → string[]: drop anything that isn't a non-empty string. */
+function mapRoadmap(raw: unknown[] | null): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (s) out.push(s.slice(0, 160));
+    }
   }
   return out;
 }
@@ -154,6 +168,7 @@ function mapCard(row: CardRow): Card {
     requests: (row.requests || []).map(mapRequest),
     signals: (row.signals || []).map(mapSignal),
     customFields: mapCustomFields(row.custom_fields ?? null),
+    roadmap: mapRoadmap(row.roadmap ?? null),
     forkedFromCardId: row.forked_from_card_id ?? null,
     forkedFromOwnerId: row.forked_from_owner_id ?? null,
     forkedFromTitle: row.forked_from_title ?? null,
@@ -165,7 +180,7 @@ function mapCard(row: CardRow): Card {
 
 const CARD_SELECT = `
   id, kind, owner_id, title, description, location, spots, permission, tags, color,
-  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields,
+  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap,
   forked_from_card_id, forked_from_owner_id, forked_from_title,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
   forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),

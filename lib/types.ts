@@ -109,6 +109,13 @@ export interface Card {
    */
   customFields: Record<string, string>;
   /**
+   * An ordered list of short labels describing the abstract steps the
+   * creator needs to make this thing happen. AI proposes the labels
+   * (strict abstraction, no invented specifics); the creator owns the
+   * order and the wording. Empty when no roadmap has been drafted.
+   */
+  roadmap: string[];
+  /**
    * If this thing was created by forking someone else's idea, these three
    * fields carry an immutable credit to the origin. Stored as a snapshot
    * so the stamp survives deletion of the original idea. `null` when the
