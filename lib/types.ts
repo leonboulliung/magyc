@@ -149,7 +149,7 @@ export type CardModule =
 
 /** The set of module types currently accepted by the PATCH sanitizer.
  *  Grows as each module is approved and shipped. */
-export const ALLOWED_MODULE_TYPES: readonly CardModule["type"][] = [] as const;
+export const ALLOWED_MODULE_TYPES: readonly CardModule["type"][] = ["brief"] as const;
 
 export interface TrackEntry {
   card: Card;

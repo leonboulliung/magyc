@@ -11,6 +11,9 @@ import { ResonanceMeter } from "@/components/ResonanceMeter";
 import { SignalButton } from "@/components/SignalButton";
 import { TransformPanel } from "@/components/TransformPanel";
 import { ReportButton } from "@/components/ReportButton";
+import { ModuleBrief } from "@/components/modules/ModuleBrief";
+import { upsertModule, removeModule } from "@/components/modules/moduleHelpers";
+import type { CardModule } from "@/lib/types";
 import { cardColor, isDark } from "@/lib/color";
 import { fetchCardById } from "@/lib/db";
 import { useRealtimeCards } from "@/lib/realtime";
@@ -62,6 +65,15 @@ export function PostDetail({ id }: { id: string }) {
   const [suggestingRoadmap, setSuggestingRoadmap] = useState(false);
   const [roadmapError, setRoadmapError] = useState<string>("");
   const [savingRoadmap, setSavingRoadmap] = useState(false);
+
+  // BRIEF module — single-sentence mission. `briefDraft` is null when
+  // not editing; otherwise it holds the in-progress text. AI proposes
+  // one sentence abstracted from the creator's intent; never invented.
+  const [briefDraft, setBriefDraft] = useState<string | null>(null);
+  const [suggestingBrief, setSuggestingBrief] = useState(false);
+  const [briefError, setBriefError] = useState<string>("");
+  const [savingBrief, setSavingBrief] = useState(false);
+  const [briefEmptyHint, setBriefEmptyHint] = useState(false);
 
   const { user } = useUser();
 
@@ -243,6 +255,73 @@ export function PostDetail({ id }: { id: string }) {
       refresh();
     } finally {
       setSavingFields(false);
+    }
+  }
+
+  // Brief module: ask the AI for a one-sentence mission. If the model
+  // returns a brief module, open the inline editor with that text.
+  // If it returns nothing, surface a small hint — modules are
+  // optional, the absence of a suggestion is itself information.
+  async function suggestBrief() {
+    if (!card) return;
+    setSuggestingBrief(true);
+    setBriefError("");
+    setBriefEmptyHint(false);
+    try {
+      const res = await fetch(`/api/cards/${card.id}/suggest-modules`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setBriefError(json?.error || "suggest_failed");
+        return;
+      }
+      const list: CardModule[] = Array.isArray(json.modules) ? json.modules : [];
+      const proposed = list.find((m) => m.type === "brief");
+      if (proposed) {
+        setBriefDraft(proposed.text);
+      } else {
+        setBriefEmptyHint(true);
+      }
+    } catch (e) {
+      setBriefError((e as Error).message);
+    } finally {
+      setSuggestingBrief(false);
+    }
+  }
+  async function saveBrief() {
+    if (!card || briefDraft === null) return;
+    const text = briefDraft.trim().slice(0, 240);
+    setSavingBrief(true);
+    try {
+      const nextModules = text
+        ? upsertModule(card.modules, { type: "brief", text })
+        : removeModule(card.modules, "brief");
+      await fetch(`/api/cards/${card.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ modules: nextModules }),
+      });
+      setBriefDraft(null);
+      setBriefEmptyHint(false);
+      refresh();
+    } finally {
+      setSavingBrief(false);
+    }
+  }
+  async function removeBrief() {
+    if (!card) return;
+    if (!confirm("Remove the brief from this thing?")) return;
+    setSavingBrief(true);
+    try {
+      const nextModules = removeModule(card.modules, "brief");
+      await fetch(`/api/cards/${card.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ modules: nextModules }),
+      });
+      setBriefDraft(null);
+      refresh();
+    } finally {
+      setSavingBrief(false);
     }
   }
 
@@ -460,6 +539,115 @@ export function PostDetail({ id }: { id: string }) {
             ))}
           </div>
         )}
+
+        {/* BRIEF module (thing-only) — a single-sentence mission. Display
+            when present; owner gets edit / remove affordances and a
+            "Help shape this" entry-point when no brief exists yet. */}
+        {!isIdea && (() => {
+          const briefModule = card.modules.find((m) => m.type === "brief");
+          const briefText =
+            briefModule && briefModule.type === "brief" ? briefModule.text : "";
+
+          if (briefDraft !== null) {
+            const remaining = Math.max(0, 240 - briefDraft.length);
+            return (
+              <div className="space-y-3">
+                <textarea
+                  autoFocus
+                  value={briefDraft}
+                  onChange={(e) => setBriefDraft(e.target.value.slice(0, 240))}
+                  rows={3}
+                  placeholder="A single sentence: why does this exist?"
+                  className="input resize-none italic"
+                />
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="mono text-[10px] tracking-widest opacity-60 tabular-nums">
+                    {remaining} / 240
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setBriefDraft(null); setBriefError(""); }}
+                      disabled={savingBrief}
+                      className="mono text-[10px] tracking-widest opacity-60 hover:opacity-100"
+                    >
+                      CANCEL
+                    </button>
+                    {briefText && (
+                      <button
+                        onClick={removeBrief}
+                        disabled={savingBrief}
+                        className="mono text-[10px] tracking-widest opacity-60 hover:opacity-100"
+                      >
+                        REMOVE
+                      </button>
+                    )}
+                    <button onClick={saveBrief} disabled={savingBrief} className="btn">
+                      {savingBrief ? "Saving…" : "Save brief"}
+                    </button>
+                  </div>
+                </div>
+                {briefError && (
+                  <p className="mono text-[10px] text-red-700">{briefError.toUpperCase()}</p>
+                )}
+              </div>
+            );
+          }
+
+          if (briefText) {
+            return (
+              <div className="space-y-1.5">
+                <ModuleBrief text={briefText} />
+                {mine && (
+                  <div className="flex items-center gap-3 pl-8 sm:pl-12">
+                    <button
+                      onClick={() => setBriefDraft(briefText)}
+                      className="mono text-[10px] tracking-widest opacity-50 hover:opacity-100"
+                    >
+                      ✎ EDIT
+                    </button>
+                    <button
+                      onClick={removeBrief}
+                      disabled={savingBrief}
+                      className="mono text-[10px] tracking-widest opacity-50 hover:opacity-100"
+                    >
+                      ✕ REMOVE
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // No brief, owner can request one.
+          if (mine) {
+            return (
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={suggestBrief}
+                  disabled={suggestingBrief}
+                  className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100 underline underline-offset-2"
+                >
+                  {suggestingBrief ? "✦ thinking…" : "✦ Help shape this"}
+                </button>
+                <button
+                  onClick={() => { setBriefDraft(""); setBriefEmptyHint(false); setBriefError(""); }}
+                  className="mono text-[10px] tracking-widest opacity-50 hover:opacity-100"
+                >
+                  + write one yourself
+                </button>
+                {briefEmptyHint && (
+                  <span className="mono text-[10px] opacity-60">
+                    Nothing fit cleanly. You can still write one.
+                  </span>
+                )}
+                {briefError && (
+                  <span className="mono text-[10px] text-red-700">{briefError.toUpperCase()}</span>
+                )}
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {card.description && (
           <p className="text-[18px] leading-[1.5] whitespace-pre-wrap max-w-2xl">
