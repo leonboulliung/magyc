@@ -55,6 +55,12 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--paper);
+  /* Reserve the iOS home-indicator strip at the bottom. body is now
+     position: fixed; inset: 0 — that pins it to the layout viewport,
+     which on iOS extends under the home-indicator. Without this
+     padding, the bottom-docked sheet ended up under the indicator and
+     visually disappeared. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .app-shell > main {
   flex: 1 1 0%;

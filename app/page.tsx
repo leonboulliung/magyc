@@ -100,9 +100,13 @@ export default function HomePage() {
   // location are simply not pinned (handled inside ParisMap).
   const mapCards = [...things, ...ideas];
 
-  // Hide FAB while the mobile bottom-sheet is expanded — it would float on
-  // top of the open list and visually fight with CLOSE / list scrolling.
-  const fabHidden = !!composing || (!isDesktop && panelExpanded);
+  // FAB stays mounted while the mobile sheet is open — instead of
+  // popping out, it slides down with gravity (translateY + fade), so
+  // the transition feels like the FAB falls behind the rising sheet
+  // and rises back up when the sheet closes. Only `composing` actually
+  // unmounts it (the composer fully replaces the surface).
+  const fabHidden = !!composing;
+  const fabSlideDown = !isDesktop && panelExpanded;
 
   const fabShiftX = isDesktop
     ? panelExpanded
@@ -113,7 +117,15 @@ export default function HomePage() {
 
   const fabStyle = {
     bottom: `calc(env(safe-area-inset-bottom, 0px) + ${20 + fabBottomExtra}px)`,
-    transform: fabShiftX ? `translateX(-${fabShiftX}px)` : undefined,
+    transform: [
+      fabShiftX ? `translateX(-${fabShiftX}px)` : null,
+      fabSlideDown ? "translateY(140px)" : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined,
+    opacity: fabSlideDown ? 0 : 1,
+    pointerEvents: fabSlideDown ? ("none" as const) : undefined,
+    transition: "transform 320ms ease-out, opacity 240ms ease-out",
   } as const;
 
   return (
