@@ -167,6 +167,64 @@ function sanitizeModules(raw: unknown[]): CardModule[] {
         }
         break;
       }
+      case "moodboard": {
+        if (Array.isArray(rec.refs)) {
+          const refs: { url: string; caption?: string }[] = [];
+          for (const r of rec.refs) {
+            if (!r || typeof r !== "object") continue;
+            const rr = r as Record<string, unknown>;
+            if (typeof rr.url !== "string") continue;
+            const u = rr.url.trim().slice(0, 500);
+            if (!/^https?:\/\/[^\s]+$/i.test(u)) continue;
+            const c = typeof rr.caption === "string"
+              ? rr.caption.trim().slice(0, 80)
+              : undefined;
+            refs.push(c ? { url: u, caption: c } : { url: u });
+            if (refs.length >= 12) break;
+          }
+          if (refs.length > 0) out.push({ type: "moodboard", refs });
+        }
+        break;
+      }
+      case "setlist": {
+        if (Array.isArray(rec.items)) {
+          const items: { time?: string; title: string }[] = [];
+          for (const it of rec.items) {
+            if (!it || typeof it !== "object") continue;
+            const ir = it as Record<string, unknown>;
+            if (typeof ir.title !== "string") continue;
+            const t = ir.title.trim().slice(0, 120);
+            if (!t) continue;
+            const tm = typeof ir.time === "string"
+              ? ir.time.trim().slice(0, 10)
+              : undefined;
+            const okTime = tm && /^\d{1,2}(:\d{2})?$/.test(tm) ? tm : undefined;
+            items.push(okTime ? { time: okTime, title: t } : { title: t });
+            if (items.length >= 12) break;
+          }
+          if (items.length > 0) out.push({ type: "setlist", items });
+        }
+        break;
+      }
+      case "reflist": {
+        if (Array.isArray(rec.items)) {
+          const items: { url: string; caption?: string }[] = [];
+          for (const it of rec.items) {
+            if (!it || typeof it !== "object") continue;
+            const ir = it as Record<string, unknown>;
+            if (typeof ir.url !== "string") continue;
+            const u = ir.url.trim().slice(0, 500);
+            if (!/^https?:\/\/[^\s]+$/i.test(u)) continue;
+            const c = typeof ir.caption === "string"
+              ? ir.caption.trim().slice(0, 120)
+              : undefined;
+            items.push(c ? { url: u, caption: c } : { url: u });
+            if (items.length >= 12) break;
+          }
+          if (items.length > 0) out.push({ type: "reflist", items });
+        }
+        break;
+      }
     }
     if (out.length >= 1) break; // a thing carries at most ONE module
   }

@@ -145,7 +145,10 @@ export type CardModule =
   | { type: "roadmap"; steps: string[] }
   | { type: "checklist"; items: string[] }
   | { type: "bring"; items: string[] }
-  | { type: "kv"; entries: { key: string; value: string }[] };
+  | { type: "kv"; entries: { key: string; value: string }[] }
+  | { type: "moodboard"; refs: { url: string; caption?: string }[] }
+  | { type: "setlist"; items: { time?: string; title: string }[] }
+  | { type: "reflist"; items: { url: string; caption?: string }[] };
 
 /** The set of module types currently accepted by the PATCH sanitizer.
  *  Grows as each module is approved and shipped. */

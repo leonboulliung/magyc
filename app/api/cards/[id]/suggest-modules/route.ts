@@ -70,6 +70,21 @@ const TYPE_DOCS: Record<CardModule["type"], string> = {
     "fitting this vibe, each with an EMPTY value the creator fills in. " +
     "Shape: { \"type\": \"kv\", \"entries\": [ {\"key\":\"LOOKS\", " +
     "\"value\":\"\"}, ... ] }",
+  moodboard:
+    "- moodboard: an EMPTY skeleton inviting the creator to drop in " +
+    "their own image-reference URLs (Pinterest, Are.na, etc.). Never " +
+    "invent URLs. Shape: { \"type\": \"moodboard\", \"refs\": [] } " +
+    "— always an empty array.",
+  setlist:
+    "- setlist: 3-5 GENERIC ordered programme beats — the chunks of " +
+    "the event, in order, without specific times or names. The creator " +
+    "adds the real titles + times. Shape: { \"type\": \"setlist\", " +
+    "\"items\": [{\"title\": \"Opening drink\"}, {\"title\": \"First " +
+    "course\"}, ...] }. Do NOT invent times.",
+  reflist:
+    "- reflist: an EMPTY skeleton for the creator to add their own " +
+    "external links + captions. Never invent URLs. Shape: " +
+    "{ \"type\": \"reflist\", \"items\": [] } — always an empty array.",
 };
 
 export async function POST(
@@ -222,6 +237,32 @@ function sanitizeSuggestedModules(raw: unknown): CardModule[] {
           }
           out.push({ type: "kv", entries });
         }
+        break;
+      }
+      case "moodboard": {
+        // Always an empty skeleton — the creator drops their own URLs.
+        out.push({ type: "moodboard", refs: [] });
+        break;
+      }
+      case "setlist": {
+        if (Array.isArray(rec.items)) {
+          const items: { time?: string; title: string }[] = [];
+          for (const it of rec.items) {
+            if (!it || typeof it !== "object") continue;
+            const ir = it as Record<string, unknown>;
+            if (typeof ir.title !== "string") continue;
+            const t = ir.title.trim().slice(0, 120);
+            if (!t) continue;
+            items.push({ title: t });
+            if (items.length >= 5) break;
+          }
+          out.push({ type: "setlist", items });
+        }
+        break;
+      }
+      case "reflist": {
+        // Always an empty skeleton — the creator drops their own URLs.
+        out.push({ type: "reflist", items: [] });
         break;
       }
     }

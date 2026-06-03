@@ -8,6 +8,11 @@ import { ModuleRoadmap, ModuleRoadmapEditor } from "@/components/modules/ModuleR
 import { ModuleChecklist, ModuleChecklistEditor } from "@/components/modules/ModuleChecklist";
 import { ModuleBring, ModuleBringEditor } from "@/components/modules/ModuleBring";
 import { ModuleKV, ModuleKVEditor } from "@/components/modules/ModuleKV";
+import { ModuleMoodboard, ModuleMoodboardEditor } from "@/components/modules/ModuleMoodboard";
+import { ModuleSetlist, ModuleSetlistEditor } from "@/components/modules/ModuleSetlist";
+import { ModuleReflist, ModuleReflistEditor } from "@/components/modules/ModuleReflist";
+import { ModulePicker } from "@/components/modules/ModulePicker";
+import type { CardModule } from "@/lib/types";
 
 /**
  * /modules-preview — throwaway sandbox. Every module type is rendered
@@ -40,6 +45,23 @@ const SEED = {
     { key: "BRING", value: "One garment that isn't yours" },
     { key: "DRESS-CODE", value: "Quiet luxury, low key" },
   ],
+  moodboard: [
+    { url: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600&auto=format&fit=crop", caption: "Seine, golden hour" },
+    { url: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=600&auto=format&fit=crop", caption: "Glassware close-up" },
+    { url: "https://images.unsplash.com/photo-1485395037613-e83d5c1f5290?w=600&auto=format&fit=crop", caption: "Quay reflections" },
+    { url: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop", caption: "Night bridge" },
+  ],
+  setlist: [
+    { time: "18:30", title: "Apéro on the quay" },
+    { time: "19:30", title: "Group walk to the bridge" },
+    { time: "20:00", title: "Dinner at the bistro" },
+    { time: "22:00", title: "Late drinks at La Marine" },
+  ],
+  reflist: [
+    { url: "https://www.are.na/leon-boulliung/cocktails-by-the-seine", caption: "Are.na board" },
+    { url: "https://www.parismusees.paris.fr/", caption: "Paris museum agenda" },
+    { url: "https://www.openstreetmap.org/relation/7444", caption: "OSM Paris boundary" },
+  ],
 };
 
 export default function ModulesPreviewPage() {
@@ -63,14 +85,46 @@ export default function ModulesPreviewPage() {
             </Link>
           </div>
 
+          <PickerSection />
           <BriefSection />
           <RoadmapSection />
           <ChecklistSection />
           <BringSection />
           <KVSection />
+          <MoodboardSection />
+          <SetlistSection />
+          <ReflistSection />
         </div>
       </main>
     </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Manual switcher demo — what the owner will see when they tap
+// "↻ switch type" on an existing module, or "+ add a module yourself"
+// when their thing has no module yet.
+// ────────────────────────────────────────────────────────────────────────────
+function PickerSection() {
+  const [current, setCurrent] = useState<CardModule["type"]>("brief");
+  return (
+    <section className="space-y-4">
+      <div className="border-b border-rule pb-3">
+        <div className="mono text-[10px] tracking-widest opacity-60">MANUAL SWITCHER</div>
+        <h2 className="editorial font-black text-[26px] sm:text-[32px] leading-none mt-1">
+          Pick a module yourself.
+        </h2>
+        <p className="mono text-[11px] opacity-70 mt-1.5 max-w-lg">
+          The owner can always choose the structure that fits — independent
+          of (or after rejecting) what the AI suggests. Clicking an option
+          here just highlights it; in the real integration it will open
+          the matching editor.
+        </p>
+      </div>
+      <div className="border border-rule rounded-2xl bg-paper p-4 sm:p-6 shadow-sm">
+        <ModulePicker current={current} onPick={setCurrent} />
+      </div>
+    </section>
   );
 }
 
@@ -241,6 +295,75 @@ function KVSection() {
       {mode === "edit" && (
         <ModuleKVEditor
           initial={SEED.kv}
+          onSave={() => setMode("display")}
+          onCancel={() => setMode("display")}
+          onRemove={() => setMode("empty")}
+        />
+      )}
+    </ModuleSection>
+  );
+}
+
+function MoodboardSection() {
+  const [mode, setMode] = useState<Mode>("display");
+  return (
+    <ModuleSection
+      name="Moodboard"
+      blurb="A visual board of reference images. Pinterest / Are.na URLs. No upload yet."
+      mode={mode}
+      onMode={setMode}
+    >
+      {mode === "empty" && <EmptyState label="refs" />}
+      {mode === "display" && <ModuleMoodboard refs={SEED.moodboard} />}
+      {mode === "edit" && (
+        <ModuleMoodboardEditor
+          initial={SEED.moodboard}
+          onSave={() => setMode("display")}
+          onCancel={() => setMode("display")}
+          onRemove={() => setMode("empty")}
+        />
+      )}
+    </ModuleSection>
+  );
+}
+
+function SetlistSection() {
+  const [mode, setMode] = useState<Mode>("display");
+  return (
+    <ModuleSection
+      name="Setlist"
+      blurb="The programme during the event. Time-stamps optional. Distinct from roadmap (preparation)."
+      mode={mode}
+      onMode={setMode}
+    >
+      {mode === "empty" && <EmptyState label="a setlist" />}
+      {mode === "display" && <ModuleSetlist items={SEED.setlist} />}
+      {mode === "edit" && (
+        <ModuleSetlistEditor
+          initial={SEED.setlist}
+          onSave={() => setMode("display")}
+          onCancel={() => setMode("display")}
+          onRemove={() => setMode("empty")}
+        />
+      )}
+    </ModuleSection>
+  );
+}
+
+function ReflistSection() {
+  const [mode, setMode] = useState<Mode>("display");
+  return (
+    <ModuleSection
+      name="Reflist"
+      blurb="External links — inspirations, sources, agendas. Optional caption per link."
+      mode={mode}
+      onMode={setMode}
+    >
+      {mode === "empty" && <EmptyState label="refs" />}
+      {mode === "display" && <ModuleReflist items={SEED.reflist} />}
+      {mode === "edit" && (
+        <ModuleReflistEditor
+          initial={SEED.reflist}
           onSave={() => setMode("display")}
           onCancel={() => setMode("display")}
           onRemove={() => setMode("empty")}
