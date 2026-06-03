@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/server/profile";
+import { isBanned } from "@/lib/server/safety";
 
 // POST = join (public mode) or request (request mode).
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (await isBanned(userId))
+    return NextResponse.json({ error: "banned" }, { status: 403 });
 
   await ensureProfile(userId);
   const admin = supabaseAdmin();

@@ -328,6 +328,8 @@ export async function fetchTrackRecord(userId: string): Promise<TrackEntry[]> {
   }[]) {
     if (!row.card) continue;
     const card = mapCard(row.card);
+    // Hide cards by banned creators from public track surfaces.
+    if (card.owner.banned) continue;
     entries.push({
       card,
       role: (row.role || "JOINER").toUpperCase(),

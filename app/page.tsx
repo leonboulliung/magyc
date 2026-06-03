@@ -96,9 +96,36 @@ export default function HomePage() {
       .catch(() => {});
   }, [user?.id]);
 
+  // Profiles the viewer has blocked — their cards drop out of the field.
+  // One-directional: only the blocker stops seeing the blocked. Re-fetched
+  // whenever the user changes.
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user?.id) {
+      setBlockedIds(new Set());
+      return;
+    }
+    fetch("/api/blocks")
+      .then((r) => r.json())
+      .then((j) => {
+        const list: string[] = Array.isArray(j?.blocked) ? j.blocked : [];
+        setBlockedIds(new Set(list));
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  // Apply the viewer's blocks AFTER the global feed has loaded. Ban-based
+  // filtering already happens server-side via fetchActiveCards.
+  const visibleIdeas = blockedIds.size === 0
+    ? ideas
+    : ideas.filter((c) => !blockedIds.has(c.ownerId));
+  const visibleThings = blockedIds.size === 0
+    ? things
+    : things.filter((c) => !blockedIds.has(c.ownerId));
+
   // Pins for both kinds — things filled, ideas hollow. Ideas without a
   // location are simply not pinned (handled inside ParisMap).
-  const mapCards = [...things, ...ideas];
+  const mapCards = [...visibleThings, ...visibleIdeas];
 
   // FAB stays mounted while the mobile sheet is open — instead of
   // popping out, it slides down with gravity (translateY + fade), so
@@ -147,8 +174,8 @@ export default function HomePage() {
               <FeedPanel
                 expanded={panelExpanded}
                 onExpandedChange={setPanelExpanded}
-                ideas={ideas}
-                things={things}
+                ideas={visibleIdeas}
+                things={visibleThings}
                 loaded={loaded}
                 freshIds={freshIds}
                 onChanged={refresh}

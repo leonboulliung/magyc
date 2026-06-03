@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { newId } from "@/lib/id";
+import { isBanned } from "@/lib/server/safety";
 
 // Hard ceiling mirrors POST /api/cards — a thing starts within 30 days.
 const MAX_LEAD_MS = 30 * 86_400_000;
@@ -24,6 +25,8 @@ const MIN_LEAD_MS = 5 * 60_000;
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (await isBanned(userId))
+    return NextResponse.json({ error: "banned" }, { status: 403 });
 
   const admin = supabaseAdmin();
 
