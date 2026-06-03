@@ -8,15 +8,18 @@ import { PromptStep } from "./PromptStep";
 type Stage = "prompt" | "idea" | "thing";
 
 /**
- * Orchestrator for the create flow. Two entry points, optional AI bridge:
+ * Orchestrator for the create flow. The form is the entry point — typing
+ * is the default path, the AI helper is an opt-in detour.
  *
- *   • IDEA path (default, fastest): one sentence → in the field. The protocol
- *     wants almost zero friction; everything but the text is optional.
- *   • THING path: the full structured composer (time, place, spots, crew).
- *   • AI prompt: type a sentence, the model decides idea-or-thing and pre-fills.
+ *   • IDEA path (default for "+"): the lightweight composer for a thought.
+ *   • THING path: the full structured composer (time, place, spots).
+ *   • PROMPT (AI helper): typed sentence → model decides idea/thing,
+ *     pre-fills the form. Reachable from either composer via
+ *     "✦ Draft from a sentence", never the first thing the user sees.
  *
- * `initialKind` tilts the first screen. Posting an Idea is never a mandatory
- * funnel toward a Thing — many ideas just float.
+ * Per FEEDBACK §6: previous default was prompt-first, which felt
+ * unfamiliar. Now the manual form is the unsurprising entry, and the AI
+ * is a peer-weight helper rather than a gate.
  */
 export function CardComposer({
   onClose,
@@ -25,20 +28,36 @@ export function CardComposer({
   onClose: () => void;
   initialKind?: "idea" | "thing";
 }) {
-  const [stage, setStage] = useState<Stage>("prompt");
+  // Form first. The user only sees prompt if they tap the AI helper.
+  const [stage, setStage] = useState<Stage>(initialKind);
   const [draft, setDraft] = useState<CardDraft | null>(null);
+  // Where to return when the user cancels out of the AI prompt.
+  const [previousStage, setPreviousStage] = useState<"idea" | "thing">(initialKind);
+  // Track whether the form was reached via the AI prompt. If yes, the
+  // form keeps a "← BACK" affordance to the prompt; if no, no back arrow
+  // (because there's nowhere obvious to go).
+  const [cameFromPrompt, setCameFromPrompt] = useState(false);
+
+  const goToPrompt = (from: "idea" | "thing") => {
+    setPreviousStage(from);
+    setStage("prompt");
+  };
 
   if (stage === "prompt") {
     return (
       <div className="h-full w-full animate-fadeIn">
         <PromptStep
-          initialKind={initialKind}
+          initialKind={previousStage}
           onProceed={(kind, d) => {
-            // The switch decides the kind; the draft (if any) pre-fills.
             setDraft(d);
             setStage(kind);
+            setCameFromPrompt(true);
           }}
           onClose={onClose}
+          onCancel={() => {
+            // Back to the form the user came from, no draft applied.
+            setStage(previousStage);
+          }}
         />
       </div>
     );
@@ -49,7 +68,8 @@ export function CardComposer({
       <div key="idea" className="h-full w-full animate-fadeIn">
         <IdeaComposer
           onClose={onClose}
-          onBack={() => setStage("prompt")}
+          onBack={cameFromPrompt ? () => setStage("prompt") : undefined}
+          onRequestAIDraft={() => goToPrompt("idea")}
           initial={
             draft
               ? {
@@ -71,7 +91,8 @@ export function CardComposer({
       <CardCreate
         initialDraft={draft}
         onClose={onClose}
-        onBack={() => setStage("prompt")}
+        onBack={cameFromPrompt ? () => setStage("prompt") : undefined}
+        onRequestAIDraft={() => goToPrompt("thing")}
       />
     </div>
   );

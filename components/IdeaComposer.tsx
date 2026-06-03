@@ -20,10 +20,13 @@ const TAG_SUGGESTIONS = [
 export function IdeaComposer({
   onClose,
   onBack,
+  onRequestAIDraft,
   initial,
 }: {
   onClose: () => void;
   onBack?: () => void;
+  /** Opt-in AI helper: hand off to the prompt step to pre-fill from a sentence. */
+  onRequestAIDraft?: () => void;
   initial?: {
     title?: string;
     description?: string | null;
@@ -156,6 +159,15 @@ export function IdeaComposer({
               One line is enough. No time, no place, no plan needed yet. Throw it
               in — others will resonate, and when enough do, you make it real.
             </p>
+            {onRequestAIDraft && (
+              <button
+                type="button"
+                onClick={onRequestAIDraft}
+                className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100 underline underline-offset-2 mt-3 inline-block"
+              >
+                ✦ Or draft from a sentence
+              </button>
+            )}
           </div>
 
           <div className="relative">
