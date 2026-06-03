@@ -68,17 +68,11 @@ export function CardCreate({
   onClose,
   initialDraft,
   onBack,
-  onRequestAIDraft,
-  onSwitchToIdea,
 }: {
   onClose: () => void;
   initialDraft?: CardDraft | null;
   /** When set, shown as "← BACK" so the user can return to the AI prompt step. */
   onBack?: () => void;
-  /** Opt-in AI helper: hand off to the prompt step to pre-fill from a sentence. */
-  onRequestAIDraft?: () => void;
-  /** Flip the composer to "idea" without leaving the create flow. */
-  onSwitchToIdea?: () => void;
 }) {
   const router = useRouter();
 
@@ -493,25 +487,7 @@ export function CardCreate({
   ].filter(Boolean) as string[];
   const chipBase = "px-3.5 py-2 rounded-full border border-rule-strong mono text-[10px] tracking-widest transition-colors";
 
-  // Header label — either a "NEW · ONE THING" line or an IDEA/THING toggle
-  // when the composer can flip to the idea path.
-  const kindHeader = onSwitchToIdea ? (
-    <div className="flex items-center gap-3 min-w-0">
-      <span className="mono text-[10px] tracking-widest opacity-70 shrink-0">NEW</span>
-      <div className="inline-flex rounded-full border border-rule-strong overflow-hidden">
-        <button
-          type="button"
-          onClick={onSwitchToIdea}
-          className="mono text-[10px] tracking-widest px-3 py-1 hover:bg-ink hover:text-paper transition-colors flex items-center gap-1.5"
-        >
-          <span className="cp-idea-mark" /> IDEA
-        </button>
-        <span className="mono text-[10px] tracking-widest px-3 py-1 bg-ink text-paper">
-          THING
-        </span>
-      </div>
-    </div>
-  ) : (
+  const kindHeader = (
     <div className="mono text-[10px] tracking-widest opacity-70">NEW · ONE THING</div>
   );
 
@@ -656,15 +632,6 @@ export function CardCreate({
 
           {/* form body */}
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 space-y-5">
-            {onRequestAIDraft && (
-              <button
-                type="button"
-                onClick={onRequestAIDraft}
-                className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100 underline underline-offset-2 self-start"
-              >
-                ✦ Draft from a sentence
-              </button>
-            )}
             {/* TITLE */}
             <div>
               <label className="mono text-[10px] tracking-widest opacity-70">TITLE{inferredHint("title")}</label>
@@ -1000,15 +967,6 @@ export function CardCreate({
 
         <div className="px-4 sm:px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
           <div className="space-y-5">
-            {onRequestAIDraft && (
-              <button
-                type="button"
-                onClick={onRequestAIDraft}
-                className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100 underline underline-offset-2 self-start"
-              >
-                ✦ Draft from a sentence
-              </button>
-            )}
             {/* TITLE */}
             <div>
               <label className="mono text-[10px] tracking-widest opacity-70">TITLE{inferredHint("title")}</label>

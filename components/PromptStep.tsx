@@ -8,8 +8,6 @@ interface Props {
   /** Proceed to the composer of `kind`, optionally pre-filled by the AI draft. */
   onProceed: (kind: "idea" | "thing", draft: CardDraft | null) => void;
   onClose: () => void;
-  /** Back to the form the user came from, without touching any state. */
-  onCancel?: () => void;
 }
 
 /**
@@ -18,7 +16,7 @@ interface Props {
  * step — but the user's switch decides which kind it becomes, so there's no
  * ambiguity and no platform copy to wade through.
  */
-export function PromptStep({ initialKind, onProceed, onClose, onCancel }: Props) {
+export function PromptStep({ initialKind, onProceed, onClose }: Props) {
   const [prompt, setPrompt] = useState("");
   const [kind, setKind] = useState<"idea" | "thing">(initialKind);
   const [drafting, setDrafting] = useState(false);
@@ -66,17 +64,10 @@ export function PromptStep({ initialKind, onProceed, onClose, onCancel }: Props)
   return (
     <div className="h-full w-full flex flex-col bg-paper">
       <div className="flex items-center justify-between border-b border-rule-strong px-4 sm:px-6 py-3 sm:py-4 shrink-0 safe-top">
-        <div className="mono text-[10px] tracking-widest opacity-70">CREATE · ✦ AI HELP</div>
-        <div className="flex items-center gap-3">
-          {onCancel && (
-            <button onClick={onCancel} className="mono text-[11px] tracking-widest hover:underline">
-              ← BACK
-            </button>
-          )}
-          <button onClick={onClose} className="mono text-[11px] tracking-widest hover:underline">
-            CLOSE ✕
-          </button>
-        </div>
+        <div className="mono text-[10px] tracking-widest opacity-70">CREATE</div>
+        <button onClick={onClose} className="mono text-[11px] tracking-widest hover:underline">
+          CLOSE ✕
+        </button>
       </div>
 
       <form
