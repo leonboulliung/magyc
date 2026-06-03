@@ -34,7 +34,7 @@ export function IdeaItem({
       className={`cp-idea-frame border-b border-rule transition-colors hover:bg-black/[0.02] ${isFresh ? "cp-rise" : ""}`}
     >
       <div className="cp-idea-edge flex items-stretch">
-        <div className="flex-1 px-4 sm:px-6 py-4 sm:py-5 min-w-0">
+        <div className="flex-1 px-3.5 sm:px-5 py-3 sm:py-3.5 min-w-0">
           {/* meta */}
           <div className="mono text-[10px] tracking-widest flex items-center gap-2 opacity-70">
             <span className="cp-idea-mark" />
@@ -55,7 +55,7 @@ export function IdeaItem({
 
           {/* headline links to the full idea page */}
           <Link href={`/post/${card.id}`} className="group block focus:outline-none">
-            <h2 className="editorial font-black text-[26px] sm:text-[34px] mt-2 leading-[0.95] group-hover:underline decoration-2 underline-offset-4">
+            <h2 className="editorial font-black text-[22px] sm:text-[26px] mt-1.5 leading-[0.95] break-words group-hover:underline decoration-2 underline-offset-4">
               {card.title}
             </h2>
           </Link>

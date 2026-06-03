@@ -38,7 +38,7 @@ export function CardItem({
     >
       <div className="flex items-stretch gap-0">
         <div
-          className="relative w-24 sm:w-40 shrink-0 overflow-hidden transition-transform duration-300 group-hover:scale-[1.015]"
+          className="relative w-20 sm:w-24 shrink-0 overflow-hidden transition-transform duration-300 group-hover:scale-[1.015]"
           style={{ backgroundColor: color }}
           aria-hidden
         >
@@ -49,7 +49,7 @@ export function CardItem({
           </div>
         </div>
 
-        <div className="flex-1 px-4 sm:px-6 py-4 sm:py-5 min-w-0">
+        <div className="flex-1 px-3.5 sm:px-5 py-3 sm:py-3.5 min-w-0">
           <div className="mono text-[10px] tracking-widest flex items-center gap-2 opacity-70">
             <span className="tabular-nums">#{String(index + 1).padStart(3, "0")}</span>
             <span>·</span>
@@ -62,7 +62,7 @@ export function CardItem({
             <span className="ml-auto shrink-0">{timeAgo(card.createdAt)}</span>
           </div>
 
-          <h2 className="editorial font-black text-[28px] sm:text-[40px] mt-2 leading-[0.92] group-hover:underline decoration-2 underline-offset-4">
+          <h2 className="editorial font-black text-[22px] sm:text-[26px] mt-1.5 leading-[0.95] break-words group-hover:underline decoration-2 underline-offset-4">
             {card.title}
           </h2>
 
@@ -79,7 +79,7 @@ export function CardItem({
             </div>
           )}
 
-          <div className="mt-3 mono text-[11px]">
+          <div className="mt-2 mono text-[11px]">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="tag">
                 {card.permission === "request" ? "REQUEST" : "PUBLIC JOIN"}
@@ -98,7 +98,7 @@ export function CardItem({
                 </span>
               )}
             </div>
-            <div className="opacity-70 truncate mt-1.5">
+            <div className="opacity-70 truncate mt-1">
               @{card.owner.displayName}
             </div>
           </div>
