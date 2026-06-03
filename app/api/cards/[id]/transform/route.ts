@@ -1,22 +1,25 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { newId } from "@/lib/id";
 
 // Hard ceiling mirrors POST /api/cards — a thing starts within 30 days.
 const MAX_LEAD_MS = 30 * 86_400_000;
 const MIN_LEAD_MS = 5 * 60_000;
 
 /**
- * The transformation: idea → thing. A deliberate human act, owner-only.
+ * The transformation: idea → thing. A deliberate human act. Two flavors:
  *
- * The author promotes their idea into a concrete, joinable thing. Everyone
- * who signalled resonance is carried over as the warm first crew — written
- * into `join_requests` so the author keeps a light gate (accept/decline) and
- * the signalers see a pending invite on the new thing. Resonance becomes
- * reality.
+ *   • OWNER transform — the idea-owner promotes their own idea. We flip
+ *     `kind` on the SAME row, so existing /post/[id] links survive.
+ *     Signalers become invited crew. The idea becomes the thing.
  *
- * We mutate the SAME row in place (keep its id, so existing /post/[id] links
- * and OG metadata survive) — only `kind` and the concrete fields change.
+ *   • FORK transform — anyone else turns the idea into THEIR thing. The
+ *     original idea stays untouched (and can be forked again by others).
+ *     A new card row is created, owned by the forker, carrying an
+ *     immutable credit ("abstammt aus @owner — idea title"). The
+ *     original owner + every signaler land as invited crew on the new
+ *     thing — the resonance follows.
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { userId } = await auth();
@@ -26,16 +29,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const { data: card } = await admin
     .from("cards")
-    .select("id, owner_id, kind, archived, location, title")
+    .select("id, owner_id, kind, archived, location, title, description, tags, color")
     .eq("id", params.id)
     .maybeSingle();
   if (!card) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (card.owner_id !== userId)
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (card.kind !== "idea")
     return NextResponse.json({ error: "not_an_idea" }, { status: 400 });
   if (card.archived)
     return NextResponse.json({ error: "archived" }, { status: 400 });
+
+  const isOwner = card.owner_id === userId;
 
   const body = (await req.json().catch(() => ({}))) as {
     location?: { lat: number; lng: number; label: string } | null;
@@ -92,60 +95,135 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const spots = Math.max(1, Math.min(99, Math.floor(body.spots || 1)));
   const permission = body.permission === "request" ? "request" : "public";
 
-  // One live thing per person: archive any OTHER active thing this user owns
-  // (not this row — it's about to become the live thing).
+  // ----------------------------------------------------------------
+  // OWNER PATH — in-place flip on the same row.
+  // ----------------------------------------------------------------
+  if (isOwner) {
+    // One live thing per person: archive any OTHER active thing this user
+    // owns (not this row — it's about to become the live thing).
+    await admin
+      .from("cards")
+      .update({ archived: true })
+      .eq("owner_id", userId)
+      .eq("kind", "thing")
+      .eq("archived", false)
+      .neq("id", params.id);
+
+    const { error: upErr } = await admin
+      .from("cards")
+      .update({
+        kind: "thing",
+        location,
+        spots,
+        permission,
+        duration_days: 1,
+        expires_at: new Date(startsMs).toISOString(),
+        ends_at: endsMs ? new Date(endsMs).toISOString() : null,
+      })
+      .eq("id", params.id);
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+
+    const { data: signalRows } = await admin
+      .from("signals")
+      .select("user_id")
+      .eq("card_id", params.id);
+
+    const invited = (signalRows || [])
+      .map((s) => s.user_id as string)
+      .filter((uid) => uid && uid !== userId);
+
+    if (invited.length > 0) {
+      await admin
+        .from("join_requests")
+        .upsert(
+          invited.map((user_id) => ({ card_id: params.id, user_id })),
+          { onConflict: "card_id,user_id" },
+        );
+    }
+
+    // Signals served their purpose on the now-thing.
+    await admin.from("signals").delete().eq("card_id", params.id);
+
+    return NextResponse.json({
+      ok: true,
+      id: params.id,
+      kind: "thing",
+      forked: false,
+      invitedCount: invited.length,
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // FORK PATH — a different user makes this idea into THEIR thing.
+  // Original idea stays as-is. A new card is born.
+  // ----------------------------------------------------------------
+
+  // Auto-archive forker's existing active thing (the 1-thing-live rule).
   await admin
     .from("cards")
     .update({ archived: true })
     .eq("owner_id", userId)
     .eq("kind", "thing")
-    .eq("archived", false)
-    .neq("id", params.id);
+    .eq("archived", false);
 
-  // Flip the idea into a thing, in place.
-  const { error: upErr } = await admin
-    .from("cards")
-    .update({
-      kind: "thing",
-      location,
-      spots,
-      permission,
-      duration_days: 1,
-      expires_at: new Date(startsMs).toISOString(),
-      ends_at: endsMs ? new Date(endsMs).toISOString() : null,
-    })
-    .eq("id", params.id);
-  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  const newCardId = newId();
 
-  // Carry the warm crew: every signaler becomes an invited member.
-  // Written as join_requests so the author keeps a light accept/decline gate
-  // and signalers get a pending invite. The owner never invites themselves.
+  const { error: insErr } = await admin.from("cards").insert({
+    id: newCardId,
+    kind: "thing",
+    owner_id: userId,
+    title: card.title,
+    description: card.description || "",
+    tags: Array.isArray(card.tags) ? card.tags : [],
+    color: card.color,
+    location,
+    spots,
+    permission,
+    duration_days: 1,
+    expires_at: new Date(startsMs).toISOString(),
+    ends_at: endsMs ? new Date(endsMs).toISOString() : null,
+    // The credit: immutable, snapshot, survives idea deletion.
+    forked_from_card_id: card.id,
+    forked_from_owner_id: card.owner_id,
+    forked_from_title: card.title,
+  });
+  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+
+  // Invited crew: the original idea-owner + every signaler.
+  // The forker themselves is the creator (joiners auto-row), so skip them
+  // and skip duplicates. Written as join_requests so the forker keeps a
+  // light accept/decline gate, and the invitees see a warm pending invite.
   const { data: signalRows } = await admin
     .from("signals")
     .select("user_id")
-    .eq("card_id", params.id);
+    .eq("card_id", card.id);
 
-  const invited = (signalRows || [])
-    .map((s) => s.user_id as string)
-    .filter((uid) => uid && uid !== userId);
+  const inviteeIds = new Set<string>();
+  inviteeIds.add(card.owner_id);
+  for (const row of signalRows || []) {
+    if (row.user_id) inviteeIds.add(row.user_id as string);
+  }
+  inviteeIds.delete(userId); // don't invite the forker to their own crew
 
+  const invited = Array.from(inviteeIds);
   if (invited.length > 0) {
     await admin
       .from("join_requests")
       .upsert(
-        invited.map((user_id) => ({ card_id: params.id, user_id })),
+        invited.map((user_id) => ({ card_id: newCardId, user_id })),
         { onConflict: "card_id,user_id" },
       );
   }
 
-  // Signals have served their purpose; clear them so the now-thing reads as
-  // an event with a crew, not an idea with resonance.
-  await admin.from("signals").delete().eq("card_id", params.id);
+  // The original idea is INTENTIONALLY untouched: its signals, its kind,
+  // its row all stay. Others can fork it too, or the owner can still
+  // promote it themselves.
 
   return NextResponse.json({
     ok: true,
-    id: params.id,
+    id: newCardId,
     kind: "thing",
+    forked: true,
     invitedCount: invited.length,
   });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import type { Card, Permission } from "@/lib/types";
 import {
   startsLabel, parisNow, wallClockToParisMs,
@@ -28,7 +29,12 @@ export function TransformPanel({
   onCancel: () => void;
 }) {
   const router = useRouter();
+  const { user } = useUser();
   const signalCount = card.signals.length;
+  // When the signed-in user is not the idea's owner, this becomes a FORK:
+  // the original idea is left untouched, the new thing is born under the
+  // forker's name with an immutable credit back to the origin.
+  const isFork = !!user && user.id !== card.ownerId;
 
   // Location: seed from the idea's loose location if it had one.
   const [query, setQuery] = useState(card.location?.label || "");
@@ -106,7 +112,9 @@ export function TransformPanel({
       });
       const json = await res.json();
       if (!res.ok) { setError(json?.error || "Transform failed"); return; }
-      router.push(`/post/${card.id}?new=thing`);
+      // Owner path keeps the original id; fork path returns a fresh one.
+      const dest = typeof json.id === "string" && json.id ? json.id : card.id;
+      router.push(`/post/${dest}?new=thing`);
       router.refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -118,11 +126,23 @@ export function TransformPanel({
   return (
     <div className="border border-rule-strong bg-paper animate-fadeIn">
       <div className="px-4 py-3 bg-ink text-paper mono text-[11px] tracking-widest flex items-center justify-between">
-        <span>MAKE IT REAL — IDEA → THING</span>
+        <span>{isFork ? "FORK INTO A THING — IDEA → THING" : "MAKE IT REAL — IDEA → THING"}</span>
         <button onClick={onCancel} className="opacity-70 hover:opacity-100">✕</button>
       </div>
 
       <div className="p-4 space-y-5">
+        {isFork && (
+          <div className="border border-rule-strong rounded-2xl p-3 cp-idea-frame">
+            <p className="mono text-[11px] leading-relaxed">
+              You&rsquo;re forking <span className="font-bold">@{card.owner.displayName}</span>&rsquo;s
+              idea into your own thing. The original idea stays where it
+              is — others can still fork it too. Your new thing will
+              carry an unchangeable credit back to it, and
+              <span className="font-bold"> @{card.owner.displayName}</span> will land in
+              your invited first crew alongside every signaler.
+            </p>
+          </div>
+        )}
         <p className="mono text-[11px] opacity-70 leading-relaxed">
           {signalCount > 0 ? (
             <>

@@ -362,6 +362,31 @@ export function PostDetail({ id }: { id: string }) {
           </div>
         </div>
 
+        {/* Fork stamp — immutable credit when this thing is a fork of someone's idea.
+            Snapshot survives the original idea's deletion (then we hide the link). */}
+        {!isIdea && (card.forkedFromCardId || card.forkedFromTitle) && (
+          <div className="border border-rule-strong rounded-2xl px-4 py-3 cp-idea-frame">
+            <div className="mono text-[10px] tracking-widest opacity-70 mb-1">
+              ↩ FORKED FROM AN IDEA
+            </div>
+            {card.forkedFromCardId && card.forkedFromOwner ? (
+              <Link
+                href={`/post/${card.forkedFromCardId}`}
+                className="mono text-[11px] hover:underline"
+              >
+                @{card.forkedFromOwner.displayName} ·{" "}
+                <span className="italic">&ldquo;{card.forkedFromTitle}&rdquo;</span>
+              </Link>
+            ) : (
+              <span className="mono text-[11px] opacity-80">
+                {card.forkedFromOwner ? `@${card.forkedFromOwner.displayName} · ` : ""}
+                <span className="italic">&ldquo;{card.forkedFromTitle || "—"}&rdquo;</span>
+                <span className="opacity-50 ml-2">(idea deleted)</span>
+              </span>
+            )}
+          </div>
+        )}
+
         {card.tags && card.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {card.tags.map((t) => (
@@ -555,7 +580,7 @@ export function PostDetail({ id }: { id: string }) {
         {isIdea ? (
           <div className="space-y-4">
             {/* Non-owner: signal resonance. Sign-in happens at the tap. */}
-            {!mine && (
+            {!mine && !transforming && (
               <div className="cp-idea-frame border border-rule-strong rounded-2xl p-5">
                 <div className="mono text-[11px] tracking-widest opacity-70 mb-3">
                   WOULD YOU WANT THIS TO EXIST?
@@ -568,7 +593,30 @@ export function PostDetail({ id }: { id: string }) {
               </div>
             )}
 
-            {/* Owner: transform into a thing. */}
+            {/* Non-owner, signed in: fork the idea into your own thing.
+                The original idea stays where it is — anyone else can fork
+                it too. The new thing carries a permanent credit to it. */}
+            {!mine && user && !transforming && (
+              <div className="cp-idea-frame border border-rule-strong rounded-2xl p-5 flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="mono text-[11px] tracking-widest">READY TO MAKE THIS REAL?</div>
+                  <div className="mono text-[10px] opacity-60 mt-1">
+                    Fork @{card.owner.displayName}&rsquo;s idea into your own
+                    thing. They{signalCount > 0
+                      ? ` and ${signalCount} signal${signalCount === 1 ? "" : "s"}`
+                      : ""} land in your invited crew.
+                  </div>
+                </div>
+                <button
+                  onClick={() => setTransforming(true)}
+                  className="btn"
+                >
+                  FORK →
+                </button>
+              </div>
+            )}
+
+            {/* Owner: transform into a thing (in-place flip). */}
             {mine && !transforming && (
               <div className="cp-idea-frame border border-rule-strong rounded-2xl p-5 flex items-center justify-between gap-3 flex-wrap">
                 <div>
@@ -587,7 +635,8 @@ export function PostDetail({ id }: { id: string }) {
                 </button>
               </div>
             )}
-            {mine && transforming && (
+
+            {transforming && (
               <TransformPanel card={card} onCancel={() => setTransforming(false)} />
             )}
 

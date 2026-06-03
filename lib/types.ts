@@ -105,6 +105,17 @@ export interface Card {
    * values are written by the creator. Order preserved by client.
    */
   customFields: Record<string, string>;
+  /**
+   * If this thing was created by forking someone else's idea, these three
+   * fields carry an immutable credit to the origin. Stored as a snapshot
+   * so the stamp survives deletion of the original idea. `null` when the
+   * card wasn't forked (the common case).
+   */
+  forkedFromCardId: string | null;
+  forkedFromOwnerId: string | null;
+  forkedFromTitle: string | null;
+  /** Hydrated origin owner profile when available — for the stamp UI. */
+  forkedFromOwner: Profile | null;
 }
 
 export interface TrackEntry {

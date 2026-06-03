@@ -55,7 +55,11 @@ type CardRow = {
   duration_days: number | null;
   archived: boolean;
   custom_fields: Record<string, unknown> | null;
+  forked_from_card_id: string | null;
+  forked_from_owner_id: string | null;
+  forked_from_title: string | null;
   owner: ProfileRow | null;
+  forked_from_owner: ProfileRow | null;
   joiners: JoinerRow[] | null;
   requests: RequestRow[] | null;
   signals: SignalRow[] | null;
@@ -148,13 +152,21 @@ function mapCard(row: CardRow): Card {
     requests: (row.requests || []).map(mapRequest),
     signals: (row.signals || []).map(mapSignal),
     customFields: mapCustomFields(row.custom_fields ?? null),
+    forkedFromCardId: row.forked_from_card_id ?? null,
+    forkedFromOwnerId: row.forked_from_owner_id ?? null,
+    forkedFromTitle: row.forked_from_title ?? null,
+    forkedFromOwner: row.forked_from_owner_id
+      ? mapProfile(row.forked_from_owner, row.forked_from_owner_id)
+      : null,
   };
 }
 
 const CARD_SELECT = `
   id, kind, owner_id, title, description, location, spots, permission, tags, color,
   created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields,
+  forked_from_card_id, forked_from_owner_id, forked_from_title,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at),
+  forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at),
   joiners:joiners(user_id, role, joined_at,
     user:profiles!joiners_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at)
   ),
