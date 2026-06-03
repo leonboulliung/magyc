@@ -23,30 +23,35 @@
   --shadow-lg: 0 18px 48px -12px rgba(13, 13, 13, 0.20), 0 6px 16px -8px rgba(13, 13, 13, 0.12);
 }
 
+/* Lock the document to the visual viewport. iOS Safari would otherwise
+   treat any swipe outside an internal scroller as a page-level gesture:
+   the toolbar shifts, the header slides under the URL bar, and a paper
+   gap opens up at the bottom because dvh and lvh disagree. With body
+   fixed-positioned and the root opted out of overscroll, every gesture
+   is owned by an inner container (or by nothing at all). */
 html, body, #__next {
   height: 100%;
+  width: 100%;
   background: var(--paper);
   color: var(--ink);
-}
-
-html {
-  /* Stop iOS Safari from rubber-banding the document at the root, no
-     matter which inner container is the actual scroller. The body
-     opted out too, but on iOS the root is what decides this. */
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
 body {
+  position: fixed;
+  inset: 0;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overscroll-behavior-y: none;
-  overflow-x: hidden;
 }
 
-/* App shell: fixed viewport, no body scroll. Pages own their own scroll. */
+/* App shell: fills the visual viewport exactly. Was 100dvh, but body
+   is now pinned to the visual viewport via `position: fixed; inset: 0`,
+   so 100% does the same job without the dvh/lvh mismatch that opened a
+   blank strip below the sheet on iOS. */
 .app-shell {
-  height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--paper);
