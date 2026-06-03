@@ -70,6 +70,7 @@ export function CardComposer({
           onClose={onClose}
           onBack={cameFromPrompt ? () => setStage("prompt") : undefined}
           onRequestAIDraft={() => goToPrompt("idea")}
+          onSwitchToThing={() => setStage("thing")}
           initial={
             draft
               ? {
@@ -93,6 +94,7 @@ export function CardComposer({
         onClose={onClose}
         onBack={cameFromPrompt ? () => setStage("prompt") : undefined}
         onRequestAIDraft={() => goToPrompt("thing")}
+        onSwitchToIdea={() => setStage("idea")}
       />
     </div>
   );

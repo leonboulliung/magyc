@@ -21,12 +21,15 @@ export function IdeaComposer({
   onClose,
   onBack,
   onRequestAIDraft,
+  onSwitchToThing,
   initial,
 }: {
   onClose: () => void;
   onBack?: () => void;
   /** Opt-in AI helper: hand off to the prompt step to pre-fill from a sentence. */
   onRequestAIDraft?: () => void;
+  /** Flip the composer to "thing" without leaving the create flow. */
+  onSwitchToThing?: () => void;
   initial?: {
     title?: string;
     description?: string | null;
@@ -130,9 +133,27 @@ export function IdeaComposer({
 
   return (
     <div className="h-full w-full flex flex-col bg-paper cp-idea-frame">
-      <div className="flex items-center justify-between border-b border-rule-strong px-4 sm:px-6 py-3 sm:py-4 shrink-0 safe-top">
-        <div className="mono text-[10px] tracking-widest opacity-70 flex items-center gap-2">
-          <span className="cp-idea-mark" /> NEW IDEA
+      <div className="flex items-center justify-between border-b border-rule-strong px-4 sm:px-6 py-3 sm:py-4 shrink-0 safe-top gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="mono text-[10px] tracking-widest opacity-70 shrink-0">NEW</span>
+          {onSwitchToThing ? (
+            <div className="inline-flex rounded-full border border-rule-strong overflow-hidden">
+              <span className="mono text-[10px] tracking-widest px-3 py-1 bg-ink text-paper flex items-center gap-1.5">
+                <span className="cp-idea-mark" /> IDEA
+              </span>
+              <button
+                type="button"
+                onClick={onSwitchToThing}
+                className="mono text-[10px] tracking-widest px-3 py-1 hover:bg-ink hover:text-paper transition-colors"
+              >
+                THING
+              </button>
+            </div>
+          ) : (
+            <span className="mono text-[10px] tracking-widest opacity-70 flex items-center gap-1.5">
+              <span className="cp-idea-mark" /> IDEA
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {onBack && (

@@ -69,6 +69,7 @@ export function CardCreate({
   initialDraft,
   onBack,
   onRequestAIDraft,
+  onSwitchToIdea,
 }: {
   onClose: () => void;
   initialDraft?: CardDraft | null;
@@ -76,6 +77,8 @@ export function CardCreate({
   onBack?: () => void;
   /** Opt-in AI helper: hand off to the prompt step to pre-fill from a sentence. */
   onRequestAIDraft?: () => void;
+  /** Flip the composer to "idea" without leaving the create flow. */
+  onSwitchToIdea?: () => void;
 }) {
   const router = useRouter();
 
@@ -490,6 +493,28 @@ export function CardCreate({
   ].filter(Boolean) as string[];
   const chipBase = "px-3.5 py-2 rounded-full border border-rule-strong mono text-[10px] tracking-widest transition-colors";
 
+  // Header label — either a "NEW · ONE THING" line or an IDEA/THING toggle
+  // when the composer can flip to the idea path.
+  const kindHeader = onSwitchToIdea ? (
+    <div className="flex items-center gap-3 min-w-0">
+      <span className="mono text-[10px] tracking-widest opacity-70 shrink-0">NEW</span>
+      <div className="inline-flex rounded-full border border-rule-strong overflow-hidden">
+        <button
+          type="button"
+          onClick={onSwitchToIdea}
+          className="mono text-[10px] tracking-widest px-3 py-1 hover:bg-ink hover:text-paper transition-colors flex items-center gap-1.5"
+        >
+          <span className="cp-idea-mark" /> IDEA
+        </button>
+        <span className="mono text-[10px] tracking-widest px-3 py-1 bg-ink text-paper">
+          THING
+        </span>
+      </div>
+    </div>
+  ) : (
+    <div className="mono text-[10px] tracking-widest opacity-70">NEW · ONE THING</div>
+  );
+
   // Top-bar carries optional "back to AI prompt" + CLOSE.
   const topBarRight = (
     <div className="flex items-center gap-3">
@@ -605,7 +630,7 @@ export function CardCreate({
         {/* sidebar */}
         <aside className="w-[420px] shrink-0 flex flex-col border-l border-rule-strong bg-paper">
           <div className="relative flex items-center justify-between border-b border-rule-strong px-4 py-4 shrink-0">
-            <div className="mono text-[10px] tracking-widest opacity-70">NEW · ONE THING</div>
+            {kindHeader}
             {topBarRight}
           </div>
 
@@ -948,7 +973,7 @@ export function CardCreate({
       <div
         className="relative flex items-center justify-between border-b border-rule-strong px-4 sm:px-6 py-3 sm:py-4 shrink-0 safe-top"
       >
-        <div className="mono text-[10px] tracking-widest opacity-70">NEW · ONE THING</div>
+        {kindHeader}
         {topBarRight}
       </div>
 
