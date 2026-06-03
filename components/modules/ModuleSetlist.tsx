@@ -52,7 +52,7 @@ export function ModuleSetlistEditor({
   return (
     <div className="space-y-3">
       {items.map((it, i) => (
-        <div key={i} className="flex items-start gap-2">
+        <div key={i} className="grid grid-cols-[5rem_1fr_1.5rem] gap-2 items-start">
           <input
             value={it.time}
             onChange={(e) =>
@@ -62,7 +62,7 @@ export function ModuleSetlistEditor({
             }
             placeholder="20:00"
             maxLength={10}
-            className="input mono w-20 tabular-nums text-[12px] shrink-0"
+            className="input mono tabular-nums text-[12px] min-w-0"
           />
           <input
             value={it.title}
@@ -73,11 +73,11 @@ export function ModuleSetlistEditor({
             }
             placeholder="What happens next…"
             maxLength={120}
-            className="input flex-1"
+            className="input min-w-0"
           />
           <button
             onClick={() => setItems((d) => d.filter((_, idx) => idx !== i))}
-            className="mono text-[14px] opacity-50 hover:opacity-100 pt-2 shrink-0"
+            className="mono text-[14px] opacity-50 hover:opacity-100 pt-2"
             aria-label="Remove row"
           >
             ✕

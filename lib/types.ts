@@ -150,9 +150,18 @@ export type CardModule =
   | { type: "setlist"; items: { time?: string; title: string }[] }
   | { type: "reflist"; items: { url: string; caption?: string }[] };
 
-/** The set of module types currently accepted by the PATCH sanitizer.
- *  Grows as each module is approved and shipped. */
-export const ALLOWED_MODULE_TYPES: readonly CardModule["type"][] = ["brief"] as const;
+/** The set of module types currently accepted by the PATCH sanitizer
+ *  and the AI suggester. All eight are live. */
+export const ALLOWED_MODULE_TYPES: readonly CardModule["type"][] = [
+  "brief",
+  "roadmap",
+  "checklist",
+  "bring",
+  "kv",
+  "moodboard",
+  "setlist",
+  "reflist",
+] as const;
 
 export interface TrackEntry {
   card: Card;
