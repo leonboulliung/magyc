@@ -269,13 +269,12 @@ export function FeedPanel({
       <div
         className="absolute inset-x-0 bottom-0 z-[600] flex flex-col bg-paper/95 backdrop-blur-md border-t border-rule rounded-t-2xl shadow-lg overflow-hidden"
         style={{
-          // Sheet sizes itself against `main` (its positioned ancestor)
-          // instead of viewport units. With body now fixed to the visual
-          // viewport, percentages of main are reliable; dvh on iOS Safari
-          // was resolving smaller than expected in this nested context
-          // and leaving the sheet visibly short.
-          height: expanded ? "88%" : "52px",
-          maxHeight: "100%",
+          // Now that app-shell uses 100dvh, the sheet uses dvh too so
+          // both sides of the layout track the visual viewport in
+          // lockstep. 80dvh gives the sheet ~80% of the visible screen
+          // when expanded; the 52px collapsed state is unchanged.
+          height: expanded ? "80dvh" : "52px",
+          maxHeight: "calc(100dvh - 64px)",
           transform: `translateY(${dragOffset}px)`,
           transition: dragOffset > 0
             ? "none"

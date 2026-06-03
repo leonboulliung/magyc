@@ -46,20 +46,20 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* App shell: fills the visual viewport exactly. Was 100dvh, but body
-   is now pinned to the visual viewport via `position: fixed; inset: 0`,
-   so 100% does the same job without the dvh/lvh mismatch that opened a
-   blank strip below the sheet on iOS. */
+/* App shell tracks the *visual* viewport via 100dvh. body is
+   position: fixed; inset: 0, which pins it to the LAYOUT viewport —
+   on iOS that's the largest possible area, extending under the
+   sometimes-visible Safari toolbar. If app-shell used 100% of body it
+   would extend there too, and the bottom-docked sheet would slide
+   under the toolbar whenever it was visible. 100dvh follows what's
+   actually on screen at any moment. */
 .app-shell {
-  height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--paper);
-  /* Reserve the iOS home-indicator strip at the bottom. body is now
-     position: fixed; inset: 0 — that pins it to the layout viewport,
-     which on iOS extends under the home-indicator. Without this
-     padding, the bottom-docked sheet ended up under the indicator and
-     visually disappeared. */
+  /* Reserve the home-indicator strip on iPhone X+ so the sheet's
+     peek-strip isn't tucked behind it. */
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .app-shell > main {
