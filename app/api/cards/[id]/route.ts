@@ -168,7 +168,7 @@ function sanitizeModules(raw: unknown[]): CardModule[] {
         break;
       }
     }
-    if (out.length >= 8) break;
+    if (out.length >= 1) break; // a thing carries at most ONE module
   }
   return out;
 }

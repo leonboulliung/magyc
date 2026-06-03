@@ -20,20 +20,25 @@ const RATE_WINDOW_MS = 30_000;
  * ALLOWED_MODULE_TYPES (the live whitelist). Until a module type is
  * approved and shipped, the model won't suggest it.
  */
-const SYSTEM_PROMPT_BASE = `You suggest a small set of typed "modules" for
-a plan ("thing") on a city-layer app. The creator has written a title,
+const SYSTEM_PROMPT_BASE = `You suggest AT MOST ONE typed "module" for a
+plan ("thing") on a city-layer app. The creator has written a title,
 description, and tags. Your job is to ABSTRACT the structure of what
-they wrote and choose which module type(s) would genuinely help land
-this particular plan.
+they wrote and pick the SINGLE module type that would most help land
+this particular plan — or zero, if nothing fits cleanly.
 
 Return STRICT JSON only:
-  { "modules": [ { ...module }, ... ] }
+  { "modules": [ { ...one module } ] }
+or
+  { "modules": [] }
 
 Hard rules:
 - Never invent specifics — no names, no addresses, no times, no head
   counts. Only generic labels and empty skeletons.
-- Choose 0 to 3 modules total. An empty array is acceptable when no
-  module would honestly help.
+- Choose AT MOST ONE module. A thing carries one anchoring
+  verbalization at a time; if two feel useful, pick the most
+  fundamental.
+- An empty array is acceptable — and often correct. Don't pick a
+  module just to pick one.
 - Pick only from the module types listed below. Do NOT propose any
   other type.
 - Each module type has a documented shape. Match it exactly.
@@ -220,7 +225,7 @@ function sanitizeSuggestedModules(raw: unknown): CardModule[] {
         break;
       }
     }
-    if (out.length >= 3) break;
+    if (out.length >= 1) break; // a thing carries at most ONE module
   }
   return out;
 }
