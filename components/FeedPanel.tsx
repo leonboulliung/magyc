@@ -103,9 +103,16 @@ export function FeedPanel({
       lastDeltaRef.current = 0;
       isDraggingRef.current = false;
       setDragOffset(0);
-      if (!wasDrag) return; // tap, not drag — let the click handler take over
-      if (expanded && finalDelta > 80) onExpandedChange(false);
-      else if (!expanded && finalDelta < -50) onExpandedChange(true);
+      if (wasDrag) {
+        if (expanded && finalDelta > 80) onExpandedChange(false);
+        else if (!expanded && finalDelta < -50) onExpandedChange(true);
+      } else if (!expanded) {
+        // Tap on the collapsed strip. We expand directly from touchend
+        // instead of waiting for iOS to synthesize a click — touch-action
+        // and other defenses can suppress that click on some Safari
+        // versions, leaving the strip "dead" until you reload.
+        onExpandedChange(true);
+      }
     };
 
     target.addEventListener("touchstart", onStart, { passive: true });
@@ -262,8 +269,13 @@ export function FeedPanel({
       <div
         className="absolute inset-x-0 bottom-0 z-[600] flex flex-col bg-paper/95 backdrop-blur-md border-t border-rule rounded-t-2xl shadow-lg overflow-hidden"
         style={{
-          height: expanded ? "80dvh" : "52px",
-          maxHeight: "calc(100dvh - 80px)",
+          // Sheet sizes itself against `main` (its positioned ancestor)
+          // instead of viewport units. With body now fixed to the visual
+          // viewport, percentages of main are reliable; dvh on iOS Safari
+          // was resolving smaller than expected in this nested context
+          // and leaving the sheet visibly short.
+          height: expanded ? "88%" : "52px",
+          maxHeight: "100%",
           transform: `translateY(${dragOffset}px)`,
           transition: dragOffset > 0
             ? "none"
