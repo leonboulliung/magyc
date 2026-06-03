@@ -207,7 +207,7 @@ export function ProfileView({ userId }: { userId: string }) {
           ))}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {tab === "track" && (
             <div>
               {track.length === 0 ? (

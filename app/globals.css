@@ -29,6 +29,13 @@ html, body, #__next {
   color: var(--ink);
 }
 
+html {
+  /* Stop iOS Safari from rubber-banding the document at the root, no
+     matter which inner container is the actual scroller. The body
+     opted out too, but on iOS the root is what decides this. */
+  overscroll-behavior: none;
+}
+
 body {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

@@ -148,7 +148,7 @@ export function FeedPanel({
   );
 
   const emptyField = (
-    <div className="flex-1 overflow-y-auto bg-paper">
+    <div className="flex-1 overflow-y-auto overscroll-contain bg-paper">
       {/* Even empty, keep the collapse reachable. */}
       <div className="sticky top-0 z-10 bg-paper/90 backdrop-blur-md border-b border-rule px-4 py-2.5 flex items-center justify-end">
         <button
@@ -177,7 +177,7 @@ export function FeedPanel({
   );
 
   const listBody = (
-    <div className="flex-1 overflow-y-auto bg-paper">
+    <div className="flex-1 overflow-y-auto overscroll-contain bg-paper">
       {/* FOLLOWING — cards from people you follow, surfaced first. */}
       {followed.length > 0 && (
         <>
