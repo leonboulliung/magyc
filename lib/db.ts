@@ -16,6 +16,7 @@ type ProfileRow = {
   interests: string[] | null;
   bio: string | null;
   created_at: string;
+  banned?: boolean;
 };
 
 type JoinerRow = {
@@ -101,6 +102,7 @@ function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
     interests: row.interests ?? null,
     bio: row.bio ?? null,
     createdAt: row.created_at ? new Date(row.created_at).getTime() : 0,
+    banned: !!row.banned,
   };
 }
 
@@ -165,16 +167,16 @@ const CARD_SELECT = `
   id, kind, owner_id, title, description, location, spots, permission, tags, color,
   created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields,
   forked_from_card_id, forked_from_owner_id, forked_from_title,
-  owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at),
-  forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at),
+  owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
+  forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
   joiners:joiners(user_id, role, joined_at,
-    user:profiles!joiners_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at)
+    user:profiles!joiners_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned)
   ),
   requests:join_requests(user_id, requested_at,
-    user:profiles!join_requests_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at)
+    user:profiles!join_requests_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned)
   ),
   signals:signals(user_id, created_at,
-    user:profiles!signals_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at)
+    user:profiles!signals_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned)
   )
 `;
 
@@ -200,7 +202,9 @@ export async function fetchActiveCards(): Promise<Card[]> {
   return ((data || []) as unknown as CardRow[])
     .map(mapCard)
     // Hide things from public view once their crew is full.
-    .filter((c) => c.spots == null || c.joiners.length < c.spots);
+    .filter((c) => c.spots == null || c.joiners.length < c.spots)
+    // Banned owners are invisible to the field.
+    .filter((c) => !c.owner.banned);
 }
 
 /**
@@ -218,6 +222,8 @@ export async function fetchActiveIdeas(): Promise<Card[]> {
   if (error) throw error;
   return ((data || []) as unknown as CardRow[])
     .map(mapCard)
+    // Banned owners are invisible to the field.
+    .filter((c) => !c.owner.banned)
     .sort((a, b) =>
       b.signals.length - a.signals.length || b.createdAt - a.createdAt,
     );
@@ -271,7 +277,7 @@ export async function isFollowing(followerId: string, followingId: string): Prom
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, phone, display_name, avatar_url, socials, interests, bio, created_at")
+    .select("id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;

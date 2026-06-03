@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/server/profile";
 import { newId } from "@/lib/id";
 import { normalizeTags } from "@/lib/vibe";
+import { isBanned } from "@/lib/server/safety";
 
 // Hard ceiling: a thing may start at most 30 days into the future. Most will
 // be hours or days away — this just prevents pathological inputs.
@@ -13,6 +14,8 @@ const MIN_LEAD_MS = 5 * 60_000; // 5 min minimum into the future
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (await isBanned(userId))
+    return NextResponse.json({ error: "banned" }, { status: 403 });
 
   let body: {
     kind?: "idea" | "thing";

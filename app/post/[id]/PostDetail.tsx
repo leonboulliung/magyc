@@ -10,6 +10,7 @@ import { ParisMap } from "@/components/ParisMap";
 import { ResonanceMeter } from "@/components/ResonanceMeter";
 import { SignalButton } from "@/components/SignalButton";
 import { TransformPanel } from "@/components/TransformPanel";
+import { ReportButton } from "@/components/ReportButton";
 import { cardColor, isDark } from "@/lib/color";
 import { fetchCardById } from "@/lib/db";
 import { useRealtimeCards } from "@/lib/realtime";
@@ -775,8 +776,9 @@ export function PostDetail({ id }: { id: string }) {
           </div>
         )}
 
-        <div className="pt-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}>
+        <div className="pt-6 flex items-center justify-between gap-3 flex-wrap" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)" }}>
           <Link href="/" className="mono text-[11px] tracking-widest hover:underline">← BACK TO PARIS</Link>
+          <ReportButton targetKind="card" targetId={card.id} ownerId={card.ownerId} />
         </div>
       </div>
       </main>

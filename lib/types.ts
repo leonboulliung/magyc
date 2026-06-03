@@ -34,6 +34,9 @@ export interface Profile {
   createdAt: number;
   /** Last time the user changed their `displayName`. Drives the 7-day cooldown. */
   usernameChangedAt?: number | null;
+  /** Admin-set flag. Banned profiles are filtered out of public surfaces
+   *  and blocked from writes in the API routes. */
+  banned?: boolean;
 }
 
 export interface CardJoiner {

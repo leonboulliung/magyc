@@ -7,6 +7,8 @@ import { useUser } from "@clerk/nextjs";
 import { Header } from "@/components/Header";
 import { Constellation } from "@/components/Constellation";
 import { FollowButton } from "@/components/FollowButton";
+import { ReportButton } from "@/components/ReportButton";
+import { BlockButton } from "@/components/BlockButton";
 import { fetchProfile, fetchTrackRecord, fetchFollowerCount, isFollowing } from "@/lib/db";
 import { useRealtimeCards } from "@/lib/realtime";
 import type { Profile, TrackEntry } from "@/lib/types";
@@ -155,11 +157,21 @@ export function ProfileView({ userId }: { userId: string }) {
                     @{profile.displayName}
                   </h1>
                 </div>
-                <div className="shrink-0 pt-1">
+                <div className="shrink-0 pt-1 flex items-center gap-2">
                   <FollowButton
                     targetId={profile.id}
                     following={following}
                     onChanged={refreshFollow}
+                  />
+                  <BlockButton
+                    targetUserId={profile.id}
+                    displayName={profile.displayName}
+                  />
+                  <ReportButton
+                    targetKind="profile"
+                    targetId={profile.id}
+                    ownerId={profile.id}
+                    className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors"
                   />
                 </div>
               </div>
