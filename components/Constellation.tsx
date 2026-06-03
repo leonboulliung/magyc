@@ -28,16 +28,21 @@ type PlottedPoint = { entry: TrackEntry; lat: number; lng: number };
  * at Paris latitude. Single points are left untouched.
  */
 function deCollide(entries: TrackEntry[]): PlottedPoint[] {
+  // Loose key — three decimals (~110m) so cards pinned to the same quartier
+  // *or to nearby points within a block* are recognized as a cluster and
+  // fanned out together. Four decimals (~11m) was too strict: visually
+  // overlapping pins at e.g. neighbouring Marais addresses kept their own
+  // keys and never fanned.
   const groups = new Map<string, TrackEntry[]>();
   const keyOf = (e: TrackEntry) =>
-    `${e.card.location!.lat.toFixed(4)},${e.card.location!.lng.toFixed(4)}`;
+    `${e.card.location!.lat.toFixed(3)},${e.card.location!.lng.toFixed(3)}`;
   for (const e of entries) {
     const k = keyOf(e);
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k)!.push(e);
   }
 
-  const LAT_R = 0.0009; // ~100m fan radius
+  const LAT_R = 0.0014; // ~155m fan radius — readable at typical Paris zoom
 
   return entries.map((e) => {
     const { lat, lng } = e.card.location!;
@@ -56,6 +61,15 @@ function deCollide(entries: TrackEntry[]): PlottedPoint[] {
     };
   });
 }
+
+// Cycle label placement around the dot so two near-by markers don't pile
+// their numbers on top of each other.
+const LABEL_OFFSETS: { top: number; left: number; align: "left" | "right" }[] = [
+  { top: -18, left: 10, align: "left" },   // top-right
+  { top: 8, left: 10, align: "left" },     // bottom-right
+  { top: -18, left: -10, align: "right" }, // top-left
+  { top: 8, left: -10, align: "right" },   // bottom-left
+];
 
 /** Bounds that frame a set of already-plotted points (with small buffer). */
 function boundsForPoints(pts: PlottedPoint[]): [LatLngTuple, LatLngTuple] {
@@ -209,6 +223,13 @@ export function Constellation({ entries, className = "", aspect = "4 / 3" }: Pro
       // Outer ring used to come from the category; we now use ink for a
       // clean, editorial look that reads against any tile palette.
       const outer = "#0a0a0a";
+      // Cycle the label position around the dot so adjacent numbers don't
+      // pile up into an unreadable smudge.
+      const off = LABEL_OFFSETS[i % LABEL_OFFSETS.length];
+      const labelStyle =
+        off.align === "left"
+          ? `left:${off.left}px; text-align:left;`
+          : `right:${-off.left}px; text-align:right;`;
       const html = `
         <div style="position:relative; pointer-events:none;">
           <div style="
@@ -219,7 +240,7 @@ export function Constellation({ entries, className = "", aspect = "4 / 3" }: Pro
             transform: translate(-9px, -9px);
           "></div>
           <span style="
-            position:absolute; top:-18px; left:10px;
+            position:absolute; top:${off.top}px; ${labelStyle}
             font-family:'JetBrains Mono', ui-monospace, monospace;
             font-size:10px; font-weight:600; color:#0a0a0a;
             white-space:nowrap;

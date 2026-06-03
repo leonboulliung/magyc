@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import type { Card } from "@/lib/types";
 import { CardItem } from "./CardItem";
 import { IdeaItem } from "./IdeaItem";
@@ -46,6 +47,29 @@ export function FeedPanel({
   const isDesktop = useIsDesktop();
   const total = ideas.length + things.length;
   const collapseLabel = isDesktop ? "HIDE ›" : "MAP ↓";
+
+  // Mobile drag-to-close on the top grip-handle. Touch handlers only fire on
+  // the handle row, so the cards list inside the sheet stays freely
+  // scrollable. The sheet visually follows the finger while dragging, and
+  // collapses if the user releases past a small threshold.
+  const dragStartY = useRef<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const handleDragStart = (e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    setDragOffset(0);
+  };
+  const handleDragMove = (e: React.TouchEvent) => {
+    if (dragStartY.current === null) return;
+    const delta = e.touches[0].clientY - dragStartY.current;
+    setDragOffset(Math.max(0, delta));
+  };
+  const handleDragEnd = () => {
+    if (dragStartY.current === null) return;
+    const delta = dragOffset;
+    dragStartY.current = null;
+    setDragOffset(0);
+    if (delta > 80) onExpandedChange(false);
+  };
 
   // Cards from people you follow lead the field as a prioritized section.
   const isFollowed = (c: Card) => !!followingIds?.has(c.ownerId);
@@ -186,14 +210,25 @@ export function FeedPanel({
         />
       )}
       <div
-        className="absolute inset-x-0 bottom-0 z-[600] flex flex-col bg-paper/95 backdrop-blur-md border-t border-rule rounded-t-2xl shadow-lg transition-[height] duration-300 ease-out overflow-hidden"
-        style={{ height: expanded ? "80dvh" : "52px", maxHeight: "calc(100dvh - 80px)" }}
+        className={`absolute inset-x-0 bottom-0 z-[600] flex flex-col bg-paper/95 backdrop-blur-md border-t border-rule rounded-t-2xl shadow-lg overflow-hidden ${dragOffset > 0 ? "" : "transition-[height,transform] duration-300 ease-out"}`}
+        style={{
+          height: expanded ? "80dvh" : "52px",
+          maxHeight: "calc(100dvh - 80px)",
+          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+        }}
         aria-label="The field"
       >
         {expanded ? (
           <>
-            <div className="flex justify-center pt-2.5 pb-1 shrink-0">
-              <div className="h-1 w-9 bg-ink/20 rounded-full" />
+            <div
+              className="flex justify-center items-center pt-2.5 pb-2 shrink-0 cursor-grab touch-none select-none"
+              onTouchStart={handleDragStart}
+              onTouchMove={handleDragMove}
+              onTouchEnd={handleDragEnd}
+              onTouchCancel={() => { dragStartY.current = null; setDragOffset(0); }}
+              aria-label="Drag to close"
+            >
+              <div className="h-1.5 w-12 bg-ink/30 rounded-full" />
             </div>
             {body}
           </>

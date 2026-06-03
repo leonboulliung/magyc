@@ -246,10 +246,7 @@ export async function renderShareImage(card: Card, avatarDataUrl?: string): Prom
   ctx.font = "900 36px Inter, system-ui, sans-serif";
   ctx.fillStyle = "#0a0a0a";
   ctx.textAlign = "right";
-  ctx.fillText("CREATOR.PARIS", W - 48, H - 56);
-  ctx.font = "500 16px 'JetBrains Mono', monospace";
-  ctx.fillStyle = "#0a0a0a";
-  ctx.fillText("ONE THING, THIS WEEK.", W - 48, H - 32);
+  ctx.fillText("CREATOR.PARIS", W - 48, H - 32);
   ctx.textAlign = "left";
 
   return await new Promise<Blob>((resolve, reject) => {
@@ -597,9 +594,7 @@ export async function renderCarnetPoster(
   // footer
   ctx.fillStyle = "#0a0a0a";
   ctx.font = "900 36px Inter, system-ui, sans-serif";
-  ctx.fillText("CREATOR.PARIS — A LIVING CITY LAYER", 96, PH - 96);
-  ctx.font = "500 16px 'JetBrains Mono', monospace";
-  ctx.fillText("ONE THING, THIS WEEK.", 96, PH - 60);
+  ctx.fillText("CREATOR.PARIS — A LIVING CITY LAYER", 96, PH - 60);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png", 0.95);
@@ -664,7 +659,7 @@ export function exportCarnetPrintable(cards: Card[], email: string) {
           ? `idea · ${c.location?.label ? escapeHtml(c.location.label) + " · " : ""}${c.signals.length} resonating`
           : `${escapeHtml(c.location?.label || "Paris")} · starts ${escapeHtml(expiryStr)} · ${c.joiners.length}/${c.spots ?? "—"} spots`}</div>
         <p class="desc">${escapeHtml(c.description || "")}</p>
-        <div class="wm">CREATOR.PARIS — ONE THING, THIS WEEK.</div>
+        <div class="wm">CREATOR.PARIS</div>
       </div>`;
     })
     .join("");

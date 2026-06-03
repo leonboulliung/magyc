@@ -371,9 +371,8 @@ export default function CarnetPage() {
                         <Constellation entries={track} />
                       </div>
 
-                      <div className="mt-4 mono text-[10px] tracking-widest opacity-60 flex items-center justify-between">
-                        <span>CREATOR.PARIS — A LIVING CITY LAYER</span>
-                        <span>ONE THING, THIS WEEK.</span>
+                      <div className="mt-4 mono text-[10px] tracking-widest opacity-60">
+                        CREATOR.PARIS — A LIVING CITY LAYER
                       </div>
                     </div>
                   </div>
