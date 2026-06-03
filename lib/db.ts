@@ -54,11 +54,26 @@ type CardRow = {
   external_url: string | null;
   duration_days: number | null;
   archived: boolean;
+  custom_fields: Record<string, unknown> | null;
   owner: ProfileRow | null;
   joiners: JoinerRow[] | null;
   requests: RequestRow[] | null;
   signals: SignalRow[] | null;
 };
+
+/**
+ * Coerce whatever the JSONB returns to a clean `Record<string, string>`.
+ * Bad data is silently dropped — better an empty sidebar than a runtime
+ * crash on a stale row.
+ */
+function mapCustomFields(raw: Record<string, unknown> | null): Record<string, string> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof k === "string" && k && typeof v === "string") out[k] = v;
+  }
+  return out;
+}
 
 const blankProfile = (id: string): Profile => ({
   id,
@@ -132,12 +147,13 @@ function mapCard(row: CardRow): Card {
     joiners: (row.joiners || []).map(mapJoiner),
     requests: (row.requests || []).map(mapRequest),
     signals: (row.signals || []).map(mapSignal),
+    customFields: mapCustomFields(row.custom_fields ?? null),
   };
 }
 
 const CARD_SELECT = `
   id, kind, owner_id, title, description, location, spots, permission, tags, color,
-  created_at, expires_at, ends_at, external_url, duration_days, archived,
+  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at),
   joiners:joiners(user_id, role, joined_at,
     user:profiles!joiners_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at)

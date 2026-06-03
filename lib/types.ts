@@ -98,6 +98,13 @@ export interface Card {
   requests: CardRequest[];
   /** Resonance signals — populated for ideas, empty for things. */
   signals: Signal[];
+  /**
+   * A small key/value sidebar of details that suit this particular thing —
+   * a shoot's "LOOKS", a hackathon's "STACK", a dinner's "BRING". Keys are
+   * AI-suggested abstractions of the creator's own intent (never invented),
+   * values are written by the creator. Order preserved by client.
+   */
+  customFields: Record<string, string>;
 }
 
 export interface TrackEntry {

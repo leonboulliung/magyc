@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -44,6 +44,15 @@ export function PostDetail({ id }: { id: string }) {
     permission: "public" | "request";
   } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Custom fields editor state. `fieldsDraft` is non-null while the owner
+  // is editing the sidebar; `suggesting` is true while the AI labels are
+  // being fetched. The AI ABSTRACTS structure from what the creator
+  // already wrote — it never invents values.
+  const [fieldsDraft, setFieldsDraft] = useState<{ key: string; value: string }[] | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState<string>("");
+  const [savingFields, setSavingFields] = useState(false);
 
   const { user } = useUser();
 
@@ -168,6 +177,64 @@ export function PostDetail({ id }: { id: string }) {
     if (!confirm(isIdea ? "Delete this idea?" : "Delete this thing?")) return;
     await fetch(`/api/cards/${card.id}`, { method: "DELETE" });
     router.push("/");
+  }
+
+  // Ask the AI for 2-3 label keys that suit this particular thing.
+  // Existing user-written values are preserved by merging on the key.
+  async function suggestFields() {
+    if (!card) return;
+    setSuggesting(true);
+    setSuggestError("");
+    try {
+      const res = await fetch(`/api/cards/${card.id}/suggest-fields`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setSuggestError(json?.error || "suggest_failed");
+        return;
+      }
+      const existing = card.customFields;
+      const fields: string[] = Array.isArray(json.fields) ? json.fields : [];
+      const seen = new Set<string>();
+      const draft: { key: string; value: string }[] = [];
+      for (const k of fields) {
+        if (seen.has(k)) continue;
+        seen.add(k);
+        draft.push({ key: k, value: existing[k] ?? "" });
+      }
+      for (const [k, v] of Object.entries(existing)) {
+        if (seen.has(k)) continue;
+        draft.push({ key: k, value: v });
+      }
+      // If the AI returned nothing AND there's nothing pre-existing, give
+      // the user a single blank row so they can still type a key by hand.
+      setFieldsDraft(draft.length ? draft : [{ key: "", value: "" }]);
+    } catch (e) {
+      setSuggestError((e as Error).message);
+    } finally {
+      setSuggesting(false);
+    }
+  }
+  async function saveFields() {
+    if (!card || !fieldsDraft) return;
+    setSavingFields(true);
+    try {
+      const obj: Record<string, string> = {};
+      for (const f of fieldsDraft) {
+        const k = f.key.trim().toUpperCase();
+        const v = f.value.trim();
+        if (!k || !v) continue;
+        obj[k] = v;
+      }
+      await fetch(`/api/cards/${card.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ customFields: obj }),
+      });
+      setFieldsDraft(null);
+      refresh();
+    } finally {
+      setSavingFields(false);
+    }
   }
 
   // Banner copy depends on what just happened.
@@ -349,6 +416,120 @@ export function PostDetail({ id }: { id: string }) {
                 </div>
               </div>
             </div>
+
+            {/* DETAILS — small key/value sidebar that suits this kind of thing.
+                AI suggests labels (LOOKS, BRING, STACK …) based on what the
+                creator already wrote; the creator fills the values. Never
+                invented. Visible read-only to everyone, editable by owner. */}
+            {(Object.keys(card.customFields).length > 0 || mine) && (
+              <div className="border-t border-rule pt-5">
+                {fieldsDraft ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="mono text-[10px] tracking-widest opacity-70">DETAILS</span>
+                      <button
+                        onClick={() => { setFieldsDraft(null); setSuggestError(""); }}
+                        className="mono text-[10px] opacity-60 hover:opacity-100"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                    {fieldsDraft.length === 0 ? (
+                      <p className="mono text-[10px] opacity-60">
+                        Nothing fit cleanly. You can still type a label below.
+                      </p>
+                    ) : null}
+                    {fieldsDraft.map((f, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="mono text-[10px] tracking-widest w-24 sm:w-28 pt-3 opacity-70 uppercase shrink-0">
+                          {f.key || "—"}
+                        </div>
+                        <input
+                          value={f.value}
+                          onChange={(e) =>
+                            setFieldsDraft((d) =>
+                              d ? d.map((x, idx) => (idx === i ? { ...x, value: e.target.value } : x)) : d,
+                            )
+                          }
+                          placeholder={f.key ? `${f.key.toLowerCase()} …` : "value"}
+                          className="input flex-1"
+                          maxLength={200}
+                        />
+                        <button
+                          onClick={() =>
+                            setFieldsDraft((d) => (d ? d.filter((_, idx) => idx !== i) : d))
+                          }
+                          className="mono text-[14px] opacity-50 hover:opacity-100 pt-3 shrink-0"
+                          aria-label="Remove field"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={saveFields}
+                        disabled={savingFields}
+                        className="btn"
+                      >
+                        {savingFields ? "Saving…" : "Save details"}
+                      </button>
+                      <button
+                        onClick={suggestFields}
+                        disabled={suggesting}
+                        className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100"
+                      >
+                        {suggesting ? "✦ thinking…" : "✦ Re-suggest"}
+                      </button>
+                    </div>
+                    {suggestError && (
+                      <p className="mono text-[10px] text-red-700">
+                        {suggestError.toUpperCase()}
+                      </p>
+                    )}
+                  </div>
+                ) : Object.keys(card.customFields).length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="mono text-[10px] tracking-widest opacity-70">DETAILS</span>
+                      {mine && (
+                        <button
+                          onClick={() =>
+                            setFieldsDraft(
+                              Object.entries(card.customFields).map(([k, v]) => ({ key: k, value: v })),
+                            )
+                          }
+                          className="mono text-[10px] opacity-60 hover:opacity-100"
+                        >
+                          ✎ EDIT
+                        </button>
+                      )}
+                    </div>
+                    <dl className="grid grid-cols-[6rem_1fr] sm:grid-cols-[7rem_1fr] gap-x-4 gap-y-2 text-[14px]">
+                      {Object.entries(card.customFields).map(([k, v]) => (
+                        <Fragment key={k}>
+                          <dt className="mono text-[10px] tracking-widest opacity-70 pt-1">{k}</dt>
+                          <dd className="leading-snug whitespace-pre-wrap">{v}</dd>
+                        </Fragment>
+                      ))}
+                    </dl>
+                  </div>
+                ) : mine ? (
+                  <button
+                    onClick={suggestFields}
+                    disabled={suggesting}
+                    className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100 underline underline-offset-2"
+                  >
+                    {suggesting ? "✦ thinking…" : "✦ Suggest details that fit this"}
+                  </button>
+                ) : null}
+                {!fieldsDraft && suggestError && (
+                  <p className="mono text-[10px] text-red-700 mt-2">
+                    {suggestError.toUpperCase()}
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
 
