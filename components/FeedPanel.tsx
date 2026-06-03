@@ -48,58 +48,76 @@ export function FeedPanel({
   const total = ideas.length + things.length;
   const collapseLabel = isDesktop ? "HIDE ›" : "MAP ↓";
 
-  // Mobile drag-to-close on the top grip-handle. We attach native touch
-  // listeners (not React synthetic events) because React's onTouchMove is
-  // passive by default in modern versions — we can't call preventDefault()
-  // there, and without it iOS Safari treats the swipe as a page scroll
-  // instead of a sheet drag. The sheet visually follows the finger while
-  // dragging and collapses past an 80px threshold.
-  const gripRef = useRef<HTMLDivElement>(null);
+  // Mobile drag-to-toggle. Bidirectional: drag DOWN on the grip closes
+  // the sheet, drag UP on the collapsed peek-strip opens it. The handlers
+  // are attached via addEventListener with { passive: false } so the
+  // touchmove can call preventDefault — without that, iOS Safari treats
+  // the upward swipe as a page-scroll and shifts the browser chrome,
+  // leaving a phantom blank strip behind the sheet.
+  //
+  // Two refs, one per state — only the visible one carries the gesture.
+  // Tap-to-expand on the collapsed button keeps working because we only
+  // count a touch as a drag once it has moved > 8px; below that, the
+  // synthetic click fires normally.
+  const expandedGripRef = useRef<HTMLDivElement>(null);
+  const collapsedStripRef = useRef<HTMLButtonElement>(null);
   const [dragOffset, setDragOffset] = useState(0);
-  // Latest values mirrored into refs so the touch-end handler reads the
-  // current delta without re-binding listeners on every state change.
   const startYRef = useRef<number | null>(null);
   const lastDeltaRef = useRef(0);
+  const isDraggingRef = useRef(false);
 
   useEffect(() => {
-    if (isDesktop || !expanded) return;
-    const grip = gripRef.current;
-    if (!grip) return;
+    if (isDesktop) return;
+    const target: HTMLElement | null = expanded
+      ? expandedGripRef.current
+      : collapsedStripRef.current;
+    if (!target) return;
 
     const onStart = (e: TouchEvent) => {
       startYRef.current = e.touches[0].clientY;
       lastDeltaRef.current = 0;
+      isDraggingRef.current = false;
       setDragOffset(0);
     };
     const onMove = (e: TouchEvent) => {
       if (startYRef.current === null) return;
       const delta = e.touches[0].clientY - startYRef.current;
-      if (delta > 0) {
-        // We own this gesture — block the page from scrolling underneath.
-        e.preventDefault();
-        lastDeltaRef.current = delta;
+      lastDeltaRef.current = delta;
+      if (Math.abs(delta) > 8) isDraggingRef.current = true;
+      if (!isDraggingRef.current) return;
+      e.preventDefault();
+      if (expanded && delta > 0) {
+        // Pulling the open sheet down — sheet visually follows the finger.
         setDragOffset(delta);
+      } else if (!expanded && delta < 0) {
+        // Pulling the peek-strip up — short, dampened peek so the
+        // gesture has feedback without the strip flying off-screen.
+        setDragOffset(Math.max(-40, delta * 0.4));
       }
     };
     const onEnd = () => {
       if (startYRef.current === null) return;
-      const delta = lastDeltaRef.current;
+      const finalDelta = lastDeltaRef.current;
+      const wasDrag = isDraggingRef.current;
       startYRef.current = null;
       lastDeltaRef.current = 0;
+      isDraggingRef.current = false;
       setDragOffset(0);
-      if (delta > 80) onExpandedChange(false);
+      if (!wasDrag) return; // tap, not drag — let the click handler take over
+      if (expanded && finalDelta > 80) onExpandedChange(false);
+      else if (!expanded && finalDelta < -50) onExpandedChange(true);
     };
 
-    grip.addEventListener("touchstart", onStart, { passive: true });
-    grip.addEventListener("touchmove", onMove, { passive: false });
-    grip.addEventListener("touchend", onEnd, { passive: true });
-    grip.addEventListener("touchcancel", onEnd, { passive: true });
+    target.addEventListener("touchstart", onStart, { passive: true });
+    target.addEventListener("touchmove", onMove, { passive: false });
+    target.addEventListener("touchend", onEnd, { passive: true });
+    target.addEventListener("touchcancel", onEnd, { passive: true });
 
     return () => {
-      grip.removeEventListener("touchstart", onStart);
-      grip.removeEventListener("touchmove", onMove);
-      grip.removeEventListener("touchend", onEnd);
-      grip.removeEventListener("touchcancel", onEnd);
+      target.removeEventListener("touchstart", onStart);
+      target.removeEventListener("touchmove", onMove);
+      target.removeEventListener("touchend", onEnd);
+      target.removeEventListener("touchcancel", onEnd);
     };
   }, [isDesktop, expanded, onExpandedChange]);
 
@@ -256,7 +274,7 @@ export function FeedPanel({
         {expanded ? (
           <>
             <div
-              ref={gripRef}
+              ref={expandedGripRef}
               className="flex flex-col justify-center items-center pt-3 pb-3 shrink-0 select-none"
               style={{
                 touchAction: "none",
@@ -273,11 +291,17 @@ export function FeedPanel({
           </>
         ) : (
           <button
+            ref={collapsedStripRef}
             onClick={() => onExpandedChange(true)}
-            className="w-full h-full px-4 flex items-center justify-between gap-2 relative"
-            aria-label="Open the field"
+            className="w-full h-full px-4 flex items-center justify-between gap-2 relative select-none"
+            style={{
+              touchAction: "none",
+              WebkitUserSelect: "none",
+              WebkitTouchCallout: "none",
+            }}
+            aria-label="Pull up or tap to open the field"
           >
-            <div className="absolute left-1/2 top-1.5 -translate-x-1/2 h-1 w-9 bg-ink/20 rounded-full" />
+            <div className="absolute left-1/2 top-1.5 -translate-x-1/2 h-1.5 w-14 bg-ink/40 rounded-full" />
             <span className="mono text-[10px] tracking-widest">THE FIELD</span>
             <span className="mono text-[10px] tracking-widest">
               {total > 0 ? `${total} ↑` : "↑"}
