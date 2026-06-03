@@ -57,6 +57,7 @@ type CardRow = {
   archived: boolean;
   custom_fields: Record<string, unknown> | null;
   roadmap: unknown[] | null;
+  modules: unknown[] | null;
   forked_from_card_id: string | null;
   forked_from_owner_id: string | null;
   forked_from_title: string | null;
@@ -90,6 +91,90 @@ function mapRoadmap(raw: unknown[] | null): string[] {
       const s = v.trim();
       if (s) out.push(s.slice(0, 160));
     }
+  }
+  return out;
+}
+
+/**
+ * JSONB → CardModule[]: shape-validate each element, drop anything that
+ * doesn't fit a known module type. Bad/stale data is silently dropped so
+ * the UI never has to null-guard. Caps protect against blown-up rows.
+ */
+function mapModules(raw: unknown[] | null): import("./types").CardModule[] {
+  if (!Array.isArray(raw)) return [];
+  const out: import("./types").CardModule[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    switch (rec.type) {
+      case "brief": {
+        if (typeof rec.text === "string") {
+          const t = rec.text.trim().slice(0, 240);
+          if (t) out.push({ type: "brief", text: t });
+        }
+        break;
+      }
+      case "roadmap": {
+        if (Array.isArray(rec.steps)) {
+          const steps: string[] = [];
+          for (const s of rec.steps) {
+            if (typeof s === "string") {
+              const v = s.trim().slice(0, 160);
+              if (v) steps.push(v);
+              if (steps.length >= 8) break;
+            }
+          }
+          if (steps.length > 0) out.push({ type: "roadmap", steps });
+        }
+        break;
+      }
+      case "checklist": {
+        if (Array.isArray(rec.items)) {
+          const items: string[] = [];
+          for (const s of rec.items) {
+            if (typeof s === "string") {
+              const v = s.trim().slice(0, 160);
+              if (v) items.push(v);
+              if (items.length >= 12) break;
+            }
+          }
+          if (items.length > 0) out.push({ type: "checklist", items });
+        }
+        break;
+      }
+      case "bring": {
+        if (Array.isArray(rec.items)) {
+          const items: string[] = [];
+          for (const s of rec.items) {
+            if (typeof s === "string") {
+              const v = s.trim().slice(0, 80);
+              if (v) items.push(v);
+              if (items.length >= 16) break;
+            }
+          }
+          if (items.length > 0) out.push({ type: "bring", items });
+        }
+        break;
+      }
+      case "kv": {
+        if (Array.isArray(rec.entries)) {
+          const entries: { key: string; value: string }[] = [];
+          for (const e of rec.entries) {
+            if (!e || typeof e !== "object") continue;
+            const er = e as Record<string, unknown>;
+            if (typeof er.key === "string" && typeof er.value === "string") {
+              const k = er.key.trim().slice(0, 12);
+              const v = er.value.trim().slice(0, 200);
+              if (k && v) entries.push({ key: k, value: v });
+            }
+            if (entries.length >= 6) break;
+          }
+          if (entries.length > 0) out.push({ type: "kv", entries });
+        }
+        break;
+      }
+    }
+    if (out.length >= 8) break;
   }
   return out;
 }
@@ -169,6 +254,7 @@ function mapCard(row: CardRow): Card {
     signals: (row.signals || []).map(mapSignal),
     customFields: mapCustomFields(row.custom_fields ?? null),
     roadmap: mapRoadmap(row.roadmap ?? null),
+    modules: mapModules(row.modules ?? null),
     forkedFromCardId: row.forked_from_card_id ?? null,
     forkedFromOwnerId: row.forked_from_owner_id ?? null,
     forkedFromTitle: row.forked_from_title ?? null,
@@ -180,7 +266,7 @@ function mapCard(row: CardRow): Card {
 
 const CARD_SELECT = `
   id, kind, owner_id, title, description, location, spots, permission, tags, color,
-  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap,
+  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap, modules,
   forked_from_card_id, forked_from_owner_id, forked_from_title,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
   forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),

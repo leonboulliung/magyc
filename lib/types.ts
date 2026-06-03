@@ -126,7 +126,30 @@ export interface Card {
   forkedFromTitle: string | null;
   /** Hydrated origin owner profile when available — for the stamp UI. */
   forkedFromOwner: Profile | null;
+  /**
+   * Ordered repertoire of typed sub-surfaces the AI proposes (and the
+   * owner curates) to help a thing land — brief, roadmap, checklist,
+   * bring-list, kv-sidebar. The AI never invents specifics; it only
+   * abstracts the structure from what the creator already wrote.
+   */
+  modules: CardModule[];
 }
+
+/**
+ * A typed module that lives in `Card.modules`. Discriminated by `type`.
+ * Module types come online one at a time; the sanitizer in the PATCH
+ * route gates which types are currently valid.
+ */
+export type CardModule =
+  | { type: "brief"; text: string }
+  | { type: "roadmap"; steps: string[] }
+  | { type: "checklist"; items: string[] }
+  | { type: "bring"; items: string[] }
+  | { type: "kv"; entries: { key: string; value: string }[] };
+
+/** The set of module types currently accepted by the PATCH sanitizer.
+ *  Grows as each module is approved and shipped. */
+export const ALLOWED_MODULE_TYPES: readonly CardModule["type"][] = [] as const;
 
 export interface TrackEntry {
   card: Card;

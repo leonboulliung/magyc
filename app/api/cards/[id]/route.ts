@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { ALLOWED_MODULE_TYPES, type CardModule } from "@/lib/types";
 
 async function loadOwned(id: string, userId: string) {
   const admin = supabaseAdmin();
@@ -28,6 +29,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     permission?: "public" | "request";
     customFields?: Record<string, string>;
     roadmap?: unknown[];
+    modules?: unknown[];
   };
 
   const patch: Record<string, unknown> = {};
@@ -42,6 +44,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
   if (Array.isArray(body.roadmap)) {
     patch.roadmap = sanitizeRoadmap(body.roadmap);
+  }
+  if (Array.isArray(body.modules)) {
+    patch.modules = sanitizeModules(body.modules);
   }
 
   if (!Object.keys(patch).length) return NextResponse.json({ ok: true });
@@ -80,6 +85,89 @@ function sanitizeRoadmap(raw: unknown[]): string[] {
     const cleaned = v.trim().replace(/\s+/g, " ").slice(0, 160);
     if (!cleaned) continue;
     out.push(cleaned);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+// Modules: typed sub-surfaces (brief, roadmap, checklist, bring, kv).
+// Each type is only accepted once it has been shipped — ALLOWED_MODULE_TYPES
+// is the live whitelist, grown one type at a time as modules are approved.
+// Anything else is silently dropped so partial rollouts can't poison the
+// jsonb column.
+const ALLOWED_SET: Set<string> = new Set(ALLOWED_MODULE_TYPES);
+
+function sanitizeModules(raw: unknown[]): CardModule[] {
+  const out: CardModule[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const rec = item as Record<string, unknown>;
+    if (typeof rec.type !== "string" || !ALLOWED_SET.has(rec.type)) continue;
+
+    switch (rec.type) {
+      case "brief": {
+        if (typeof rec.text === "string") {
+          const t = rec.text.trim().slice(0, 240);
+          if (t) out.push({ type: "brief", text: t });
+        }
+        break;
+      }
+      case "roadmap": {
+        if (Array.isArray(rec.steps)) {
+          const steps: string[] = [];
+          for (const s of rec.steps) {
+            if (typeof s !== "string") continue;
+            const v = s.trim().replace(/\s+/g, " ").slice(0, 160);
+            if (v) steps.push(v);
+            if (steps.length >= 8) break;
+          }
+          if (steps.length > 0) out.push({ type: "roadmap", steps });
+        }
+        break;
+      }
+      case "checklist": {
+        if (Array.isArray(rec.items)) {
+          const items: string[] = [];
+          for (const s of rec.items) {
+            if (typeof s !== "string") continue;
+            const v = s.trim().slice(0, 160);
+            if (v) items.push(v);
+            if (items.length >= 12) break;
+          }
+          if (items.length > 0) out.push({ type: "checklist", items });
+        }
+        break;
+      }
+      case "bring": {
+        if (Array.isArray(rec.items)) {
+          const items: string[] = [];
+          for (const s of rec.items) {
+            if (typeof s !== "string") continue;
+            const v = s.trim().slice(0, 80);
+            if (v) items.push(v);
+            if (items.length >= 16) break;
+          }
+          if (items.length > 0) out.push({ type: "bring", items });
+        }
+        break;
+      }
+      case "kv": {
+        if (Array.isArray(rec.entries)) {
+          const entries: { key: string; value: string }[] = [];
+          for (const e of rec.entries) {
+            if (!e || typeof e !== "object") continue;
+            const er = e as Record<string, unknown>;
+            if (typeof er.key !== "string" || typeof er.value !== "string") continue;
+            const k = er.key.trim().toUpperCase().replace(/\s+/g, "-").slice(0, 12);
+            const v = er.value.trim().slice(0, 200);
+            if (k && v) entries.push({ key: k, value: v });
+            if (entries.length >= 6) break;
+          }
+          if (entries.length > 0) out.push({ type: "kv", entries });
+        }
+        break;
+      }
+    }
     if (out.length >= 8) break;
   }
   return out;
