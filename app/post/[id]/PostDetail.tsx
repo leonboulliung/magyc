@@ -394,17 +394,6 @@ export function PostDetail({ id }: { id: string }) {
           </div>
         )}
 
-        {card.externalUrl && (
-          <a
-            href={card.externalUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="inline-flex items-center gap-2 mono text-[11px] tracking-widest rounded-full border border-rule-strong px-3.5 py-2 hover:bg-ink hover:text-paper transition-colors self-start"
-          >
-            ↗ {card.externalUrl.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
-          </a>
-        )}
-
         {/* ===================== ACTIONS ===================== */}
         {isIdea ? (
           <div className="space-y-4">

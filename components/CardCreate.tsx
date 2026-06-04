@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { COLOR_PALETTE, cardColor, isDark } from "@/lib/color";
-import type { Permission } from "@/lib/types";
+import type { CardModule, Permission } from "@/lib/types";
 import {
   startsLabel, parisNow, parisParts, wallClockToParisMs,
   parisWallTimeToMs, parisClockLabel,
@@ -14,6 +14,7 @@ import { useIsDesktop } from "@/lib/hooks";
 import type { Card } from "@/lib/types";
 import { ParisMap } from "./ParisMap";
 import { TagInput } from "./TagInput";
+import { ModuleDraftPicker } from "./modules/ModuleDraftPicker";
 
 const TAG_SUGGESTIONS = [
   "film", "music", "art", "fashion", "food", "walks",
@@ -80,7 +81,8 @@ export function CardCreate({
   const [description, setDescription] = useState(initialDraft?.description || "");
   const [tags, setTags] = useState<string[]>(initialDraft?.tags || []);
   const [color, setColor] = useState<string | null>(initialDraft?.color ?? null);
-  const [externalUrl, setExternalUrl] = useState<string>(initialDraft?.externalUrl || "");
+  // Optional draft module to attach on POST. Null = no module.
+  const [draftModule, setDraftModule] = useState<CardModule | null>(null);
 
   // Spots is null until the user (or AI with confidence) picks a number.
   // Submit is disabled while null — we never default to a silent value.
@@ -449,7 +451,7 @@ export function CardCreate({
           color,
           startsAt: startsAt.toISOString(),
           endsAt: endsAt ? endsAt.toISOString() : null,
-          externalUrl: externalUrl.trim() || null,
+          modules: draftModule ? [draftModule] : [],
         }),
       });
       const json = await res.json();
@@ -886,20 +888,19 @@ export function CardCreate({
             {/* LOCATION — search OR click on the map */}
             {renderLocationField()}
 
-            {/* EXTERNAL LINK — optional */}
+            {/* MODULE — optional draft module for this thing.
+                Reflist replaces the old single-link affordance. */}
             <div>
               <label className="mono text-[10px] tracking-widest opacity-70">
-                LINK <span className="opacity-50">(OPTIONAL)</span>{inferredHint("externalUrl")}
+                MODULE <span className="opacity-50">(OPTIONAL)</span>
               </label>
-              <input
-                value={externalUrl}
-                onChange={(e) => { setExternalUrl(e.target.value); confirm("externalUrl"); }}
-                placeholder="https://github.com/… or are.na/…"
-                className="input mt-1"
-                maxLength={500}
-              />
-              <p className="mono text-[10px] mt-1 opacity-50">
-                For repos, routes, Are.na boards, anything that exists already.
+              <div className="mt-2">
+                <ModuleDraftPicker value={draftModule} onChange={setDraftModule} />
+              </div>
+              <p className="mono text-[10px] mt-2 opacity-50">
+                A brief, a roadmap, a moodboard… pick the one shape that
+                helps this thing land. AI suggestions become available
+                once it's posted.
               </p>
             </div>
 
@@ -1230,20 +1231,19 @@ export function CardCreate({
             {/* LOCATION */}
             {renderLocationField()}
 
-            {/* EXTERNAL LINK — optional */}
+            {/* MODULE — optional draft module for this thing.
+                Reflist replaces the old single-link affordance. */}
             <div>
               <label className="mono text-[10px] tracking-widest opacity-70">
-                LINK <span className="opacity-50">(OPTIONAL)</span>{inferredHint("externalUrl")}
+                MODULE <span className="opacity-50">(OPTIONAL)</span>
               </label>
-              <input
-                value={externalUrl}
-                onChange={(e) => { setExternalUrl(e.target.value); confirm("externalUrl"); }}
-                placeholder="https://github.com/… or are.na/…"
-                className="input mt-1"
-                maxLength={500}
-              />
-              <p className="mono text-[10px] mt-1 opacity-50">
-                For repos, routes, Are.na boards, anything that exists already.
+              <div className="mt-2">
+                <ModuleDraftPicker value={draftModule} onChange={setDraftModule} />
+              </div>
+              <p className="mono text-[10px] mt-2 opacity-50">
+                A brief, a roadmap, a moodboard… pick the one shape that
+                helps this thing land. AI suggestions become available
+                once it's posted.
               </p>
             </div>
           </div>

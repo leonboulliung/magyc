@@ -5,6 +5,7 @@ import { ensureProfile } from "@/lib/server/profile";
 import { newId } from "@/lib/id";
 import { normalizeTags } from "@/lib/vibe";
 import { isBanned } from "@/lib/server/safety";
+import { sanitizeModules } from "@/lib/server/moduleSanitize";
 
 // Hard ceiling: a thing may start at most 30 days into the future. Most will
 // be hours or days away — this just prevents pathological inputs.
@@ -26,9 +27,9 @@ export async function POST(req: Request) {
     permission?: "public" | "request";
     startsAt?: string; // ISO 8601
     endsAt?: string | null;
-    externalUrl?: string | null;
     tags?: string[];
     color?: string;
+    modules?: unknown[];
   };
   try {
     body = await req.json();
@@ -62,12 +63,10 @@ export async function POST(req: Request) {
     };
   }
 
-  // Optional external URL (both kinds). Require http(s) for safe rendering.
-  let externalUrl: string | null = null;
-  if (typeof body.externalUrl === "string") {
-    const u = body.externalUrl.trim().slice(0, 500);
-    if (u && /^https?:\/\/[^\s]+$/i.test(u)) externalUrl = u;
-  }
+  // Optional draft module — sanitized per the typed union. Caps to ONE
+  // module on a thing; ideas don't carry modules (the field is dropped
+  // silently below if kind === "idea").
+  const modules = Array.isArray(body.modules) ? sanitizeModules(body.modules) : [];
 
   await ensureProfile(userId);
   const admin = supabaseAdmin();
@@ -96,7 +95,6 @@ export async function POST(req: Request) {
         expires_at: null,  // ideas don't expire
         ends_at: null,
         duration_days: null,
-        external_url: externalUrl,
       })
       .select()
       .single();
@@ -172,7 +170,7 @@ export async function POST(req: Request) {
       duration_days: 1,
       expires_at: new Date(startsMs).toISOString(),
       ends_at: endsMs ? new Date(endsMs).toISOString() : null,
-      external_url: externalUrl,
+      modules,
     })
     .select()
     .single();

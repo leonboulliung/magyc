@@ -83,7 +83,7 @@ export function PromptStep({ initialKind, onProceed, onClose }: Props) {
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") proceed();
             }}
-            placeholder={isIdea ? "Wouldn't it be great if…" : "I want to…"}
+            placeholder={isIdea ? "I'm thinking of…" : "I want to…"}
             rows={4}
             maxLength={500}
             className="w-full border border-rule-strong bg-white px-4 py-3 editorial text-[22px] sm:text-[28px] leading-[1.2] focus:outline-none focus:ring-2 focus:ring-ink resize-none"
