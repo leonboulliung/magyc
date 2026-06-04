@@ -30,19 +30,20 @@ export function ModuleDraftPicker({
   context?: { title: string; description: string; tags: string[] };
 }) {
   const [picking, setPicking] = useState(false);
+  const [pickerHint, setPickerHint] = useState<string>("");
   const [editingType, setEditingType] = useState<CardModule["type"] | null>(null);
   const [suggesting, setSuggesting] = useState(false);
-  const [emptyHint, setEmptyHint] = useState(false);
   const [error, setError] = useState("");
 
-  function startPick() {
+  function startPick(hint = "") {
     setPicking(true);
+    setPickerHint(hint);
     setEditingType(null);
-    setEmptyHint(false);
     setError("");
   }
   function pickType(type: CardModule["type"]) {
     setPicking(false);
+    setPickerHint("");
     setEditingType(type);
   }
 
@@ -54,7 +55,6 @@ export function ModuleDraftPicker({
       return;
     }
     setSuggesting(true);
-    setEmptyHint(false);
     setError("");
     try {
       const res = await fetch("/api/cards/suggest-modules-draft", {
@@ -80,7 +80,10 @@ export function ModuleDraftPicker({
         // picks the right initial seed.
         onChange(proposed);
       } else {
-        setEmptyHint(true);
+        // The AI looked at the draft and didn't see a clean fit. Drop
+        // straight into the manual picker so the creator can keep
+        // moving without an extra click.
+        startPick("Nothing fit cleanly. Pick a shape yourself.");
       }
     } catch (e) {
       setError((e as Error).message);
@@ -111,7 +114,8 @@ export function ModuleDraftPicker({
       <ModulePicker
         current={value?.type}
         onPick={pickType}
-        onCancel={() => setPicking(false)}
+        onCancel={() => { setPicking(false); setPickerHint(""); }}
+        hint={pickerHint || undefined}
       />
     );
   }
@@ -130,7 +134,7 @@ export function ModuleDraftPicker({
           </button>
           <button
             type="button"
-            onClick={startPick}
+            onClick={() => startPick()}
             className="mono text-[10px] tracking-widest opacity-50 hover:opacity-100"
           >
             ↻ SWITCH TYPE
@@ -161,16 +165,11 @@ export function ModuleDraftPicker({
       )}
       <button
         type="button"
-        onClick={startPick}
+        onClick={() => startPick()}
         className="mono text-[10px] tracking-widest opacity-50 hover:opacity-100"
       >
         + Pick a module yourself
       </button>
-      {emptyHint && (
-        <span className="mono text-[10px] opacity-60">
-          Nothing fit cleanly. You can still pick one.
-        </span>
-      )}
       {error === "title_too_short" && (
         <span className="mono text-[10px] opacity-60">
           Add a title first, then I can help.

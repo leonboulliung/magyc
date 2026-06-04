@@ -33,12 +33,15 @@ export function ModulePicker({
   onPick,
   onCancel,
   title = "Pick a module",
+  hint,
 }: {
   /** Currently-selected module type, if any — gets a "CURRENT" tag. */
   current?: CardModule["type"];
   onPick: (type: CardModule["type"]) => void;
   onCancel?: () => void;
   title?: string;
+  /** Optional one-line note above the grid (e.g. "AI didn't find a fit"). */
+  hint?: string;
 }) {
   return (
     <div className="space-y-3">
@@ -46,6 +49,9 @@ export function ModulePicker({
         <div>
           <div className="mono text-[10px] tracking-widest opacity-60">CHOOSE A SHAPE</div>
           <h3 className="editorial font-black text-[20px] leading-none mt-1">{title}</h3>
+          {hint && (
+            <p className="mono text-[10px] opacity-70 mt-1.5 leading-snug">{hint}</p>
+          )}
         </div>
         {onCancel && (
           <button

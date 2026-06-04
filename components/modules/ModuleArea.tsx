@@ -34,8 +34,8 @@ export function ModuleArea({
   const [editingType, setEditingType] = useState<CardModule["type"] | null>(null);
   const [editorInitial, setEditorInitial] = useState<CardModule | null>(null);
   const [picking, setPicking] = useState(false);
+  const [pickerHint, setPickerHint] = useState<string>("");
   const [suggesting, setSuggesting] = useState(false);
-  const [emptyHint, setEmptyHint] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -46,11 +46,11 @@ export function ModuleArea({
     setError("");
   }
 
-  function startPick() {
+  function startPick(hint = "") {
     setPicking(true);
+    setPickerHint(hint);
     setEditingType(null);
     setEditorInitial(null);
-    setEmptyHint(false);
     setError("");
   }
 
@@ -62,12 +62,12 @@ export function ModuleArea({
       module && module.type === type ? module : null,
     );
     setPicking(false);
+    setPickerHint("");
   }
 
   async function suggest() {
     if (suggesting) return;
     setSuggesting(true);
-    setEmptyHint(false);
     setError("");
     try {
       const res = await fetch(`/api/cards/${card.id}/suggest-modules`, { method: "POST" });
@@ -82,7 +82,10 @@ export function ModuleArea({
         setEditingType(proposed.type);
         setEditorInitial(proposed);
       } else {
-        setEmptyHint(true);
+        // The AI saw the thing and decided nothing fit cleanly. Open the
+        // manual picker right away so the creator can keep moving
+        // without an extra click.
+        startPick("Nothing fit cleanly. Pick a shape yourself.");
       }
     } catch (e) {
       setError((e as Error).message);
@@ -146,7 +149,8 @@ export function ModuleArea({
       <ModulePicker
         current={module?.type}
         onPick={pickType}
-        onCancel={() => setPicking(false)}
+        onCancel={() => { setPicking(false); setPickerHint(""); }}
+        hint={pickerHint || undefined}
       />
     );
   }
@@ -165,7 +169,7 @@ export function ModuleArea({
               ✎ EDIT
             </button>
             <button
-              onClick={startPick}
+              onClick={() => startPick()}
               disabled={saving}
               className="mono text-[10px] tracking-widest opacity-50 hover:opacity-100"
             >
@@ -195,16 +199,11 @@ export function ModuleArea({
           {suggesting ? "✦ thinking…" : "✦ Help shape this"}
         </button>
         <button
-          onClick={startPick}
+          onClick={() => startPick()}
           className="mono text-[10px] tracking-widest opacity-50 hover:opacity-100"
         >
           + Pick a module yourself
         </button>
-        {emptyHint && (
-          <span className="mono text-[10px] opacity-60">
-            Nothing fit cleanly. You can still pick one.
-          </span>
-        )}
         {error && (
           <span className="mono text-[10px] text-red-700">{error.toUpperCase()}</span>
         )}
