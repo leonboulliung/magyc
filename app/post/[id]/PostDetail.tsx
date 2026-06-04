@@ -240,44 +240,15 @@ export function PostDetail({ id }: { id: string }) {
           </div>
         </div>
       ) : (
-        // THING hero — the Paris-map tinted with the card's color, or
-        // (when the signature has populated) a soft 2-tone wash from
-        // the AI-computed palette. The signature gradient is what makes
-        // the surface lean toward the mood of *this* thing.
+        // THING hero — only the Paris map. No color block, no overlay
+        // tint. The pin on the map carries the card's colour, that's
+        // where the chroma lives. Paper bg keeps the surface calm
+        // while tiles load — no flash of colour before the map paints.
         <div className="relative h-[36vh] sm:h-[44vh] border-b border-rule overflow-hidden bg-paper">
-          {card.location ? (
-            <>
-              <div className="absolute inset-0 pointer-events-none bg-paper">
-                <ParisMap cards={[card]} highlightId={card.id} focusedCard={card} />
-              </div>
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={
-                  card.signature
-                    ? {
-                        backgroundImage: `linear-gradient(135deg, ${card.signature.palette[0]} 0%, ${card.signature.palette[1]} 100%)`,
-                        opacity: 0.78,
-                      }
-                    : {
-                        backgroundColor: color,
-                        opacity: 0.78,
-                      }
-                }
-                aria-hidden
-              />
-            </>
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={
-                card.signature
-                  ? {
-                      backgroundImage: `linear-gradient(135deg, ${card.signature.palette[0]} 0%, ${card.signature.palette[1]} 100%)`,
-                    }
-                  : { backgroundColor: color }
-              }
-              aria-hidden
-            />
+          {card.location && (
+            <div className="absolute inset-0 pointer-events-none bg-paper">
+              <ParisMap cards={[card]} highlightId={card.id} focusedCard={card} />
+            </div>
           )}
         </div>
       )}

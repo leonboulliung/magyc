@@ -11,7 +11,12 @@ export interface LocationResult {
 // Komoot's Photon — free, GDPR-friendly EU geocoder built on OSM.
 // No API key, no billing, generous rate limits.
 const PHOTON_URL = "https://photon.komoot.io/api/";
-const PARIS_BBOX = "2.18,48.78,2.52,48.96";
+// Bounding box covers Paris + the three petite-couronne départements
+// (Hauts-de-Seine, Seine-Saint-Denis, Val-de-Marne) — so Nanterre,
+// Boulogne, Ivry, Saint-Denis, Montreuil etc. resolve, but the rest of
+// France stays out. `lat`/`lon` below bias Paris centre so closer
+// matches still rank first inside that box.
+const PARIS_BBOX = "2.02,48.69,2.62,48.99";
 const PARIS_CENTER = { lat: 48.8566, lng: 2.3522 };
 
 type PhotonFeature = {

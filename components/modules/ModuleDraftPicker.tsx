@@ -175,8 +175,15 @@ export function ModuleDraftPicker({
           Add a title first, then I can help.
         </span>
       )}
-      {error && error !== "title_too_short" && (
-        <span className="mono text-[10px] text-red-700">{error.toUpperCase()}</span>
+      {error === "rate_limited" && (
+        <span className="mono text-[10px] opacity-60">
+          Just a moment — try again in a few seconds.
+        </span>
+      )}
+      {error && error !== "title_too_short" && error !== "rate_limited" && (
+        <span className="mono text-[10px] opacity-60">
+          Couldn&rsquo;t fetch a suggestion just now. Try once more.
+        </span>
       )}
     </div>
   );
