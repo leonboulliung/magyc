@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModules } from "@/lib/server/moduleSanitize";
+import { rolesForStorage, sanitizeRoleLabels } from "@/lib/server/roleSanitize";
 import { regenerateSignatureInBackground } from "@/lib/server/signatureCompute";
 import type { CardModule } from "@/lib/types";
 
@@ -32,6 +33,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     customFields?: Record<string, string>;
     roadmap?: unknown[];
     modules?: unknown[];
+    roles?: unknown[];
   };
 
   const patch: Record<string, unknown> = {};
@@ -49,6 +51,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
   if (Array.isArray(body.modules)) {
     patch.modules = sanitizeModules(body.modules);
+  }
+  if (Array.isArray(body.roles)) {
+    // Removing a label doesn't kick a joiner who claimed it — their
+    // `joiners.role` row still exists but stops matching a slot.
+    // (Owner can re-add the label later and reconnect them.)
+    patch.roles = rolesForStorage(sanitizeRoleLabels(body.roles));
   }
 
   if (!Object.keys(patch).length) return NextResponse.json({ ok: true });

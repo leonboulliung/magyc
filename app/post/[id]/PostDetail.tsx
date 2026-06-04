@@ -12,6 +12,9 @@ import { SignalButton } from "@/components/SignalButton";
 import { TransformPanel } from "@/components/TransformPanel";
 import { ReportButton } from "@/components/ReportButton";
 import { ModuleArea } from "@/components/modules/ModuleArea";
+import { RolesArea } from "@/components/RolesArea";
+import { RolesEditor } from "@/components/RolesEditor";
+import { KlarheitBar } from "@/components/KlarheitBar";
 import { placeKindLabel } from "@/lib/placeKind";
 import { cardColor, isDark } from "@/lib/color";
 import { fetchCardById } from "@/lib/db";
@@ -45,8 +48,13 @@ export function PostDetail({ id }: { id: string }) {
     description: string;
     spots: number;
     permission: "public" | "request";
+    roles: string[];
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  // AI-suggested role labels for the EditModal's RolesEditor. Owner taps
+  // "✨ AI VORSCHLAG" → chips appear → owner taps each to add.
+  const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
+  const [suggestingRoles, setSuggestingRoles] = useState(false);
 
 
   const { user } = useUser();
@@ -162,6 +170,7 @@ export function PostDetail({ id }: { id: string }) {
       description: card.description,
       spots: card.spots ?? 1,
       permission: card.permission ?? "public",
+      roles: card.roles.map((r) => r.label),
     });
     setEditing(true);
   }
@@ -177,6 +186,25 @@ export function PostDetail({ id }: { id: string }) {
       setEditing(false);
       refresh();
     } finally { setBusy(false); }
+  }
+  async function suggestRoles() {
+    if (!card || suggestingRoles) return;
+    setSuggestingRoles(true);
+    try {
+      const res = await fetch(`/api/cards/${card.id}/suggest-roles`, {
+        method: "POST",
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        roles?: unknown;
+      };
+      if (Array.isArray(json.roles)) {
+        setRoleSuggestions(
+          json.roles.filter((r): r is string => typeof r === "string"),
+        );
+      }
+    } finally {
+      setSuggestingRoles(false);
+    }
   }
   async function removeCard() {
     if (!card) return;
@@ -324,6 +352,13 @@ export function PostDetail({ id }: { id: string }) {
               </span>
             ))}
           </div>
+        )}
+
+        {/* KLARHEIT — derived legibility status. Mostly useful to the owner
+            as a "what's still missing" nudge, but visible to everyone so a
+            visitor can tell at a glance whether this is ready to act on. */}
+        {!isIdea && (
+          <KlarheitBar card={card} showMissing={mine} />
         )}
 
         {/* MODULE area (thing-only) — the typed sub-surface the AI proposes
@@ -557,11 +592,16 @@ export function PostDetail({ id }: { id: string }) {
           </div>
         )}
 
+        {/* Predefined roles — only renders if card.roles is non-empty.
+            "Ich mach's" lives here. The classic JOIN button above stays
+            as the catch-all for things without predefined roles. */}
+        {!isIdea && <RolesArea card={card} onChanged={refresh} />}
+
         {!isIdea && (
           <div className="border border-rule rounded-2xl overflow-hidden shadow-sm">
             <div className="px-4 py-2.5 mono text-[10px] tracking-widest bg-ink text-paper flex justify-between">
               <span>CREW · {1 + card.joiners.length}</span>
-              {mine && card.joiners.length > 0 && <span className="opacity-70">TAP A ROLE TO NAME IT</span>}
+              {mine && card.joiners.length > 0 && card.roles.length === 0 && <span className="opacity-70">TAP A ROLE TO NAME IT</span>}
             </div>
             <ul>
               <li className="px-3 py-2 border-t border-rule flex items-center gap-3">
@@ -570,7 +610,7 @@ export function PostDetail({ id }: { id: string }) {
               </li>
               {card.joiners.map((j) => (
                 <li key={j.userId} className="px-3 py-2 border-t border-rule flex items-center gap-3">
-                  {mine ? (
+                  {mine && card.roles.length === 0 ? (
                     <input
                       defaultValue={j.role}
                       placeholder="ROLE — e.g. DJ, COOK, GUEST"
@@ -580,7 +620,7 @@ export function PostDetail({ id }: { id: string }) {
                       className="mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full border border-rule-strong bg-paper w-[180px] focus:outline-none focus:bg-ink focus:text-paper transition-colors"
                     />
                   ) : (
-                    <span className="tag shrink-0">{j.role.toUpperCase() || "JOINER"}</span>
+                    <span className="tag shrink-0">{j.role.toUpperCase() || "DABEI"}</span>
                   )}
                   <Link href={`/u/${j.userId}`} className="mono text-[12px] truncate flex-1 hover:underline">@{j.user.displayName}</Link>
                   {mine && (
@@ -628,6 +668,14 @@ export function PostDetail({ id }: { id: string }) {
                     <button onClick={() => setDraft({ ...draft, permission: "request" })} className={`flex-1 px-3 py-2 rounded-full border mono text-[10px] tracking-widest transition-colors ${draft.permission === "request" ? "bg-ink text-paper border-ink" : "bg-paper border-rule-strong"}`}>REQUEST</button>
                   </div>
                 </div>
+
+                <RolesEditor
+                  value={draft.roles}
+                  onChange={(roles) => setDraft({ ...draft, roles })}
+                  suggestions={roleSuggestions}
+                  onSuggest={suggestRoles}
+                  suggestBusy={suggestingRoles}
+                />
               </>
             )}
           </div>

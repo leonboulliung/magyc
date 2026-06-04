@@ -9,6 +9,7 @@ import { useRealtimeCards } from "@/lib/realtime";
 import { computeDiscoverTiles, type DiscoverTile } from "@/lib/discover";
 import { placeKindLabel } from "@/lib/placeKind";
 import { cardColor } from "@/lib/color";
+import { KlarheitChip } from "@/components/KlarheitBar";
 import type { Card } from "@/lib/types";
 import { fullStartLabel, parisClockLabel, timeAgo } from "@/lib/time";
 
@@ -220,6 +221,12 @@ function CardRow({ card, tile }: { card: Card; tile: DiscoverTile }) {
               <>
                 <span className="opacity-40">·</span>
                 <span>{placeKind}</span>
+              </>
+            )}
+            {!isIdea && (
+              <>
+                <span className="opacity-40">·</span>
+                <KlarheitChip card={card} />
               </>
             )}
           </div>

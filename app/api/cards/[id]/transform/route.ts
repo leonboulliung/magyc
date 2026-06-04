@@ -103,15 +103,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   // OWNER PATH — in-place flip on the same row.
   // ----------------------------------------------------------------
   if (isOwner) {
-    // One live thing per person: archive any OTHER active thing this user
-    // owns (not this row — it's about to become the live thing).
-    await admin
-      .from("cards")
-      .update({ archived: true })
-      .eq("owner_id", userId)
-      .eq("kind", "thing")
-      .eq("archived", false)
-      .neq("id", params.id);
+    // Multiple live things allowed. The transform doesn't touch anything
+    // outside this row — promoting an idea to a thing is purely additive
+    // to the field.
 
     const { error: upErr } = await admin
       .from("cards")

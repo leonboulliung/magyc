@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type {
-  Card, CardJoiner, CardKind, CardRequest, Profile, Signal, Socials, TrackEntry,
+  Card, CardJoiner, CardKind, CardRequest, CardRole, Profile, Signal, Socials, TrackEntry,
 } from "./types";
 
 // ============================================================
@@ -60,6 +60,7 @@ type CardRow = {
   roadmap: unknown[] | null;
   modules: unknown[] | null;
   signature: Record<string, unknown> | null;
+  roles: unknown[] | null;
   forked_from_card_id: string | null;
   forked_from_owner_id: string | null;
   forked_from_title: string | null;
@@ -122,6 +123,43 @@ function mapSignature(
       : "round";
 
   return { palette: [p0, p1], warmth, tempo, weight, geometry, density, kinetic };
+}
+
+/**
+ * JSONB → role labels. Each entry is `{ label: string }`. We strip empties,
+ * dedupe (case-insensitive), and cap at 8 to keep the join surface scannable.
+ */
+function mapRoleLabels(raw: unknown[] | null): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    let label: string | null = null;
+    if (typeof item === "string") label = item;
+    else if (item && typeof item === "object" && typeof (item as { label?: unknown }).label === "string") {
+      label = (item as { label: string }).label;
+    }
+    if (!label) continue;
+    const clean = label.trim().replace(/\s+/g, " ").slice(0, 40);
+    if (!clean) continue;
+    const key = clean.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+/** Resolve a list of role labels against the joiner list — each label
+ *  becomes a CardRole with `claimedBy` set when a joiner picked that role
+ *  (case-insensitive match against `joiners.role`). */
+function resolveRoles(labels: string[], joiners: CardJoiner[]): CardRole[] {
+  return labels.map((label) => {
+    const lc = label.toLowerCase();
+    const taker = joiners.find((j) => j.role && j.role.toLowerCase() === lc);
+    return { label, claimedBy: taker ? taker.user : null };
+  });
 }
 
 /** JSONB → string[]: drop anything that isn't a non-empty string. */
@@ -332,6 +370,8 @@ function mapSignal(row: SignalRow): Signal {
 }
 
 function mapCard(row: CardRow): Card {
+  const joiners = (row.joiners || []).map(mapJoiner);
+  const roleLabels = mapRoleLabels(row.roles ?? null);
   return {
     id: row.id,
     kind: row.kind === "idea" ? "idea" : "thing",
@@ -351,13 +391,14 @@ function mapCard(row: CardRow): Card {
     externalUrl: row.external_url ?? null,
     durationDays: row.duration_days ?? null,
     archived: row.archived,
-    joiners: (row.joiners || []).map(mapJoiner),
+    joiners,
     requests: (row.requests || []).map(mapRequest),
     signals: (row.signals || []).map(mapSignal),
     customFields: mapCustomFields(row.custom_fields ?? null),
     roadmap: mapRoadmap(row.roadmap ?? null),
     modules: mapModules(row.modules ?? null),
     signature: mapSignature(row.signature ?? null),
+    roles: resolveRoles(roleLabels, joiners),
     forkedFromCardId: row.forked_from_card_id ?? null,
     forkedFromOwnerId: row.forked_from_owner_id ?? null,
     forkedFromTitle: row.forked_from_title ?? null,
@@ -369,7 +410,7 @@ function mapCard(row: CardRow): Card {
 
 const CARD_SELECT = `
   id, kind, owner_id, title, description, location, location_kind, spots, permission, tags, color,
-  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap, modules, signature,
+  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap, modules, signature, roles,
   forked_from_card_id, forked_from_owner_id, forked_from_title,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
   forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),

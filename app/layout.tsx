@@ -30,25 +30,25 @@ const SITE_URL =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Creator.Paris — what's your one thing this week?",
+    default: "Creator.Paris — write what you want to do. The rest emerges.",
     template: "%s",
   },
   description:
-    "A living city layer for Paris. One card per person per week — a walk, a dinner, a shoot, a build. Drop a pin, find your crew.",
+    "A living city layer for Paris. Post a thing, share it, find your crew. The structure — roles, steps, place — emerges as people step in.",
   applicationName: "Creator.Paris",
   keywords: ["Paris", "meetups", "creators", "events", "city", "community"],
   openGraph: {
     type: "website",
     siteName: "Creator.Paris",
-    title: "Creator.Paris — what's your one thing this week?",
+    title: "Creator.Paris — write what you want to do. The rest emerges.",
     description:
-      "A living city layer for Paris. One card per person per week. Drop a pin, find your crew.",
+      "A living city layer for Paris. Post a thing, share it, find your crew.",
     url: "/",
   },
   twitter: {
     card: "summary",
     title: "Creator.Paris",
-    description: "A living city layer for Paris. One card per person per week.",
+    description: "A living city layer for Paris. Post a thing, share it, find your crew.",
   },
 };
 

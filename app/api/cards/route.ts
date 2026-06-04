@@ -6,6 +6,7 @@ import { newId } from "@/lib/id";
 import { normalizeTags } from "@/lib/vibe";
 import { isBanned } from "@/lib/server/safety";
 import { sanitizeModules } from "@/lib/server/moduleSanitize";
+import { rolesForStorage, sanitizeRoleLabels } from "@/lib/server/roleSanitize";
 import { regenerateSignatureInBackground } from "@/lib/server/signatureCompute";
 
 // Hard ceiling: a thing may start at most 30 days into the future. Most will
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
     tags?: string[];
     color?: string;
     modules?: unknown[];
+    roles?: unknown[];
   };
   try {
     body = await req.json();
@@ -69,6 +71,10 @@ export async function POST(req: Request) {
   // module on a thing; ideas don't carry modules (the field is dropped
   // silently below if kind === "idea").
   const modules = Array.isArray(body.modules) ? sanitizeModules(body.modules) : [];
+
+  // Optional predefined role labels — only persisted on things. Sanitizer
+  // dedupes case-insensitively, caps to 8.
+  const roleLabels = Array.isArray(body.roles) ? sanitizeRoleLabels(body.roles) : [];
 
   // Photon classification of the picked place. We only keep simple
   // lowercase tokens (osm_value vocab); anything weird is dropped.
@@ -164,14 +170,9 @@ export async function POST(req: Request) {
     }
   }
 
-  // Archive any currently active THING by this user — one live thing per person.
-  // (Ideas are exempt: a person can hold many floating ideas at once.)
-  await admin
-    .from("cards")
-    .update({ archived: true })
-    .eq("owner_id", userId)
-    .eq("kind", "thing")
-    .eq("archived", false);
+  // Multiple live things per person are allowed. The "one per week" rhythm
+  // is gone — Creator.Paris is now a project-board, not a weekly slot. The
+  // shape of the city emerges from how many things you actually carry.
 
   const { data, error } = await admin
     .from("cards")
@@ -193,6 +194,7 @@ export async function POST(req: Request) {
       expires_at: new Date(startsMs).toISOString(),
       ends_at: endsMs ? new Date(endsMs).toISOString() : null,
       modules,
+      roles: rolesForStorage(roleLabels),
     })
     .select()
     .single();

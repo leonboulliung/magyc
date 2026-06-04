@@ -15,6 +15,7 @@ import type { Card } from "@/lib/types";
 import { ParisMap } from "./ParisMap";
 import { TagInput } from "./TagInput";
 import { ModuleDraftPicker } from "./modules/ModuleDraftPicker";
+import { RolesEditor } from "./RolesEditor";
 
 const TAG_SUGGESTIONS = [
   "film", "music", "art", "fashion", "food", "walks",
@@ -45,6 +46,8 @@ export interface CardDraft {
   permission?: Permission | null;
   color?: string | null;
   externalUrl?: string | null;
+  /** Predefined role labels for the "Ich mach's" surface. */
+  roles?: string[];
   /** Field names that the AI inferred rather than extracted. */
   inferred?: string[];
 }
@@ -83,6 +86,57 @@ export function CardCreate({
   const [color, setColor] = useState<string | null>(initialDraft?.color ?? null);
   // Optional draft module to attach on POST. Null = no module.
   const [draftModule, setDraftModule] = useState<CardModule | null>(null);
+  // Optional predefined role labels — drive the "Ich mach's" UX on the
+  // detail page. Empty = open join (classic behavior).
+  const [roles, setRoles] = useState<string[]>(initialDraft?.roles || []);
+  // AI-suggested role pool shown as "+ FOTO" chips next to the editor.
+  // Populated by the ✨ button; the owner adds chips with one tap.
+  const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
+  const [suggestingRoles, setSuggestingRoles] = useState(false);
+
+  async function suggestRoles() {
+    if (suggestingRoles) return;
+    if (!title.trim()) {
+      setError("Add a title before asking for role suggestions.");
+      return;
+    }
+    setSuggestingRoles(true);
+    try {
+      const res = await fetch("/api/cards/suggest-roles-draft", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          tags,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        roles?: unknown;
+        error?: string;
+      };
+      if (!res.ok) {
+        setError(
+          json.error === "rate_limited"
+            ? "Just a moment — try again in a few seconds."
+            : json.error === "ai_not_configured"
+              ? "AI is not configured."
+              : "Couldn't fetch suggestions.",
+        );
+        return;
+      }
+      if (Array.isArray(json.roles)) {
+        setRoleSuggestions(
+          json.roles.filter((r): r is string => typeof r === "string"),
+        );
+      }
+    } catch {
+      setError("Couldn't fetch suggestions.");
+    } finally {
+      setSuggestingRoles(false);
+    }
+  }
 
   // Spots is null until the user (or AI with confidence) picks a number.
   // Submit is disabled while null — we never default to a silent value.
@@ -468,6 +522,7 @@ export function CardCreate({
           startsAt: startsAt.toISOString(),
           endsAt: endsAt ? endsAt.toISOString() : null,
           modules: draftModule ? [draftModule] : [],
+          roles,
         }),
       });
       const json = await res.json();
@@ -642,7 +697,7 @@ export function CardCreate({
               <div
                 className={`editorial font-black text-[17px] sm:text-[18px] mt-2 leading-[1.15] line-clamp-2 pb-0.5 ${previewDark ? "text-paper" : "text-ink"}`}
               >
-                {title || "What's your one thing this week?"}
+                {title || "What do you want to do in Paris?"}
               </div>
             </div>
             {colorPickerInBanner}
@@ -904,6 +959,15 @@ export function CardCreate({
             {/* LOCATION — search OR click on the map */}
             {renderLocationField()}
 
+            {/* ROLES — predefined "Ich mach's" slots. Empty = open join. */}
+            <RolesEditor
+              value={roles}
+              onChange={setRoles}
+              suggestions={roleSuggestions}
+              onSuggest={suggestRoles}
+              suggestBusy={suggestingRoles}
+            />
+
             {/* MODULE — optional draft module for this thing.
                 Reflist replaces the old single-link affordance. */}
             <div>
@@ -981,7 +1045,7 @@ export function CardCreate({
             <div
               className={`editorial font-black text-[22px] sm:text-[30px] mt-2 leading-[1.15] line-clamp-3 pb-1 ${previewDark ? "text-paper" : "text-ink"}`}
             >
-              {title || "What's your one thing this week?"}
+              {title || "What do you want to do in Paris?"}
             </div>
           </div>
           {colorPickerInBanner}
@@ -1251,6 +1315,15 @@ export function CardCreate({
 
             {/* LOCATION */}
             {renderLocationField()}
+
+            {/* ROLES — predefined "Ich mach's" slots. Empty = open join. */}
+            <RolesEditor
+              value={roles}
+              onChange={setRoles}
+              suggestions={roleSuggestions}
+              onSuggest={suggestRoles}
+              suggestBusy={suggestingRoles}
+            />
 
             {/* MODULE — optional draft module for this thing.
                 Reflist replaces the old single-link affordance. */}

@@ -41,9 +41,23 @@ export interface Profile {
 
 export interface CardJoiner {
   userId: string;
+  /** Which predefined role on the card this joiner claimed. Empty string
+   *  means "just dabei" — no specific role. */
   role: string;
   joinedAt: number;
   user: Profile;
+}
+
+/**
+ * A role definition on a thing. The owner curates the list; AI can
+ * propose initial labels from the brief. Each role is a slot one
+ * person can claim with "Ich mach's". `claimedBy` is the joiner's
+ * profile (resolved at read time from `joiners.role`), or `null` when
+ * the slot is still open.
+ */
+export interface CardRole {
+  label: string;
+  claimedBy: Profile | null;
 }
 
 export interface CardRequest {
@@ -108,6 +122,14 @@ export interface Card {
   requests: CardRequest[];
   /** Resonance signals — populated for ideas, empty for things. */
   signals: Signal[];
+  /**
+   * Predefined roles on a thing ("Foto", "Tonkundige", "Snacks-Pate", …).
+   * The owner curates the list; AI can propose labels from the brief.
+   * Each entry is a slot — at most one joiner per role. `claimedBy` is
+   * resolved at read time from `joiners.role`. Empty array on ideas and
+   * on things that don't carry predefined roles.
+   */
+  roles: CardRole[];
   /**
    * A small key/value sidebar of details that suit this particular thing —
    * a shoot's "LOOKS", a hackathon's "STACK", a dinner's "BRING". Keys are
