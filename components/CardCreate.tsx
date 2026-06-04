@@ -196,7 +196,9 @@ export function CardCreate({
   const [suggestOpen, setSuggestOpen] = useState(false);
 
   // If AI gave us a locationQuery but no resolved lat/lng, kick off Photon
-  // immediately so the first suggestion can be auto-picked.
+  // immediately so the first suggestion can be auto-picked. The dropdown
+  // stays closed: the user didn't ask for a suggestions list, they got
+  // a draft.
   useEffect(() => {
     if (!initialDraft?.locationQuery || initialDraft?.location) return;
     let cancelled = false;
@@ -209,6 +211,8 @@ export function CardCreate({
         setPicked(r);
         setQuery(r.label);
         setLatlng({ lat: r.lat, lng: r.lng });
+        setSuggestions([]);
+        setSuggestOpen(false);
       }
     })().catch(() => {});
     return () => { cancelled = true; };
@@ -318,7 +322,11 @@ export function CardCreate({
       try {
         const results = await combinedSearch(query, ctrl.signal);
         setSuggestions(results);
-        if (results.length) setSuggestOpen(true);
+        // Suggestions are populated but stay closed until the user
+        // actively engages the field (typing / focusing). The user's
+        // onChange / onFocus handlers do the opening — we don't
+        // pop the dropdown open on background fetches (which would
+        // open it on initial mount when an AI draft seeded the query).
       } finally {
         setSearching(false);
       }
@@ -430,7 +438,14 @@ export function CardCreate({
   // ====== submit ======
 
   async function submit() {
-    if (!title.trim() || !latlng || !startsAt || spots === null) return;
+    if (submitting) return;
+    // Validate and surface a clear message instead of silently no-op'ing
+    // — a disabled button can read as "frozen" if you can't see what's
+    // still missing.
+    if (!title.trim()) { setError("Add a title before posting."); return; }
+    if (!latlng) { setError("Drop a pin on the map or pick a location."); return; }
+    if (!startsAt) { setError("Pick when this starts."); return; }
+    if (spots === null) { setError("Pick how many people."); return; }
     setSubmitting(true);
     setError("");
     try {
@@ -927,8 +942,9 @@ export function CardCreate({
               <button onClick={onClose} className="btn ghost" disabled={submitting}>Cancel</button>
               <button
                 onClick={submit}
-                disabled={!canSubmit}
-                className={`btn ${!canSubmit ? "opacity-40" : ""}`}
+                disabled={submitting}
+                className={`btn ${!canSubmit ? "opacity-70" : ""}`}
+                title={!canSubmit && missing.length > 0 ? `Still need: ${missing.join(", ")}` : undefined}
               >
                 {submitting ? "Posting…" : "Post →"}
               </button>
@@ -1304,8 +1320,9 @@ export function CardCreate({
           </button>
           <button
             onClick={submit}
-            disabled={!canSubmit}
-            className={`btn ${!canSubmit ? "opacity-40" : ""}`}
+            disabled={submitting}
+            className={`btn ${!canSubmit ? "opacity-70" : ""}`}
+            title={!canSubmit && missing.length > 0 ? `Still need: ${missing.join(", ")}` : undefined}
           >
             {submitting ? "Posting…" : "Post →"}
           </button>
