@@ -77,6 +77,13 @@ export interface Card {
    * resolves one before it's joinable.
    */
   location: CardLocation | null;
+  /**
+   * Photon-derived place classification (osm_value: "restaurant",
+   * "park", "cinema", "cafe", etc.). `null` when the location came
+   * from the local quartier index (no venue type) or the geocoder
+   * didn't tag it.
+   */
+  locationKind: string | null;
   /** Number of spots on a thing. `null` on an idea (no commitment yet). */
   spots: number | null;
   /** Join permission on a thing. `null` on an idea. */

@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     title?: string;
     description?: string;
     location?: { lat: number; lng: number; label: string } | null;
+    locationKind?: string | null;
     spots?: number;
     permission?: "public" | "request";
     startsAt?: string; // ISO 8601
@@ -69,6 +70,13 @@ export async function POST(req: Request) {
   // silently below if kind === "idea").
   const modules = Array.isArray(body.modules) ? sanitizeModules(body.modules) : [];
 
+  // Photon classification of the picked place. We only keep simple
+  // lowercase tokens (osm_value vocab); anything weird is dropped.
+  const locationKind =
+    typeof body.locationKind === "string" && /^[a-z][a-z0-9_-]{1,31}$/i.test(body.locationKind)
+      ? body.locationKind.toLowerCase()
+      : null;
+
   await ensureProfile(userId);
   const admin = supabaseAdmin();
   const id = newId();
@@ -89,6 +97,7 @@ export async function POST(req: Request) {
         title,
         description,
         location,          // may be null
+        location_kind: locationKind,
         spots: null,
         permission: null,
         tags,

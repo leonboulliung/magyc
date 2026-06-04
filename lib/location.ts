@@ -3,6 +3,12 @@ import { searchQuartiers } from "./quartiers";
 export interface LocationResult {
   label: string; // primary line: name or street
   hint: string; // secondary line: city / quartier / category
+  /**
+   * OSM venue classification (Photon's `osm_value`): "restaurant",
+   * "park", "cinema", "cafe", "library", etc. Null for quartier
+   * matches (no specific venue) or untagged places.
+   */
+  kind: string | null;
   lat: number;
   lng: number;
   source: "quartier" | "photon";
@@ -97,7 +103,8 @@ export async function searchLocations(q: string, signal?: AbortSignal): Promise<
         const venueTag = rankBadge(p);
         const place = p.district || p.suburb || p.locality || p.city || "Paris";
         const hint = [venueTag, place].filter(Boolean).join(" · ");
-        return { label, hint, lat, lng, source: "photon" };
+        const kind = p.osm_value && p.osm_value !== "yes" ? p.osm_value : null;
+        return { label, hint, kind, lat, lng, source: "photon" };
       });
   } catch {
     return [];
@@ -112,6 +119,7 @@ export async function combinedSearch(q: string, signal?: AbortSignal): Promise<L
   const local: LocationResult[] = searchQuartiers(q, 4).map((qu) => ({
     label: qu.name,
     hint: qu.arr || "QUARTIER",
+    kind: null,
     lat: qu.lat,
     lng: qu.lng,
     source: "quartier",

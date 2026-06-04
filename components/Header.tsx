@@ -66,8 +66,14 @@ export function Header({
           <span className="hidden sm:inline opacity-80 truncate">{todLabel}</span>
         </div>
 
-        {/* Desktop: profile switch + avatar */}
+        {/* Desktop: discover + profile switch + avatar */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">
+          <Link
+            href="/discover"
+            className="mono text-[10px] tracking-widest px-3.5 py-1.5 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors"
+          >
+            DISCOVER
+          </Link>
           <SignedIn>
             <Link
               href={altDest}

@@ -94,6 +94,15 @@ export function ParisMap({
     return () => window.clearInterval(id);
   }, []);
 
+  // Drive the time-based pin states (distant → approaching → imminent →
+  // live → past) by bumping a tick every 30s. Cheap; only the marker
+  // re-render depends on it.
+  const [timeTick, setTimeTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTimeTick((n) => n + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   // keep latest onPick reachable without rebinding the map click listener
   useEffect(() => {
     pickHandlerRef.current = onPick || null;
@@ -247,42 +256,44 @@ export function ParisMap({
     if (!ready || !mapRef.current || !layerRef.current || !LRef.current) return;
     const L = LRef.current;
     layerRef.current.clearLayers();
+    const now = Date.now();
     for (const c of cards) {
       // An idea may have no location — nothing to pin on the map.
       if (!c.location) continue;
       const isFresh = freshIds?.has(c.id);
       const isIdea = c.kind === "idea";
       const color = cardColor(c);
-      // Pin tempo: a calm thing pulses slow, an electric one pulses
-      // fast. We map signature.tempo [0,1] onto an animation-duration
-      // band that stays editorial (slow side around 4s, fast side
-      // around 1s). A countdown factor accelerates the pulse as the
-      // event time approaches — the surface becomes more urgent
-      // without anybody touching it.
-      const tempo = c.signature?.tempo ?? 0.5;
-      // 1 when far away, up to ~2 when within an hour of start.
-      let timeFactor = 1;
+
+      // ── Crew fill (0..1): scales the persistent halo behind the pin. ──
+      const crewFill =
+        c.spots && c.spots > 0
+          ? Math.min(1, c.joiners.length / c.spots)
+          : c.joiners.length > 0
+            ? Math.min(1, c.joiners.length / 4)
+            : 0;
+
+      // ── Time state: reads start (expiresAt) + end (endsAt). ──
+      let timeState: "distant" | "approaching" | "imminent" | "live" | "past" = "distant";
       if (c.expiresAt) {
-        const msToStart = c.expiresAt - Date.now();
-        if (msToStart > 0) {
-          const hours = msToStart / (60 * 60 * 1000);
-          if (hours < 24) timeFactor = 1 + (1 - hours / 24);
+        const start = c.expiresAt;
+        const end = c.endsAt ?? start + 3 * 60 * 60 * 1000; // assume 3h if no end
+        if (now >= start && now <= end) timeState = "live";
+        else if (now > end) timeState = "past";
+        else {
+          const minsToStart = (start - now) / 60_000;
+          if (minsToStart <= 60) timeState = "imminent";
+          else if (minsToStart <= 24 * 60) timeState = "approaching";
+          else timeState = "distant";
         }
       }
-      const baseSeconds = 4 - tempo * 3; // tempo=0 → 4s, tempo=1 → 1s
-      const pinSeconds = Math.max(0.4, baseSeconds / timeFactor);
-      const pinRadius = c.signature?.geometry === "sharp" ? "15%"
-        : c.signature?.geometry === "linear" ? "30%"
-        : c.signature?.geometry === "soft" ? "65%"
-        : "50%";
+
       const pinStyle = [
         `--pin-color:${color}`,
-        `--pin-tempo:${pinSeconds.toFixed(2)}s`,
-        `--pin-radius:${pinRadius}`,
+        `--pin-crew:${crewFill.toFixed(2)}`,
       ].join(";");
       const icon = L.divIcon({
         className: "",
-        html: `<div class="cp-pin ${isIdea ? "idea" : ""} ${isFresh ? "fresh" : ""}" style="${pinStyle}"></div>`,
+        html: `<div class="cp-pin ${isIdea ? "idea" : ""} ${isFresh ? "fresh" : ""}" data-time="${timeState}" style="${pinStyle}"></div>`,
         iconSize: [12, 12],
         iconAnchor: [6, 6],
       });
@@ -311,7 +322,7 @@ export function ParisMap({
       });
       m.addTo(layerRef.current!);
     }
-  }, [cards, ready, freshIds, highlightId, isDesktop]);
+  }, [cards, ready, freshIds, highlightId, isDesktop, timeTick]);
 
   // While the click-preview is open, re-project on every map move/zoom so
   // the panel stays anchored to its pin. We only subscribe when preview is

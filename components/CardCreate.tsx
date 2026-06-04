@@ -460,6 +460,7 @@ export function CardCreate({
             lng: latlng.lng,
             label: picked?.label || query.trim() || "Paris",
           },
+          locationKind: picked?.kind ?? null,
           spots,
           permission,
           tags,

@@ -257,22 +257,93 @@ body {
   transform: translate(-6.5px, -6.5px);
   position: relative;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Living pin — data-driven states. Each state reads from real card
+   data; no AI tuning, no random parameters.
+
+   data-time:
+     distant     →  >24h until start. No pulse.
+     approaching →  ≤24h, >1h. Gentle 3s breath.
+     imminent    →  ≤1h. Urgent 1.2s pulse + a second outer ring.
+     live        →  start ≤ now ≤ end. Solid glow + warm halo.
+     past        →  after end. Dim to 0.35 alpha, no pulse.
+
+   --pin-crew (0..1): joiners.length / spots. Scales the persistent
+     halo behind the pin so a thing with a forming crew reads denser
+     even before its start time.
+   ────────────────────────────────────────────────────────────────── */
+
+/* Persistent crew halo — sits behind the pin, sized by --pin-crew. */
+.cp-pin::before {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: calc(13px + 14px * var(--pin-crew, 0));
+  height: calc(13px + 14px * var(--pin-crew, 0));
+  margin-top: calc(-1 * (13px + 14px * var(--pin-crew, 0)) / 2);
+  margin-left: calc(-1 * (13px + 14px * var(--pin-crew, 0)) / 2);
+  border-radius: 50%;
+  background: var(--pin-color, #0d0d0d);
+  opacity: calc(0.10 + 0.18 * var(--pin-crew, 0));
+  z-index: -2;
+  pointer-events: none;
+  transition: width 400ms ease-out, height 400ms ease-out,
+              margin 400ms ease-out, opacity 400ms ease-out;
+}
+
+/* Time-driven pulse ring. */
 .cp-pin::after {
   content: "";
   position: absolute;
   top: 50%; left: 50%;
   width: 13px; height: 13px;
   margin: -6.5px 0 0 -6.5px;
-  border-radius: var(--pin-radius, 50%);
+  border-radius: 50%;
   background: var(--pin-color, #0d0d0d);
   opacity: 0;
   z-index: -1;
   pointer-events: none;
   transform-origin: 50% 50%;
-  /* `--pin-tempo` is the per-card signature.tempo: lower = slower
-     pulse, higher = faster. Defaults to the editorial baseline. */
-  animation: cpPulse var(--pin-tempo, 2.4s) ease-out infinite;
 }
+
+/* Distant: silent. */
+.cp-pin[data-time="distant"]::after { animation: none; }
+
+/* Approaching: a calm 3s breath. */
+.cp-pin[data-time="approaching"]::after {
+  animation: cpPulse 3s ease-out infinite;
+}
+
+/* Imminent: 1.2s urgent pulse. */
+.cp-pin[data-time="imminent"]::after {
+  animation: cpPulse 1.2s ease-out infinite;
+}
+
+/* Live: solid warm halo, no shrinking pulse. */
+.cp-pin[data-time="live"] {
+  box-shadow:
+    0 0 0 2.5px #ffffff,
+    0 0 0 6px color-mix(in srgb, var(--pin-color, #0d0d0d) 30%, transparent),
+    0 2px 10px rgba(13, 13, 13, 0.5);
+}
+.cp-pin[data-time="live"]::after {
+  animation: cpLivePulse 1.6s ease-in-out infinite;
+}
+@keyframes cpLivePulse {
+  0%, 100% { transform: scale(1);   opacity: 0.35; }
+  50%      { transform: scale(1.8); opacity: 0.12; }
+}
+
+/* Past: dim, no pulse. */
+.cp-pin[data-time="past"] {
+  opacity: 0.35;
+  box-shadow: 0 0 0 2px #ffffff, 0 1px 3px rgba(13, 13, 13, 0.2);
+}
+.cp-pin[data-time="past"]::before { opacity: 0.05; }
+.cp-pin[data-time="past"]::after  { animation: none; }
+
+/* Fresh-arrival highlight still wins for the first ~10s. */
 .cp-pin.fresh::after { animation: cpPulse 1.2s ease-out infinite; }
 @keyframes cpPulse {
   0%   { transform: scale(0.6); opacity: 0.5; }

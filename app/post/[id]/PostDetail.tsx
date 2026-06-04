@@ -12,6 +12,7 @@ import { SignalButton } from "@/components/SignalButton";
 import { TransformPanel } from "@/components/TransformPanel";
 import { ReportButton } from "@/components/ReportButton";
 import { ModuleArea } from "@/components/modules/ModuleArea";
+import { placeKindLabel } from "@/lib/placeKind";
 import { cardColor, isDark } from "@/lib/color";
 import { fetchCardById } from "@/lib/db";
 import { useRealtimeCards } from "@/lib/realtime";
@@ -362,6 +363,12 @@ export function PostDetail({ id }: { id: string }) {
                 </svg>
                 <div className="min-w-0 leading-snug">
                   <div className="truncate">{card.location?.label || "—"}</div>
+                  {(() => {
+                    const kind = placeKindLabel(card.locationKind);
+                    return kind ? (
+                      <div className="mono text-[9px] tracking-widest opacity-60 mt-1">{kind}</div>
+                    ) : null;
+                  })()}
                   {card.location && (
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${card.location.lat},${card.location.lng}`}

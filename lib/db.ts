@@ -45,6 +45,7 @@ type CardRow = {
   title: string;
   description: string;
   location: { lat: number; lng: number; label: string } | null;
+  location_kind: string | null;
   spots: number | null;
   permission: "public" | "request" | null;
   tags: string[] | null;
@@ -339,6 +340,7 @@ function mapCard(row: CardRow): Card {
     title: row.title,
     description: row.description || "",
     location: row.location ?? null,
+    locationKind: row.location_kind ?? null,
     spots: row.spots ?? null,
     permission: row.permission ?? null,
     tags: Array.isArray(row.tags) ? row.tags : [],
@@ -366,7 +368,7 @@ function mapCard(row: CardRow): Card {
 }
 
 const CARD_SELECT = `
-  id, kind, owner_id, title, description, location, spots, permission, tags, color,
+  id, kind, owner_id, title, description, location, location_kind, spots, permission, tags, color,
   created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap, modules, signature,
   forked_from_card_id, forked_from_owner_id, forked_from_title,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
