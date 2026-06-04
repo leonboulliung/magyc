@@ -895,7 +895,11 @@ export function CardCreate({
                 MODULE <span className="opacity-50">(OPTIONAL)</span>
               </label>
               <div className="mt-2">
-                <ModuleDraftPicker value={draftModule} onChange={setDraftModule} />
+                <ModuleDraftPicker
+                  value={draftModule}
+                  onChange={setDraftModule}
+                  context={{ title, description, tags }}
+                />
               </div>
               <p className="mono text-[10px] mt-2 opacity-50">
                 A brief, a roadmap, a moodboard… pick the one shape that
@@ -1238,7 +1242,11 @@ export function CardCreate({
                 MODULE <span className="opacity-50">(OPTIONAL)</span>
               </label>
               <div className="mt-2">
-                <ModuleDraftPicker value={draftModule} onChange={setDraftModule} />
+                <ModuleDraftPicker
+                  value={draftModule}
+                  onChange={setDraftModule}
+                  context={{ title, description, tags }}
+                />
               </div>
               <p className="mono text-[10px] mt-2 opacity-50">
                 A brief, a roadmap, a moodboard… pick the one shape that

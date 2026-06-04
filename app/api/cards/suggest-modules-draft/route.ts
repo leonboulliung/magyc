@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
 import { isBanned } from "@/lib/server/safety";
 import { suggestModulesFromContext } from "@/lib/server/moduleSuggest";
 
@@ -8,34 +7,33 @@ const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 30_000;
 
 /**
- * Per-card variant: load context from the existing card row, then ask
- * the model for at most one fitting module. Owner-only, things-only,
- * rate-limited (1 / 30s / user). The draft variant lives at
- * /api/cards/suggest-modules-draft and skips the load step.
+ * Draft variant: take Title + Description + Tags inline in the body —
+ * the card doesn't exist yet — and return at most one suggested
+ * module. Used by the create-form's AI-first picker.
+ *
+ * Auth + ban check + the same 1/30s/user rate limit as the per-card
+ * variant.
  */
-export async function POST(
-  _req: Request,
-  { params }: { params: { id: string } },
-) {
+export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (await isBanned(userId))
     return NextResponse.json({ error: "banned" }, { status: 403 });
 
-  const admin = supabaseAdmin();
-  const { data: card } = await admin
-    .from("cards")
-    .select("id, owner_id, kind, title, description, tags, archived")
-    .eq("id", params.id)
-    .maybeSingle();
+  const body = (await req.json().catch(() => ({}))) as {
+    title?: string;
+    description?: string;
+    tags?: string[];
+  };
 
-  if (!card) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (card.owner_id !== userId)
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  if (card.kind !== "thing")
-    return NextResponse.json({ error: "not_a_thing" }, { status: 400 });
-  if (card.archived)
-    return NextResponse.json({ error: "archived" }, { status: 400 });
+  const title = String(body.title || "").trim();
+  if (title.length < 3) {
+    return NextResponse.json({ error: "title_too_short" }, { status: 400 });
+  }
+  const description = String(body.description || "").trim();
+  const tags = Array.isArray(body.tags)
+    ? body.tags.filter((t): t is string => typeof t === "string").slice(0, 8)
+    : [];
 
   const now = Date.now();
   const last = lastCallAt.get(userId) || 0;
@@ -49,11 +47,7 @@ export async function POST(
   lastCallAt.set(userId, now);
 
   try {
-    const modules = await suggestModulesFromContext({
-      title: String(card.title || ""),
-      description: String(card.description || ""),
-      tags: Array.isArray(card.tags) ? (card.tags as string[]) : [],
-    });
+    const modules = await suggestModulesFromContext({ title, description, tags });
     return NextResponse.json({ ok: true, modules });
   } catch (e) {
     const msg = (e as Error).message || "unknown";
