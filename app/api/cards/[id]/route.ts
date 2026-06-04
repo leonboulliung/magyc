@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModules } from "@/lib/server/moduleSanitize";
+import { regenerateSignatureInBackground } from "@/lib/server/signatureCompute";
+import type { CardModule } from "@/lib/types";
 
 async function loadOwned(id: string, userId: string) {
   const admin = supabaseAdmin();
@@ -53,6 +55,33 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const { error } = await guard.admin.from("cards").update(patch).eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // If anything that feeds the signature changed (title / description /
+  // modules), regenerate it in the background. Tags can't change via
+  // this PATCH today; if that ever changes we'll add the trigger.
+  const sigInputs = ["title", "description", "modules"] as const;
+  if (sigInputs.some((k) => k in patch)) {
+    const { data: row } = await guard.admin
+      .from("cards")
+      .select("title, description, tags, modules")
+      .eq("id", params.id)
+      .maybeSingle();
+    if (row) {
+      const first = Array.isArray(row.modules) ? row.modules[0] : null;
+      regenerateSignatureInBackground(
+        params.id,
+        {
+          title: String(row.title || ""),
+          description: String(row.description || ""),
+          tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+          module: (first ?? undefined) as CardModule | undefined,
+        },
+        async (cardId, sig) => {
+          await guard.admin.from("cards").update({ signature: sig }).eq("id", cardId);
+        },
+      );
+    }
+  }
   return NextResponse.json({ ok: true });
 }
 

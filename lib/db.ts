@@ -58,6 +58,7 @@ type CardRow = {
   custom_fields: Record<string, unknown> | null;
   roadmap: unknown[] | null;
   modules: unknown[] | null;
+  signature: Record<string, unknown> | null;
   forked_from_card_id: string | null;
   forked_from_owner_id: string | null;
   forked_from_title: string | null;
@@ -80,6 +81,46 @@ function mapCustomFields(raw: Record<string, unknown> | null): Record<string, st
     if (typeof k === "string" && k && typeof v === "string") out[k] = v;
   }
   return out;
+}
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+const GEOMETRY_SET = new Set(["round", "sharp", "soft", "linear"]);
+
+/**
+ * JSONB → CardSignature: shape-validate every field, drop the whole
+ * thing if any required field is bogus. Better to fall back to defaults
+ * than render with a half-broken signature.
+ */
+function mapSignature(
+  raw: Record<string, unknown> | null,
+): import("./types").CardSignature | null {
+  if (!raw || typeof raw !== "object") return null;
+  const pal = (raw as { palette?: unknown }).palette;
+  if (!Array.isArray(pal) || pal.length < 2) return null;
+  const p0 = typeof pal[0] === "string" && HEX_RE.test(pal[0]) ? (pal[0] as string).toLowerCase() : null;
+  const p1 = typeof pal[1] === "string" && HEX_RE.test(pal[1]) ? (pal[1] as string).toLowerCase() : null;
+  if (!p0 || !p1) return null;
+
+  const clamp01 = (v: unknown) =>
+    typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.5;
+  const warmth = clamp01((raw as { warmth?: unknown }).warmth);
+  const tempo = clamp01((raw as { tempo?: unknown }).tempo);
+  const density = clamp01((raw as { density?: unknown }).density);
+  const kinetic = clamp01((raw as { kinetic?: unknown }).kinetic);
+
+  const wRaw = (raw as { weight?: unknown }).weight;
+  const weight =
+    typeof wRaw === "number" && Number.isFinite(wRaw)
+      ? Math.max(100, Math.min(900, Math.round(wRaw)))
+      : 900;
+
+  const gRaw = (raw as { geometry?: unknown }).geometry;
+  const geometry =
+    typeof gRaw === "string" && GEOMETRY_SET.has(gRaw)
+      ? (gRaw as "round" | "sharp" | "soft" | "linear")
+      : "round";
+
+  return { palette: [p0, p1], warmth, tempo, weight, geometry, density, kinetic };
 }
 
 /** JSONB → string[]: drop anything that isn't a non-empty string. */
@@ -314,6 +355,7 @@ function mapCard(row: CardRow): Card {
     customFields: mapCustomFields(row.custom_fields ?? null),
     roadmap: mapRoadmap(row.roadmap ?? null),
     modules: mapModules(row.modules ?? null),
+    signature: mapSignature(row.signature ?? null),
     forkedFromCardId: row.forked_from_card_id ?? null,
     forkedFromOwnerId: row.forked_from_owner_id ?? null,
     forkedFromTitle: row.forked_from_title ?? null,
@@ -325,7 +367,7 @@ function mapCard(row: CardRow): Card {
 
 const CARD_SELECT = `
   id, kind, owner_id, title, description, location, spots, permission, tags, color,
-  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap, modules,
+  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap, modules, signature,
   forked_from_card_id, forked_from_owner_id, forked_from_title,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
   forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),

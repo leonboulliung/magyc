@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { newId } from "@/lib/id";
 import { isBanned } from "@/lib/server/safety";
+import { regenerateSignatureInBackground } from "@/lib/server/signatureCompute";
 
 // Hard ceiling mirrors POST /api/cards — a thing starts within 30 days.
 const MAX_LEAD_MS = 30 * 86_400_000;
@@ -147,6 +148,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     // Signals served their purpose on the now-thing.
     await admin.from("signals").delete().eq("card_id", params.id);
 
+    // An idea just became a thing — semantic context shifted (modules
+    // become relevant), so regenerate the signature.
+    regenerateSignatureInBackground(
+      params.id,
+      {
+        title: card.title,
+        description: card.description || "",
+        tags: Array.isArray(card.tags) ? (card.tags as string[]) : [],
+      },
+      async (cardId, sig) => {
+        await admin.from("cards").update({ signature: sig }).eq("id", cardId);
+      },
+    );
+
     return NextResponse.json({
       ok: true,
       id: params.id,
@@ -221,6 +236,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   // The original idea is INTENTIONALLY untouched: its signals, its kind,
   // its row all stay. Others can fork it too, or the owner can still
   // promote it themselves.
+
+  // Fire-and-forget signature for the freshly-forked thing.
+  regenerateSignatureInBackground(
+    newCardId,
+    {
+      title: card.title,
+      description: card.description || "",
+      tags: Array.isArray(card.tags) ? (card.tags as string[]) : [],
+    },
+    async (cardId, sig) => {
+      await admin.from("cards").update({ signature: sig }).eq("id", cardId);
+    },
+  );
 
   return NextResponse.json({
     ok: true,

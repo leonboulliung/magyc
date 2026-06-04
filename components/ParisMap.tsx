@@ -253,9 +253,36 @@ export function ParisMap({
       const isFresh = freshIds?.has(c.id);
       const isIdea = c.kind === "idea";
       const color = cardColor(c);
+      // Pin tempo: a calm thing pulses slow, an electric one pulses
+      // fast. We map signature.tempo [0,1] onto an animation-duration
+      // band that stays editorial (slow side around 4s, fast side
+      // around 1s). A countdown factor accelerates the pulse as the
+      // event time approaches — the surface becomes more urgent
+      // without anybody touching it.
+      const tempo = c.signature?.tempo ?? 0.5;
+      // 1 when far away, up to ~2 when within an hour of start.
+      let timeFactor = 1;
+      if (c.expiresAt) {
+        const msToStart = c.expiresAt - Date.now();
+        if (msToStart > 0) {
+          const hours = msToStart / (60 * 60 * 1000);
+          if (hours < 24) timeFactor = 1 + (1 - hours / 24);
+        }
+      }
+      const baseSeconds = 4 - tempo * 3; // tempo=0 → 4s, tempo=1 → 1s
+      const pinSeconds = Math.max(0.4, baseSeconds / timeFactor);
+      const pinRadius = c.signature?.geometry === "sharp" ? "15%"
+        : c.signature?.geometry === "linear" ? "30%"
+        : c.signature?.geometry === "soft" ? "65%"
+        : "50%";
+      const pinStyle = [
+        `--pin-color:${color}`,
+        `--pin-tempo:${pinSeconds.toFixed(2)}s`,
+        `--pin-radius:${pinRadius}`,
+      ].join(";");
       const icon = L.divIcon({
         className: "",
-        html: `<div class="cp-pin ${isIdea ? "idea" : ""} ${isFresh ? "fresh" : ""}" style="--pin-color:${color}"></div>`,
+        html: `<div class="cp-pin ${isIdea ? "idea" : ""} ${isFresh ? "fresh" : ""}" style="${pinStyle}"></div>`,
         iconSize: [12, 12],
         iconAnchor: [6, 6],
       });

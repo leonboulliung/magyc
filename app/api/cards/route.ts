@@ -6,6 +6,7 @@ import { newId } from "@/lib/id";
 import { normalizeTags } from "@/lib/vibe";
 import { isBanned } from "@/lib/server/safety";
 import { sanitizeModules } from "@/lib/server/moduleSanitize";
+import { regenerateSignatureInBackground } from "@/lib/server/signatureCompute";
 
 // Hard ceiling: a thing may start at most 30 days into the future. Most will
 // be hours or days away — this just prevents pathological inputs.
@@ -100,6 +101,18 @@ export async function POST(req: Request) {
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Fire-and-forget: compute the design signature in the background.
+    // The card returns immediately; the signature lands on the row a
+    // moment later and the UI picks it up on next fetch.
+    regenerateSignatureInBackground(
+      id,
+      { title, description, tags },
+      async (cardId, sig) => {
+        await admin.from("cards").update({ signature: sig }).eq("id", cardId);
+      },
+    );
+
     return NextResponse.json({ ok: true, id, kind: "idea", card: data });
   }
 
@@ -176,5 +189,20 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Fire-and-forget: compute the design signature in the background.
+  regenerateSignatureInBackground(
+    id,
+    {
+      title,
+      description,
+      tags,
+      module: modules[0],
+    },
+    async (cardId, sig) => {
+      await admin.from("cards").update({ signature: sig }).eq("id", cardId);
+    },
+  );
+
   return NextResponse.json({ ok: true, id, kind: "thing", card: data });
 }

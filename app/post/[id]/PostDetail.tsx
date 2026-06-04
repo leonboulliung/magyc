@@ -82,6 +82,17 @@ export function PostDetail({ id }: { id: string }) {
   const isIdea = card.kind === "idea";
   const color = cardColor(card);
   const dark = isDark(color);
+  // Editorial-weight axis derived from the signature; clamped to the
+  // [600, 900] band so the page never reads "thin" (we're an editorial
+  // system, not a wireframe). Defaults to the existing black weight
+  // when no signature has landed yet.
+  const titleWeight = card.signature
+    ? Math.max(600, Math.min(900, card.signature.weight))
+    : 900;
+  const titleStyle = {
+    fontWeight: titleWeight,
+    fontVariationSettings: `"wght" ${titleWeight}`,
+  } as const;
   const headlineTag = card.tags?.[0]?.toUpperCase() || (isIdea ? "IDEA" : "THING");
   const mine = !!user && user.id === card.ownerId;
   const joined = !!user && card.joiners.some((j) => j.userId === user.id);
@@ -215,7 +226,7 @@ export function PostDetail({ id }: { id: string }) {
               <span className="opacity-40">·</span>
               <span>OPEN UNTIL IT HAPPENS</span>
             </div>
-            <h1 className="editorial font-black text-[34px] sm:text-[68px] mt-3 leading-[0.95] max-w-[22ch]">
+            <h1 className="editorial font-black text-[34px] sm:text-[68px] mt-3 leading-[0.95] max-w-[22ch]" style={titleStyle}>
               {card.title}
             </h1>
             <div className="mt-5 flex items-center gap-3 flex-wrap">
@@ -229,13 +240,10 @@ export function PostDetail({ id }: { id: string }) {
           </div>
         </div>
       ) : (
-        // THING hero — the Paris-map tinted with the card's color.
-        // Substrate is paper, not the card color: otherwise the card color
-        // flashes solid for a moment before the tiles arrive. The map
-        // wrapper also carries a paper bg so the wrapper paints the same
-        // substrate the tiles will sit on, eliminating the flicker
-        // entirely. The color overlay runs at opacity 0.78 over the map.
-        // No-location fallback paints the card color as a solid block.
+        // THING hero — the Paris-map tinted with the card's color, or
+        // (when the signature has populated) a soft 2-tone wash from
+        // the AI-computed palette. The signature gradient is what makes
+        // the surface lean toward the mood of *this* thing.
         <div className="relative h-[36vh] sm:h-[44vh] border-b border-rule overflow-hidden bg-paper">
           {card.location ? (
             <>
@@ -244,17 +252,30 @@ export function PostDetail({ id }: { id: string }) {
               </div>
               <div
                 className="absolute inset-0 pointer-events-none"
-                style={{
-                  backgroundColor: color,
-                  opacity: 0.78,
-                }}
+                style={
+                  card.signature
+                    ? {
+                        backgroundImage: `linear-gradient(135deg, ${card.signature.palette[0]} 0%, ${card.signature.palette[1]} 100%)`,
+                        opacity: 0.78,
+                      }
+                    : {
+                        backgroundColor: color,
+                        opacity: 0.78,
+                      }
+                }
                 aria-hidden
               />
             </>
           ) : (
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: color }}
+              style={
+                card.signature
+                  ? {
+                      backgroundImage: `linear-gradient(135deg, ${card.signature.palette[0]} 0%, ${card.signature.palette[1]} 100%)`,
+                    }
+                  : { backgroundColor: color }
+              }
               aria-hidden
             />
           )}
@@ -268,7 +289,7 @@ export function PostDetail({ id }: { id: string }) {
             <div className="mono text-[10px] tracking-widest opacity-80">
               {headlineTag}
             </div>
-            <h1 className="editorial font-black text-[42px] sm:text-[88px] leading-[0.95] max-w-[20ch] mt-2">
+            <h1 className="editorial font-black text-[42px] sm:text-[88px] leading-[0.95] max-w-[20ch] mt-2" style={titleStyle}>
               {card.title}
             </h1>
           </div>
