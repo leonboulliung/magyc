@@ -13,25 +13,21 @@ export async function generateMetadata(
 
   if (!card) {
     return {
-      title: "Not found · Creator.Paris",
+      title: "Not found · Creator",
       robots: { index: false, follow: false },
     };
   }
 
-  const isIdea = card.kind === "idea";
   const where = card.location?.label;
   const tagLine = card.tags?.length ? ` · ${card.tags.map((t) => `#${t}`).join(" ")}` : "";
 
-  // Per-item OG is the cold-start recruiter: each idea/thing is a self-contained
-  // landing page that sells itself. Idea copy invites resonance; thing copy
-  // invites joining.
-  const fallback = isIdea
-    ? `An idea for Paris${where ? ` near ${where}` : ""}. ${card.signals.length} ${card.signals.length === 1 ? "person wants" : "people want"} this real. Resonate on Creator.Paris.`
-    : `A thing${where ? ` in ${where}` : ""}, Paris. ${card.joiners.length}/${card.spots ?? "—"} people. Join on Creator.Paris.`;
+  // Per-item OG is the cold-start recruiter: each card is a self-contained
+  // landing page that sells itself. Copy invites joining.
+  const joinedCount = card.members.filter((m) => m.state === "joined").length;
+  const fallback = `${where ? `In ${where}. ` : ""}${joinedCount}/${card.spots ?? "—"} people in. Join on Creator.`;
   const description = (card.description?.trim() || fallback).slice(0, 200) + tagLine;
 
-  const kindWord = isIdea ? "Idea" : "Thing";
-  const title = `${card.title} · ${where ? `${where} · ` : ""}${kindWord} · Creator.Paris`;
+  const title = `${card.title}${where ? ` · ${where}` : ""} · Creator`;
   const url = `/post/${card.id}`;
 
   return {
@@ -43,7 +39,7 @@ export async function generateMetadata(
       title: card.title,
       description,
       url,
-      siteName: "Creator.Paris",
+      siteName: "Creator",
     },
     twitter: {
       card: "summary",

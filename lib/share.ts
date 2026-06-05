@@ -161,13 +161,11 @@ export async function renderShareImage(card: Card, avatarDataUrl?: string): Prom
   ctx.fillStyle = heroDark ? "rgba(255,255,255,0.92)" : "rgba(10,10,10,0.92)";
   ctx.font = "700 22px 'JetBrains Mono', monospace";
   ctx.textBaseline = "top";
-  ctx.fillText("CREATOR.PARIS", 48, 48);
+  ctx.fillText("CREATOR", 48, 48);
 
-  // activity tag top-right
+  // activity tag top-right — request vs join, depending on permission.
   ctx.font = "700 22px 'JetBrains Mono', monospace";
-  const tag = card.kind === "idea"
-    ? "IDEA"
-    : card.permission === "request" ? "REQUEST" : "JOIN";
+  const tag = card.permission === "request" ? "REQUEST" : "JOIN";
   ctx.textAlign = "right";
   ctx.fillText(tag, W - 48, 48);
   ctx.textAlign = "left";
@@ -216,9 +214,9 @@ export async function renderShareImage(card: Card, avatarDataUrl?: string): Prom
   // meta
   ctx.font = "500 22px 'JetBrains Mono', monospace";
   ctx.fillStyle = "#0a0a0a";
-  const meta1 = (card.location?.label || (card.kind === "idea" ? "AN IDEA FOR PARIS" : "PARIS")).toUpperCase();
-  const expiryStr = card.expiresAt
-    ? new Date(card.expiresAt)
+  const meta1 = (card.location?.label || "OPEN").toUpperCase();
+  const startStr = card.startsAt
+    ? new Date(card.startsAt)
         .toLocaleString("en-GB", {
           weekday: "short",
           day: "2-digit",
@@ -228,9 +226,10 @@ export async function renderShareImage(card: Card, avatarDataUrl?: string): Prom
         })
         .toUpperCase()
     : "";
-  const meta2 = card.kind === "idea"
-    ? `${card.signals.length} RESONATING  ·  OPEN UNTIL IT HAPPENS`
-    : `STARTS ${expiryStr}  ·  ${card.joiners.length}/${card.spots ?? "—"} PEOPLE`;
+  const joinedCount = card.members.filter((m) => m.state === "joined").length;
+  const meta2 = startStr
+    ? `STARTS ${startStr}  ·  ${joinedCount}/${card.spots ?? "—"} PEOPLE`
+    : `${joinedCount}/${card.spots ?? "—"} PEOPLE  ·  OPEN UNTIL IT HAPPENS`;
   ctx.fillText(meta1, 48, ty + 24);
   ctx.fillText(meta2, 48, ty + 56);
 
@@ -246,7 +245,7 @@ export async function renderShareImage(card: Card, avatarDataUrl?: string): Prom
   ctx.font = "900 36px Inter, system-ui, sans-serif";
   ctx.fillStyle = "#0a0a0a";
   ctx.textAlign = "right";
-  ctx.fillText("CREATOR.PARIS", W - 48, H - 32);
+  ctx.fillText("CREATOR", W - 48, H - 32);
   ctx.textAlign = "left";
 
   return await new Promise<Blob>((resolve, reject) => {
@@ -628,7 +627,7 @@ export async function renderCarnetPoster(
   // footer
   ctx.fillStyle = "#0a0a0a";
   ctx.font = "900 36px Inter, system-ui, sans-serif";
-  ctx.fillText("CREATOR.PARIS — A LIVING CITY LAYER", 96, PH - 60);
+  ctx.fillText("CREATOR — IDEAS BECOME REAL WITH OTHERS", 96, PH - 60);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png", 0.95);

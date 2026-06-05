@@ -59,17 +59,13 @@ export async function POST(
   // Pull just enough context to brief the model. Owner check is gate #1.
   const { data: card } = await admin
     .from("cards")
-    .select("id, owner_id, kind, title, description, tags, archived")
+    .select("id, owner_id, title, description, tags")
     .eq("id", params.id)
     .maybeSingle();
 
   if (!card) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (card.owner_id !== userId)
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  if (card.kind !== "thing")
-    return NextResponse.json({ error: "not_a_thing" }, { status: 400 });
-  if (card.archived)
-    return NextResponse.json({ error: "archived" }, { status: 400 });
 
   const now = Date.now();
   const last = lastCallAt.get(userId) || 0;

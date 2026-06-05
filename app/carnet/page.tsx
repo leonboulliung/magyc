@@ -114,17 +114,15 @@ export default function CarnetPage() {
     return { created, joined, total: track.length, rolesPlayed, quartiers, monthsSpan };
   }, [track]);
 
-  // Track filter: lets the user isolate just their ideas (the latent layer)
-  // or just their things (the concrete one) from a mixed track record.
+  // Track filter — kept as a UX scaffold; the idea/thing split is gone,
+  // so for now every filter shows the whole track. We'll repurpose this
+  // into a "created / joined" filter in the Mein Raum work.
   const filterCounts = useMemo(() => {
-    const ideas = track.filter((t) => t.card.kind === "idea").length;
-    return { all: track.length, ideas, things: track.length - ideas };
+    return { all: track.length, ideas: 0, things: track.length };
   }, [track]);
   const filteredTrack = useMemo(() => {
-    if (trackFilter === "all") return track;
-    const want: "idea" | "thing" = trackFilter === "ideas" ? "idea" : "thing";
-    return track.filter((t) => t.card.kind === want);
-  }, [track, trackFilter]);
+    return track;
+  }, [track]);
 
   // Username can change 1×/week. If we're still inside the cooldown, surface
   // when the next change becomes possible (mirrors the rule in ProfileEditor).
@@ -490,20 +488,22 @@ function TrackRow({
   const { card, role, at, isCreator } = entry;
   const color = cardColor(card);
   const dark = isDark(color);
-  const isIdea = card.kind === "idea";
-  const headlineTag = card.tags?.[0]?.toUpperCase() || (isIdea ? "IDEA" : "THING");
+  const headlineTag = card.tags?.[0]?.toUpperCase() || "CARD";
   const [busy, setBusy] = useState(false);
   const now = Date.now();
+  // A card is "past" once its start time slipped by. Without a start time
+  // it's open-ended and stays ACTIVE indefinitely.
   const status =
-    card.archived || (card.expiresAt != null && card.expiresAt <= now) ? "ARCHIVED" : "ACTIVE";
+    card.startsAt != null && card.startsAt <= now ? "PAST" : "ACTIVE";
 
-  // Crew = creator + joiners. De-duped, max 6 visible.
+  // Crew = creator + joined members. De-duped, max 6 visible.
+  const joinedMembers = card.members.filter((m) => m.state === "joined");
   const allCrew = [
     { id: card.owner.id, displayName: card.owner.displayName, avatarUrl: card.owner.avatarUrl, isCreator: true as const },
-    ...card.joiners.map((j) => ({
-      id: j.userId,
-      displayName: j.user.displayName,
-      avatarUrl: j.user.avatarUrl,
+    ...joinedMembers.map((m) => ({
+      id: m.userId,
+      displayName: m.user.displayName,
+      avatarUrl: m.user.avatarUrl,
       isCreator: false as const,
     })),
   ];
@@ -534,7 +534,7 @@ function TrackRow({
             <div
               className={`absolute right-2 bottom-2 mono text-[9px] tracking-widest px-1.5 py-0.5 border border-dashed bg-transparent ${dark ? "text-paper/70 border-paper/50" : "text-ink/55 border-rule-strong/40"}`}
             >
-              ◌ ARCHIVED
+              ◌ PAST
             </div>
           )}
         </Link>
@@ -546,7 +546,7 @@ function TrackRow({
             >
               {isCreator ? "CREATOR" : role.toUpperCase() || "JOINER"}
             </span>
-            <span>{(card.location?.label || (isIdea ? "IDEA" : "PARIS")).toUpperCase()}</span>
+            <span>{(card.location?.label || "OPEN").toUpperCase()}</span>
             <span className="ml-auto">{timeAgo(at)}</span>
           </div>
 
@@ -562,15 +562,9 @@ function TrackRow({
                 {isCreator ? "BY YOU" : `BY @${card.owner.displayName}`}
               </Link>
               <span>·</span>
-              {isIdea ? (
-                <span>{card.signals.length} RESONATING</span>
-              ) : (
-                <>
-                  <span>{card.joiners.length}/{card.spots ?? "—"} PEOPLE</span>
-                  <span>·</span>
-                  <span>{card.expiresAt ? expiresIn(card.expiresAt).toUpperCase() : "OPEN"}</span>
-                </>
-              )}
+              <span>{joinedMembers.length}/{card.spots ?? "—"} PEOPLE</span>
+              <span>·</span>
+              <span>{card.startsAt ? expiresIn(card.startsAt).toUpperCase() : "OPEN"}</span>
             </div>
             {allCrew.length > 0 && (
               <div className="flex items-center gap-2 ml-auto">

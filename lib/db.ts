@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type {
-  Card, CardJoiner, CardKind, CardRequest, CardRole, Profile, Signal, Socials, TrackEntry,
+  Card, CardMember, CardRole, MemberState, Profile, Socials, TrackEntry,
 } from "./types";
 
 // ============================================================
@@ -19,28 +19,16 @@ type ProfileRow = {
   banned?: boolean;
 };
 
-type JoinerRow = {
+type MemberRow = {
   user_id: string;
+  state: MemberState;
   role: string;
   joined_at: string;
   user: ProfileRow | null;
 };
 
-type RequestRow = {
-  user_id: string;
-  requested_at: string;
-  user: ProfileRow | null;
-};
-
-type SignalRow = {
-  user_id: string;
-  created_at: string;
-  user: ProfileRow | null;
-};
-
 type CardRow = {
   id: string;
-  kind: CardKind | null;
   owner_id: string;
   title: string;
   description: string;
@@ -51,24 +39,16 @@ type CardRow = {
   tags: string[] | null;
   color: string | null;
   created_at: string;
-  expires_at: string | null;
+  starts_at: string | null;
   ends_at: string | null;
   external_url: string | null;
-  duration_days: number | null;
-  archived: boolean;
   custom_fields: Record<string, unknown> | null;
   roadmap: unknown[] | null;
   modules: unknown[] | null;
   signature: Record<string, unknown> | null;
   roles: unknown[] | null;
-  forked_from_card_id: string | null;
-  forked_from_owner_id: string | null;
-  forked_from_title: string | null;
   owner: ProfileRow | null;
-  forked_from_owner: ProfileRow | null;
-  joiners: JoinerRow[] | null;
-  requests: RequestRow[] | null;
-  signals: SignalRow[] | null;
+  members: MemberRow[] | null;
 };
 
 /**
@@ -151,13 +131,15 @@ function mapRoleLabels(raw: unknown[] | null): string[] {
   return out;
 }
 
-/** Resolve a list of role labels against the joiner list — each label
- *  becomes a CardRole with `claimedBy` set when a joiner picked that role
- *  (case-insensitive match against `joiners.role`). */
-function resolveRoles(labels: string[], joiners: CardJoiner[]): CardRole[] {
+/** Resolve a list of role labels against the joined members — each
+ *  label becomes a CardRole with `claimedBy` set when a joined member
+ *  picked that role (case-insensitive match against `members.role`). */
+function resolveRoles(labels: string[], members: CardMember[]): CardRole[] {
   return labels.map((label) => {
     const lc = label.toLowerCase();
-    const taker = joiners.find((j) => j.role && j.role.toLowerCase() === lc);
+    const taker = members.find(
+      (m) => m.state === "joined" && m.role && m.role.toLowerCase() === lc,
+    );
     return { label, claimedBy: taker ? taker.user : null };
   });
 }
@@ -284,7 +266,6 @@ function mapModules(raw: unknown[] | null): import("./types").CardModule[] {
             const tm = typeof ir.time === "string"
               ? ir.time.trim().slice(0, 10)
               : undefined;
-            // Allow HH or HH:MM (24h); otherwise drop the time.
             const okTime = tm && /^\d{1,2}(:\d{2})?$/.test(tm) ? tm : undefined;
             items.push(okTime ? { time: okTime, title: t } : { title: t });
             if (items.length >= 12) break;
@@ -321,7 +302,7 @@ function mapModules(raw: unknown[] | null): import("./types").CardModule[] {
 const blankProfile = (id: string): Profile => ({
   id,
   phone: null,
-  displayName: `paris-${id.slice(-4) || "0000"}`,
+  displayName: `creator-${id.slice(-4) || "0000"}`,
   avatarUrl: null,
   socials: null,
   interests: null,
@@ -344,37 +325,21 @@ function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
   };
 }
 
-function mapJoiner(row: JoinerRow): CardJoiner {
+function mapMember(row: MemberRow): CardMember {
   return {
     userId: row.user_id,
+    state: row.state === "requested" ? "requested" : "joined",
     role: row.role || "",
     joinedAt: new Date(row.joined_at).getTime(),
     user: mapProfile(row.user, row.user_id),
   };
 }
 
-function mapRequest(row: RequestRow): CardRequest {
-  return {
-    userId: row.user_id,
-    requestedAt: new Date(row.requested_at).getTime(),
-    user: mapProfile(row.user, row.user_id),
-  };
-}
-
-function mapSignal(row: SignalRow): Signal {
-  return {
-    userId: row.user_id,
-    createdAt: new Date(row.created_at).getTime(),
-    user: mapProfile(row.user, row.user_id),
-  };
-}
-
 function mapCard(row: CardRow): Card {
-  const joiners = (row.joiners || []).map(mapJoiner);
+  const members = (row.members || []).map(mapMember);
   const roleLabels = mapRoleLabels(row.roles ?? null);
   return {
     id: row.id,
-    kind: row.kind === "idea" ? "idea" : "thing",
     ownerId: row.owner_id,
     owner: mapProfile(row.owner, row.owner_id),
     title: row.title,
@@ -386,42 +351,24 @@ function mapCard(row: CardRow): Card {
     tags: Array.isArray(row.tags) ? row.tags : [],
     color: row.color ?? null,
     createdAt: new Date(row.created_at).getTime(),
-    expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : null,
+    startsAt: row.starts_at ? new Date(row.starts_at).getTime() : null,
     endsAt: row.ends_at ? new Date(row.ends_at).getTime() : null,
     externalUrl: row.external_url ?? null,
-    durationDays: row.duration_days ?? null,
-    archived: row.archived,
-    joiners,
-    requests: (row.requests || []).map(mapRequest),
-    signals: (row.signals || []).map(mapSignal),
+    members,
     customFields: mapCustomFields(row.custom_fields ?? null),
     roadmap: mapRoadmap(row.roadmap ?? null),
     modules: mapModules(row.modules ?? null),
     signature: mapSignature(row.signature ?? null),
-    roles: resolveRoles(roleLabels, joiners),
-    forkedFromCardId: row.forked_from_card_id ?? null,
-    forkedFromOwnerId: row.forked_from_owner_id ?? null,
-    forkedFromTitle: row.forked_from_title ?? null,
-    forkedFromOwner: row.forked_from_owner_id
-      ? mapProfile(row.forked_from_owner, row.forked_from_owner_id)
-      : null,
+    roles: resolveRoles(roleLabels, members),
   };
 }
 
 const CARD_SELECT = `
-  id, kind, owner_id, title, description, location, location_kind, spots, permission, tags, color,
-  created_at, expires_at, ends_at, external_url, duration_days, archived, custom_fields, roadmap, modules, signature, roles,
-  forked_from_card_id, forked_from_owner_id, forked_from_title,
+  id, owner_id, title, description, location, location_kind, spots, permission, tags, color,
+  created_at, starts_at, ends_at, external_url, custom_fields, roadmap, modules, signature, roles,
   owner:profiles!cards_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
-  forked_from_owner:profiles!cards_forked_from_owner_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned),
-  joiners:joiners(user_id, role, joined_at,
-    user:profiles!joiners_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned)
-  ),
-  requests:join_requests(user_id, requested_at,
-    user:profiles!join_requests_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned)
-  ),
-  signals:signals(user_id, created_at,
-    user:profiles!signals_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned)
+  members:members(user_id, state, role, joined_at,
+    user:profiles!members_user_id_fkey(id, phone, display_name, avatar_url, socials, interests, bio, created_at, banned)
   )
 `;
 
@@ -430,60 +377,39 @@ const CARD_SELECT = `
 // ============================================================
 
 /**
- * Live "things" only — concrete, joinable, not yet started, not full.
- * `expires_at` holds the event START time (legacy column name).
- * Kept as the canonical name so existing map/feed callers keep working.
+ * Every active card in the field. No idea/thing split anymore — a
+ * card is a card. Cards with a `starts_at` in the past are filtered
+ * out (they've happened). Cards without a start time stay visible
+ * indefinitely (they're open-ended intentions).
  */
 export async function fetchActiveCards(): Promise<Card[]> {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from("cards")
     .select(CARD_SELECT)
-    .eq("kind", "thing")
-    .eq("archived", false)
-    .gt("expires_at", nowIso) // expires_at column now holds the event start time
-    .order("expires_at", { ascending: true });
-  if (error) throw error;
-  return ((data || []) as unknown as CardRow[])
-    .map(mapCard)
-    // Hide things from public view once their crew is full.
-    .filter((c) => c.spots == null || c.joiners.length < c.spots)
-    // Banned owners are invisible to the field.
-    .filter((c) => !c.owner.banned);
-}
-
-/**
- * Live "ideas" — thoughts in the field. They don't expire and aren't "full";
- * an idea stays open until it transforms or is archived. Hottest resonance
- * first (most signals), then most recent.
- */
-export async function fetchActiveIdeas(): Promise<Card[]> {
-  const { data, error } = await supabase
-    .from("cards")
-    .select(CARD_SELECT)
-    .eq("kind", "idea")
-    .eq("archived", false)
+    .or(`starts_at.is.null,starts_at.gt.${nowIso}`)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return ((data || []) as unknown as CardRow[])
     .map(mapCard)
-    // Banned owners are invisible to the field.
+    // Hide cards by banned creators.
     .filter((c) => !c.owner.banned)
-    .sort((a, b) =>
-      b.signals.length - a.signals.length || b.createdAt - a.createdAt,
+    // Hide cards once the joined-member count hits the cap.
+    .filter(
+      (c) =>
+        c.spots == null ||
+        c.members.filter((m) => m.state === "joined").length < c.spots,
     );
 }
 
 /**
- * The whole live field: ideas + things, in one fetch. Convenience for the
- * home surface so it can lead with ideas and layer things on the map.
+ * Convenience for surfaces that historically asked for "the whole
+ * field" as { ideas, things } — kept for back-compat during the
+ * structural rewrite. Both arrays return the same Card[] now.
  */
 export async function fetchField(): Promise<{ ideas: Card[]; things: Card[] }> {
-  const [ideas, things] = await Promise.all([
-    fetchActiveIdeas(),
-    fetchActiveCards(),
-  ]);
-  return { ideas, things };
+  const cards = await fetchActiveCards();
+  return { ideas: cards, things: cards };
 }
 
 /** IDs of everyone `userId` follows (public read via anon client). */
@@ -549,14 +475,18 @@ export async function fetchCardsByOwner(ownerId: string): Promise<Card[]> {
   return ((data || []) as unknown as CardRow[]).map(mapCard);
 }
 
+/**
+ * Every card the user has created OR joined — the foundation for
+ * "Mein Raum". Sorted most-recent first.
+ */
 export async function fetchTrackRecord(userId: string): Promise<TrackEntry[]> {
-  // Two queries in parallel: cards I created + cards I joined.
-  const [{ data: created }, { data: joined }] = await Promise.all([
+  const [{ data: created }, { data: memberships }] = await Promise.all([
     supabase.from("cards").select(CARD_SELECT).eq("owner_id", userId),
     supabase
-      .from("joiners")
-      .select(`role, joined_at, card:cards(${CARD_SELECT})`)
-      .eq("user_id", userId),
+      .from("members")
+      .select(`role, joined_at, state, card:cards(${CARD_SELECT})`)
+      .eq("user_id", userId)
+      .eq("state", "joined"),
   ]);
 
   const entries: TrackEntry[] = [];
@@ -566,18 +496,18 @@ export async function fetchTrackRecord(userId: string): Promise<TrackEntry[]> {
     entries.push({ card, role: "CREATOR", at: card.createdAt, isCreator: true });
   }
 
-  for (const row of (joined || []) as unknown as {
+  for (const row of (memberships || []) as unknown as {
     role: string;
     joined_at: string;
+    state: MemberState;
     card: CardRow | null;
   }[]) {
     if (!row.card) continue;
     const card = mapCard(row.card);
-    // Hide cards by banned creators from public track surfaces.
     if (card.owner.banned) continue;
     entries.push({
       card,
-      role: (row.role || "JOINER").toUpperCase(),
+      role: (row.role || "JOINED").toUpperCase(),
       at: new Date(row.joined_at).getTime(),
       isCreator: false,
     });

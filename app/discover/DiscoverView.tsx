@@ -55,7 +55,10 @@ export function DiscoverView() {
       .catch(() => setViewerTags([]));
   }, [user?.id]);
 
-  const tiles = computeDiscoverTiles(things, ideas, viewerTags);
+  // The old idea/thing split is gone — we feed the unified field
+  // through. fetchField still returns { ideas, things } for back-compat
+  // but both arrays are now the same Card[].
+  const tiles = computeDiscoverTiles(things, viewerTags);
 
   return (
     <div className="app-shell">
@@ -73,7 +76,7 @@ export function DiscoverView() {
               care about.
             </p>
             <Link href="/" className="mono text-[11px] tracking-widest hover:underline inline-block">
-              ← BACK TO PARIS
+              ← BACK
             </Link>
           </div>
 
@@ -83,9 +86,9 @@ export function DiscoverView() {
             <div className="py-12 text-center space-y-2">
               <p className="editorial font-black text-[26px]">Quiet right now.</p>
               <p className="mono text-[11px] opacity-60">
-                No active things, no resonating ideas. Try posting one.
+                Nothing active in the field yet. Try posting one.
               </p>
-              <Link href="/" className="btn inline-block mt-3">＋ POST ONE THING</Link>
+              <Link href="/" className="btn inline-block mt-3">＋ POST ONE</Link>
             </div>
           ) : (
             <div className="space-y-12">
@@ -143,16 +146,16 @@ function headerFor(t: DiscoverTile): { kicker: string; headline: string; sub?: s
         kicker: "CREW FORMING · LAST 24H",
         headline: "People are stepping in.",
       };
-    case "resonating":
+    case "fresh":
       return {
-        kicker: "RESONATING · IDEAS WANTING TO BE MADE REAL",
-        headline: "What the field wants.",
+        kicker: "FRESH · LOOKING FOR A CREW",
+        headline: "Just posted. Be the first.",
       };
-    case "quartier_cluster":
+    case "area_cluster":
       return {
-        kicker: "QUARTIER · " + t.quartier.toUpperCase(),
-        headline: `${t.quartier} is moving.`,
-        sub: `${t.cards.length} active things grouped here.`,
+        kicker: "AREA · " + t.area.toUpperCase(),
+        headline: `${t.area} is moving.`,
+        sub: `${t.cards.length} active here.`,
       };
     case "your_tags":
       return {
@@ -165,27 +168,27 @@ function headerFor(t: DiscoverTile): { kicker: string; headline: string; sub?: s
 
 function CardRow({ card, tile }: { card: Card; tile: DiscoverTile }) {
   const color = cardColor(card);
-  const isIdea = card.kind === "idea";
   const placeKind = placeKindLabel(card.locationKind);
+  const joinedCount = card.members.filter((m) => m.state === "joined").length;
 
   // Highlight the most meaningful metric per tile-kind.
-  const accent = ((): string => {
+  const accent: string = (() => {
     switch (tile.kind) {
       case "imminent":
       case "tonight":
-        return card.expiresAt ? fullStartLabel(card.expiresAt) : "—";
+        return card.startsAt ? fullStartLabel(card.startsAt) : "—";
       case "crew_forming":
-        return `${card.joiners.length}/${card.spots ?? "—"} PEOPLE · ${freshestJoinerAge(card)}`;
-      case "resonating":
-        return `${card.signals.length} ${card.signals.length === 1 ? "SIGNAL" : "SIGNALS"}`;
-      case "quartier_cluster":
-        return card.expiresAt
-          ? `${parisClockLabel(card.expiresAt)} · ${placeKind ?? "PARIS"}`
-          : placeKind ?? "IDEA";
+        return `${joinedCount}/${card.spots ?? "—"} PEOPLE · ${freshestJoinerAge(card)}`;
+      case "fresh":
+        return `JUST POSTED · ${timeAgo(card.createdAt)} AGO`;
+      case "area_cluster":
+        return card.startsAt
+          ? `${parisClockLabel(card.startsAt)} · ${placeKind ?? "OPEN"}`
+          : placeKind ?? "OPEN";
       case "your_tags":
-        return card.expiresAt
-          ? fullStartLabel(card.expiresAt)
-          : `${card.signals.length} ${card.signals.length === 1 ? "SIGNAL" : "SIGNALS"}`;
+        return card.startsAt
+          ? fullStartLabel(card.startsAt)
+          : `${joinedCount}/${card.spots ?? "—"} PEOPLE`;
     }
   })();
 
@@ -202,8 +205,6 @@ function CardRow({ card, tile }: { card: Card; tile: DiscoverTile }) {
         />
         <div className="min-w-0 flex-1">
           <div className="mono text-[10px] tracking-widest opacity-60 flex items-center gap-1.5 flex-wrap">
-            <span>{isIdea ? "IDEA" : "THING"}</span>
-            <span className="opacity-40">·</span>
             <span className="truncate">{accent}</span>
           </div>
           <div className="editorial font-black text-[20px] sm:text-[24px] leading-[1.05] mt-1 break-words group-hover:underline decoration-2 underline-offset-4">
@@ -217,18 +218,14 @@ function CardRow({ card, tile }: { card: Card; tile: DiscoverTile }) {
                 <span className="truncate">{card.location.label}</span>
               </>
             )}
-            {placeKind && tile.kind !== "quartier_cluster" && (
+            {placeKind && tile.kind !== "area_cluster" && (
               <>
                 <span className="opacity-40">·</span>
                 <span>{placeKind}</span>
               </>
             )}
-            {!isIdea && (
-              <>
-                <span className="opacity-40">·</span>
-                <KlarheitChip card={card} />
-              </>
-            )}
+            <span className="opacity-40">·</span>
+            <KlarheitChip card={card} />
           </div>
         </div>
       </div>
@@ -237,7 +234,8 @@ function CardRow({ card, tile }: { card: Card; tile: DiscoverTile }) {
 }
 
 function freshestJoinerAge(c: Card): string {
-  if (c.joiners.length === 0) return "JUST CREW";
-  const newest = c.joiners.reduce((m, j) => Math.max(m, j.joinedAt), 0);
+  const joined = c.members.filter((m) => m.state === "joined");
+  if (joined.length === 0) return "JUST CREW";
+  const newest = joined.reduce((m, j) => Math.max(m, j.joinedAt), 0);
   return `JOINED ${timeAgo(newest)} AGO`;
 }

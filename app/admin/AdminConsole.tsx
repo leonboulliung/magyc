@@ -24,9 +24,7 @@ interface AdminReport {
   reporter: { id: string; display_name: string; avatar_url: string | null } | null;
   target_card: {
     id: string;
-    kind: string;
     title: string;
-    archived: boolean;
     owner: { id: string; display_name: string; banned: boolean } | null;
   } | null;
   target_profile: { id: string; display_name: string; banned: boolean } | null;

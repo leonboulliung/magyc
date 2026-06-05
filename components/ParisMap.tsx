@@ -258,24 +258,25 @@ export function ParisMap({
     layerRef.current.clearLayers();
     const now = Date.now();
     for (const c of cards) {
-      // An idea may have no location — nothing to pin on the map.
+      // A card without a location has nothing to pin on the map.
       if (!c.location) continue;
       const isFresh = freshIds?.has(c.id);
-      const isIdea = c.kind === "idea";
       const color = cardColor(c);
 
-      // ── Crew fill (0..1): scales the persistent halo behind the pin. ──
+      // ── Crew fill (0..1): scales the persistent halo behind the pin.
+      //     Only joined members count — requests don't carry weight. ──
+      const joinedCount = c.members.filter((m) => m.state === "joined").length;
       const crewFill =
         c.spots && c.spots > 0
-          ? Math.min(1, c.joiners.length / c.spots)
-          : c.joiners.length > 0
-            ? Math.min(1, c.joiners.length / 4)
+          ? Math.min(1, joinedCount / c.spots)
+          : joinedCount > 0
+            ? Math.min(1, joinedCount / 4)
             : 0;
 
-      // ── Time state: reads start (expiresAt) + end (endsAt). ──
+      // ── Time state: reads startsAt + endsAt. ──
       let timeState: "distant" | "approaching" | "imminent" | "live" | "past" = "distant";
-      if (c.expiresAt) {
-        const start = c.expiresAt;
+      if (c.startsAt) {
+        const start = c.startsAt;
         const end = c.endsAt ?? start + 3 * 60 * 60 * 1000; // assume 3h if no end
         if (now >= start && now <= end) timeState = "live";
         else if (now > end) timeState = "past";
@@ -293,7 +294,7 @@ export function ParisMap({
       ].join(";");
       const icon = L.divIcon({
         className: "",
-        html: `<div class="cp-pin ${isIdea ? "idea" : ""} ${isFresh ? "fresh" : ""}" data-time="${timeState}" style="${pinStyle}"></div>`,
+        html: `<div class="cp-pin ${isFresh ? "fresh" : ""}" data-time="${timeState}" style="${pinStyle}"></div>`,
         iconSize: [12, 12],
         iconAnchor: [6, 6],
       });
@@ -410,15 +411,13 @@ export function ParisMap({
             style={{ left: pt.x, top: pt.y + 14, width: 260 }}
           >
             <div className="px-3 py-2 border-b border-rule-strong mono text-[10px] tracking-widest flex justify-between">
-              <span className="flex items-center gap-1.5">
-                {preview.card.kind === "idea" && <span className="cp-idea-mark" />}
-                {preview.card.location?.label.toUpperCase() ||
-                  (preview.card.kind === "idea" ? "IDEA" : "PARIS")}
+              <span>
+                {preview.card.location?.label.toUpperCase() || "OPEN"}
               </span>
               <span className="opacity-70">
-                {preview.card.expiresAt
-                  ? new Date(preview.card.expiresAt).toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short" }).toUpperCase()
-                  : preview.card.kind === "idea" ? "OPEN" : ""}
+                {preview.card.startsAt
+                  ? new Date(preview.card.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short" }).toUpperCase()
+                  : "OPEN"}
               </span>
             </div>
             <div className="px-3 py-2">
@@ -426,9 +425,10 @@ export function ParisMap({
                 {preview.card.title}
               </div>
               <div className="mono text-[10px] mt-2 opacity-70">
-                {preview.card.kind === "idea"
-                  ? `${preview.card.signals.length} RESONATING · TAP TO OPEN →`
-                  : `${preview.card.joiners.length}/${preview.card.spots ?? "—"} PEOPLE · TAP TO OPEN →`}
+                {(() => {
+                  const joined = preview.card.members.filter((m) => m.state === "joined").length;
+                  return `${joined}/${preview.card.spots ?? "—"} PEOPLE · TAP TO OPEN →`;
+                })()}
               </div>
             </div>
           </button>

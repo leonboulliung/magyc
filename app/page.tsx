@@ -21,9 +21,8 @@ export default function HomePage() {
   const router = useRouter();
   const { user } = useUser();
   // The composer can be opened pre-tilted to "idea" or "thing".
-  const [composing, setComposing] = useState<null | "idea" | "thing">(null);
-  const [ideas, setIdeas] = useState<Card[]>([]);
-  const [things, setThings] = useState<Card[]>([]);
+  const [composing, setComposing] = useState<boolean>(false);
+  const [cards, setCards] = useState<Card[]>([]);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -43,8 +42,7 @@ export default function HomePage() {
 
   const refresh = useCallback(() => {
     fetchField()
-      .then(({ ideas: nextIdeas, things: nextThings }) => {
-        const all = [...nextIdeas, ...nextThings];
+      .then(({ things: all }) => {
         const prevSeen = seenIdsRef.current;
         const nextSeen = new Set(all.map((c) => c.id));
         // On the very first load nothing is "fresh" — only flag arrivals
@@ -69,8 +67,7 @@ export default function HomePage() {
           }
         }
         seenIdsRef.current = nextSeen;
-        setIdeas(nextIdeas);
-        setThings(nextThings);
+        setCards(all);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -116,16 +113,12 @@ export default function HomePage() {
 
   // Apply the viewer's blocks AFTER the global feed has loaded. Ban-based
   // filtering already happens server-side via fetchActiveCards.
-  const visibleIdeas = blockedIds.size === 0
-    ? ideas
-    : ideas.filter((c) => !blockedIds.has(c.ownerId));
-  const visibleThings = blockedIds.size === 0
-    ? things
-    : things.filter((c) => !blockedIds.has(c.ownerId));
+  const visibleCards = blockedIds.size === 0
+    ? cards
+    : cards.filter((c) => !blockedIds.has(c.ownerId));
 
-  // Pins for both kinds — things filled, ideas hollow. Ideas without a
-  // location are simply not pinned (handled inside ParisMap).
-  const mapCards = [...visibleThings, ...visibleIdeas];
+  // The map shows every visible card that has a location.
+  const mapCards = visibleCards;
 
   // FAB stays mounted while the mobile sheet is open — instead of
   // popping out, it slides down with gravity (translateY + fade), so
@@ -158,10 +151,10 @@ export default function HomePage() {
   return (
     <>
       <div className="app-shell">
-        <Header onLogoClick={() => setComposing(null)} />
+        <Header onLogoClick={() => setComposing(false)} />
         <main className="no-scroll relative animate-fadeIn">
           {composing ? (
-            <CardComposer initialKind={composing} onClose={() => setComposing(null)} />
+            <CardComposer onClose={() => setComposing(false)} />
           ) : (
             <>
               <ParisMap
@@ -174,12 +167,10 @@ export default function HomePage() {
               <FeedPanel
                 expanded={panelExpanded}
                 onExpandedChange={setPanelExpanded}
-                ideas={visibleIdeas}
-                things={visibleThings}
+                cards={visibleCards}
                 loaded={loaded}
                 freshIds={freshIds}
-                onChanged={refresh}
-                onCompose={(kind) => setComposing(kind)}
+                onCompose={() => setComposing(true)}
                 followingIds={followingIds}
               />
             </>
@@ -191,7 +182,7 @@ export default function HomePage() {
         <>
           <SignedIn>
             <button
-              onClick={() => setComposing("idea")}
+              onClick={() => setComposing(true)}
               className="fixed right-4 sm:right-5 z-[1000] bg-ink text-paper w-14 h-14 sm:w-auto sm:h-auto sm:px-6 sm:py-3.5 rounded-full mono text-[12px] tracking-widest shadow-lg hover:shadow-xl hover:scale-[1.03] active:scale-100 transition-all duration-300 ease-out flex items-center justify-center gap-2"
               style={fabStyle}
               aria-label="Create"

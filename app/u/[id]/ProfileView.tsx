@@ -309,15 +309,15 @@ function PublicTrackRow({ entry }: { entry: TrackEntry }) {
   const { card, role, at, isCreator } = entry;
   const color = cardColor(card);
   const dark = isDark(color);
-  const isIdea = card.kind === "idea";
-  const headlineTag = card.tags?.[0]?.toUpperCase() || (isIdea ? "IDEA" : "THING");
+  const headlineTag = card.tags?.[0]?.toUpperCase() || "CARD";
   const now = Date.now();
   const status =
-    card.archived || (card.expiresAt != null && card.expiresAt <= now) ? "ARCHIVED" : "ACTIVE";
+    card.startsAt != null && card.startsAt <= now ? "PAST" : "ACTIVE";
 
+  const joinedMembers = card.members.filter((m) => m.state === "joined");
   const allCrew = [
     { id: card.owner.id, displayName: card.owner.displayName, avatarUrl: card.owner.avatarUrl },
-    ...card.joiners.map((j) => ({ id: j.userId, displayName: j.user.displayName, avatarUrl: j.user.avatarUrl })),
+    ...joinedMembers.map((m) => ({ id: m.userId, displayName: m.user.displayName, avatarUrl: m.user.avatarUrl })),
   ];
   const visibleCrew = allCrew.slice(0, 6);
   const restCrew = allCrew.length - visibleCrew.length;
@@ -339,16 +339,16 @@ function PublicTrackRow({ entry }: { entry: TrackEntry }) {
             </div>
           ) : (
             <div className={`absolute right-2 bottom-2 mono text-[9px] tracking-widest px-1.5 py-0.5 border border-dashed bg-transparent ${dark ? "text-paper/70 border-paper/50" : "text-ink/55 border-rule-strong/40"}`}>
-              ◌ ARCHIVED
+              ◌ PAST
             </div>
           )}
         </Link>
         <div className="flex-1 px-4 sm:px-6 py-4 sm:py-5 min-w-0">
           <div className="mono text-[10px] tracking-widest flex items-center gap-2 opacity-70 flex-wrap">
             <span className={`px-1.5 py-0.5 border border-rule-strong ${isCreator ? "bg-ink text-paper" : "bg-paper text-ink"}`}>
-              {isCreator ? "CREATOR" : role.toUpperCase() || "JOINER"}
+              {isCreator ? "CREATOR" : role.toUpperCase() || "JOINED"}
             </span>
-            <span>{(card.location?.label || (isIdea ? "IDEA" : "PARIS")).toUpperCase()}</span>
+            <span>{(card.location?.label || "OPEN").toUpperCase()}</span>
             <span className="ml-auto">{timeAgo(at)}</span>
           </div>
           <Link href={`/post/${card.id}`} className="block group">
@@ -360,15 +360,9 @@ function PublicTrackRow({ entry }: { entry: TrackEntry }) {
             <div className="mono text-[11px] opacity-70 flex items-center gap-2 flex-wrap">
               <span>BY @{card.owner.displayName}</span>
               <span>·</span>
-              {isIdea ? (
-                <span>{card.signals.length} RESONATING</span>
-              ) : (
-                <>
-                  <span>{card.joiners.length}/{card.spots ?? "—"} PEOPLE</span>
-                  <span>·</span>
-                  <span>{card.expiresAt ? expiresIn(card.expiresAt).toUpperCase() : "OPEN"}</span>
-                </>
-              )}
+              <span>{joinedMembers.length}/{card.spots ?? "—"} PEOPLE</span>
+              <span>·</span>
+              <span>{card.startsAt ? expiresIn(card.startsAt).toUpperCase() : "OPEN"}</span>
             </div>
             {allCrew.length > 0 && (
               <div className="flex items-center gap-2 ml-auto">

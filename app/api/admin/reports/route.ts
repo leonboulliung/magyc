@@ -26,7 +26,7 @@ export async function GET(req: Request) {
       target_card_id, target_profile_id,
       reporter:profiles!reports_reporter_id_fkey(id, display_name, avatar_url),
       target_card:cards!reports_target_card_id_fkey(
-        id, kind, title, archived,
+        id, title,
         owner:profiles!cards_owner_id_fkey(id, display_name, banned)
       ),
       target_profile:profiles!reports_target_profile_id_fkey(id, display_name, banned)

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import type { Card } from "@/lib/types";
-import { expiresIn, timeAgo } from "@/lib/time";
+import { timeAgo, expiresIn } from "@/lib/time";
 import { cardColor, isDark } from "@/lib/color";
 
 export function CardItem({
@@ -27,9 +27,11 @@ export function CardItem({
   const dark = isDark(color);
   const { user } = useUser();
   const mine = user?.id === card.ownerId;
-  // First tag headlines the swatch (e.g. FASHION-SHOOT). Falls back to THING —
-  // the swatch's solid color block already reads "concrete + joinable".
-  const headlineTag = card.tags?.[0]?.toUpperCase() || "THING";
+  // First tag headlines the swatch. Falls back to "CARD" — generic but
+  // honest now that we no longer split idea/thing.
+  const headlineTag = card.tags?.[0]?.toUpperCase() || "CARD";
+  const joinedCount = card.members.filter((m) => m.state === "joined").length;
+  const requestCount = card.members.filter((m) => m.state === "requested").length;
 
   return (
     <Link
@@ -53,7 +55,7 @@ export function CardItem({
           <div className="mono text-[10px] tracking-widest flex items-center gap-2 opacity-70">
             <span className="tabular-nums">#{String(index + 1).padStart(3, "0")}</span>
             <span>·</span>
-            <span className="truncate">{(card.location?.label || "PARIS").toUpperCase()}</span>
+            <span className="truncate">{(card.location?.label || "OPEN").toUpperCase()}</span>
             {isFresh && (
               <span className="shrink-0 mono text-[9px] tracking-widest px-1.5 py-0.5 rounded-full bg-ink text-paper animate-twinkle">
                 NEW ✦
@@ -85,16 +87,16 @@ export function CardItem({
                 {card.permission === "request" ? "REQUEST" : "PUBLIC JOIN"}
               </span>
               <span className="tabular-nums">
-                {card.joiners.length}/{card.spots ?? "—"} PEOPLE
+                {joinedCount}/{card.spots ?? "—"} PEOPLE
               </span>
-              {card.expiresAt && (
+              {card.startsAt && (
                 <span className="tabular-nums opacity-70">
-                  · {expiresIn(card.expiresAt).toUpperCase()}
+                  · {expiresIn(card.startsAt).toUpperCase()}
                 </span>
               )}
-              {card.requests.length > 0 && mine && (
+              {requestCount > 0 && mine && (
                 <span className="tabular-nums opacity-70">
-                  · {card.requests.length} REQUEST{card.requests.length > 1 ? "S" : ""}
+                  · {requestCount} REQUEST{requestCount > 1 ? "S" : ""}
                 </span>
               )}
             </div>

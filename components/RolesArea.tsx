@@ -27,16 +27,16 @@ export function RolesArea({
   const [err, setErr] = useState<string | null>(null);
 
   if (!card.roles || card.roles.length === 0) return null;
-  if (card.kind !== "thing") return null;
 
   const mine = !!user && user.id === card.ownerId;
+  const joinedMembers = card.members.filter((m) => m.state === "joined");
   const myJoin = user
-    ? card.joiners.find((j) => j.userId === user.id) ?? null
+    ? joinedMembers.find((m) => m.userId === user.id) ?? null
     : null;
   const myRole = myJoin?.role || "";
   const full =
     card.spots != null &&
-    card.joiners.length >= card.spots &&
+    joinedMembers.length >= card.spots &&
     !myJoin;
   const requestMode = card.permission === "request";
 

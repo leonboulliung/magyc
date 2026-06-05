@@ -9,11 +9,19 @@ import { sanitizeModules } from "@/lib/server/moduleSanitize";
 import { rolesForStorage, sanitizeRoleLabels } from "@/lib/server/roleSanitize";
 import { regenerateSignatureInBackground } from "@/lib/server/signatureCompute";
 
-// Hard ceiling: a thing may start at most 30 days into the future. Most will
-// be hours or days away — this just prevents pathological inputs.
+// Hard ceiling: a card with a start time may sit at most 30 days in the
+// future. The lower bound is 5 min — anything sooner is most likely a typo.
 const MAX_LEAD_MS = 30 * 86_400_000;
-const MIN_LEAD_MS = 5 * 60_000; // 5 min minimum into the future
+const MIN_LEAD_MS = 5 * 60_000;
 
+/**
+ * POST /api/cards — create a card.
+ *
+ * Every field except `title` is optional. The AI composer can fill the
+ * rest in, the user can iterate, or the card stays minimal forever.
+ * The old idea/thing split is gone; a card with no startsAt is just an
+ * open-ended card (formerly known as an idea).
+ */
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -21,14 +29,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "banned" }, { status: 403 });
 
   let body: {
-    kind?: "idea" | "thing";
     title?: string;
     description?: string;
     location?: { lat: number; lng: number; label: string } | null;
     locationKind?: string | null;
-    spots?: number;
+    spots?: number | null;
     permission?: "public" | "request";
-    startsAt?: string; // ISO 8601
+    startsAt?: string | null; // ISO 8601
     endsAt?: string | null;
     tags?: string[];
     color?: string;
@@ -41,18 +48,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const kind: "idea" | "thing" = body.kind === "idea" ? "idea" : "thing";
-
   const title = (body.title || "").trim();
+  if (!title) return NextResponse.json({ error: "title_required" }, { status: 400 });
   const description = (body.description || "").trim();
   const tags = normalizeTags(body.tags, 5);
-  // Accept any CSS-style hex. Validate loosely to keep schemas honest.
   const colorRaw = (body.color || "").trim();
   const color = /^#([0-9a-fA-F]{3}){1,2}$/.test(colorRaw) ? colorRaw.toLowerCase() : null;
 
-  if (!title) return NextResponse.json({ error: "title_required" }, { status: 400 });
-
-  // ----- Optional location (validated when present) -----
+  // Optional location — validated when present.
   let location: { lat: number; lng: number; label: string } | null = null;
   if (
     body.location &&
@@ -67,132 +70,75 @@ export async function POST(req: Request) {
     };
   }
 
-  // Optional draft module — sanitized per the typed union. Caps to ONE
-  // module on a thing; ideas don't carry modules (the field is dropped
-  // silently below if kind === "idea").
-  const modules = Array.isArray(body.modules) ? sanitizeModules(body.modules) : [];
-
-  // Optional predefined role labels — only persisted on things. Sanitizer
-  // dedupes case-insensitively, caps to 8.
-  const roleLabels = Array.isArray(body.roles) ? sanitizeRoleLabels(body.roles) : [];
-
-  // Photon classification of the picked place. We only keep simple
-  // lowercase tokens (osm_value vocab); anything weird is dropped.
+  // Photon classification of the picked place — lowercase tokens only.
   const locationKind =
     typeof body.locationKind === "string" && /^[a-z][a-z0-9_-]{1,31}$/i.test(body.locationKind)
       ? body.locationKind.toLowerCase()
       : null;
 
-  await ensureProfile(userId);
-  const admin = supabaseAdmin();
-  const id = newId();
+  // Optional spots cap (members beyond this are blocked from joining).
+  const spots =
+    typeof body.spots === "number" && body.spots > 0
+      ? Math.max(1, Math.min(99, Math.floor(body.spots)))
+      : null;
+  const permission =
+    body.permission === "request" ? "request" : "public";
 
-  // ============================================================
-  // IDEA — a thought thrown into the field. Cheap, low-commitment.
-  // Everything except the title is optional: no time, no spots, no
-  // permission. An optional loose location is allowed. Ideas do NOT
-  // auto-archive a live thing — they coexist; many ideas just float.
-  // ============================================================
-  if (kind === "idea") {
-    const { data, error } = await admin
-      .from("cards")
-      .insert({
-        id,
-        kind: "idea",
-        owner_id: userId,
-        title,
-        description,
-        location,          // may be null
-        location_kind: locationKind,
-        spots: null,
-        permission: null,
-        tags,
-        color,
-        expires_at: null,  // ideas don't expire
-        ends_at: null,
-        duration_days: null,
-      })
-      .select()
-      .single();
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    // Fire-and-forget: compute the design signature in the background.
-    // The card returns immediately; the signature lands on the row a
-    // moment later and the UI picks it up on next fetch.
-    regenerateSignatureInBackground(
-      id,
-      { title, description, tags },
-      async (cardId, sig) => {
-        await admin.from("cards").update({ signature: sig }).eq("id", cardId);
-      },
-    );
-
-    return NextResponse.json({ ok: true, id, kind: "idea", card: data });
-  }
-
-  // ============================================================
-  // THING — concrete, joinable. Needs enough to be joinable: a title,
-  // a location, a start time, and a spot count.
-  // ============================================================
-  const spots = Math.max(1, Math.min(99, Math.floor(body.spots || 1)));
-  const permission = body.permission === "request" ? "request" : "public";
-
-  if (!location) {
-    return NextResponse.json({ error: "location_required" }, { status: 400 });
-  }
-
-  const startsMs = body.startsAt ? Date.parse(body.startsAt) : NaN;
-  if (!Number.isFinite(startsMs)) {
-    return NextResponse.json({ error: "starts_at_required" }, { status: 400 });
-  }
-  const now = Date.now();
-  if (startsMs < now + MIN_LEAD_MS) {
-    return NextResponse.json({ error: "starts_at_too_soon" }, { status: 400 });
-  }
-  if (startsMs > now + MAX_LEAD_MS) {
-    return NextResponse.json({ error: "starts_at_too_far" }, { status: 400 });
-  }
-
-  // Optional end time. Must be after start; cap a 24h window after start to
-  // keep "things" event-shaped rather than open calendars.
-  let endsMs: number | null = null;
-  if (body.endsAt) {
-    const t = Date.parse(body.endsAt);
-    if (Number.isFinite(t)) {
-      if (t <= startsMs) {
-        return NextResponse.json({ error: "ends_at_before_start" }, { status: 400 });
+  // Optional start / end times. If startsAt is provided, validate.
+  let startsAt: string | null = null;
+  let endsAt: string | null = null;
+  if (body.startsAt) {
+    const startsMs = Date.parse(body.startsAt);
+    if (!Number.isFinite(startsMs)) {
+      return NextResponse.json({ error: "starts_at_invalid" }, { status: 400 });
+    }
+    const now = Date.now();
+    if (startsMs < now + MIN_LEAD_MS) {
+      return NextResponse.json({ error: "starts_at_too_soon" }, { status: 400 });
+    }
+    if (startsMs > now + MAX_LEAD_MS) {
+      return NextResponse.json({ error: "starts_at_too_far" }, { status: 400 });
+    }
+    startsAt = new Date(startsMs).toISOString();
+    if (body.endsAt) {
+      const endsMs = Date.parse(body.endsAt);
+      if (Number.isFinite(endsMs)) {
+        if (endsMs <= startsMs) {
+          return NextResponse.json({ error: "ends_at_before_start" }, { status: 400 });
+        }
+        if (endsMs > startsMs + 24 * 60 * 60 * 1000) {
+          return NextResponse.json({ error: "ends_at_too_far" }, { status: 400 });
+        }
+        endsAt = new Date(endsMs).toISOString();
       }
-      if (t > startsMs + 24 * 60 * 60 * 1000) {
-        return NextResponse.json({ error: "ends_at_too_far" }, { status: 400 });
-      }
-      endsMs = t;
     }
   }
 
-  // Multiple live things per person are allowed. The "one per week" rhythm
-  // is gone — Creator.Paris is now a project-board, not a weekly slot. The
-  // shape of the city emerges from how many things you actually carry.
+  // Optional draft module — sanitized per the typed union.
+  const modules = Array.isArray(body.modules) ? sanitizeModules(body.modules) : [];
+
+  // Optional predefined role labels.
+  const roleLabels = Array.isArray(body.roles) ? sanitizeRoleLabels(body.roles) : [];
+
+  await ensureProfile(userId);
+  const admin = supabaseAdmin();
+  const id = newId();
 
   const { data, error } = await admin
     .from("cards")
     .insert({
       id,
-      kind: "thing",
       owner_id: userId,
       title,
       description,
       location,
+      location_kind: locationKind,
       spots,
       permission,
       tags,
       color,
-      // `expires_at` column is repurposed: it now stores the event START time.
-      // Things auto-hide once this passes. `duration_days` is vestigial; we
-      // send 1 to keep parity with legacy rows.
-      duration_days: 1,
-      expires_at: new Date(startsMs).toISOString(),
-      ends_at: endsMs ? new Date(endsMs).toISOString() : null,
+      starts_at: startsAt,
+      ends_at: endsAt,
       modules,
       roles: rolesForStorage(roleLabels),
     })
@@ -204,16 +150,11 @@ export async function POST(req: Request) {
   // Fire-and-forget: compute the design signature in the background.
   regenerateSignatureInBackground(
     id,
-    {
-      title,
-      description,
-      tags,
-      module: modules[0],
-    },
+    { title, description, tags, module: modules[0] },
     async (cardId, sig) => {
       await admin.from("cards").update({ signature: sig }).eq("id", cardId);
     },
   );
 
-  return NextResponse.json({ ok: true, id, kind: "thing", card: data });
+  return NextResponse.json({ ok: true, id, card: data });
 }

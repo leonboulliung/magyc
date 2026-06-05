@@ -37,11 +37,13 @@ export interface KlarheitStatus {
 export function computeKlarheit(card: Card): KlarheitStatus {
   const checks: { ok: boolean; missing: string }[] = [
     { ok: !!card.location, missing: "ein Ort" },
-    { ok: card.expiresAt != null, missing: "ein Startzeitpunkt" },
+    { ok: card.startsAt != null, missing: "ein Startzeitpunkt" },
     { ok: card.modules.length > 0, missing: "ein Modul" },
     { ok: card.roles.length > 0, missing: "eine Rolle" },
     {
-      ok: card.roles.some((r) => !!r.claimedBy) || card.joiners.length > 0,
+      ok:
+        card.roles.some((r) => !!r.claimedBy) ||
+        card.members.some((m) => m.state === "joined"),
       missing: "jemand der mitmacht",
     },
   ];

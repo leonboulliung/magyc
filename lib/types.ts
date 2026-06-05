@@ -1,14 +1,5 @@
 export type Permission = "public" | "request";
 
-/**
- * The two object kinds in the field.
- *  - "idea"  — a thought thrown into the field. Cheap, low-commitment. Just
- *              text + optional loose location. People give a resonance Signal.
- *  - "thing" — concrete, doable. People JOIN. ≈ the original "card".
- * A "thing" is the default so every legacy card keeps its meaning.
- */
-export type CardKind = "idea" | "thing";
-
 export interface CardLocation {
   lat: number;
   lng: number;
@@ -25,7 +16,7 @@ export interface Socials {
 export interface Profile {
   id: string;            // Clerk user ID, e.g. "user_2abc..."
   phone: string | null;  // E.164 from Clerk, may be null if not yet synced
-  displayName: string;   // user-picked handle, e.g. "leonparis"
+  displayName: string;   // user-picked handle
   avatarUrl: string | null;
   socials: Socials | null;
   interests: string[] | null;
@@ -39,133 +30,111 @@ export interface Profile {
   banned?: boolean;
 }
 
-export interface CardJoiner {
+/**
+ * Membership state on a card.
+ *  - "joined"    — confirmed, counts toward the crew.
+ *  - "requested" — pending; the owner accepts or declines.
+ */
+export type MemberState = "joined" | "requested";
+
+/**
+ * A user's relationship to a card. Replaces the old Joiner + Request
+ * split: both live in the same table now, distinguished by `state`.
+ */
+export interface CardMember {
   userId: string;
-  /** Which predefined role on the card this joiner claimed. Empty string
-   *  means "just dabei" — no specific role. */
+  state: MemberState;
+  /** Which predefined role on the card this member claimed. Empty
+   *  string means "just dabei" — no specific role. */
   role: string;
+  /** When the row was created (joined OR requested at — same column). */
   joinedAt: number;
   user: Profile;
 }
 
 /**
- * A role definition on a thing. The owner curates the list; AI can
+ * A role definition on a card. The owner curates the list; AI can
  * propose initial labels from the brief. Each role is a slot one
- * person can claim with "Ich mach's". `claimedBy` is the joiner's
- * profile (resolved at read time from `joiners.role`), or `null` when
- * the slot is still open.
+ * person can claim with "Ich mach's". `claimedBy` is the joined
+ * member's profile (resolved at read time), or `null` when the slot
+ * is still open.
  */
 export interface CardRole {
   label: string;
   claimedBy: Profile | null;
 }
 
-export interface CardRequest {
-  userId: string;
-  requestedAt: number;
-  user: Profile;
-}
-
 /**
- * A resonance Signal on an idea — "I'd want this to exist / I'd help make it
- * real." Lighter than a joiner: no role, no accept/decline. It is INTENT.
- * Accumulated signalers are the warm, ready crew an idea carries forward when
- * it transforms into a thing.
+ * A card — the only entity in the app. Whether it feels like an "idea"
+ * or "my thing" depends on YOUR relationship to it (are you a member?
+ * are you the owner?), not on a global type flag.
+ *
+ * Fields the user might leave blank: location, startsAt, endsAt,
+ * spots, permission, color, roles, modules. The app composes a
+ * legible workspace from whatever the creator gave it.
  */
-export interface Signal {
-  userId: string;
-  createdAt: number;
-  user: Profile;
-}
-
 export interface Card {
   id: string;
-  /** "idea" or "thing". Drives the whole visual + behavioral split. */
-  kind: CardKind;
   ownerId: string;
   owner: Profile;
   title: string;
   description: string;
-  /**
-   * An idea may have only a loose location, or none at all. A thing always
-   * resolves one before it's joinable.
-   */
+  /** Optional. A card without a pin is fine — it's just an idea. */
   location: CardLocation | null;
   /**
    * Photon-derived place classification (osm_value: "restaurant",
-   * "park", "cinema", "cafe", etc.). `null` when the location came
-   * from the local quartier index (no venue type) or the geocoder
-   * didn't tag it.
+   * "park", "cinema", "cafe", etc.). `null` when no venue type
+   * could be inferred.
    */
   locationKind: string | null;
-  /** Number of spots on a thing. `null` on an idea (no commitment yet). */
+  /** Optional cap on how many members the card holds. `null` = open. */
   spots: number | null;
-  /** Join permission on a thing. `null` on an idea. */
+  /** "public" (instant join) or "request" (owner accepts). `null`
+   *  on cards where the joining concept isn't engaged yet. */
   permission: Permission | null;
-  /** Free-form tags (lowercase, hyphenated). AI suggests, user can edit. */
+  /** Free-form tags (lowercase, hyphenated). AI suggests, user edits. */
   tags: string[];
-  /** Author-picked color. Drives the dominant visual (strip, pin, hero). */
+  /** Author-picked color. Drives the dominant visual (pin, accent). */
   color: string | null;
   createdAt: number;
-  /**
-   * Repurposed column: when a thing actually starts. `null` on an idea
-   * (timing crystallizes only as needed).
-   */
-  expiresAt: number | null;
-  /** Optional end time. `null` = open-ended ("until vibe ends"). */
+  /** Optional start time. `null` = the card isn't time-bound yet. */
+  startsAt: number | null;
+  /** Optional end time. `null` = open-ended. */
   endsAt: number | null;
-  /** Optional "more info" link (GitHub, Strava, Are.na, etc.). */
+  /** Optional "more info" link (Strava, Are.na, GitHub, …). */
   externalUrl: string | null;
-  durationDays: number | null;
-  archived: boolean;
-  joiners: CardJoiner[];
-  requests: CardRequest[];
-  /** Resonance signals — populated for ideas, empty for things. */
-  signals: Signal[];
+  /** Everyone associated with this card — joined or requested. UI
+   *  filters by state where it matters. */
+  members: CardMember[];
   /**
-   * Predefined roles on a thing ("Foto", "Tonkundige", "Snacks-Pate", …).
-   * The owner curates the list; AI can propose labels from the brief.
-   * Each entry is a slot — at most one joiner per role. `claimedBy` is
-   * resolved at read time from `joiners.role`. Empty array on ideas and
-   * on things that don't carry predefined roles.
+   * Predefined roles on the card ("Foto", "Tonkundige", …). Owner
+   * curates; AI can propose labels. Each entry is a slot — at most
+   * one joined member per role. `claimedBy` is resolved at read time.
    */
   roles: CardRole[];
   /**
-   * A small key/value sidebar of details that suit this particular thing —
-   * a shoot's "LOOKS", a hackathon's "STACK", a dinner's "BRING". Keys are
-   * AI-suggested abstractions of the creator's own intent (never invented),
-   * values are written by the creator. Order preserved by client.
+   * A small key/value sidebar of details — a shoot's "LOOKS", a
+   * hackathon's "STACK", a dinner's "BRING". Keys are AI-suggested
+   * abstractions of the creator's own intent; values are written by
+   * the creator. Order preserved by client.
    */
   customFields: Record<string, string>;
   /**
-   * An ordered list of short labels describing the abstract steps the
-   * creator needs to make this thing happen. AI proposes the labels
-   * (strict abstraction, no invented specifics); the creator owns the
-   * order and the wording. Empty when no roadmap has been drafted.
+   * An ordered list of short step labels. AI proposes (strict
+   * abstraction, no invented specifics); the creator owns the order
+   * and wording. Empty when no roadmap has been drafted.
    */
   roadmap: string[];
   /**
-   * If this thing was created by forking someone else's idea, these three
-   * fields carry an immutable credit to the origin. Stored as a snapshot
-   * so the stamp survives deletion of the original idea. `null` when the
-   * card wasn't forked (the common case).
-   */
-  forkedFromCardId: string | null;
-  forkedFromOwnerId: string | null;
-  forkedFromTitle: string | null;
-  /** Hydrated origin owner profile when available — for the stamp UI. */
-  forkedFromOwner: Profile | null;
-  /**
    * Ordered repertoire of typed sub-surfaces the AI proposes (and the
-   * owner curates) to help a thing land — brief, roadmap, checklist,
-   * bring-list, kv-sidebar. The AI never invents specifics; it only
-   * abstracts the structure from what the creator already wrote.
+   * owner curates) to help a card land — brief, roadmap, checklist,
+   * bring-list, kv-sidebar, etc.
    */
   modules: CardModule[];
   /**
-   * Computed design signature — tunes hero gradient, title weight, pin
-   * pulse, map warmth toward the mood of this thing. Null until the
-   * AI has run; consumers apply sensible defaults.
+   * Computed design signature — tunes title weight, accent palette,
+   * pin pulse toward the mood of this card. Null until the AI has
+   * run; consumers fall back to sensible defaults.
    */
   signature: CardSignature | null;
 }
@@ -187,11 +156,10 @@ export type CardModule =
 
 /**
  * A computed "signature" — a small bundle of design parameters the
- * app uses to tune its existing visuals toward a particular thing.
+ * app uses to tune its existing visuals toward a particular card.
  * Generated by the AI from the card's title + description + tags +
  * (optional) module. Never an artwork — only the tuning knobs the
- * existing UI already supports (type weight, palette, pin rhythm,
- * map warmth, geometric language, motion intensity).
+ * existing UI already supports.
  *
  * `null` until the model has run (and stays null on AI failure).
  * Consumers fall back to sensible defaults when null.
