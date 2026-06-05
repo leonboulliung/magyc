@@ -1,211 +1,47 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { SignedIn, SignedOut, SignUpButton, useUser } from "@clerk/nextjs";
-import { Header } from "@/components/Header";
-import { ParisMap } from "@/components/ParisMap";
-import { FeedPanel } from "@/components/FeedPanel";
-import { CardComposer } from "@/components/CardComposer";
-import { fetchField, fetchFollowingIds } from "@/lib/db";
-import { useRealtimeCards } from "@/lib/realtime";
-import type { Card } from "@/lib/types";
-import { useIsDesktop } from "@/lib/hooks";
+import { SignInButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 
-// Keep these in lockstep with FeedPanel's own widths/heights.
-const PANEL_DESKTOP_EXPANDED = 380;
-const PANEL_DESKTOP_COLLAPSED = 52;
-const PANEL_MOBILE_PEEK = 52;
-
+/**
+ * Blank slate. The infrastructure (Clerk auth, Supabase client, Vercel
+ * pipeline) is live; the application is undecided. Next conversation
+ * picks the concept and the build resumes from here.
+ */
 export default function HomePage() {
-  const router = useRouter();
-  const { user } = useUser();
-  // The composer can be opened pre-tilted to "idea" or "thing".
-  const [composing, setComposing] = useState<boolean>(false);
-  const [cards, setCards] = useState<Card[]>([]);
-  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
-  const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
-  const [loaded, setLoaded] = useState(false);
-  // IDs we've already seen, to flag genuinely new arrivals (not first load).
-  const seenIdsRef = useRef<Set<string> | null>(null);
-  const isDesktop = useIsDesktop();
-  // The field is the lead. Open it by default on every viewport so a visitor
-  // lands in the intellectual life of the city, not a dead map.
-  const [panelExpanded, setPanelExpanded] = useState(false);
-  const [panelInitialized, setPanelInitialized] = useState(false);
-
-  useEffect(() => {
-    if (panelInitialized) return;
-    setPanelExpanded(true);
-    setPanelInitialized(true);
-  }, [panelInitialized]);
-
-  const refresh = useCallback(() => {
-    fetchField()
-      .then(({ things: all }) => {
-        const prevSeen = seenIdsRef.current;
-        const nextSeen = new Set(all.map((c) => c.id));
-        // On the very first load nothing is "fresh" — only flag arrivals
-        // that appear after we already have a snapshot.
-        if (prevSeen) {
-          const newFresh = all.filter((c) => !prevSeen.has(c.id)).map((c) => c.id);
-          if (newFresh.length > 0) {
-            setFreshIds((f) => {
-              const nx = new Set(f);
-              newFresh.forEach((id) => nx.add(id));
-              return nx;
-            });
-            newFresh.forEach((id) => {
-              window.setTimeout(() => {
-                setFreshIds((f) => {
-                  const nx = new Set(f);
-                  nx.delete(id);
-                  return nx;
-                });
-              }, 10_000);
-            });
-          }
-        }
-        seenIdsRef.current = nextSeen;
-        setCards(all);
-        setLoaded(true);
-      })
-      .catch(() => setLoaded(true));
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const id = window.setInterval(refresh, 60_000);
-    return () => window.clearInterval(id);
-  }, [refresh]);
-
-  useRealtimeCards(refresh);
-
-  // Who the signed-in user follows — drives the prioritized "FOLLOWING"
-  // section. Re-fetched when the user changes (e.g. after sign-in).
-  useEffect(() => {
-    if (!user?.id) {
-      setFollowingIds(new Set());
-      return;
-    }
-    fetchFollowingIds(user.id)
-      .then((ids) => setFollowingIds(new Set(ids)))
-      .catch(() => {});
-  }, [user?.id]);
-
-  // Profiles the viewer has blocked — their cards drop out of the field.
-  // One-directional: only the blocker stops seeing the blocked. Re-fetched
-  // whenever the user changes.
-  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    if (!user?.id) {
-      setBlockedIds(new Set());
-      return;
-    }
-    fetch("/api/blocks")
-      .then((r) => r.json())
-      .then((j) => {
-        const list: string[] = Array.isArray(j?.blocked) ? j.blocked : [];
-        setBlockedIds(new Set(list));
-      })
-      .catch(() => {});
-  }, [user?.id]);
-
-  // Apply the viewer's blocks AFTER the global feed has loaded. Ban-based
-  // filtering already happens server-side via fetchActiveCards.
-  const visibleCards = blockedIds.size === 0
-    ? cards
-    : cards.filter((c) => !blockedIds.has(c.ownerId));
-
-  // The map shows every visible card that has a location.
-  const mapCards = visibleCards;
-
-  // FAB stays mounted while the mobile sheet is open — instead of
-  // popping out, it slides down with gravity (translateY + fade), so
-  // the transition feels like the FAB falls behind the rising sheet
-  // and rises back up when the sheet closes. Only `composing` actually
-  // unmounts it (the composer fully replaces the surface).
-  const fabHidden = !!composing;
-  const fabSlideDown = !isDesktop && panelExpanded;
-
-  const fabShiftX = isDesktop
-    ? panelExpanded
-      ? PANEL_DESKTOP_EXPANDED
-      : PANEL_DESKTOP_COLLAPSED
-    : 0;
-  const fabBottomExtra = isDesktop ? 0 : PANEL_MOBILE_PEEK + 14;
-
-  const fabStyle = {
-    bottom: `calc(env(safe-area-inset-bottom, 0px) + ${20 + fabBottomExtra}px)`,
-    transform: [
-      fabShiftX ? `translateX(-${fabShiftX}px)` : null,
-      fabSlideDown ? "translateY(140px)" : null,
-    ]
-      .filter(Boolean)
-      .join(" ") || undefined,
-    opacity: fabSlideDown ? 0 : 1,
-    pointerEvents: fabSlideDown ? ("none" as const) : undefined,
-    transition: "transform 320ms ease-out, opacity 240ms ease-out",
-  } as const;
-
+  const { user, isLoaded } = useUser();
   return (
-    <>
-      <div className="app-shell">
-        <Header onLogoClick={() => setComposing(false)} />
-        <main className="no-scroll relative animate-fadeIn">
-          {composing ? (
-            <CardComposer onClose={() => setComposing(false)} />
-          ) : (
-            <>
-              <ParisMap
-                cards={mapCards}
-                freshIds={freshIds}
-                onSelectCard={(id) => router.push(`/post/${id}`)}
-                height="100%"
-                gestureHandling={false}
-              />
-              <FeedPanel
-                expanded={panelExpanded}
-                onExpandedChange={setPanelExpanded}
-                cards={visibleCards}
-                loaded={loaded}
-                freshIds={freshIds}
-                onCompose={() => setComposing(true)}
-                followingIds={followingIds}
-              />
-            </>
-          )}
-        </main>
-      </div>
-
-      {!fabHidden && (
-        <>
+    <main className="min-h-screen flex flex-col">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-rule">
+        <span className="font-black tracking-tightest text-[16px]">CREATOR</span>
+        <div className="flex items-center gap-3">
           <SignedIn>
-            <button
-              onClick={() => setComposing(true)}
-              className="fixed right-4 sm:right-5 z-[1000] bg-ink text-paper w-14 h-14 sm:w-auto sm:h-auto sm:px-6 sm:py-3.5 rounded-full mono text-[12px] tracking-widest shadow-lg hover:shadow-xl hover:scale-[1.03] active:scale-100 transition-all duration-300 ease-out flex items-center justify-center gap-2"
-              style={fabStyle}
-              aria-label="Create"
-            >
-              <span className="sm:hidden text-2xl leading-none">+</span>
-              <span className="hidden sm:inline">＋ CREATE</span>
-            </button>
+            <span className="mono text-[11px] opacity-70">
+              {isLoaded && user ? `@${user.username ?? user.id.slice(-6)}` : ""}
+            </span>
+            <UserButton afterSignOutUrl="/" />
           </SignedIn>
-
           <SignedOut>
-            <SignUpButton mode="modal" forceRedirectUrl="/onboarding?next=/">
-              <button
-                className="fixed right-4 sm:right-5 z-[1000] bg-ink text-paper w-14 h-14 sm:w-auto sm:h-auto sm:px-6 sm:py-3.5 rounded-full mono text-[12px] tracking-widest shadow-lg hover:shadow-xl hover:scale-[1.03] active:scale-100 transition-all duration-300 ease-out flex items-center justify-center gap-2"
-                style={fabStyle}
-                aria-label="Sign up to create"
-              >
-                <span className="sm:hidden text-2xl leading-none">+</span>
-                <span className="hidden sm:inline">＋ CREATE</span>
+            <SignInButton mode="modal">
+              <button className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors">
+                SIGN IN
               </button>
-            </SignUpButton>
+            </SignInButton>
           </SignedOut>
-        </>
-      )}
-    </>
+        </div>
+      </header>
+
+      <section className="flex-1 grid place-items-center px-6 py-20">
+        <div className="max-w-xl text-center space-y-4">
+          <div className="mono text-[10px] tracking-widest opacity-60">CLEAN SLATE</div>
+          <h1 className="editorial font-black text-[40px] sm:text-[56px] leading-[0.95]">
+            Nothing here yet.
+          </h1>
+          <p className="mono text-[12px] opacity-70 leading-relaxed">
+            The infrastructure is live — Auth, DB, deploy. The app itself
+            is the next decision.
+          </p>
+        </div>
+      </section>
+    </main>
   );
 }

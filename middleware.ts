@@ -1,14 +1,9 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// Only these routes require an authenticated user. The feed (/), detail
-// pages (/post/[id]), and the Clerk-hosted auth routes stay public.
-const isProtectedRoute = createRouteMatcher(["/carnet(.*)", "/onboarding(.*)"]);
-
-export default clerkMiddleware(async (auth, request) => {
-  if (isProtectedRoute(request)) {
-    await auth.protect();
-  }
-});
+// No protected routes yet — every surface is public until the new app's
+// concept dictates otherwise. Clerk's middleware still runs so auth state
+// is available to every page; we just don't enforce sign-in anywhere.
+export default clerkMiddleware();
 
 export const config = {
   matcher: [
