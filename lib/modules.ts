@@ -81,6 +81,13 @@ export function sanitizeModule(raw: unknown): Module | null {
       const subtitle = clean(r.subtitle, 160) || undefined;
       return { type, ...b, title, subtitle };
     }
+    case "synthesis": {
+      const text = typeof r.text === "string"
+        ? r.text.trim().replace(/\s+/g, " ").slice(0, 800)
+        : "";
+      if (text.length < 20) return null;
+      return { type, ...b, text };
+    }
     case "tags": {
       const tags = stringArray(r.tags, 8, 40);
       if (tags.length === 0) return null;
@@ -300,6 +307,7 @@ export interface ModuleMeta {
 
 export const MODULE_META: Record<ModuleType, ModuleMeta> = {
   headline:      { dataSource: null,                   requiresAttribution: false },
+  synthesis:     { dataSource: null,                   requiresAttribution: false },
   tags:          { dataSource: null,                   requiresAttribution: false },
   notes:         { dataSource: null,                   requiresAttribution: false },
   open_question: { dataSource: null,                   requiresAttribution: false },

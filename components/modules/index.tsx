@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { MODULE_META } from "@/lib/modules";
 import {
-  addsFor, checksFor, claimsFor, getAnonToken, latestEdit, myVote, postState, voicesFor, voteCounts,
+  checksFor, claimsFor, getAnonToken, latestEdit, myVote, postState, voicesFor, voteCounts,
 } from "@/lib/state";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 
@@ -28,6 +28,7 @@ export function ModuleRenderer({
   const props = { spaceId, moduleIndex, state, onChanged };
   switch (m.type) {
     case "headline":      return <Headline m={m} {...props} />;
+    case "synthesis":     return <Synthesis m={m} {...props} />;
     case "tags":          return <Tags m={m} {...props} />;
     case "notes":         return <Notes m={m} {...props} />;
     case "open_question": return <OpenQuestion m={m} {...props} />;
@@ -99,81 +100,51 @@ function ModuleFrame({
 
 function Headline({ m }: RProps<"headline">) {
   return (
-    <ModuleFrame module={m} bare>
-      <h1 className="vibe-heading font-black text-[36px] sm:text-[56px] leading-[0.98]">
+    <section className="pt-2 pb-6">
+      <h1 className="vibe-heading font-black text-[40px] sm:text-[64px] leading-[0.95]">
         {m.title}
       </h1>
       {m.subtitle && (
-        <p className="vibe-muted text-[16px] sm:text-[18px] mt-2 leading-snug">
+        <p className="vibe-muted text-[16px] sm:text-[19px] mt-3 leading-snug max-w-2xl">
           {m.subtitle}
         </p>
       )}
-    </ModuleFrame>
+    </section>
   );
 }
 
-function Tags({ m, spaceId, moduleIndex, state, onChanged }: RProps<"tags">) {
-  const adds = addsFor(state, moduleIndex);
-  const allTags = [...m.tags, ...adds.map((a) => String(a.data.value || "")).filter(Boolean)];
-  const [pending, setPending] = useState("");
-  async function add() {
-    const v = pending.trim();
-    if (!v) return;
-    setPending("");
-    await postState(spaceId, moduleIndex, "add", { value: v });
-    onChanged();
-  }
+function Synthesis({ m }: RProps<"synthesis">) {
+  // Prose, no card. The "die App hat dich verstanden"-moment.
   return (
-    <ModuleFrame module={m}>
+    <section className="py-2 max-w-2xl">
+      <p className="vibe-heading text-[18px] sm:text-[20px] leading-relaxed">
+        {m.text}
+      </p>
+    </section>
+  );
+}
+
+function Tags({ m }: RProps<"tags">) {
+  // Read-only. The AI authored these; visitors don't add tags.
+  return (
+    <section className="py-1">
       <div className="flex flex-wrap gap-1.5">
-        {allTags.map((t, i) => (
-          <span key={i} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full" style={{ border: "1px solid var(--v-rule)" }}>
+        {m.tags.map((t, i) => (
+          <span key={i} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full" style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)" }}>
             {t.toUpperCase()}
           </span>
         ))}
       </div>
-      <div className="mt-3 flex gap-2">
-        <input
-          className="vibe-input text-[12px]"
-          placeholder="+ tag"
-          value={pending}
-          onChange={(e) => setPending(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") add(); }}
-          maxLength={40}
-        />
-        <button className="vibe-btn-ghost" onClick={add} disabled={!pending.trim()}>add</button>
-      </div>
-    </ModuleFrame>
+    </section>
   );
 }
 
-function Notes({ m, spaceId, moduleIndex, state, onChanged }: RProps<"notes">) {
-  const last = latestEdit(state, moduleIndex);
-  const initial = last && typeof last.data.text === "string" ? last.data.text : m.text;
-  const [draft, setDraft] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  async function save() {
-    setSaving(true);
-    await postState(spaceId, moduleIndex, "edit", { text: draft });
-    setSaving(false);
-    onChanged();
-  }
+function Notes({ m }: RProps<"notes">) {
+  // Read-only prose. The AI's seeded paragraph IS the content.
+  if (!m.text || m.text.trim().length === 0) return null;
   return (
     <ModuleFrame module={m}>
-      <textarea
-        rows={5}
-        className="vibe-input text-[14px] leading-relaxed resize-y"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        placeholder="…"
-        maxLength={4000}
-      />
-      <div className="mt-2 flex items-center justify-end gap-2">
-        <span className="mono text-[9px] vibe-muted tabular-nums">{draft.length}/4000</span>
-        <button className="vibe-btn" onClick={save} disabled={saving || draft === initial}>
-          {saving ? "…" : "save"}
-        </button>
-      </div>
+      <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{m.text}</p>
     </ModuleFrame>
   );
 }
@@ -257,19 +228,10 @@ function Poll({ m, spaceId, moduleIndex, state, onChanged }: RProps<"poll">) {
 
 function Checklist({ m, spaceId, moduleIndex, state, onChanged }: RProps<"checklist">) {
   const checks = checksFor(state, moduleIndex);
-  const adds = addsFor(state, moduleIndex);
-  const items = [...m.items.map((it) => it.text), ...adds.map((a) => String(a.data.value || "")).filter(Boolean)];
-  const [pending, setPending] = useState("");
+  const items = m.items.map((it) => it.text);
   const me = getAnonToken();
   async function toggle(i: number, currentlyChecked: boolean) {
     await postState(spaceId, moduleIndex, "check", { itemIndex: i, checked: !currentlyChecked });
-    onChanged();
-  }
-  async function add() {
-    const v = pending.trim();
-    if (!v) return;
-    setPending("");
-    await postState(spaceId, moduleIndex, "add", { value: v });
     onChanged();
   }
   return (
@@ -293,17 +255,6 @@ function Checklist({ m, spaceId, moduleIndex, state, onChanged }: RProps<"checkl
           );
         })}
       </ul>
-      <div className="mt-3 flex gap-2">
-        <input
-          className="vibe-input text-[12px]"
-          placeholder="+ item"
-          value={pending}
-          onChange={(e) => setPending(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") add(); }}
-          maxLength={200}
-        />
-        <button className="vibe-btn-ghost" onClick={add} disabled={!pending.trim()}>add</button>
-      </div>
     </ModuleFrame>
   );
 }

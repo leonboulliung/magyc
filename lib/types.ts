@@ -56,6 +56,17 @@ export interface HeadlineModule extends ModuleBase {
   subtitle?: string;
 }
 
+/**
+ * Synthesis — the AI's reflective paragraph after the input + answers.
+ * Renders as prose (no card frame). Always second after the headline.
+ * This is the "die App hat dich verstanden"-moment.
+ */
+export interface SynthesisModule extends ModuleBase {
+  type: "synthesis";
+  /** 2–4 sentences. AI-authored, in the input's language. */
+  text: string;
+}
+
 export interface TagsModule extends ModuleBase {
   type: "tags";
   tags: string[];
@@ -203,6 +214,7 @@ export interface ImageModule extends ModuleBase {
 
 export type Module =
   | HeadlineModule
+  | SynthesisModule
   | TagsModule
   | NotesModule
   | OpenQuestionModule
@@ -226,6 +238,7 @@ export type ModuleType = Module["type"];
 
 export const ALL_MODULE_TYPES: readonly ModuleType[] = [
   "headline",
+  "synthesis",
   "tags",
   "notes",
   "open_question",

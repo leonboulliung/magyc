@@ -33,6 +33,14 @@ body {
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+@keyframes cp-fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: cp-fadein 0.35s ease-out both;
+}
+
 /* ============================================================
    Vibes — per-space visual variants.
    The Space root carries one of these classes; the CSS scopes

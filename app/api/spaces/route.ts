@@ -1,28 +1,31 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { classifyInput } from "@/lib/server/classify";
+import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { newAnonToken, newId } from "@/lib/id";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 30_000;
 const MAX_INPUT_CHARS = 1200;
+const MAX_ANSWERS = 6;
 
 /**
- * POST /api/spaces — create a new space from text input.
+ * POST /api/spaces — second leg of the create flow.
  *
- *   Body: { input: string, anonToken?: string }
+ *   Body: {
+ *     input: string,
+ *     answers: [{ questionId, questionText, choice }],
+ *     anonToken?: string,
+ *   }
  *
- * Anonymous-by-default: no Clerk sign-in required. If the client
- * already has an anon token (from localStorage), it sends it; we use
- * it as the rate-limit key and as the owner token. If it doesn't, we
- * mint one and return it.
- *
- * On success: { ok, id, anonOwnerToken }
- * The client stores anonOwnerToken in localStorage keyed by the new
- * space id. Without it, the creator can't edit their own draft.
+ * Runs the classifier with input + clarification answers, persists
+ * the space, returns its id + owner token.
  */
 export async function POST(req: Request) {
-  let body: { input?: string; anonToken?: string };
+  let body: {
+    input?: string;
+    answers?: unknown;
+    anonToken?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -33,6 +36,25 @@ export async function POST(req: Request) {
   if (input.length < 3) return NextResponse.json({ error: "input_too_short" }, { status: 400 });
   if (input.length > MAX_INPUT_CHARS) {
     return NextResponse.json({ error: "input_too_long" }, { status: 400 });
+  }
+
+  // Shape-check the answers.
+  const answersRaw = Array.isArray(body.answers) ? body.answers : [];
+  const answers: ClassifyAnswer[] = [];
+  for (const a of answersRaw) {
+    if (!a || typeof a !== "object") continue;
+    const ar = a as Record<string, unknown>;
+    const questionId = typeof ar.questionId === "string" ? ar.questionId.slice(0, 16) : "";
+    const questionText = typeof ar.questionText === "string"
+      ? ar.questionText.trim().slice(0, 200)
+      : "";
+    const choice = typeof ar.choice === "string"
+      ? ar.choice.trim().slice(0, 200)
+      : "";
+    if (questionId && questionText && choice) {
+      answers.push({ questionId, questionText, choice });
+    }
+    if (answers.length >= MAX_ANSWERS) break;
   }
 
   const anonToken = typeof body.anonToken === "string" && body.anonToken.length >= 16
@@ -52,7 +74,7 @@ export async function POST(req: Request) {
 
   let result;
   try {
-    result = await classifyInput(input);
+    result = await classifyInput(input, answers);
   } catch (e) {
     const msg = (e as Error).message || "unknown";
     if (msg === "ai_not_configured")
@@ -72,7 +94,7 @@ export async function POST(req: Request) {
     vibe: result.vibe,
     modules: result.modules,
     anon_owner_token: anonToken,
-    visibility: null, // draft
+    visibility: null,
   });
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
