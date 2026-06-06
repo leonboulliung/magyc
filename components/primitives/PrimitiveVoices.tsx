@@ -3,12 +3,8 @@
 import { useState } from "react";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import type { Contribution } from "@/lib/types";
+import { useStrings, useLocale } from "@/components/UIStringsProvider";
 
-/**
- * Voices — an open slot for visitors to weigh in. Any signed-in user
- * can post a voice; reading is public. Voices accumulate in order of
- * posting (oldest first feels right here — a thread, not a feed).
- */
 export function PrimitiveVoices({
   spaceId,
   primitiveIndex,
@@ -26,21 +22,19 @@ export function PrimitiveVoices({
     .sort((a, b) => a.createdAt - b.createdAt);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const t = useStrings();
+  const locale = useLocale();
 
   async function submit() {
     if (busy) return;
-    const t = text.trim();
-    if (t.length < 1) return;
+    const v = text.trim();
+    if (v.length < 1) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/spaces/${spaceId}/contributions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          primitiveIndex,
-          kind: "voice",
-          data: { text: t },
-        }),
+        body: JSON.stringify({ primitiveIndex, kind: "voice", data: { text: v } }),
       });
       if (res.ok) {
         setText("");
@@ -51,15 +45,19 @@ export function PrimitiveVoices({
     }
   }
 
+  const voicePlaceholder = user
+    ? t.primitives.voicesPlaceholder.replace("{username}", user.username ?? "…")
+    : t.primitives.voicesPlaceholderAnon;
+
   return (
     <section className="border border-rule rounded-2xl bg-surface">
       <div className="px-4 py-2.5 border-b border-rule mono text-[10px] tracking-widest opacity-70 flex justify-between">
-        <span>STIMMEN</span>
+        <span>{t.primitives.voicesLabel}</span>
         <span className="tabular-nums">{voices.length}</span>
       </div>
       {voices.length === 0 ? (
         <div className="px-4 py-3 mono text-[11px] opacity-50">
-          Noch nichts. Sei der/die erste.
+          {t.primitives.voicesEmpty}
         </div>
       ) : (
         <ul className="divide-y divide-rule">
@@ -69,7 +67,7 @@ export function PrimitiveVoices({
                 <span>@{v.user.displayName}</span>
                 <span className="opacity-60">
                   {" · "}
-                  {new Date(v.createdAt).toLocaleDateString(undefined, {
+                  {new Date(v.createdAt).toLocaleDateString(locale, {
                     day: "2-digit", month: "short",
                   })}
                 </span>
@@ -89,7 +87,7 @@ export function PrimitiveVoices({
             onChange={(e) => setText(e.target.value)}
             rows={2}
             maxLength={800}
-            placeholder={user ? `Sag was, @${user.username ?? "du"}…` : "Sag was…"}
+            placeholder={voicePlaceholder}
             className="w-full text-[14px] leading-relaxed p-2.5 bg-paper border border-rule rounded-xl focus:outline-none focus:border-ink resize-none"
             disabled={busy}
           />
@@ -102,14 +100,14 @@ export function PrimitiveVoices({
               disabled={busy || text.trim().length < 1}
               className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full bg-ink text-paper hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
-              {busy ? "…" : "POSTEN →"}
+              {busy ? "…" : t.primitives.voicesPost}
             </button>
           </div>
         </SignedIn>
         <SignedOut>
           <SignInButton mode="modal">
             <button className="w-full mono text-[10px] tracking-widest px-3 py-2 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors">
-              SIGN IN, UM ZU ANTWORTEN →
+              {t.primitives.voicesSignIn}
             </button>
           </SignInButton>
         </SignedOut>

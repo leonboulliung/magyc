@@ -3,12 +3,8 @@
 import { useState } from "react";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import type { Contribution } from "@/lib/types";
+import { useStrings } from "@/components/UIStringsProvider";
 
-/**
- * Help Needed — specific asks the input generated. Each ask is a slot
- * one visitor can claim with "Ich übernehm das". One claim per ask
- * (case-insensitive). When taken, the slot shows the claimer.
- */
 export function PrimitiveHelpNeeded({
   spaceId,
   primitiveIndex,
@@ -25,6 +21,7 @@ export function PrimitiveHelpNeeded({
   const { user } = useUser();
   const claims = contributions.filter((c) => c.kind === "claim");
   const [busy, setBusy] = useState<string | null>(null);
+  const t = useStrings();
 
   function claimerFor(ask: string): Contribution | null {
     const lc = ask.toLowerCase();
@@ -38,11 +35,7 @@ export function PrimitiveHelpNeeded({
       const res = await fetch(`/api/spaces/${spaceId}/contributions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          primitiveIndex,
-          kind: "claim",
-          data: { ask },
-        }),
+        body: JSON.stringify({ primitiveIndex, kind: "claim", data: { ask } }),
       });
       if (res.ok) onChanged();
     } finally {
@@ -55,7 +48,7 @@ export function PrimitiveHelpNeeded({
   return (
     <section className="border border-rule rounded-2xl bg-surface">
       <div className="px-4 py-2.5 border-b border-rule mono text-[10px] tracking-widest opacity-70 flex justify-between">
-        <span>WO HILFE GUT TÄTE</span>
+        <span>{t.primitives.helpNeededLabel}</span>
         <span className="tabular-nums">{taken}/{asks.length}</span>
       </div>
       <ul className="divide-y divide-rule">
@@ -69,14 +62,14 @@ export function PrimitiveHelpNeeded({
                 {taker && (
                   <div className="mono text-[10px] tracking-widest opacity-70 mt-0.5">
                     @{taker.user.displayName}
-                    {isMine && <span className="opacity-80"> · DU</span>}
+                    {isMine && <span className="opacity-80"> {t.primitives.helpNeededYou}</span>}
                   </div>
                 )}
               </div>
               <div className="shrink-0">
                 {taker ? (
                   <span className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full border border-rule-strong opacity-70">
-                    ÜBERNOMMEN
+                    {t.primitives.helpNeededTaken}
                   </span>
                 ) : (
                   <>
@@ -86,13 +79,13 @@ export function PrimitiveHelpNeeded({
                         disabled={busy !== null}
                         className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors"
                       >
-                        {busy === ask ? "…" : "ICH MACH'S →"}
+                        {busy === ask ? "…" : t.primitives.helpNeededClaim}
                       </button>
                     </SignedIn>
                     <SignedOut>
                       <SignInButton mode="modal">
                         <button className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors">
-                          ICH MACH'S →
+                          {t.primitives.helpNeededClaim}
                         </button>
                       </SignInButton>
                     </SignedOut>

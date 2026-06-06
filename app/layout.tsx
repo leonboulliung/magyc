@@ -1,9 +1,10 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { UIStringsProvider } from "@/components/UIStringsProvider";
+import { LocalePersister } from "@/components/LocalePersister";
+import { getRequestLocale, getUIStrings } from "@/lib/ui-strings";
 
-// Conservative Clerk appearance — kept from v1's editorial palette. Override
-// per the new app's identity once it's decided.
 const clerkAppearance = {
   variables: {
     colorPrimary: "#0d0d0d",
@@ -32,12 +33,18 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getRequestLocale();
+  const strings = await getUIStrings(locale);
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className="min-h-screen antialiased">
         <ClerkProvider appearance={clerkAppearance}>
-          {children}
+          <UIStringsProvider strings={strings} locale={locale}>
+            <LocalePersister locale={locale} />
+            {children}
+          </UIStringsProvider>
         </ClerkProvider>
       </body>
     </html>

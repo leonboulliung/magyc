@@ -13,11 +13,14 @@ import { PrimitiveResources } from "@/components/primitives/PrimitiveResources";
 import { PrimitiveNextSteps } from "@/components/primitives/PrimitiveNextSteps";
 import { PrimitivePlace } from "@/components/primitives/PrimitivePlace";
 import { ShareButton } from "@/components/ShareButton";
+import { useStrings, useLocale } from "@/components/UIStringsProvider";
 
 export function SpaceView({ id }: { id: string }) {
   const { user } = useUser();
   const [space, setSpace] = useState<Space | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const t = useStrings();
+  const locale = useLocale();
 
   const refresh = useCallback(() => {
     fetchSpaceById(id)
@@ -34,8 +37,10 @@ export function SpaceView({ id }: { id: string }) {
     return (
       <main className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center space-y-3">
-          <div className="editorial font-black text-[32px]">Nicht gefunden.</div>
-          <Link href="/" className="mono text-[11px] tracking-widest hover:underline">← ZURÜCK</Link>
+          <div className="editorial font-black text-[32px]">{t.space.notFound}</div>
+          <Link href="/" className="mono text-[11px] tracking-widest hover:underline">
+            {t.space.back}
+          </Link>
         </div>
       </main>
     );
@@ -57,7 +62,7 @@ export function SpaceView({ id }: { id: string }) {
           <SignedOut>
             <SignInButton mode="modal">
               <button className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors">
-                SIGN IN
+                {t.space.signIn}
               </button>
             </SignInButton>
           </SignedOut>
@@ -67,20 +72,20 @@ export function SpaceView({ id }: { id: string }) {
       <article className="flex-1 px-6 py-10 sm:py-16 max-w-3xl w-full mx-auto space-y-8">
         <div className="space-y-3">
           <div className="mono text-[10px] tracking-widest opacity-60 flex items-center gap-2 flex-wrap">
-            <span>VON @{space.owner.displayName ?? space.owner.id.slice(-6)}</span>
+            <span>{t.space.byPrefix} @{space.owner.displayName ?? space.owner.id.slice(-6)}</span>
             <span className="opacity-40">·</span>
-            <span>{new Date(space.createdAt).toLocaleDateString(undefined, {
+            <span>{new Date(space.createdAt).toLocaleDateString(locale, {
               day: "2-digit", month: "short", year: "numeric",
             }).toUpperCase()}</span>
             {mine && (
               <>
                 <span className="opacity-40">·</span>
-                <span>DEINE UMGEBUNG</span>
+                <span>{t.space.yours}</span>
               </>
             )}
           </div>
           <h1 className="editorial font-black text-[36px] sm:text-[52px] leading-[0.95]">
-            {space.title || "Eine Umgebung"}
+            {space.title || t.space.defaultTitle}
           </h1>
           <blockquote className="border-l-2 border-rule-strong pl-4 text-[16px] leading-relaxed opacity-80 italic whitespace-pre-wrap">
             {space.inputText}
@@ -136,7 +141,7 @@ export function SpaceView({ id }: { id: string }) {
 
         <div className="pt-8 border-t border-rule flex items-center justify-between flex-wrap gap-3">
           <Link href="/" className="mono text-[11px] tracking-widest hover:underline">
-            ← NEUE UMGEBUNG
+            {t.space.newSpace}
           </Link>
           <ShareButton space={space} variant="text" />
         </div>

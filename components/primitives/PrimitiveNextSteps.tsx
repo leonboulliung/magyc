@@ -1,17 +1,17 @@
-/**
- * Next Steps — abstract path forward. Read-only in v2. Could become
- * editable / claimable in a later iteration, but for now the role is
- * to make the shape of "how this could move" legible.
- */
+"use client";
+
+import { useStrings } from "@/components/UIStringsProvider";
+
 export function PrimitiveNextSteps({ steps }: { steps: string[] }) {
+  const t = useStrings();
   return (
     <section className="border border-rule rounded-2xl bg-surface">
       <div className="px-4 py-2.5 border-b border-rule mono text-[10px] tracking-widest opacity-70">
-        SO KÖNNTE ES WEITERGEHEN
+        {t.primitives.nextStepsLabel}
       </div>
       {steps.length === 0 ? (
         <div className="px-4 py-3 mono text-[11px] opacity-50">
-          Noch nichts. Wenn das Vorhaben klarer wird, kann hier ein Pfad entstehen.
+          {t.primitives.nextStepsEmpty}
         </div>
       ) : (
         <ol className="divide-y divide-rule">

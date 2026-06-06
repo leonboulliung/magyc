@@ -3,12 +3,8 @@
 import { useState } from "react";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import type { Contribution } from "@/lib/types";
+import { useStrings } from "@/components/UIStringsProvider";
 
-/**
- * Resources — an empty slot for visitors to add real links. The
- * composer never invents URLs; everything here comes from people.
- * Each contribution is a URL + an optional caption.
- */
 export function PrimitiveResources({
   spaceId,
   primitiveIndex,
@@ -27,13 +23,14 @@ export function PrimitiveResources({
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const t = useStrings();
 
   const looksLikeUrl = /^https?:\/\/[^\s]+$/i.test(url.trim());
 
   async function submit() {
     if (busy) return;
     if (!looksLikeUrl) {
-      setErr("Eine URL muss mit http:// oder https:// anfangen.");
+      setErr(t.primitives.resourcesUrlError);
       return;
     }
     setBusy(true);
@@ -56,7 +53,7 @@ export function PrimitiveResources({
         onChanged();
       } else {
         const j = await res.json().catch(() => ({}));
-        setErr(j?.error || "Konnte nicht hinzufügen.");
+        setErr(j?.error || t.primitives.resourcesAddError);
       }
     } finally {
       setBusy(false);
@@ -66,12 +63,12 @@ export function PrimitiveResources({
   return (
     <section className="border border-rule rounded-2xl bg-surface">
       <div className="px-4 py-2.5 border-b border-rule mono text-[10px] tracking-widest opacity-70 flex justify-between">
-        <span>REFERENZEN</span>
+        <span>{t.primitives.resourcesLabel}</span>
         <span className="tabular-nums">{items.length}</span>
       </div>
       {items.length === 0 ? (
         <div className="px-4 py-3 mono text-[11px] opacity-50">
-          Noch nichts. Wenn jemand einen Link oder eine Referenz hat — hier rein.
+          {t.primitives.resourcesEmpty}
         </div>
       ) : (
         <ul className="divide-y divide-rule">
@@ -113,7 +110,7 @@ export function PrimitiveResources({
           <input
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            placeholder="Kurze Bemerkung (optional)"
+            placeholder={t.primitives.resourcesCaptionPlaceholder}
             maxLength={120}
             className="w-full text-[14px] p-2.5 bg-paper border border-rule rounded-xl focus:outline-none focus:border-ink"
             disabled={busy}
@@ -125,14 +122,14 @@ export function PrimitiveResources({
               disabled={busy || !looksLikeUrl}
               className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full bg-ink text-paper hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
-              {busy ? "…" : "REFERENZ HINZUFÜGEN →"}
+              {busy ? "…" : t.primitives.resourcesAdd}
             </button>
           </div>
         </SignedIn>
         <SignedOut>
           <SignInButton mode="modal">
             <button className="w-full mono text-[10px] tracking-widest px-3 py-2 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors">
-              SIGN IN, UM REFERENZEN ZU TEILEN →
+              {t.primitives.resourcesSignIn}
             </button>
           </SignInButton>
         </SignedOut>

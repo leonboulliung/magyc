@@ -3,32 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import { useStrings } from "@/components/UIStringsProvider";
 
-/**
- * Home — a single text input. Type a thought, an idea, a question, a
- * concern, or a plan. The AI builds a small workspace around it; you
- * get a URL to share through whatever channels you already use.
- *
- * No feed. No discovery. The app's only job is to turn a little input
- * into a shareable artifact.
- */
 export default function HomePage() {
   const router = useRouter();
   const { user } = useUser();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const t = useStrings();
 
   async function generate() {
     if (busy) return;
     const trimmed = text.trim();
     if (trimmed.length < 3) {
-      setError("Schreib einen Satz — was auch immer im Kopf ist.");
+      setError(t.home.errorTooShort);
       return;
     }
     if (!user) {
-      // Shouldn't happen: the button is gated behind <SignedIn>.
-      setError("Du musst angemeldet sein.");
+      setError(t.home.errorNotSignedIn);
       return;
     }
     setBusy(true);
@@ -42,17 +35,17 @@ export default function HomePage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (json?.error === "rate_limited") {
-          setError("Kurz Atem holen — versuch's in ein paar Sekunden nochmal.");
+          setError(t.home.errorRateLimited);
         } else if (json?.error === "ai_not_configured") {
-          setError("Der AI-Dienst ist gerade nicht erreichbar.");
+          setError(t.home.errorAiUnavailable);
         } else {
-          setError("Konnte nicht erzeugen.");
+          setError(t.home.errorGenerateFailed);
         }
         return;
       }
       router.push(`/s/${json.id}`);
     } catch {
-      setError("Konnte nicht erzeugen.");
+      setError(t.home.errorGenerateFailed);
     } finally {
       setBusy(false);
     }
@@ -69,7 +62,7 @@ export default function HomePage() {
           <SignedOut>
             <SignInButton mode="modal">
               <button className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors">
-                SIGN IN
+                {t.home.signIn}
               </button>
             </SignInButton>
           </SignedOut>
@@ -79,14 +72,12 @@ export default function HomePage() {
       <section className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-2xl space-y-8">
           <div className="space-y-3">
-            <div className="mono text-[10px] tracking-widest opacity-60">NEU</div>
+            <div className="mono text-[10px] tracking-widest opacity-60">{t.home.new}</div>
             <h1 className="editorial font-black text-[40px] sm:text-[56px] leading-[0.95]">
-              Was geht dir gerade durch den Kopf?
+              {t.home.headline}
             </h1>
             <p className="mono text-[12px] opacity-70 leading-relaxed max-w-xl">
-              Ein Gedanke, eine Idee, eine Frage, eine Sorge, ein Plan. Schreib
-              es kurz auf — daraus entsteht eine kleine Umgebung, die du teilen
-              kannst.
+              {t.home.subtitle}
             </p>
           </div>
 
@@ -97,13 +88,13 @@ export default function HomePage() {
               onChange={(e) => setText(e.target.value)}
               rows={5}
               maxLength={1200}
-              placeholder="z. B. Ich überlege, wie ich diesen Sommer einen kleinen Schreibkreis in meiner Nachbarschaft starten könnte."
+              placeholder={t.home.placeholder}
               className="w-full text-[18px] leading-relaxed p-4 bg-surface border border-rule-strong rounded-2xl focus:outline-none focus:border-ink resize-none"
               disabled={busy}
             />
             <div className="flex items-center justify-between gap-3 mt-2">
               <span className="mono text-[10px] tracking-widest opacity-50">
-                ✦ KI BAUT DIE STRUKTUR · KEIN FEED, KEINE FOLLOWER
+                {t.home.tagline}
               </span>
               <span className="mono text-[10px] tracking-widest opacity-50 tabular-nums">
                 {text.length}/1200
@@ -122,13 +113,13 @@ export default function HomePage() {
                 disabled={busy || text.trim().length < 3}
                 className="mono text-[11px] tracking-widest px-5 py-2.5 rounded-full bg-ink text-paper hover:opacity-90 disabled:opacity-40 transition-opacity"
               >
-                {busy ? "BAUE…" : "✦ UMGEBUNG ERZEUGEN →"}
+                {busy ? t.home.generating : t.home.generate}
               </button>
             </SignedIn>
             <SignedOut>
               <SignUpButton mode="modal">
                 <button className="mono text-[11px] tracking-widest px-5 py-2.5 rounded-full bg-ink text-paper hover:opacity-90 transition-opacity">
-                  SIGN UP, UM ZU STARTEN →
+                  {t.home.signUp}
                 </button>
               </SignUpButton>
             </SignedOut>
@@ -137,7 +128,7 @@ export default function HomePage() {
       </section>
 
       <footer className="px-6 py-4 mono text-[10px] tracking-widest opacity-50 border-t border-rule">
-        Du erzeugst — die App teilt es nicht für dich. Du gehst raus damit, wenn du fertig bist.
+        {t.home.footer}
       </footer>
     </main>
   );
