@@ -1,9 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { UIStringsProvider } from "@/components/UIStringsProvider";
-import { LocalePersister } from "@/components/LocalePersister";
-import { getRequestLocale, getUIStrings } from "@/lib/ui-strings";
 
 const clerkAppearance = {
   variables: {
@@ -33,18 +30,12 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const locale = await getRequestLocale();
-  const strings = await getUIStrings(locale);
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={locale}>
+    <html lang="en">
       <body className="min-h-screen antialiased">
         <ClerkProvider appearance={clerkAppearance}>
-          <UIStringsProvider strings={strings} locale={locale}>
-            <LocalePersister locale={locale} />
-            {children}
-          </UIStringsProvider>
+          {children}
         </ClerkProvider>
       </body>
     </html>

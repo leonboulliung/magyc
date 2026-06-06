@@ -1,8 +1,8 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// No protected routes yet — every surface is public until the new app's
-// concept dictates otherwise. Clerk's middleware still runs so auth state
-// is available to every page; we just don't enforce sign-in anywhere.
+// No protected routes — every surface is public until the next concept
+// dictates otherwise. Clerk's middleware still runs so auth state is
+// available to every page; we just don't enforce sign-in anywhere.
 export default clerkMiddleware();
 
 export const config = {
