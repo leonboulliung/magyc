@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.4",
+    "@iconify/react": "^6.0.2",
     "@supabase/supabase-js": "^2.106.1",
+    "katex": "^0.17.0",
     "leaflet": "^1.9.4",
     "leaflet-gesture-handling": "^1.2.2",
     "next": "14.2.35",

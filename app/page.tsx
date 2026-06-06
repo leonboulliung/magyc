@@ -1,42 +1,85 @@
 "use client";
 
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getAnonToken, rememberSpaceOwnerToken } from "@/lib/anonId";
 
 /**
- * Blank slate, take two. Infrastructure (Clerk, Supabase, Vercel,
- * package.json, config) is live. The application itself is the next
- * decision — we talk before we build.
+ * Home — single white page. One textarea. The AI builds a workspace.
+ * No sign-in required; anonymous-by-default. The browser holds the
+ * owner token for the space the creator just made.
  */
 export default function HomePage() {
-  return (
-    <main className="min-h-screen flex flex-col">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-rule">
-        <span className="font-black tracking-tightest text-[16px]">CREATOR</span>
-        <div className="flex items-center gap-3">
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full border border-rule-strong hover:bg-ink hover:text-paper transition-colors">
-                SIGN IN
-              </button>
-            </SignInButton>
-          </SignedOut>
-        </div>
-      </header>
+  const router = useRouter();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-      <section className="flex-1 grid place-items-center px-6 py-20">
-        <div className="max-w-xl text-center space-y-4">
-          <div className="mono text-[10px] tracking-widest opacity-60">CLEAN SLATE</div>
-          <h1 className="editorial font-black text-[40px] sm:text-[56px] leading-[0.95]">
-            Nothing here yet.
-          </h1>
-          <p className="mono text-[12px] opacity-70 leading-relaxed">
-            The infrastructure is live. The application is the next decision.
-          </p>
+  async function go() {
+    if (busy) return;
+    const trimmed = text.trim();
+    if (trimmed.length < 3) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/spaces", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          input: trimmed,
+          anonToken: getAnonToken(),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json?.error || "failed");
+        return;
+      }
+      if (json.anonOwnerToken) {
+        rememberSpaceOwnerToken(json.id, json.anonOwnerToken);
+      }
+      router.push(`/s/${json.id}`);
+    } catch {
+      setError("failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-white text-black flex flex-col">
+      <section className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-2xl">
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            maxLength={1200}
+            placeholder="…"
+            className="w-full text-[20px] sm:text-[24px] leading-relaxed p-4 bg-transparent border-0 outline-none resize-none placeholder:text-black/30"
+            disabled={busy}
+          />
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <span className="mono text-[10px] tracking-widest opacity-40">
+              {text.length > 0 ? `${text.length}/1200` : ""}
+            </span>
+            <button
+              onClick={go}
+              disabled={busy || text.trim().length < 3}
+              className="mono text-[11px] tracking-widest px-4 py-2 rounded-full bg-black text-white disabled:opacity-30 transition-opacity"
+            >
+              {busy ? "…" : "→"}
+            </button>
+          </div>
+          {error && (
+            <p className="mono text-[10px] tracking-widest opacity-60 mt-4">{error}</p>
+          )}
         </div>
       </section>
+      <footer className="px-6 py-3 mono text-[9px] tracking-widest opacity-30 text-center">
+        CREATOR
+      </footer>
     </main>
   );
 }

@@ -2,10 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:wght@300..900&family=IBM+Plex+Sans:wght@300;400;500;700&family=Space+Grotesk:wght@300..700&display=swap");
 
-/* Base palette — kept from v1 as a reasonable editorial starting point.
-   Override or replace per the new app's identity. */
+/* Pico CSS (classless) as a CDN import — only takes effect inside
+   .vibe-document because Pico's reset is scoped to <main> within it. */
+
 :root {
   --ink: #0d0d0d;
   --ink-soft: #4a4a48;
@@ -18,8 +19,8 @@
 
 html, body {
   height: 100%;
-  background: var(--paper);
-  color: var(--ink);
+  background: #ffffff;
+  color: #0d0d0d;
 }
 
 body {
@@ -32,8 +33,149 @@ body {
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-.editorial {
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: "ss01", "cv11";
-  letter-spacing: -0.02em;
+/* ============================================================
+   Vibes — per-space visual variants.
+   The Space root carries one of these classes; the CSS scopes
+   everything underneath. Modules render the same React; only the
+   surrounding tokens shift.
+   ============================================================ */
+
+.vibe-minimal {
+  --v-bg: #ffffff;
+  --v-fg: #0d0d0d;
+  --v-muted: #6a6a6a;
+  --v-rule: #e6e6e1;
+  --v-accent: #0d0d0d;
+  --v-radius: 12px;
+  --v-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --v-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.vibe-editorial {
+  --v-bg: #f8f6f0;
+  --v-fg: #1a1814;
+  --v-muted: #6b665e;
+  --v-rule: #d8d3c5;
+  --v-accent: #6b4f2c;
+  --v-radius: 4px;
+  --v-font: "Source Serif 4", Georgia, serif;
+  --v-heading: "Source Serif 4", Georgia, serif;
+}
+
+.vibe-document {
+  --v-bg: #ffffff;
+  --v-fg: #11181c;
+  --v-muted: #687076;
+  --v-rule: #e6e8eb;
+  --v-accent: #006adc;
+  --v-radius: 6px;
+  --v-font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --v-heading: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+.vibe-dashboard {
+  --v-bg: #f7f8fa;
+  --v-fg: #0f172a;
+  --v-muted: #64748b;
+  --v-rule: #e2e8f0;
+  --v-accent: #2563eb;
+  --v-radius: 8px;
+  --v-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --v-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.vibe-terminal {
+  --v-bg: #0a0a0a;
+  --v-fg: #d4d4d4;
+  --v-muted: #6a6a6a;
+  --v-rule: #2a2a2a;
+  --v-accent: #00ff9d;
+  --v-radius: 2px;
+  --v-font: "JetBrains Mono", ui-monospace, monospace;
+  --v-heading: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.vibe-soft {
+  --v-bg: #faf6f3;
+  --v-fg: #2a2625;
+  --v-muted: #8b7d76;
+  --v-rule: #ecdfd6;
+  --v-accent: #d96f6f;
+  --v-radius: 20px;
+  --v-font: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --v-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Apply the vibe tokens to the space root. */
+.vibe-root {
+  background: var(--v-bg);
+  color: var(--v-fg);
+  font-family: var(--v-font);
+}
+
+.vibe-root .vibe-heading {
+  font-family: var(--v-heading);
+}
+
+.vibe-root .vibe-card {
+  background: var(--v-bg);
+  border: 1px solid var(--v-rule);
+  border-radius: var(--v-radius);
+}
+
+.vibe-root .vibe-muted {
+  color: var(--v-muted);
+}
+
+.vibe-root .vibe-accent {
+  color: var(--v-accent);
+}
+
+.vibe-root .vibe-btn {
+  background: var(--v-fg);
+  color: var(--v-bg);
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.vibe-root .vibe-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.vibe-root .vibe-btn-ghost {
+  background: transparent;
+  color: var(--v-fg);
+  border: 1px solid var(--v-rule);
+  border-radius: 9999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.vibe-root input.vibe-input,
+.vibe-root textarea.vibe-input {
+  background: var(--v-bg);
+  color: var(--v-fg);
+  border: 1px solid var(--v-rule);
+  border-radius: var(--v-radius);
+  padding: 0.6rem 0.8rem;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+}
+
+.vibe-root input.vibe-input:focus,
+.vibe-root textarea.vibe-input:focus {
+  border-color: var(--v-accent);
 }
