@@ -232,8 +232,10 @@ export default function HomePage() {
           )}
         </div>
       </section>
-      <footer className="px-6 py-3 mono text-[9px] tracking-widest opacity-30 text-center">
-        CREATOR
+      <footer className="px-6 py-3 mono text-[9px] tracking-widest text-center flex items-center justify-center gap-4 opacity-30">
+        <span>CREATOR</span>
+        <span>·</span>
+        <a href="/showroom" className="hover:opacity-100">SHOWROOM</a>
       </footer>
     </main>
   );
