@@ -295,6 +295,18 @@ export interface ModuleStateEntry {
 
 export type Visibility = "public" | "password" | null;
 
+/** A single point-in-time snapshot of a space's modules. v1 is created
+ *  at publish; further saved edits create v2, v3, … */
+export interface SpaceVersion {
+  id: string;
+  spaceId: string;
+  version: number;
+  title: string;
+  modules: Module[];
+  note: string | null;
+  createdAt: number;
+}
+
 export interface Space {
   id: string;
   inputText: string;
@@ -310,4 +322,6 @@ export interface Space {
   publishedAt: number | null;
   /** All collaborative state entries for this space, sorted by index then time. */
   state: ModuleStateEntry[];
+  /** Published versions, oldest first. Empty array on drafts. */
+  versions: SpaceVersion[];
 }

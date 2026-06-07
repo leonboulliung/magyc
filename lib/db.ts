@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { sanitizeModules } from "./modules";
 import type {
-  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, Space, Vibe, Visibility,
+  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, Space, SpaceVersion, Vibe, Visibility,
 } from "./types";
 import { ALL_VIBES } from "./types";
 
@@ -43,6 +43,17 @@ type SpaceRow = {
   published_at: string | null;
   owner: ProfileRow | null;
   state: ModuleStateRow[] | null;
+  versions: SpaceVersionRow[] | null;
+};
+
+type SpaceVersionRow = {
+  id: string;
+  space_id: string;
+  version: number;
+  title: string;
+  modules: unknown[] | null;
+  note: string | null;
+  created_at: string;
 };
 
 function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
@@ -96,11 +107,26 @@ function mapVisibility(raw: string | null): Visibility {
   return null;
 }
 
+function mapSpaceVersion(row: SpaceVersionRow): SpaceVersion {
+  return {
+    id: row.id,
+    spaceId: row.space_id,
+    version: row.version,
+    title: row.title || "",
+    modules: sanitizeModules(row.modules ?? []),
+    note: row.note,
+    createdAt: new Date(row.created_at).getTime(),
+  };
+}
+
 function mapSpace(row: SpaceRow): Space {
   const modules: Module[] = sanitizeModules(row.modules ?? []);
   const state = (row.state || [])
     .map(mapModuleStateEntry)
     .sort((a, b) => a.moduleIndex - b.moduleIndex || a.createdAt - b.createdAt);
+  const versions = (row.versions || [])
+    .map(mapSpaceVersion)
+    .sort((a, b) => a.version - b.version);
   return {
     id: row.id,
     inputText: row.input_text,
@@ -114,6 +140,7 @@ function mapSpace(row: SpaceRow): Space {
     createdAt: new Date(row.created_at).getTime(),
     publishedAt: row.published_at ? new Date(row.published_at).getTime() : null,
     state,
+    versions,
   };
 }
 
@@ -122,7 +149,8 @@ const SPACE_SELECT = `
   anon_owner_token, owner_id, visibility, password_hash,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, created_at),
-  state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at)
+  state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
+  versions:space_versions(id, space_id, version, title, modules, note, created_at)
 `;
 
 // ============================================================
