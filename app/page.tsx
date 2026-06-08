@@ -236,6 +236,8 @@ export default function HomePage() {
         <span>CREATOR</span>
         <span>·</span>
         <a href="/showroom" className="hover:opacity-100">SHOWROOM</a>
+        <span>·</span>
+        <a href="/workspace" className="hover:opacity-100">WORKSPACE</a>
       </footer>
     </main>
   );
