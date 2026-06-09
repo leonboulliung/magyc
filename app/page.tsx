@@ -75,10 +75,10 @@ export default function HomePage() {
     setAnswers((a) => ({ ...a, [qid]: choice }));
   }
 
-  const allAnswered = questions.length > 0 && questions.every((q) => !!answers[q.id]);
+  const answeredCount = questions.filter((q) => !!answers[q.id]).length;
 
   async function goBuild() {
-    if (busy || !allAnswered) return;
+    if (busy) return;
     setBusy(true);
     setStage("building");
     setError("");
@@ -226,14 +226,21 @@ export default function HomePage() {
                 >
                   ←
                 </button>
-                <button
-                  onClick={goBuild}
-                  disabled={busy || !allAnswered}
-                  aria-label="continue"
-                  className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30 transition-opacity"
-                >
-                  {busy ? "…" : "→"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {answeredCount > 0 && answeredCount < questions.length && (
+                    <span className="mono text-[9px] tracking-widest opacity-30 tabular-nums">
+                      {answeredCount}/{questions.length}
+                    </span>
+                  )}
+                  <button
+                    onClick={goBuild}
+                    disabled={busy}
+                    aria-label="continue"
+                    className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30 transition-opacity"
+                  >
+                    {busy ? "…" : "→"}
+                  </button>
+                </div>
               </div>
             </div>
           )}
