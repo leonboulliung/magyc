@@ -1,7 +1,30 @@
 "use client";
 
 import { getAnonDisplayName, getAnonToken } from "./anonId";
+import { getActivePersona } from "./personas";
 import type { ModuleStateEntry, ModuleStateKind } from "./types";
+
+const PALETTE = ["#7da3c0", "#d4a373", "#a3c08e", "#c0857d", "#8d8dc0", "#c0bd7d"];
+
+/** Stable colour for the current actor — persona swatch if a persona
+ *  is active, else a deterministic pick from the anon token. */
+export function getMyColor(): string {
+  if (typeof window === "undefined") return PALETTE[0];
+  const persona = getActivePersona();
+  if (persona) return persona.swatch;
+  const seed = getAnonToken();
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h + seed.charCodeAt(i)) % PALETTE.length;
+  return PALETTE[h];
+}
+
+/** Stable colour for a known actor id (anon token or user id). Used
+ *  by renderers to show consistent attribution across page renders. */
+export function colorFor(actorId: string): string {
+  let h = 0;
+  for (let i = 0; i < actorId.length; i++) h = (h + actorId.charCodeAt(i)) % PALETTE.length;
+  return PALETTE[h];
+}
 
 /**
  * Client-side helper: POST a collaborative action to the space's
@@ -19,7 +42,10 @@ export async function postState(
     body: JSON.stringify({
       moduleIndex,
       kind,
-      data,
+      // Attach the actor's colour so renderers can attribute without
+      // a profile lookup. Server stores it inside data; we read it
+      // back through entry.data.color.
+      data: { ...data, color: getMyColor() },
       anonToken: getAnonToken(),
       anonName: getAnonDisplayName(),
     }),

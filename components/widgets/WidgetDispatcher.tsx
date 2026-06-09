@@ -1,31 +1,80 @@
 "use client";
 
-import type { Module } from "@/lib/types";
+import type { Module, ModuleStateEntry } from "@/lib/types";
 import { useWidgetContext } from "@/lib/widgetContext";
 import { label } from "@/lib/labels";
+
+// Phase 1
 import { HeadingRenderer } from "./HeadingRenderer";
 import { RichTextRenderer } from "./RichTextRenderer";
 import { TagsRenderer } from "./TagsRenderer";
+
+// Phase 2
+import { RangeRenderer } from "./RangeRenderer";
+import { AiSummaryRenderer } from "./AiSummaryRenderer";
+import { NotesRenderer } from "./NotesRenderer";
+import { TableRenderer } from "./TableRenderer";
+import { PartsListRenderer } from "./PartsListRenderer";
+import { ChecklistRenderer } from "./ChecklistRenderer";
+import { PollRenderer } from "./PollRenderer";
+import { CrewRenderer } from "./CrewRenderer";
+import { WorkPackagesRenderer } from "./WorkPackagesRenderer";
+import { QaRenderer } from "./QaRenderer";
+import { DiscussionRenderer } from "./DiscussionRenderer";
 
 /**
  * Single entry point for rendering a widget. Each Phase adds renderers
  * here; everything not yet implemented falls through to the
  * placeholder so the space stays renderable while we iterate.
+ *
+ * Stateful widgets (notes, checklist, poll, crew, work_packages, qa,
+ * discussion, parts_list) receive their slice of module_state. The
+ * SpaceView slices state per moduleIndex once and hands it down so
+ * every renderer only sees its own actions.
  */
 export function WidgetDispatcher({
   module: m,
   index,
+  state,
 }: {
   module: Module;
   index: number;
+  state?: ModuleStateEntry[];
 }) {
+  const s = state ?? [];
   switch (m.type) {
+    // Phase 1
     case "heading":
       return <HeadingRenderer module={m} index={index} />;
     case "rich_text":
       return <RichTextRenderer module={m} index={index} />;
     case "tags":
       return <TagsRenderer module={m} index={index} />;
+
+    // Phase 2
+    case "range":
+      return <RangeRenderer module={m} index={index} />;
+    case "ai_summary":
+      return <AiSummaryRenderer module={m} index={index} />;
+    case "notes":
+      return <NotesRenderer module={m} index={index} state={s} />;
+    case "table":
+      return <TableRenderer module={m} index={index} />;
+    case "parts_list":
+      return <PartsListRenderer module={m} index={index} state={s} />;
+    case "checklist":
+      return <ChecklistRenderer module={m} index={index} state={s} />;
+    case "poll":
+      return <PollRenderer module={m} index={index} state={s} />;
+    case "crew":
+      return <CrewRenderer module={m} index={index} state={s} />;
+    case "work_packages":
+      return <WorkPackagesRenderer module={m} index={index} state={s} />;
+    case "qa":
+      return <QaRenderer module={m} index={index} state={s} />;
+    case "discussion":
+      return <DiscussionRenderer module={m} index={index} state={s} />;
+
     default:
       return <PendingPlaceholder type={m.type} />;
   }

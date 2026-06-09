@@ -8,7 +8,7 @@ import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
 import { useIsOwner } from "@/lib/hooks";
 import { WidgetContext } from "@/lib/widgetContext";
-import type { Module, Space, SpaceLabels } from "@/lib/types";
+import type { Module, ModuleStateEntry, Space, SpaceLabels } from "@/lib/types";
 import { MagyCBadge } from "@/components/MagyCBadge";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { PublishButton } from "@/components/PublishButton";
@@ -63,6 +63,21 @@ export function SpaceView({ id }: { id: string }) {
     }
     return { displayedModules: space.modules, currentVersionNumber: latest };
   }, [space, viewVersion]);
+
+  // Pre-slice state by moduleIndex once so each renderer only sees
+  // its own actions. The slice is keyed by index and sorted oldest-
+  // first so renderers can fold a chronological log directly.
+  const stateByModule = useMemo(() => {
+    const out = new Map<number, ModuleStateEntry[]>();
+    if (!space) return out;
+    for (const e of space.state) {
+      const arr = out.get(e.moduleIndex) || [];
+      arr.push(e);
+      out.set(e.moduleIndex, arr);
+    }
+    for (const arr of out.values()) arr.sort((a, b) => a.createdAt - b.createdAt);
+    return out;
+  }, [space]);
 
   // Split into header zones + body.
   const { hero, tagsModule, tagsIndex, body } = useMemo(() => {
@@ -130,7 +145,12 @@ export function SpaceView({ id }: { id: string }) {
           <div className="max-w-5xl mx-auto px-4 sm:px-10 pt-14 sm:pt-20 pb-8 sm:pb-12 space-y-6">
             <motion.div initial="hidden" animate="show" variants={heroIn} className="space-y-6">
               {hero.map(({ module: m, index: i }) => (
-                <WidgetDispatcher key={`hero-${i}`} module={m} index={i} />
+                <WidgetDispatcher
+                  key={`hero-${i}`}
+                  module={m}
+                  index={i}
+                  state={stateByModule.get(i) ?? []}
+                />
               ))}
             </motion.div>
 
@@ -140,7 +160,11 @@ export function SpaceView({ id }: { id: string }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
               >
-                <WidgetDispatcher module={tagsModule} index={tagsIndex} />
+                <WidgetDispatcher
+                  module={tagsModule}
+                  index={tagsIndex}
+                  state={stateByModule.get(tagsIndex) ?? []}
+                />
               </motion.div>
             )}
           </div>
@@ -177,7 +201,11 @@ export function SpaceView({ id }: { id: string }) {
                       variants={bodyItem}
                       className="col-span-12 sm:col-span-6 lg:col-span-6"
                     >
-                      <WidgetDispatcher module={m} index={i} />
+                      <WidgetDispatcher
+                        module={m}
+                        index={i}
+                        state={stateByModule.get(i) ?? []}
+                      />
                     </motion.div>
                   ))}
                 </motion.div>
