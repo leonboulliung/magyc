@@ -1,14 +1,21 @@
 "use client";
 
 import { newAnonToken } from "./id";
+import { getActivePersona } from "./personas";
 
 const KEY = "creator.anon_token";
 const NAME_KEY = "creator.anon_name";
 
 /** Get the browser's anonymous identity token. Created on first call.
- *  Stable across sessions until the user clears storage. */
+ *  Stable across sessions until the user clears storage.
+ *
+ *  Persona override: if a test persona is active (selected via the
+ *  switcher), that persona's stable token wins. Lets us simulate two
+ *  collaborators on the same browser by toggling. */
 export function getAnonToken(): string {
   if (typeof window === "undefined") return "";
+  const persona = getActivePersona();
+  if (persona) return persona.token;
   let t = window.localStorage.getItem(KEY);
   if (!t) {
     t = newAnonToken();
@@ -17,9 +24,13 @@ export function getAnonToken(): string {
   return t;
 }
 
-/** Optional display name the anonymous user has chosen. May be empty. */
+/** Optional display name the anonymous user has chosen. May be empty.
+ *  Personas override this when active — their display name is the
+ *  attribution shown in collaborative state. */
 export function getAnonDisplayName(): string {
   if (typeof window === "undefined") return "";
+  const persona = getActivePersona();
+  if (persona) return persona.displayName;
   return window.localStorage.getItem(NAME_KEY) || "";
 }
 

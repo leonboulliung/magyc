@@ -232,12 +232,8 @@ export default function HomePage() {
           )}
         </div>
       </section>
-      <footer className="px-6 py-3 mono text-[9px] tracking-widest text-center flex items-center justify-center gap-4 opacity-30">
-        <span>CREATOR</span>
-        <span>·</span>
-        <a href="/showroom" className="hover:opacity-100">SHOWROOM</a>
-        <span>·</span>
-        <a href="/workspace" className="hover:opacity-100">WORKSPACE</a>
+      <footer className="px-6 py-3 mono text-[9px] tracking-widest text-center opacity-30">
+        <span>MAGYC.SITE</span>
       </footer>
     </main>
   );

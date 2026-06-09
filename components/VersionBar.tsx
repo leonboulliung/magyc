@@ -3,9 +3,10 @@
 import type { SpaceVersion } from "@/lib/types";
 
 /**
- * Version bar — a thin vertical column of dashes on the left edge of a
- * published space. Each dash is one snapshot in `space_versions`. The
- * currently-viewed version is filled; older snapshots are hairlines.
+ * Version bar — a thin vertical column of dashes on the RIGHT edge of
+ * a published space. Each dash is one snapshot in `space_versions`.
+ * The currently-viewed version is filled; older snapshots are
+ * hairlines.
  *
  * Draft spaces have no versions, so this component renders nothing.
  */
@@ -15,7 +16,6 @@ export function VersionBar({
   onSelect,
 }: {
   versions: SpaceVersion[];
-  /** Which version number is currently being viewed (1-indexed). */
   currentVersion: number;
   onSelect: (version: number) => void;
 }) {
@@ -23,7 +23,7 @@ export function VersionBar({
 
   return (
     <nav
-      className="fixed left-0 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3 px-3 py-4"
+      className="flex flex-col items-center gap-3 px-2 py-3"
       aria-label="Versions"
     >
       {versions.map((v) => {
@@ -36,8 +36,8 @@ export function VersionBar({
             title={`v${v.version} · ${new Date(v.createdAt).toLocaleString()}`}
             className="block transition-all"
             style={{
-              width: picked ? 18 : 14,
-              height: 2,
+              width: 2,
+              height: picked ? 18 : 14,
               background: picked ? "var(--v-fg)" : "var(--v-muted)",
               opacity: picked ? 1 : 0.4,
               borderRadius: 1,
