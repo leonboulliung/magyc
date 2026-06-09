@@ -97,7 +97,9 @@ export default function HomePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError("✕");
+        // Surface the actual error so we can diagnose failures.
+        const detail = json.error || json.detail || res.status;
+        setError(String(detail));
         setStage("clarify");
         setBusy(false);
         return;

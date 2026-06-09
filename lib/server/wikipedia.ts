@@ -52,30 +52,41 @@ interface SummaryResponse {
 async function fetchSummary(host: string, title: string): Promise<SummaryResponse | null> {
   const encoded = encodeURIComponent(title.replace(/\s+/g, "_"));
   const url = `https://${host}/api/rest_v1/page/summary/${encoded}?redirect=true`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3_000);
   try {
     const res = await fetch(url, {
       headers: { "user-agent": "magyc.site/0.1 (https://magyc.site)" },
-      // Edge-friendly fetch — no Node-only options.
+      signal: controller.signal,
+      cache: "no-store",
     });
     if (!res.ok) return null;
     const json = (await res.json()) as SummaryResponse;
     return json;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
 async function openSearch(host: string, query: string): Promise<string | null> {
   const url = `https://${host}/w/api.php?action=opensearch&format=json&limit=1&search=${encodeURIComponent(query)}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3_000);
   try {
     const res = await fetch(url, {
       headers: { "user-agent": "magyc.site/0.1 (https://magyc.site)" },
+      signal: controller.signal,
+      cache: "no-store",
     });
     if (!res.ok) return null;
     const arr = (await res.json()) as [string, string[], string[], string[]];
     return Array.isArray(arr) && arr[1] && arr[1][0] ? arr[1][0] : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

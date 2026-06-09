@@ -5,7 +5,9 @@ import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { newAnonToken, newId } from "@/lib/id";
 
 const lastCallAt = new Map<string, number>();
-const RATE_WINDOW_MS = 30_000;
+// 8 s window — enough to prevent double-submit spam but allows
+// quick retries during testing / development.
+const RATE_WINDOW_MS = 8_000;
 const MAX_INPUT_CHARS = 1200;
 const MAX_ANSWERS = 6;
 
@@ -85,13 +87,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "classify_failed", detail: msg }, { status: 502 });
   }
 
-  // Hydrate external references — Wikipedia widgets get their URL,
-  // extract, and thumbnail filled from the MediaWiki API. Failures
-  // are silent; the renderer copes with missing data.
-  const hydratedModules = await resolveExternalRefs(result.modules, result.language);
+  // Hydrate external references — Wikipedia widgets get URL, extract,
+  // and thumbnail. Race against a 4 s hard timeout so slow Wikipedia
+  // responses never block space creation. Failures are always silent.
+  let hydratedModules: unknown[] = result.modules;
+  try {
+    const timeout = new Promise<unknown[]>((resolve) =>
+      setTimeout(() => resolve(result.modules), 4_000),
+    );
+    hydratedModules = await Promise.race([
+      resolveExternalRefs(result.modules, result.language),
+      timeout,
+    ]);
+  } catch {
+    // Wikipedia resolution failed — continue with unresolved modules.
+  }
+
+  let admin;
+  try {
+    admin = supabaseAdmin();
+  } catch (e) {
+    const msg = (e as Error).message || "supabase_unavailable";
+    return NextResponse.json({ error: "db_unavailable", detail: msg }, { status: 503 });
+  }
 
   const id = newId();
-  const admin = supabaseAdmin();
   const { error } = await admin.from("spaces").insert({
     id,
     input_text: input,
