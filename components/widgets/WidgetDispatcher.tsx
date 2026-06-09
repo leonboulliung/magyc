@@ -29,6 +29,12 @@ import { DateRenderer } from "./DateRenderer";
 import { AppointmentRenderer } from "./AppointmentRenderer";
 import { AppointmentsRenderer } from "./AppointmentsRenderer";
 
+// Phase 4
+import { LocationSingleRenderer } from "./LocationSingleRenderer";
+import { LocationsMultiRenderer } from "./LocationsMultiRenderer";
+import { LocationSuggestionsRenderer } from "./LocationSuggestionsRenderer";
+import { RouteRenderer } from "./RouteRenderer";
+
 /**
  * Single entry point for rendering a widget. Each Phase adds renderers
  * here; everything not yet implemented falls through to the
@@ -93,6 +99,16 @@ export function WidgetDispatcher({
       return <AppointmentRenderer module={m} index={index} />;
     case "appointments":
       return <AppointmentsRenderer module={m} index={index} />;
+
+    // Phase 4
+    case "location_single":
+      return <LocationSingleRenderer module={m} index={index} />;
+    case "locations_multi":
+      return <LocationsMultiRenderer module={m} index={index} />;
+    case "location_suggestions":
+      return <LocationSuggestionsRenderer module={m} index={index} state={s} />;
+    case "route":
+      return <RouteRenderer module={m} index={index} />;
 
     default:
       return <PendingPlaceholder type={m.type} />;
