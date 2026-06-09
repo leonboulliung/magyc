@@ -12,7 +12,7 @@ import { newId } from "@/lib/id";
  *     anonToken    — anon owner token (when not signed in)
  *     anonName     — optional display name
  *
- * Stores the file in the "space-uploads" Supabase Storage bucket under
+ * Stores the file in the "space_assets" Supabase Storage bucket under
  * the path:  `{spaceId}/{moduleIndex}/{fileId}.{ext}`
  *
  * Returns { ok: true, url, name, size, mimeType } where `url` is the
@@ -25,7 +25,7 @@ import { newId } from "@/lib/id";
  *   - Allowed MIME types: images, audio, PDF, Office docs, text
  *   - Rate: one upload per 2s per actor
  *
- * The "space-uploads" bucket must be created in your Supabase project
+ * The "space_assets" bucket must be created in your Supabase project
  * with public access (or RLS policy matching your auth setup). If the
  * bucket doesn't exist, the upload will fail with a storage error that
  * surfaces as { error: "storage_failed" }.
@@ -132,7 +132,7 @@ export async function POST(
 
   // Upload to Supabase Storage.
   const { error: storageErr } = await admin.storage
-    .from("space-uploads")
+    .from("space_assets")
     .upload(path, file, {
       contentType: file.type,
       upsert: false,
@@ -141,7 +141,7 @@ export async function POST(
     return NextResponse.json({ error: "storage_failed", detail: storageErr.message }, { status: 500 });
   }
 
-  const { data: urlData } = admin.storage.from("space-uploads").getPublicUrl(path);
+  const { data: urlData } = admin.storage.from("space_assets").getPublicUrl(path);
   const url = urlData.publicUrl;
 
   // Write an `upload` state entry so all collaborators see the file.

@@ -78,7 +78,7 @@ function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
 }
 
 const ALLOWED_STATE_KINDS = new Set<ModuleStateKind>([
-  "vote", "check", "claim", "voice", "edit", "add",
+  "vote", "check", "claim", "voice", "edit", "add", "upload", "stroke",
 ]);
 
 function mapModuleStateEntry(row: ModuleStateRow): ModuleStateEntry {
