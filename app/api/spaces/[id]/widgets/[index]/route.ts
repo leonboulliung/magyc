@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModule } from "@/lib/modules";
 import { newId } from "@/lib/id";
+import { resolveWikipedia } from "@/lib/server/wikipedia";
 
 /**
  * PUT /api/spaces/[id]/widgets/[index]
@@ -30,14 +31,14 @@ export async function PUT(
     return NextResponse.json({ error: "bad_widget_index" }, { status: 400 });
   }
 
-  let body: { widget?: unknown; anonOwnerToken?: unknown; note?: unknown };
+  let body: { widget?: unknown; anonOwnerToken?: unknown; note?: unknown; resolveExternal?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const widget = sanitizeModule(body.widget);
+  let widget = sanitizeModule(body.widget);
   if (!widget) {
     return NextResponse.json({ error: "widget_invalid" }, { status: 400 });
   }
@@ -46,7 +47,7 @@ export async function PUT(
   const admin = supabaseAdmin();
   const { data: space, error: fetchErr } = await admin
     .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules, title")
+    .select("id, anon_owner_token, owner_id, visibility, modules, title, language")
     .eq("id", params.id)
     .maybeSingle();
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
@@ -70,6 +71,16 @@ export async function PUT(
   const currentModules = Array.isArray(space.modules) ? (space.modules as unknown[]) : [];
   if (widgetIndex >= currentModules.length) {
     return NextResponse.json({ error: "widget_out_of_range" }, { status: 400 });
+  }
+
+  // External resolution: when the widget is Wikipedia, always re-hit
+  // the MediaWiki API so url/extract/thumbnail stay in sync with the
+  // topic. Also runs on suggestion picks; opt-in elsewhere via the
+  // `resolveExternal` body flag.
+  const shouldResolve =
+    widget.type === "wikipedia" || body.resolveExternal === true;
+  if (shouldResolve && widget.type === "wikipedia") {
+    widget = await resolveWikipedia(widget, (space as { language?: string }).language || "en");
   }
 
   // Build the new modules array — replace the widget at index, keep

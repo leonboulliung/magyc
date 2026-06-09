@@ -22,6 +22,13 @@ import { WorkPackagesRenderer } from "./WorkPackagesRenderer";
 import { QaRenderer } from "./QaRenderer";
 import { DiscussionRenderer } from "./DiscussionRenderer";
 
+// Phase 3
+import { WikipediaRenderer } from "./WikipediaRenderer";
+import { IconRenderer } from "./IconRenderer";
+import { DateRenderer } from "./DateRenderer";
+import { AppointmentRenderer } from "./AppointmentRenderer";
+import { AppointmentsRenderer } from "./AppointmentsRenderer";
+
 /**
  * Single entry point for rendering a widget. Each Phase adds renderers
  * here; everything not yet implemented falls through to the
@@ -74,6 +81,18 @@ export function WidgetDispatcher({
       return <QaRenderer module={m} index={index} state={s} />;
     case "discussion":
       return <DiscussionRenderer module={m} index={index} state={s} />;
+
+    // Phase 3
+    case "wikipedia":
+      return <WikipediaRenderer module={m} index={index} />;
+    case "icon":
+      return <IconRenderer module={m} index={index} />;
+    case "date":
+      return <DateRenderer module={m} index={index} />;
+    case "appointment":
+      return <AppointmentRenderer module={m} index={index} />;
+    case "appointments":
+      return <AppointmentsRenderer module={m} index={index} />;
 
     default:
       return <PendingPlaceholder type={m.type} />;

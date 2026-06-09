@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { regenerateWidget } from "@/lib/server/regenerate";
+import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { ALL_VIBES, type Module, type SpaceLabels, type Vibe } from "@/lib/types";
 import { sanitizeModule } from "@/lib/modules";
 
@@ -90,7 +91,14 @@ export async function POST(
       count,
       basePrompt,
     });
-    return NextResponse.json({ ok: true, ...result });
+    // Hydrate Wikipedia suggestions before the client sees them — so
+    // the preview cards in the popover already show the resolved
+    // article title + extract instead of just the AI's guess.
+    const suggestions = await resolveExternalRefs(
+      result.suggestions,
+      String(space.language ?? "en"),
+    );
+    return NextResponse.json({ ok: true, suggestions });
   } catch (e) {
     const msg = (e as Error).message || "unknown";
     if (msg === "ai_not_configured")

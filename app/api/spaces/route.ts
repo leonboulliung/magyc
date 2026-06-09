@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
+import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { newAnonToken, newId } from "@/lib/id";
 
 const lastCallAt = new Map<string, number>();
@@ -84,6 +85,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "classify_failed", detail: msg }, { status: 502 });
   }
 
+  // Hydrate external references — Wikipedia widgets get their URL,
+  // extract, and thumbnail filled from the MediaWiki API. Failures
+  // are silent; the renderer copes with missing data.
+  const hydratedModules = await resolveExternalRefs(result.modules, result.language);
+
   const id = newId();
   const admin = supabaseAdmin();
   const { error } = await admin.from("spaces").insert({
@@ -92,7 +98,7 @@ export async function POST(req: Request) {
     title: result.title,
     language: result.language,
     vibe: result.vibe,
-    modules: result.modules,
+    modules: hydratedModules,
     labels: result.labels,
     anon_owner_token: anonToken,
     visibility: null,
