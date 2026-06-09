@@ -8,6 +8,11 @@ type Stage = "input" | "clarify" | "building";
 
 interface ClarifyQuestion {
   id: string;
+  /** general = framing question; data = collects concrete data the
+   *  classifier will need to build a mandatory-config widget. The
+   *  frontend renders them identically with a small visual marker
+   *  on data questions so screen readers can announce them. */
+  kind?: "general" | "data";
   text: string;
   options: { value: string }[];
 }
@@ -147,8 +152,23 @@ export default function HomePage() {
               </p>
               <hr className="border-black/10" />
               {questions.map((q) => (
-                <div key={q.id} className="space-y-2.5">
-                  <h3 className="text-[17px] sm:text-[19px] leading-snug">{q.text}</h3>
+                <div
+                  key={q.id}
+                  className="space-y-2.5"
+                  aria-label={q.kind === "data" ? "data question" : "framing question"}
+                >
+                  <h3 className="text-[17px] sm:text-[19px] leading-snug flex items-baseline gap-2">
+                    {q.kind === "data" && (
+                      <span
+                        aria-hidden
+                        className="mono text-[10px] tracking-widest opacity-30 translate-y-[-1px]"
+                        title="data"
+                      >
+                        ◆
+                      </span>
+                    )}
+                    <span>{q.text}</span>
+                  </h3>
                   <div className="flex flex-wrap gap-1.5">
                     {q.options.map((o) => {
                       const picked = answers[q.id] === o.value;

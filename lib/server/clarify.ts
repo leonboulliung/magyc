@@ -1,23 +1,69 @@
 import OpenAI from "openai";
+import { MODULE_META, mandatoryConfigTypes } from "@/lib/modules";
+import type { ModuleType } from "@/lib/types";
 
 /**
- * Clarify — the AI generates 2–4 multiple-choice questions that
- * resolve the most consequential ambiguities in the user's input.
+ * Clarify v2 — single-step (B1), but aware of mandatory-config widgets.
  *
- * Each question has 3 short options + an implicit "anders" custom-text
- * fallback (the frontend always offers a text field). The questions
- * are picked so the answer materially changes the resulting dossier —
- * not surface preferences.
+ * The classifier is the one that DECIDES which widgets to use, but
+ * mandatory-config widgets (location_single, route, phases, …) need
+ * specific data from the user before the page can be assembled. Rather
+ * than ask in a separate second pass, we let this clarify call decide
+ * which data questions are worth asking up front.
  *
- * The output is shape-validated. Bad models / unparseable JSON / empty
- * results throw; the caller surfaces a clean error.
+ * The result is one mixed list of 2–5 questions: some "general"
+ * (intent / scope / commitment), some "data" (a specific place, a
+ * chronology, …). The frontend renders both kinds identically but
+ * marks the data ones for screen readers.
+ *
+ * Each question still has 3 short MC options + an implicit
+ * custom-text fallback the frontend draws itself.
  */
 
-const SYSTEM_PROMPT = `You receive ONE short text from a person — an idea,
-a question, a wish, a concern, a plan, an observation. Your job:
-identify the 2 to 4 most consequential AMBIGUITIES in their input —
-the things you genuinely don't know yet, but whose answer would
-change how a useful workspace gets built.
+const MANDATORY_HINTS: Partial<Record<ModuleType, string>> = {
+  location_single:
+    "If the input mentions a single specific meeting place, you may ask 'Where exactly?' with 3 candidate place names.",
+  locations_multi:
+    "If the input mentions several confirmed places, you may ask 'Which places?' with 3 candidate options.",
+  location_suggestions:
+    "If the input clearly needs a place but the place is undecided, you may ask 'A few candidate places?' with 3 example types of venues.",
+  route:
+    "If the input mentions a route or journey, you may ask 'Start and end?' with 3 plausible start–end pairings.",
+  phases:
+    "If the input strongly implies a chronology, you may ask 'How long an arc?' or 'How many phases?' with 3 reasonable options (e.g. '3 phases', '5 phases', 'over a year').",
+};
+
+function buildSystemPrompt(): string {
+  const mandatoryList = mandatoryConfigTypes();
+  const mandatorySection = mandatoryList
+    .map((t) => `  - ${t}: ${MANDATORY_HINTS[t] ?? MODULE_META[t].relevantWhen}`)
+    .join("\n");
+
+  return `You receive ONE short text a user wrote — a thought, an idea,
+a wish, a concern, a plan. Identify 2–5 ambiguities or DATA POINTS
+that, when answered, will let an agentic process build a useful
+workspace from the input.
+
+Two kinds of questions exist. Tag each with a "kind" field:
+
+  "general" — intent / scope / commitment / audience / recurrence.
+              Examples of GOOD subjects:
+                  just friends or a wider circle
+                  one-off or recurring
+                  this week / this month / sometime
+                  serious about it or just exploring
+              Examples of BAD subjects:
+                  surface preferences (colors, fonts, vibe)
+                  confirmations of what the input already states
+                  yes/no on the original input
+
+  "data" — concrete data ONE of the mandatory-config widgets needs
+           before the workspace can render. ONLY include if the input
+           strongly suggests such a widget is needed.
+
+Mandatory-config widgets (and when to ask for their data):
+
+${mandatorySection}
 
 Return STRICT JSON, no preamble:
 
@@ -26,11 +72,12 @@ Return STRICT JSON, no preamble:
     "questions": [
       {
         "id": "q1",
-        "text": "<short question, <= 80 chars>",
+        "kind": "general" | "data",
+        "text": "<short question, <= 100 chars>",
         "options": [
-          { "value": "<short label, <= 24 chars>" },
-          { "value": "<short label, <= 24 chars>" },
-          { "value": "<short label, <= 24 chars>" }
+          { "value": "<short label, 1-4 words, <= 24 chars>" },
+          { "value": "<short label, 1-4 words, <= 24 chars>" },
+          { "value": "<short label, 1-4 words, <= 24 chars>" }
         ]
       },
       ...
@@ -38,30 +85,26 @@ Return STRICT JSON, no preamble:
   }
 
 Hard rules:
-- 2 to 4 questions. Less is better than more. Pick only the questions
-  whose answer truly matters.
-- 3 options per question. Each option is a SHORT label (1–4 words),
-  in the user's language.
-- The frontend always offers an implicit "anders" custom-text option —
-  you don't generate it.
-- Questions target real ambiguities. Examples of GOOD targets:
-    audience (just friends / a wider circle / the public)
-    scope (a one-off / recurring / ongoing project)
-    where (a specific place / multiple places / anywhere)
-    commitment (just curious / serious about it / already decided)
-    timeframe (this week / this month / sometime)
-    privacy (private / shared with few / public)
-- DON'T ask:
-    surface preferences (colors, fonts, vibes — the AI picks those)
-    confirmations (we don't need yes/no on the original input)
-    things the user already specified clearly in the input
+- 2 to 5 questions. Pick only those whose answer truly matters.
+- 3 options per question. Each is a SHORT label (1-4 words) in the
+  user's language. The frontend always appends an implicit
+  custom-text option — you do NOT generate it.
 - Match the input's language for ALL strings.
-- IDs are simple: "q1", "q2", "q3", "q4".
+- "data" questions are OPTIONAL — only include when the input clearly
+  implies one of the mandatory-config widgets above. Do not force-ask
+  for data when the input is too abstract.
+- A workspace can have at most one "data" question per mandatory
+  widget type. Don't ask the same kind of data twice.
+- "id" values: q1, q2, q3, q4, q5.
 
 Output ONLY the JSON object.`;
+}
+
+export type ClarifyQuestionKind = "general" | "data";
 
 export interface ClarifyQuestion {
   id: string;
+  kind: ClarifyQuestionKind;
   text: string;
   options: { value: string }[];
 }
@@ -88,7 +131,7 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
     response_format: { type: "json_object" },
     temperature: 0.3,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: buildSystemPrompt() },
       { role: "user", content: input },
     ],
   });
@@ -106,18 +149,22 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
 
   const rawQs = Array.isArray(parsed.questions) ? parsed.questions : [];
   const questions: ClarifyQuestion[] = [];
-  for (let i = 0; i < rawQs.length && questions.length < 4; i++) {
+  for (let i = 0; i < rawQs.length && questions.length < 5; i++) {
     const q = rawQs[i];
     if (!q || typeof q !== "object") continue;
     const qr = q as Record<string, unknown>;
-    const text = typeof qr.text === "string" ? qr.text.trim().replace(/\s+/g, " ").slice(0, 120) : "";
+    const text = typeof qr.text === "string"
+      ? qr.text.trim().replace(/\s+/g, " ").slice(0, 140)
+      : "";
     if (!text) continue;
+    const kindRaw = typeof qr.kind === "string" ? qr.kind.trim().toLowerCase() : "general";
+    const kind: ClarifyQuestionKind = kindRaw === "data" ? "data" : "general";
     const rawOpts = Array.isArray(qr.options) ? qr.options : [];
     const options: { value: string }[] = [];
     for (const o of rawOpts) {
       if (!o || typeof o !== "object") continue;
       const v = typeof (o as { value?: unknown }).value === "string"
-        ? String((o as { value: string }).value).trim().slice(0, 32)
+        ? String((o as { value: string }).value).trim().slice(0, 36)
         : "";
       if (v) options.push({ value: v });
       if (options.length >= 4) break;
@@ -125,6 +172,7 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
     if (options.length < 2) continue;
     questions.push({
       id: `q${questions.length + 1}`,
+      kind,
       text,
       options,
     });
