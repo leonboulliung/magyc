@@ -15,6 +15,7 @@ import { PublishButton } from "@/components/PublishButton";
 import { SpacePrivacy } from "@/components/SpacePrivacy";
 import { VersionBar } from "@/components/VersionBar";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
+import { GridZone } from "@/components/GridZone";
 
 /**
  * Space view — v4 chassis with the Phase-1 widget renderers wired in.
@@ -186,30 +187,21 @@ export function SpaceView({ id }: { id: string }) {
         <section className="flex-1 w-full">
           <div className="max-w-5xl mx-auto px-4 sm:px-10 py-6 sm:py-10 flex gap-6 sm:gap-8 items-start">
             <div className="flex-1 min-w-0">
-              {body.length === 0 ? (
-                <EmptyGrid labels={space.labels} />
-              ) : (
-                <motion.div
-                  initial="hidden"
-                  animate="show"
-                  variants={bodyContainer}
-                  className="grid grid-cols-12 gap-3 sm:gap-4"
-                >
-                  {body.map(({ module: m, index: i }) => (
-                    <motion.div
-                      key={`body-${i}`}
-                      variants={bodyItem}
-                      className="col-span-12 sm:col-span-6 lg:col-span-6"
-                    >
-                      <WidgetDispatcher
-                        module={m}
-                        index={i}
-                        state={stateByModule.get(i) ?? []}
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
+              <motion.div initial="hidden" animate="show" variants={bodyContainer}>
+                <GridZone
+                  bodyItems={body.map(({ module: m, index: i }) => ({
+                    module: m,
+                    index: i,
+                    stateEntries: stateByModule.get(i) ?? [],
+                  }))}
+                  headerModules={[...hero.map(h => h.module), ...(tagsModule ? [tagsModule] : [])]}
+                  spaceId={space.id}
+                  ownerToken={ownerToken}
+                  isOwner={isOwner}
+                  labels={{ emptyGrid: space.labels.emptyGrid, emptyGridHint: space.labels.emptyGridHint }}
+                  onRefresh={refresh}
+                />
+              </motion.div>
             </div>
 
             <aside className="shrink-0 self-stretch flex items-start pt-2">
