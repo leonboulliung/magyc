@@ -1,11 +1,15 @@
 /**
- * v3 — types.
+ * v4 — types.
  *
- * A space is a workspace built from a list of typed modules. The AI
- * classifies the input, picks 3–7 module types from this registry,
- * and configures each. Module-level state (votes, ticks, claims, …)
- * lives in a separate `module_state` table and is keyed by space +
- * module index.
+ * A space is a workspace built from a sequence of typed widgets. There
+ * are 29 widget kinds in the registry (3 header-zone, 26 body). The
+ * agent classifies the user's input, picks which widgets fit, and
+ * configures each.
+ *
+ * The application has NO own language: every visible string on a widget
+ * is either AI-generated in the user's language (the optional
+ * `microTitle` field) or user-entered. The `type` discriminator and
+ * everything in this file is internal identifier only — never shown.
  */
 
 export type Vibe =
@@ -29,235 +33,378 @@ export interface Profile {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  /** Personal accent color used by Sketch strokes and Checklist
+   *  attribution dots. AI-assigned at first sign-in. */
+  color: string | null;
   createdAt: number;
 }
 
 // ============================================================
-// Modules (15 types) — discriminated union
+// Widget union
+//
+// Every widget has an optional `microTitle` (AI-generated in user's
+// language) and optional `description`. Source attribution is carried
+// in `attribution` where the widget pulls from a license-bearing
+// external source.
 // ============================================================
 
-/** Per-module common fields. */
-export interface ModuleBase {
-  /** AI-generated, in the input's language. Replaces hard-coded titles. */
-  label: string;
-  /** AI-generated, 1 line of context. Optional. */
+export interface WidgetBase {
+  /** AI-generated small label in the user's language. Most widgets
+   *  show this above the content; some (icon, gif) ignore it. */
+  microTitle?: string;
+  /** Optional 1-line context line. */
   description?: string;
-  /** Source attribution where required (Wikipedia, OSM, …). */
+  /** When the widget pulls from a CC-BY / OSM / Wikipedia-style
+   *  source, the attribution travels with it. */
   attribution?: { name: string; url: string; license: string };
 }
 
-// ----- Tier A — no data source -----
+// ----- Header zone — always inserted -----
 
-export interface HeadlineModule extends ModuleBase {
-  type: "headline";
-  /** The space's anchoring headline. May echo the AI-generated title or
-   *  diverge — the headline lives on the module, not on the space row. */
-  title: string;
-  subtitle?: string;
+/**
+ * Heading. The space's title. H1–H6 sizing the user controls. When
+ * empty, the placeholder (AI-supplied) reflects the prompt.
+ */
+export interface HeadingWidget extends WidgetBase {
+  type: "heading";
+  text: string;
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  placeholder?: string;
 }
 
 /**
- * Synthesis — the AI's reflective paragraph after the input + answers.
- * Renders as prose (no card frame). Always second after the headline.
- * This is the "die App hat dich verstanden"-moment.
+ * Rich Text — body prose. The microTitle here is the small AI-set
+ * heading ("Kontext", "Hintergrund", "Wunsch", …) in the user's
+ * language.
  */
-export interface SynthesisModule extends ModuleBase {
-  type: "synthesis";
-  /** 2–4 sentences. AI-authored, in the input's language. */
+export interface RichTextWidget extends WidgetBase {
+  type: "rich_text";
   text: string;
+  placeholder?: string;
 }
 
-export interface TagsModule extends ModuleBase {
+/** Tags chips. AI seeds; users add/remove. */
+export interface TagsWidget extends WidgetBase {
   type: "tags";
   tags: string[];
 }
 
-export interface NotesModule extends ModuleBase {
-  type: "notes";
-  /** Initial seed text. Visitors can append via `edit` state. */
+// ----- Wiki + AI reference cards -----
+
+/**
+ * Wikipedia-Einordnung. Agent provides a topic query; backend resolves
+ * via OpenSearch into an exact article title + summary + thumbnail.
+ * Edit cycles through 2 alternative articles or accepts a pasted URL.
+ */
+export interface WikipediaWidget extends WidgetBase {
+  type: "wikipedia";
+  /** Search query the agent settled on. */
+  topic: string;
+  /** Resolved article URL (filled by backend). */
+  url?: string;
+  /** Hero image, if Wikipedia returns one. */
+  thumbnailUrl?: string;
+  /** Extract — short summary, in en.wiki text or matched language wiki. */
+  extract?: string;
+}
+
+/**
+ * Ki-Einordnung — a generalised AI take that abstracts the input into
+ * something useful. Renders with an ✦ symbol. Edit cycles 4 fresh
+ * alternatives or accepts a pasted prompt.
+ */
+export interface AISummaryWidget extends WidgetBase {
+  type: "ai_summary";
   text: string;
 }
 
-export interface OpenQuestionModule extends ModuleBase {
-  type: "open_question";
-  /** The question itself. Answers come in via `voice` state. */
-  prompt: string;
+// ----- Icon -----
+
+/** Single SVG icon. Edit reveals 6 candidates + a "new 5" regenerate. */
+export interface IconWidget extends WidgetBase {
+  type: "icon";
+  /** Iconify set:name identifier (e.g. "lucide:video"). */
+  iconify: string;
 }
 
-export interface PollModule extends ModuleBase {
+// ----- Map family — all four require mandatory pre-creation config -----
+
+export interface LocationSingleWidget extends WidgetBase {
+  type: "location_single";
+  center: [number, number]; // [lng, lat]
+  zoom?: number;
+  label?: string;
+}
+
+export interface LocationsMultiWidget extends WidgetBase {
+  type: "locations_multi";
+  locations: { lng: number; lat: number; label?: string }[];
+}
+
+/**
+ * Location-Vorschläge — proposed places presented as a TEXT list (no
+ * visible map), with a signal/vote-style stacking of profile dots.
+ */
+export interface LocationSuggestionsWidget extends WidgetBase {
+  type: "location_suggestions";
+  suggestions: { label: string; address?: string; lng?: number; lat?: number }[];
+}
+
+/**
+ * Route — multi-stop journey rendered on a map.
+ */
+export interface RouteWidget extends WidgetBase {
+  type: "route";
+  stops: { lng: number; lat: number; label?: string }[];
+}
+
+// ----- Time family -----
+
+/** Datum — a specific day, no time-of-day. */
+export interface DateWidget extends WidgetBase {
+  type: "date";
+  /** ISO date YYYY-MM-DD. */
+  date: string;
+}
+
+/** Ein Termin — single date + time. */
+export interface AppointmentWidget extends WidgetBase {
+  type: "appointment";
+  /** ISO 8601 datetime. */
+  datetime: string;
+  timezone?: string;
+}
+
+/** Mehrere Termine — list of date+time entries with optional labels. */
+export interface AppointmentsWidget extends WidgetBase {
+  type: "appointments";
+  entries: { datetime: string; label?: string }[];
+}
+
+/**
+ * Von - Bis — a generic span between two parameters. The `unit` hints
+ * at the renderer's icon: clock for time-of-day, calendar for
+ * weekdays / months / years / dates, no-icon for places / quantities.
+ */
+export interface RangeWidget extends WidgetBase {
+  type: "range";
+  unit: "time" | "weekday" | "month" | "year" | "date" | "place" | "amount" | "generic";
+  from: string;
+  to: string;
+}
+
+// ----- Team / packages -----
+
+/**
+ * Crew — roles a team can fill. Members live in module_state with a
+ * `claim` action carrying the role label. Widget also supports a
+ * segment-share affordance (invite to a specific role).
+ */
+export interface CrewWidget extends WidgetBase {
+  type: "crew";
+  roles: { name: string }[];
+}
+
+/**
+ * Arbeitspakete — work packages, Apple-Wallet-style stacked cards. Each
+ * package has assignable participants via module_state claims. Same
+ * segment-share affordance as Crew.
+ */
+export interface WorkPackagesWidget extends WidgetBase {
+  type: "work_packages";
+  packages: { label: string; description?: string }[];
+}
+
+// ----- Free-form collaboration -----
+
+/**
+ * Notes — Apple-Wallet-style stack of editable note cards. Notes
+ * themselves live in module_state with an `add` action; rearranging
+ * is a state edit. Placeholder reflects the prompt when no notes yet.
+ */
+export interface NotesWidget extends WidgetBase {
+  type: "notes";
+  placeholder?: string;
+}
+
+/**
+ * Fragen und Antworten — Q&A list. Questions and answers in
+ * module_state with `voice` actions.
+ */
+export interface QAWidget extends WidgetBase {
+  type: "qa";
+  placeholder?: string;
+}
+
+/** Umfrage. Single question with multiple-choice options. Votes via
+ *  module_state. */
+export interface PollWidget extends WidgetBase {
   type: "poll";
   question: string;
   options: string[];
 }
 
-export interface ChecklistModule extends ModuleBase {
+/**
+ * Diskussion — chronological thread. Messages, reply-to, and
+ * comment-on-comment all flow through module_state voice actions
+ * with an optional `parentId` in the data blob.
+ */
+export interface DiscussionWidget extends WidgetBase {
+  type: "discussion";
+  placeholder?: string;
+}
+
+// ----- Visualisation -----
+
+/** Phasen — chronological phases. Mandatory config: agent needs to
+ *  know which phases the user actually means. */
+export interface PhasesWidget extends WidgetBase {
+  type: "phases";
+  phases: { label: string; description?: string }[];
+  currentPhase: number;
+}
+
+/**
+ * Checkliste — infinite-scroll checkable list. Checks live in
+ * module_state; the renderer shows the checker's avatar in the
+ * checked box.
+ */
+export interface ChecklistWidget extends WidgetBase {
   type: "checklist";
   items: { text: string }[];
 }
 
-export interface HelpSlotsModule extends ModuleBase {
-  type: "help_slots";
-  slots: { label: string }[];
+// ----- Uploads — all back onto Supabase Storage -----
+
+export interface AttachmentsWidget extends WidgetBase {
+  type: "attachments";
+  placeholder?: string;
 }
 
-export interface StagesModule extends ModuleBase {
-  type: "stages";
-  stages: string[];
-  /** Initial pointer; can be advanced via `edit` state. */
-  current: number;
+export interface ImagesWidget extends WidgetBase {
+  type: "images";
+  placeholder?: string;
 }
 
-export interface NumberBlockModule extends ModuleBase {
-  type: "number_block";
-  value: string;
-  caption?: string;
+export interface AudioWidget extends WidgetBase {
+  type: "audio";
+  placeholder?: string;
 }
 
-// ----- Tier B — data-source-backed -----
+// ----- Specialty -----
 
-export interface IconModule extends ModuleBase {
-  type: "icon";
-  /** Iconify set:name pair, e.g. "lucide:book-open". */
-  iconify: string;
-  size?: number;
+/**
+ * Sketch — full-screen canvas. Strokes stored in module_state as path
+ * data, coloured per author by Profile.color.
+ */
+export interface SketchWidget extends WidgetBase {
+  type: "sketch";
+  placeholder?: string;
 }
 
-export interface PaletteModule extends ModuleBase {
-  type: "palette";
-  /** Open Props hue token (e.g. "blue", "amber"). */
-  hue: string;
-  /** Which steps from the 0–12 scale to surface. */
-  steps?: number[];
+/** Tabelle — generic comparison table. Static here; edits replace the
+ *  whole grid. */
+export interface TableWidget extends WidgetBase {
+  type: "table";
+  columns: string[];
+  rows: string[][];
 }
 
-export interface MapModule extends ModuleBase {
-  type: "map";
-  /** [longitude, latitude] center. */
-  center: [number, number];
-  zoom: number;
-  markers?: { lng: number; lat: number; label?: string }[];
+/** Utensilien — parts list / BOM with image and name per item. */
+export interface PartsListWidget extends WidgetBase {
+  type: "parts_list";
+  items: { name: string; quantity?: string; imageUrl?: string }[];
 }
 
-export type TimeMode = "date" | "countdown" | "timeline";
-
-export interface TimeModule extends ModuleBase {
-  type: "time";
-  mode: TimeMode;
-  /** ISO 8601. For "timeline", the first entry. */
-  date?: string;
-  /** For "timeline" — multiple labeled dates. */
-  entries?: { date: string; label: string }[];
-  timezone?: string;
-}
-
-export interface KnowledgeModule extends ModuleBase {
-  type: "knowledge";
-  /** Wikipedia page title OR Wikidata Qid. */
-  topic: string;
-  source: "wikipedia" | "wikidata";
-  /** Which facets to surface in the rendered card. */
-  show: ("summary" | "thumb" | "facts")[];
-}
-
-// ----- Tier C — static framework, AI prefills -----
-
-export type FrameworkKind =
-  | "okr"
-  | "scqa"
-  | "eisenhower"
-  | "rice"
-  | "kanban"
-  | "adr"
-  | "rfc"
-  | "postmortem"
-  | "faq"
-  | "one_pager";
-
-export interface FrameworkModule extends ModuleBase {
-  type: "framework";
-  kind: FrameworkKind;
-  /** Prefilled field values keyed by the framework's slot names.
-   *  E.g. for OKR: { "objective": "…", "kr1": "…" }. */
-  prefill: Record<string, string>;
-}
-
-// ----- Optional set (also shipped in v3.0, but rarely chosen) -----
-
-export interface TypographyModule extends ModuleBase {
-  type: "typography";
-  heading: string; // Google Fonts family name
-  body: string;
-}
-
-export interface FormulaModule extends ModuleBase {
-  type: "formula";
-  latex: string;
-  display?: "inline" | "block";
-}
-
-export interface ChartModule extends ModuleBase {
-  type: "chart";
-  chartType: "bar" | "line" | "area";
-  data: { x: string; y: number }[];
-  xLabel?: string;
-  yLabel?: string;
-}
-
-export interface ImageModule extends ModuleBase {
-  type: "image";
-  /** Wikimedia Commons file URL or thumbnail URL. */
-  url: string;
-  alt?: string;
+/** GIF — a single GIF from Tenor/Giphy via backend proxy. */
+export interface GifWidget extends WidgetBase {
+  type: "gif";
+  gifUrl: string;
+  thumbnailUrl?: string;
 }
 
 // ----- The union -----
 
 export type Module =
-  | HeadlineModule
-  | SynthesisModule
-  | TagsModule
-  | NotesModule
-  | OpenQuestionModule
-  | PollModule
-  | ChecklistModule
-  | HelpSlotsModule
-  | StagesModule
-  | NumberBlockModule
-  | IconModule
-  | PaletteModule
-  | MapModule
-  | TimeModule
-  | KnowledgeModule
-  | FrameworkModule
-  | TypographyModule
-  | FormulaModule
-  | ChartModule
-  | ImageModule;
+  | HeadingWidget
+  | RichTextWidget
+  | TagsWidget
+  | WikipediaWidget
+  | AISummaryWidget
+  | IconWidget
+  | LocationSingleWidget
+  | LocationsMultiWidget
+  | LocationSuggestionsWidget
+  | RouteWidget
+  | DateWidget
+  | AppointmentWidget
+  | AppointmentsWidget
+  | RangeWidget
+  | CrewWidget
+  | WorkPackagesWidget
+  | NotesWidget
+  | QAWidget
+  | PollWidget
+  | DiscussionWidget
+  | PhasesWidget
+  | ChecklistWidget
+  | AttachmentsWidget
+  | ImagesWidget
+  | AudioWidget
+  | SketchWidget
+  | TableWidget
+  | PartsListWidget
+  | GifWidget;
 
 export type ModuleType = Module["type"];
 
 export const ALL_MODULE_TYPES: readonly ModuleType[] = [
-  "headline",
-  "synthesis",
+  // Header zone (always present)
+  "heading",
+  "rich_text",
   "tags",
-  "notes",
-  "open_question",
-  "poll",
-  "checklist",
-  "help_slots",
-  "stages",
-  "number_block",
+  // Body widgets (26)
+  "wikipedia",
+  "ai_summary",
   "icon",
-  "palette",
-  "map",
-  "time",
-  "knowledge",
-  "framework",
-  "typography",
-  "formula",
-  "chart",
-  "image",
+  "location_single",
+  "locations_multi",
+  "location_suggestions",
+  "route",
+  "date",
+  "appointment",
+  "appointments",
+  "range",
+  "crew",
+  "work_packages",
+  "notes",
+  "qa",
+  "poll",
+  "discussion",
+  "phases",
+  "checklist",
+  "attachments",
+  "images",
+  "audio",
+  "sketch",
+  "table",
+  "parts_list",
+  "gif",
 ] as const;
+
+/** Widgets that always appear in the header zone. */
+export const HEADER_ZONE_TYPES: readonly ModuleType[] = [
+  "heading",
+  "rich_text",
+  "tags",
+] as const;
+
+// Convenient helpers preserved from the old shape — kept here so other
+// modules don't break. Headline / Synthesis used to be distinct types
+// in v3; they're collapsed into Heading + RichText now. The aliases let
+// the SpaceView pick the right element by lookup.
+export type HeadlineModule = HeadingWidget;
+export type SynthesisModule = RichTextWidget;
 
 // ============================================================
 // Module state — collaborative actions
@@ -269,15 +416,20 @@ export interface Actor {
   kind: ActorKind;
   id: string;
   displayName?: string;
+  /** Carried so the renderer can color a sketch stroke or fill a
+   *  checked-box without re-fetching the profile. */
+  color?: string;
 }
 
 export type ModuleStateKind =
-  | "vote"   // poll → { option: string }
-  | "check"  // checklist → { itemIndex: number; checked: boolean }
-  | "claim"  // help_slots → { slotLabel: string }
-  | "voice"  // open_question → { text: string }
-  | "edit"   // notes / stages → { text?: string; current?: number }
-  | "add";   // tags / checklist → { value: string }
+  | "vote"   // poll, location_suggestions
+  | "check"  // checklist
+  | "claim"  // crew role, work_packages
+  | "voice"  // discussion, qa
+  | "edit"   // notes content, stages position, table cells, …
+  | "add"    // tags, checklist items, work packages, notes, …
+  | "upload" // attachments, images, audio
+  | "stroke"; // sketch
 
 export interface ModuleStateEntry {
   id: string;
@@ -290,13 +442,9 @@ export interface ModuleStateEntry {
 }
 
 // ============================================================
-// Space
+// Space + versions
 // ============================================================
 
-export type Visibility = "public" | "password" | null;
-
-/** A single point-in-time snapshot of a space's modules. v1 is created
- *  at publish; further saved edits create v2, v3, … */
 export interface SpaceVersion {
   id: string;
   spaceId: string;
@@ -307,6 +455,8 @@ export interface SpaceVersion {
   createdAt: number;
 }
 
+export type Visibility = "public" | "password" | null;
+
 export interface Space {
   id: string;
   inputText: string;
@@ -314,14 +464,11 @@ export interface Space {
   language: string;
   vibe: Vibe;
   modules: Module[];
-  /** Set at creation; the creator's browser holds the matching token. */
-  anonOwnerTokenHint: boolean; // server returns true if the row has one; never returns the token itself
+  anonOwnerTokenHint: boolean;
   owner: Profile | null;
   visibility: Visibility;
   createdAt: number;
   publishedAt: number | null;
-  /** All collaborative state entries for this space, sorted by index then time. */
   state: ModuleStateEntry[];
-  /** Published versions, oldest first. Empty array on drafts. */
   versions: SpaceVersion[];
 }

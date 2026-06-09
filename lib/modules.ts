@@ -1,20 +1,21 @@
 /**
- * Module registry — sanitizers + meta.
+ * Module registry — sanitizers + meta for the 29 widget types.
  *
- * Every module that lands in `spaces.modules` flows through
+ * Every widget that lands in `spaces.modules` flows through
  * `sanitizeModule()`. The AI is liberal about JSON shapes; we are
  * strict about what we store. Anything that doesn't fit a known type
- * is silently dropped — the UI never has to null-guard.
+ * is silently dropped.
  *
- * The meta table maps each type to its data source label + whether
- * attribution is required. Used by the renderer to slot a uniform
- * attribution row.
+ * MODULE_META carries the agent-facing semantics: when to use a
+ * widget, whether it needs mandatory pre-creation config, which
+ * external source feeds it, and what interactive surfaces it exposes.
+ * The classifier prompt is built from this table at runtime.
  */
 
-import { ALL_MODULE_TYPES, type FrameworkKind, type Module, type ModuleType } from "./types";
+import { ALL_MODULE_TYPES, type Module, type ModuleType } from "./types";
 
 // ============================================================
-// Sanitizer
+// Common helpers
 // ============================================================
 
 const ALLOWED = new Set<string>(ALL_MODULE_TYPES);
@@ -52,21 +53,34 @@ function attribution(raw: unknown): Module["attribution"] {
 }
 
 function base(raw: Record<string, unknown>): {
-  label: string;
+  microTitle?: string;
   description?: string;
   attribution?: Module["attribution"];
 } {
+  const microTitle = clean(raw.microTitle, 80) || undefined;
+  const description = clean(raw.description, 200) || undefined;
   return {
-    label: clean(raw.label, 80) || "—",
-    description: clean(raw.description, 200) || undefined,
+    microTitle,
+    description,
     attribution: attribution(raw.attribution),
   };
 }
 
-/**
- * Validate + shape-coerce a single module. Returns null on
- * unrecognized or unfixable shapes.
- */
+// ============================================================
+// Coord validation — shared by map family
+// ============================================================
+
+function validCoord(lng: unknown, lat: unknown): { lng: number; lat: number } | null {
+  if (typeof lng !== "number" || typeof lat !== "number") return null;
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  if (lng < -180 || lng > 180 || lat < -90 || lat > 90) return null;
+  return { lng, lat };
+}
+
+// ============================================================
+// Sanitizer
+// ============================================================
+
 export function sanitizeModule(raw: unknown): Module | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -75,32 +89,169 @@ export function sanitizeModule(raw: unknown): Module | null {
   const type = r.type as ModuleType;
 
   switch (type) {
-    case "headline": {
-      const title = clean(r.title, 120);
-      if (!title) return null;
-      const subtitle = clean(r.subtitle, 160) || undefined;
-      return { type, ...b, title, subtitle };
+    case "heading": {
+      const text = clean(r.text, 200);
+      const levelRaw = typeof r.level === "number" ? Math.floor(r.level) : 1;
+      const level = (Math.max(1, Math.min(6, levelRaw))) as 1 | 2 | 3 | 4 | 5 | 6;
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, text, level, placeholder };
     }
-    case "synthesis": {
-      const text = typeof r.text === "string"
-        ? r.text.trim().replace(/\s+/g, " ").slice(0, 800)
-        : "";
-      if (text.length < 20) return null;
-      return { type, ...b, text };
+    case "rich_text": {
+      const text = typeof r.text === "string" ? r.text.slice(0, 4000) : "";
+      const placeholder = clean(r.placeholder, 240) || undefined;
+      return { type, ...b, text, placeholder };
     }
     case "tags": {
-      const tags = stringArray(r.tags, 8, 40);
-      if (tags.length === 0) return null;
+      const tags = stringArray(r.tags, 12, 40);
       return { type, ...b, tags };
     }
-    case "notes": {
-      const text = typeof r.text === "string" ? r.text.slice(0, 4000) : "";
+    case "wikipedia": {
+      const topic = clean(r.topic, 120);
+      if (!topic) return null;
+      const url = clean(r.url, 400) || undefined;
+      const thumbnailUrl = clean(r.thumbnailUrl, 500) || undefined;
+      const extract = clean(r.extract, 800) || undefined;
+      return { type, ...b, topic, url, thumbnailUrl, extract };
+    }
+    case "ai_summary": {
+      const text = typeof r.text === "string" ? r.text.trim().slice(0, 1200) : "";
+      if (text.length < 5) return null;
       return { type, ...b, text };
     }
-    case "open_question": {
-      const prompt = clean(r.prompt, 240);
-      if (!prompt) return null;
-      return { type, ...b, prompt };
+    case "icon": {
+      const iconify = clean(r.iconify, 80);
+      if (!/^[a-z0-9-]+:[a-z0-9-]+$/.test(iconify)) return null;
+      return { type, ...b, iconify };
+    }
+    case "location_single": {
+      const c = Array.isArray(r.center) ? r.center : null;
+      if (!c || c.length !== 2) return null;
+      const coord = validCoord(c[0], c[1]);
+      if (!coord) return null;
+      const zoom = num(r.zoom, 13, 1, 18);
+      const label = clean(r.label, 120) || undefined;
+      return { type, ...b, center: [coord.lng, coord.lat], zoom, label };
+    }
+    case "locations_multi": {
+      const raw = Array.isArray(r.locations) ? r.locations : [];
+      const locations: { lng: number; lat: number; label?: string }[] = [];
+      for (const m of raw) {
+        if (!m || typeof m !== "object") continue;
+        const mr = m as Record<string, unknown>;
+        const coord = validCoord(mr.lng, mr.lat);
+        if (!coord) continue;
+        const label = clean(mr.label, 120) || undefined;
+        locations.push(label ? { ...coord, label } : coord);
+        if (locations.length >= 24) break;
+      }
+      if (locations.length === 0) return null;
+      return { type, ...b, locations };
+    }
+    case "location_suggestions": {
+      const raw = Array.isArray(r.suggestions) ? r.suggestions : [];
+      const suggestions: { label: string; address?: string; lng?: number; lat?: number }[] = [];
+      for (const s of raw) {
+        if (!s || typeof s !== "object") continue;
+        const sr = s as Record<string, unknown>;
+        const label = clean(sr.label, 120);
+        if (!label) continue;
+        const address = clean(sr.address, 200) || undefined;
+        const coord = validCoord(sr.lng, sr.lat);
+        suggestions.push({
+          label,
+          ...(address ? { address } : {}),
+          ...(coord ? coord : {}),
+        });
+        if (suggestions.length >= 8) break;
+      }
+      if (suggestions.length === 0) return null;
+      return { type, ...b, suggestions };
+    }
+    case "route": {
+      const raw = Array.isArray(r.stops) ? r.stops : [];
+      const stops: { lng: number; lat: number; label?: string }[] = [];
+      for (const s of raw) {
+        if (!s || typeof s !== "object") continue;
+        const sr = s as Record<string, unknown>;
+        const coord = validCoord(sr.lng, sr.lat);
+        if (!coord) continue;
+        const label = clean(sr.label, 120) || undefined;
+        stops.push(label ? { ...coord, label } : coord);
+        if (stops.length >= 20) break;
+      }
+      if (stops.length < 2) return null; // a route needs at least two ends
+      return { type, ...b, stops };
+    }
+    case "date": {
+      const date = clean(r.date, 40);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+      return { type, ...b, date };
+    }
+    case "appointment": {
+      const datetime = clean(r.datetime, 60);
+      if (!Number.isFinite(Date.parse(datetime))) return null;
+      const timezone = clean(r.timezone, 60) || undefined;
+      return { type, ...b, datetime, timezone };
+    }
+    case "appointments": {
+      const raw = Array.isArray(r.entries) ? r.entries : [];
+      const entries: { datetime: string; label?: string }[] = [];
+      for (const e of raw) {
+        if (!e || typeof e !== "object") continue;
+        const er = e as Record<string, unknown>;
+        const datetime = clean(er.datetime, 60);
+        if (!Number.isFinite(Date.parse(datetime))) continue;
+        const label = clean(er.label, 120) || undefined;
+        entries.push(label ? { datetime, label } : { datetime });
+        if (entries.length >= 12) break;
+      }
+      if (entries.length === 0) return null;
+      return { type, ...b, entries };
+    }
+    case "range": {
+      const validUnits = ["time", "weekday", "month", "year", "date", "place", "amount", "generic"];
+      const unit = (validUnits as readonly string[]).includes(r.unit as string)
+        ? (r.unit as "time" | "weekday" | "month" | "year" | "date" | "place" | "amount" | "generic")
+        : "generic";
+      const from = clean(r.from, 120);
+      const to = clean(r.to, 120);
+      if (!from || !to) return null;
+      return { type, ...b, unit, from, to };
+    }
+    case "crew": {
+      const raw = Array.isArray(r.roles) ? r.roles : [];
+      const roles: { name: string }[] = [];
+      for (const x of raw) {
+        if (!x) continue;
+        const name = typeof x === "string" ? clean(x, 60) : clean((x as { name?: unknown }).name, 60);
+        if (name) roles.push({ name });
+        if (roles.length >= 12) break;
+      }
+      if (roles.length === 0) return null;
+      return { type, ...b, roles };
+    }
+    case "work_packages": {
+      const raw = Array.isArray(r.packages) ? r.packages : [];
+      const packages: { label: string; description?: string }[] = [];
+      for (const x of raw) {
+        if (!x || typeof x !== "object") continue;
+        const xr = x as Record<string, unknown>;
+        const label = clean(xr.label, 120);
+        if (!label) continue;
+        const description = clean(xr.description, 240) || undefined;
+        packages.push(description ? { label, description } : { label });
+        if (packages.length >= 12) break;
+      }
+      if (packages.length === 0) return null;
+      return { type, ...b, packages };
+    }
+    case "notes": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
+    }
+    case "qa": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
     }
     case "poll": {
       const question = clean(r.question, 200);
@@ -108,222 +259,547 @@ export function sanitizeModule(raw: unknown): Module | null {
       if (!question || options.length < 2) return null;
       return { type, ...b, question, options };
     }
-    case "checklist": {
-      const itemsRaw = Array.isArray(r.items) ? r.items : [];
-      const items: { text: string }[] = [];
-      for (const it of itemsRaw) {
-        if (!it) continue;
-        if (typeof it === "string") {
-          const t = clean(it, 200);
-          if (t) items.push({ text: t });
-        } else if (typeof it === "object") {
-          const t = clean((it as { text?: unknown }).text, 200);
-          if (t) items.push({ text: t });
+    case "discussion": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
+    }
+    case "phases": {
+      const raw = Array.isArray(r.phases) ? r.phases : [];
+      const phases: { label: string; description?: string }[] = [];
+      for (const x of raw) {
+        if (!x) continue;
+        if (typeof x === "string") {
+          const label = clean(x, 60);
+          if (label) phases.push({ label });
+        } else if (typeof x === "object") {
+          const xr = x as Record<string, unknown>;
+          const label = clean(xr.label, 60);
+          if (label) {
+            const description = clean(xr.description, 200) || undefined;
+            phases.push(description ? { label, description } : { label });
+          }
         }
-        if (items.length >= 12) break;
+        if (phases.length >= 10) break;
+      }
+      if (phases.length < 2) return null;
+      const currentPhase = num(r.currentPhase, 0, 0, phases.length - 1);
+      return { type, ...b, phases, currentPhase };
+    }
+    case "checklist": {
+      const raw = Array.isArray(r.items) ? r.items : [];
+      const items: { text: string }[] = [];
+      for (const x of raw) {
+        if (!x) continue;
+        if (typeof x === "string") {
+          const text = clean(x, 200);
+          if (text) items.push({ text });
+        } else if (typeof x === "object") {
+          const text = clean((x as { text?: unknown }).text, 200);
+          if (text) items.push({ text });
+        }
+        if (items.length >= 24) break;
+      }
+      return { type, ...b, items };
+    }
+    case "attachments": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
+    }
+    case "images": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
+    }
+    case "audio": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
+    }
+    case "sketch": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
+    }
+    case "table": {
+      const columns = stringArray(r.columns, 8, 40);
+      if (columns.length === 0) return null;
+      const rowsRaw = Array.isArray(r.rows) ? r.rows : [];
+      const rows: string[][] = [];
+      for (const row of rowsRaw) {
+        if (!Array.isArray(row)) continue;
+        const cells: string[] = [];
+        for (let i = 0; i < columns.length; i++) {
+          cells.push(clean(row[i], 200));
+        }
+        rows.push(cells);
+        if (rows.length >= 24) break;
+      }
+      return { type, ...b, columns, rows };
+    }
+    case "parts_list": {
+      const raw = Array.isArray(r.items) ? r.items : [];
+      const items: { name: string; quantity?: string; imageUrl?: string }[] = [];
+      for (const x of raw) {
+        if (!x || typeof x !== "object") continue;
+        const xr = x as Record<string, unknown>;
+        const name = clean(xr.name, 120);
+        if (!name) continue;
+        const quantity = clean(xr.quantity, 40) || undefined;
+        const imageUrl = clean(xr.imageUrl, 500);
+        const validImg = imageUrl && /^https?:\/\/[^\s]+$/i.test(imageUrl)
+          ? imageUrl
+          : undefined;
+        const entry: { name: string; quantity?: string; imageUrl?: string } = { name };
+        if (quantity) entry.quantity = quantity;
+        if (validImg) entry.imageUrl = validImg;
+        items.push(entry);
+        if (items.length >= 30) break;
       }
       if (items.length === 0) return null;
       return { type, ...b, items };
     }
-    case "help_slots": {
-      const slotsRaw = Array.isArray(r.slots) ? r.slots : [];
-      const slots: { label: string }[] = [];
-      for (const it of slotsRaw) {
-        if (!it) continue;
-        if (typeof it === "string") {
-          const l = clean(it, 80);
-          if (l) slots.push({ label: l });
-        } else if (typeof it === "object") {
-          const l = clean((it as { label?: unknown }).label, 80);
-          if (l) slots.push({ label: l });
-        }
-        if (slots.length >= 8) break;
-      }
-      if (slots.length === 0) return null;
-      return { type, ...b, slots };
-    }
-    case "stages": {
-      const stages = stringArray(r.stages, 8, 40);
-      if (stages.length < 2) return null;
-      const current = num(r.current, 0, 0, stages.length - 1);
-      return { type, ...b, stages, current };
-    }
-    case "number_block": {
-      const value = clean(r.value, 24);
-      if (!value) return null;
-      const caption = clean(r.caption, 80) || undefined;
-      return { type, ...b, value, caption };
-    }
-    case "icon": {
-      const iconify = clean(r.iconify, 80);
-      // Iconify identifiers look like "set:name", e.g. "lucide:book-open".
-      if (!/^[a-z0-9-]+:[a-z0-9-]+$/.test(iconify)) return null;
-      const size = num(r.size, 48, 16, 240);
-      return { type, ...b, iconify, size };
-    }
-    case "palette": {
-      const hue = clean(r.hue, 24).toLowerCase();
-      if (!hue) return null;
-      const stepsRaw = Array.isArray(r.steps) ? r.steps : null;
-      const steps = stepsRaw
-        ? stepsRaw
-            .filter((n): n is number => typeof n === "number")
-            .map((n) => Math.round(n))
-            .filter((n) => n >= 0 && n <= 12)
-            .slice(0, 6)
+    case "gif": {
+      const gifUrl = clean(r.gifUrl, 500);
+      if (!/^https?:\/\/[^\s]+$/i.test(gifUrl)) return null;
+      const thumbnailUrl = clean(r.thumbnailUrl, 500);
+      const validThumb = thumbnailUrl && /^https?:\/\/[^\s]+$/i.test(thumbnailUrl)
+        ? thumbnailUrl
         : undefined;
-      return { type, ...b, hue, steps };
-    }
-    case "map": {
-      const c = r.center;
-      if (!Array.isArray(c) || c.length !== 2) return null;
-      const lng = typeof c[0] === "number" ? c[0] : NaN;
-      const lat = typeof c[1] === "number" ? c[1] : NaN;
-      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
-      if (lng < -180 || lng > 180 || lat < -90 || lat > 90) return null;
-      const zoom = num(r.zoom, 11, 1, 18);
-      const markersRaw = Array.isArray(r.markers) ? r.markers : [];
-      const markers: { lng: number; lat: number; label?: string }[] = [];
-      for (const m of markersRaw) {
-        if (!m || typeof m !== "object") continue;
-        const mr = m as Record<string, unknown>;
-        const mlng = typeof mr.lng === "number" ? mr.lng : NaN;
-        const mlat = typeof mr.lat === "number" ? mr.lat : NaN;
-        if (!Number.isFinite(mlng) || !Number.isFinite(mlat)) continue;
-        const label = clean(mr.label, 80) || undefined;
-        markers.push(label ? { lng: mlng, lat: mlat, label } : { lng: mlng, lat: mlat });
-        if (markers.length >= 8) break;
-      }
-      return { type, ...b, center: [lng, lat], zoom, markers: markers.length ? markers : undefined };
-    }
-    case "time": {
-      const mode = r.mode;
-      if (mode !== "date" && mode !== "countdown" && mode !== "timeline") return null;
-      const date = clean(r.date, 40) || undefined;
-      const timezone = clean(r.timezone, 60) || undefined;
-      const entriesRaw = Array.isArray(r.entries) ? r.entries : [];
-      const entries: { date: string; label: string }[] = [];
-      for (const e of entriesRaw) {
-        if (!e || typeof e !== "object") continue;
-        const er = e as Record<string, unknown>;
-        const d = clean(er.date, 40);
-        const l = clean(er.label, 80);
-        if (d && l) entries.push({ date: d, label: l });
-        if (entries.length >= 8) break;
-      }
-      // For "date" and "countdown" we need a date. For "timeline" we
-      // accept either a date+entries or just entries.
-      if ((mode === "date" || mode === "countdown") && !date) return null;
-      if (mode === "timeline" && entries.length === 0 && !date) return null;
-      return { type, ...b, mode, date, entries: entries.length ? entries : undefined, timezone };
-    }
-    case "knowledge": {
-      const topic = clean(r.topic, 120);
-      if (!topic) return null;
-      const source = r.source === "wikidata" ? "wikidata" : "wikipedia";
-      const showRaw = Array.isArray(r.show) ? r.show : [];
-      const show: ("summary" | "thumb" | "facts")[] = [];
-      for (const s of showRaw) {
-        if (s === "summary" || s === "thumb" || s === "facts") show.push(s);
-      }
-      if (show.length === 0) show.push("summary");
-      return { type, ...b, topic, source, show };
-    }
-    case "framework": {
-      const kind = r.kind;
-      const valid = ["okr", "scqa", "eisenhower", "rice", "kanban", "adr", "rfc", "postmortem", "faq", "one_pager"] as const;
-      if (typeof kind !== "string" || !(valid as readonly string[]).includes(kind)) return null;
-      const prefillRaw = (r.prefill && typeof r.prefill === "object") ? r.prefill as Record<string, unknown> : {};
-      const prefill: Record<string, string> = {};
-      for (const [k, v] of Object.entries(prefillRaw)) {
-        const key = clean(k, 32);
-        const value = typeof v === "string" ? v.trim().slice(0, 800) : "";
-        if (key && value) prefill[key] = value;
-      }
-      return { type, ...b, kind: kind as FrameworkKind, prefill };
-    }
-    case "typography": {
-      const heading = clean(r.heading, 60);
-      const body = clean(r.body, 60);
-      if (!heading || !body) return null;
-      return { type, ...b, heading, body };
-    }
-    case "formula": {
-      const latex = typeof r.latex === "string" ? r.latex.slice(0, 600) : "";
-      if (!latex) return null;
-      const display = r.display === "block" ? "block" : "inline";
-      return { type, ...b, latex, display };
-    }
-    case "chart": {
-      const chartType = r.chartType;
-      if (chartType !== "bar" && chartType !== "line" && chartType !== "area") return null;
-      const dataRaw = Array.isArray(r.data) ? r.data : [];
-      const data: { x: string; y: number }[] = [];
-      for (const d of dataRaw) {
-        if (!d || typeof d !== "object") continue;
-        const dr = d as Record<string, unknown>;
-        const x = clean(dr.x, 24);
-        const y = typeof dr.y === "number" && Number.isFinite(dr.y) ? dr.y : NaN;
-        if (x && Number.isFinite(y)) data.push({ x, y });
-        if (data.length >= 24) break;
-      }
-      if (data.length < 2) return null;
-      const xLabel = clean(r.xLabel, 40) || undefined;
-      const yLabel = clean(r.yLabel, 40) || undefined;
-      return { type, ...b, chartType, data, xLabel, yLabel };
-    }
-    case "image": {
-      const url = clean(r.url, 500);
-      if (!/^https?:\/\/[^\s]+$/i.test(url)) return null;
-      const alt = clean(r.alt, 200) || undefined;
-      return { type, ...b, url, alt };
+      return { type, ...b, gifUrl, thumbnailUrl: validThumb };
     }
   }
 }
 
-/** Sanitize a list of module candidates. Drops invalid ones, caps at
- *  10 total to keep a space readable. */
+/** Sanitize a list of module candidates. Drops invalid ones, caps the
+ *  list to a sane upper bound so the UI never tries to render a 200-
+ *  widget space. */
 export function sanitizeModules(raw: unknown): Module[] {
   if (!Array.isArray(raw)) return [];
   const out: Module[] = [];
   for (const item of raw) {
     const m = sanitizeModule(item);
     if (m) out.push(m);
-    if (out.length >= 10) break;
+    if (out.length >= 32) break;
   }
   return out;
 }
 
 // ============================================================
-// Meta — used by the renderer for attribution rows + data hints
+// MODULE_META — agent-facing semantics for every widget type
+//
+// The classifier prompt is constructed from this table at runtime so
+// it stays in lockstep with the registry. Adding a 30th widget means
+// extending types + sanitizer + this table; the prompt picks the new
+// entry up automatically.
 // ============================================================
 
+export type ExternalSource =
+  | "wikipedia"
+  | "iconify"
+  | "map"
+  | "intl"
+  | "graphics"
+  | "gif"
+  | "storage"
+  | null;
+
 export interface ModuleMeta {
-  /** Human-readable source label, displayed in tiny mono near the module. */
-  dataSource: string | null;
-  /** Whether the source mandates a visible attribution. */
+  /** Whether this widget always lives in the header zone (above the
+   *  grid). Header zone widgets are always inserted. */
+  partOfHeader: boolean;
+  /** Whether the widget is always inserted (true for the three header
+   *  widgets) or conditional. */
+  alwaysInserted: boolean;
+  /** When the agent should pick this widget — the rule the classifier
+   *  prompt uses. Written in the user's language is irrelevant here;
+   *  this is internal prompt scaffolding. */
+  relevantWhen: string;
+  /** Whether the agent must collect specific data from the user during
+   *  the clarify step before the page can be assembled. */
+  requiresMandatoryConfig: boolean;
+  /** External data source the renderer fetches from at view time, if
+   *  any. */
+  externalSource: ExternalSource;
+  /** Whether the source mandates a visible attribution row. */
   requiresAttribution: boolean;
+  /** Whether collaborators can vote / signal on parts of the widget. */
+  hasSignals: boolean;
+  /** Whether the widget receives file uploads. */
+  hasUploads: boolean;
+  /** Whether the widget hosts threaded text contributions. */
+  hasThread: boolean;
 }
 
 export const MODULE_META: Record<ModuleType, ModuleMeta> = {
-  headline:      { dataSource: null,                   requiresAttribution: false },
-  synthesis:     { dataSource: null,                   requiresAttribution: false },
-  tags:          { dataSource: null,                   requiresAttribution: false },
-  notes:         { dataSource: null,                   requiresAttribution: false },
-  open_question: { dataSource: null,                   requiresAttribution: false },
-  poll:          { dataSource: null,                   requiresAttribution: false },
-  checklist:     { dataSource: null,                   requiresAttribution: false },
-  help_slots:    { dataSource: null,                   requiresAttribution: false },
-  stages:        { dataSource: null,                   requiresAttribution: false },
-  number_block:  { dataSource: null,                   requiresAttribution: false },
-  icon:          { dataSource: "Iconify",              requiresAttribution: false },
-  palette:       { dataSource: "Open Props",           requiresAttribution: false },
-  map:           { dataSource: "OpenStreetMap",        requiresAttribution: true  },
-  time:          { dataSource: null,                   requiresAttribution: false },
-  knowledge:     { dataSource: "Wikipedia / Wikidata", requiresAttribution: true  },
-  framework:     { dataSource: null,                   requiresAttribution: false },
-  typography:    { dataSource: "Google Fonts",         requiresAttribution: false },
-  formula:       { dataSource: "KaTeX",                requiresAttribution: false },
-  chart:         { dataSource: "Observable Plot",      requiresAttribution: false },
-  image:         { dataSource: "Wikimedia Commons",    requiresAttribution: true  },
+  // Header zone — always inserted
+  heading: {
+    partOfHeader: true,
+    alwaysInserted: true,
+    relevantWhen: "always — the space title",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  rich_text: {
+    partOfHeader: true,
+    alwaysInserted: true,
+    relevantWhen: "always — short context paragraph below the title",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  tags: {
+    partOfHeader: true,
+    alwaysInserted: true,
+    relevantWhen: "always — surface themes/keywords",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+
+  // Wiki / AI reference
+  wikipedia: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "input names (a) an established method/practice with a Wikipedia article (OKR, Pomodoro, Postmortem, …), (b) a named cultural/social form (Repair-Café, Buchclub, Open Mic, …), (c) a named field or person (Permaculture, Bayesian Inference, Camus, …), or (d) a place with a substantive Wikipedia entry. NEVER for generic activities, personal situations, creative/subjective topics, areas where the user is clearly the expert, or anything Wikipedia would treat generically. Maximum one per space.",
+    requiresMandatoryConfig: false,
+    externalSource: "wikipedia",
+    requiresAttribution: true,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  ai_summary: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "input would benefit from a generalised, abstract take that makes the matter more graspable. Use sparingly; max one per space.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+
+  // Icon
+  icon: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "a symbol would aid recognition. Skip for projects about art or branding where a generic icon would clash with the user's own visual identity.",
+    requiresMandatoryConfig: false,
+    externalSource: "iconify",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+
+  // Map family — all four are mandatory-config
+  location_single: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen: "input concerns one specific location.",
+    requiresMandatoryConfig: true,
+    externalSource: "map",
+    requiresAttribution: true,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  locations_multi: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen: "input concerns multiple confirmed locations.",
+    requiresMandatoryConfig: true,
+    externalSource: "map",
+    requiresAttribution: true,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  location_suggestions: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "input mentions a location need but the actual place must still be agreed on by participants. Renders as a text list with vote stacking, not a map.",
+    requiresMandatoryConfig: true,
+    externalSource: "map",
+    requiresAttribution: true,
+    hasSignals: true,
+    hasUploads: false,
+    hasThread: false,
+  },
+  route: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen: "input concerns a route between multiple stops.",
+    requiresMandatoryConfig: true,
+    externalSource: "map",
+    requiresAttribution: true,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+
+  // Time
+  date: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen: "input mentions a specific day without a specific time.",
+    requiresMandatoryConfig: false,
+    externalSource: "intl",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  appointment: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen: "input mentions a specific day AND time.",
+    requiresMandatoryConfig: false,
+    externalSource: "intl",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  appointments: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen: "input mentions multiple specific days/times.",
+    requiresMandatoryConfig: false,
+    externalSource: "intl",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  range: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "input mentions a span — from-X-to-Y of times, weekdays, months, years, dates, places or quantities.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+
+  // Team / packages
+  crew: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "a team should form with members taking on different roles. Each role is claimable; the widget supports a segment-share invite per role.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: false,
+    hasThread: false,
+  },
+  work_packages: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "recording the relevant work packages would help. Each package is claimable; the widget supports a segment-share invite per package.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: false,
+    hasThread: false,
+  },
+
+  // Free-form
+  notes: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "the project is exploratory or operationally complex enough that scratch notes will accrue.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  qa: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "the approach is concrete enough that pretexts / details need clarification, OR open topics exist that the group needs to settle together.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: true,
+  },
+  poll: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "parts or details are up for debate and should be evaluated together.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: false,
+    hasThread: false,
+  },
+  discussion: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "mostly fitting — enables ongoing chat about the matter with chronological traceability.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: true,
+  },
+
+  // Visualisation
+  phases: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "a chronological representation makes the matter easier to understand.",
+    requiresMandatoryConfig: true,
+    externalSource: "graphics",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  checklist: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "it makes sense to publicly tick off things to do. Renders the checker's avatar in the checked box.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: false,
+    hasThread: false,
+  },
+
+  // Uploads
+  attachments: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "files (up to 5MB each) are relevant for working on the matter.",
+    requiresMandatoryConfig: false,
+    externalSource: "storage",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: true,
+    hasThread: false,
+  },
+  images: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "visible images (up to 5MB each) are relevant. Renders as an auto-scrolling gallery.",
+    requiresMandatoryConfig: false,
+    externalSource: "storage",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: true,
+    hasThread: false,
+  },
+  audio: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "audio (up to 5MB per file) is relevant.",
+    requiresMandatoryConfig: false,
+    externalSource: "storage",
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: true,
+    hasThread: false,
+  },
+
+  // Specialty
+  sketch: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "the matter is creative or playful and benefits from a canvas. Strokes are coloured by author profile.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  table: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "multiple items share common attributes and should be made comparable.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  parts_list: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "a collection of required parts / supplies / BOM should be kept.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  gif: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "the matter is creative and exploratory — a GIF as decorative anchor. Skip for serious / formal contexts.",
+    requiresMandatoryConfig: false,
+    externalSource: "gif",
+    requiresAttribution: true,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
 };
+
+// ============================================================
+// Convenience selectors used by the classifier + clarify endpoint
+// ============================================================
+
+export function mandatoryConfigTypes(): ModuleType[] {
+  return ALL_MODULE_TYPES.filter((t) => MODULE_META[t].requiresMandatoryConfig);
+}
+
+export function alwaysInsertedTypes(): ModuleType[] {
+  return ALL_MODULE_TYPES.filter((t) => MODULE_META[t].alwaysInserted);
+}
+
+export function bodyTypes(): ModuleType[] {
+  return ALL_MODULE_TYPES.filter((t) => !MODULE_META[t].partOfHeader);
+}

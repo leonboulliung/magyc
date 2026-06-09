@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { fetchSpaceById } from "@/lib/db";
 import { bodyContainer, bodyItem, heroIn, synthesisIn } from "@/lib/anim";
-import type { HeadlineModule, Module, Space, SynthesisModule } from "@/lib/types";
+import type { HeadingWidget, Module, RichTextWidget, Space } from "@/lib/types";
 import { MagyCBadge } from "@/components/MagyCBadge";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { PublishButton } from "@/components/PublishButton";
@@ -57,12 +57,12 @@ export function SpaceView({ id }: { id: string }) {
     return { displayedModules: space.modules, currentVersionNumber: latest };
   }, [space, viewVersion]);
 
-  // Pull out headline + synthesis as header zone; the rest are body.
-  const { headline, synthesis, bodyModules } = useMemo(() => {
-    const head = displayedModules.find((m): m is HeadlineModule => m.type === "headline");
-    const synth = displayedModules.find((m): m is SynthesisModule => m.type === "synthesis");
-    const body = displayedModules.filter((m) => m.type !== "headline" && m.type !== "synthesis");
-    return { headline: head, synthesis: synth, bodyModules: body };
+  // Pull out heading + rich text as header zone; the rest are body.
+  const { heading, richText, bodyModules } = useMemo(() => {
+    const head = displayedModules.find((m): m is HeadingWidget => m.type === "heading");
+    const rt = displayedModules.find((m): m is RichTextWidget => m.type === "rich_text");
+    const body = displayedModules.filter((m) => m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags");
+    return { heading: head, richText: rt, bodyModules: body };
   }, [displayedModules]);
 
   if (!loaded) return <div className="min-h-screen bg-white" />;
@@ -102,23 +102,18 @@ export function SpaceView({ id }: { id: string }) {
         <div className="max-w-5xl mx-auto px-4 sm:px-10 pt-14 sm:pt-20 pb-8 sm:pb-12">
           <motion.div initial="hidden" animate="show" variants={heroIn}>
             <h1 className="vibe-heading font-black text-[40px] sm:text-[64px] leading-[0.95]">
-              {headline?.title ?? space.title ?? "—"}
+              {heading?.text ?? space.title ?? "—"}
             </h1>
-            {headline?.subtitle && (
-              <p className="vibe-muted text-[16px] sm:text-[19px] mt-3 leading-snug max-w-2xl">
-                {headline.subtitle}
-              </p>
-            )}
           </motion.div>
 
-          {synthesis && (
+          {richText && richText.text && (
             <motion.p
               initial="hidden"
               animate="show"
               variants={synthesisIn}
               className="vibe-heading text-[17px] sm:text-[19px] leading-relaxed mt-6 sm:mt-8 max-w-2xl"
             >
-              {synthesis.text}
+              {richText.text}
             </motion.p>
           )}
         </div>

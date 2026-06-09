@@ -189,15 +189,22 @@ export async function classifyInput(
   const vibe: Vibe = VIBE_SET.has(vibeRaw) ? (vibeRaw as Vibe) : "minimal";
   const modules = sanitizeModules(parsed.modules);
 
-  // Enforce ordering: headline first, synthesis second.
-  const head = modules.find((m) => m.type === "headline");
-  const synth = modules.find((m) => m.type === "synthesis");
-  const rest = modules.filter((m) => m.type !== "headline" && m.type !== "synthesis");
+  // Enforce ordering of the header zone: heading → rich_text → tags →
+  // everything else. The prompt rewrite (Phase 0 Commit B) will make
+  // this a hard requirement on the AI side; for now we sort defensively
+  // and inject a heading from the title if the AI didn't produce one.
+  const heading = modules.find((m) => m.type === "heading");
+  const richText = modules.find((m) => m.type === "rich_text");
+  const tags = modules.find((m) => m.type === "tags");
+  const body = modules.filter((m) =>
+    m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags",
+  );
   const ordered: Module[] = [];
-  if (head) ordered.push(head);
-  else if (title) ordered.push({ type: "headline", label: title, title });
-  if (synth) ordered.push(synth);
-  ordered.push(...rest);
+  if (heading) ordered.push(heading);
+  else if (title) ordered.push({ type: "heading", text: title, level: 1 });
+  if (richText) ordered.push(richText);
+  if (tags) ordered.push(tags);
+  ordered.push(...body);
 
   return { title, language, vibe, modules: ordered };
 }

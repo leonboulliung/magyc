@@ -13,6 +13,7 @@ type ProfileRow = {
   id: string;
   display_name: string;
   avatar_url: string | null;
+  color: string | null;
   created_at: string;
 };
 
@@ -62,6 +63,7 @@ function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
       id: fallbackId,
       displayName: fallbackId ? `user-${fallbackId.slice(-6)}` : "user",
       avatarUrl: null,
+      color: null,
       createdAt: 0,
     };
   }
@@ -69,6 +71,7 @@ function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
     id: row.id,
     displayName: row.display_name || `user-${row.id.slice(-6)}`,
     avatarUrl: row.avatar_url,
+    color: row.color ?? null,
     createdAt: row.created_at ? new Date(row.created_at).getTime() : 0,
   };
 }
@@ -148,7 +151,7 @@ const SPACE_SELECT = `
   id, input_text, title, language, vibe, modules,
   anon_owner_token, owner_id, visibility, password_hash,
   created_at, published_at,
-  owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, created_at),
+  owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
   state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
   versions:space_versions(id, space_id, version, title, modules, note, created_at)
 `;
