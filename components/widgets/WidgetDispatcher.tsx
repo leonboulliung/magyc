@@ -35,6 +35,20 @@ import { LocationsMultiRenderer } from "./LocationsMultiRenderer";
 import { LocationSuggestionsRenderer } from "./LocationSuggestionsRenderer";
 import { RouteRenderer } from "./RouteRenderer";
 
+// Phase 5
+import { PhasesRenderer } from "./PhasesRenderer";
+
+// Phase 6
+import { AttachmentsRenderer } from "./AttachmentsRenderer";
+import { ImagesRenderer } from "./ImagesRenderer";
+import { AudioRenderer } from "./AudioRenderer";
+
+// Phase 7
+import { GifRenderer } from "./GifRenderer";
+
+// Phase 8
+import { SketchRenderer } from "./SketchRenderer";
+
 /**
  * Single entry point for rendering a widget. Each Phase adds renderers
  * here; everything not yet implemented falls through to the
@@ -110,8 +124,31 @@ export function WidgetDispatcher({
     case "route":
       return <RouteRenderer module={m} index={index} />;
 
+    // Phase 5
+    case "phases":
+      return <PhasesRenderer module={m} index={index} />;
+
+    // Phase 6
+    case "attachments":
+      return <AttachmentsRenderer module={m} index={index} state={s} />;
+    case "images":
+      return <ImagesRenderer module={m} index={index} state={s} />;
+    case "audio":
+      return <AudioRenderer module={m} index={index} state={s} />;
+
+    // Phase 7
+    case "gif":
+      return <GifRenderer module={m} index={index} />;
+
+    // Phase 8
+    case "sketch":
+      return <SketchRenderer module={m} index={index} state={s} />;
+
     default:
-      return <PendingPlaceholder type={m.type} />;
+      // Exhaustive match — all 29 widget types are handled above.
+      // This branch is a forward-compat safety net for new types added
+      // before a renderer is built.
+      return <PendingPlaceholder type={(m as { type: string }).type} />;
   }
 }
 

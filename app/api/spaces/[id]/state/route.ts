@@ -10,20 +10,47 @@ import type { ModuleStateKind } from "@/lib/types";
  *
  *   Body: {
  *     moduleIndex: number,
- *     kind: 'vote' | 'check' | 'claim' | 'voice' | 'edit' | 'add',
- *     data: { ... }            // depends on kind
+ *     kind: ModuleStateKind,
+ *     data: { ... }            // shape depends on kind (see below)
  *     anonToken?: string,      // present when not signed in
  *     anonName?: string,       // optional display name for anon actor
  *   }
  *
- * Authentication: a Clerk session takes priority. If not signed in,
- * the anonToken is the actor identity. Both flows store a `display_name`
- * snapshot so renaming later doesn't retroactively change attribution.
+ * Kind semantics:
+ *   vote    — one active vote per actor per module. Empty option = remove.
+ *   check   — toggle. data: { itemKey: string, checked: bool }
+ *   claim   — one actor per slot. data: { slotLabel, claimed? }
+ *             claimed: false = unclaim (delete existing).
+ *   voice   — append message. data: { id, text, role?, parentId? }
+ *   edit    — last-write-wins. data: arbitrary (text, id, etc.)
+ *   add     — append item. data: arbitrary (text, id, imageUrl, etc.)
+ *   upload  — record a stored file. data: { url, name, size?, mimeType? }
+ *   stroke  — append canvas stroke. data: { path, color? }
  */
 
 const ALLOWED_KINDS: ReadonlySet<ModuleStateKind> = new Set([
-  "vote", "check", "claim", "voice", "edit", "add",
+  "vote", "check", "claim", "voice", "edit", "add", "upload", "stroke",
 ]);
+
+/** Maximum number of bytes we allow in the data blob. */
+const MAX_DATA_BYTES = 16_000;
+
+/** Sanitise a data blob — cap total serialized size, keep shape. */
+function sanitizeData(d: unknown): Record<string, unknown> {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return {};
+  const raw = d as Record<string, unknown>;
+  // Drop keys whose value is a large blob (e.g. base64 images should not
+  // come through state — they belong in Storage).
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "string" && v.length > 4000) continue; // cap strings
+    if (typeof v === "object" && v !== null) continue;      // no nested objs
+    out[k] = v;
+  }
+  const serialized = JSON.stringify(out);
+  if (serialized.length > MAX_DATA_BYTES) return {};
+  return out;
+}
 
 export async function POST(
   req: Request,
@@ -43,14 +70,15 @@ export async function POST(
   }
 
   const moduleIndex = typeof body.moduleIndex === "number" ? Math.floor(body.moduleIndex) : -1;
-  if (moduleIndex < 0 || moduleIndex > 32) {
+  if (moduleIndex < 0 || moduleIndex > 64) {
     return NextResponse.json({ error: "bad_module_index" }, { status: 400 });
   }
   const kind = body.kind;
   if (typeof kind !== "string" || !ALLOWED_KINDS.has(kind as ModuleStateKind)) {
     return NextResponse.json({ error: "bad_kind" }, { status: 400 });
   }
-  const data = (body.data && typeof body.data === "object") ? body.data : {};
+  const rawData = body.data && typeof body.data === "object" ? body.data : {};
+  const data = sanitizeData(rawData);
 
   // Identify actor.
   const { userId } = await auth();
@@ -61,8 +89,6 @@ export async function POST(
   if (userId) {
     actorKind = "user";
     actorId = userId;
-    // We could look the display name up from Clerk here — for now we
-    // accept what the client passes via anonName as a fallback hint.
     displayName = (body.anonName && body.anonName.trim().slice(0, 40)) || null;
   } else {
     const token = typeof body.anonToken === "string" ? body.anonToken.trim() : "";
@@ -74,10 +100,9 @@ export async function POST(
     displayName = (body.anonName && body.anonName.trim().slice(0, 40)) || null;
   }
 
-  // Per-kind data validation + uniqueness behavior.
   const admin = supabaseAdmin();
 
-  // Verify the module index exists on the space.
+  // Verify space + module index exist.
   const { data: space } = await admin
     .from("spaces")
     .select("id, modules")
@@ -88,12 +113,10 @@ export async function POST(
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
   }
 
-  // Vote / check / claim are SINGLE-ACTION per actor per (module, key).
-  // We delete the prior row, then insert the new one — effectively
-  // toggle semantics from the client's perspective.
+  // ── vote ──────────────────────────────────────────────────────────────
   if (kind === "vote") {
-    const option = typeof data.option === "string" ? data.option.slice(0, 80) : "";
-    if (!option) return NextResponse.json({ error: "vote_option_required" }, { status: 400 });
+    const option = typeof data.option === "string" ? (data.option as string).trim().slice(0, 80) : "";
+    // Always delete any prior vote for this actor+module.
     await admin
       .from("module_state")
       .delete()
@@ -102,6 +125,8 @@ export async function POST(
       .eq("kind", "vote")
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId);
+    // Empty option = toggle off (just delete).
+    if (!option) return NextResponse.json({ ok: true });
     const { error } = await admin.from("module_state").insert({
       id: newId(),
       space_id: params.id,
@@ -110,19 +135,23 @@ export async function POST(
       actor_id: actorId,
       display_name: displayName,
       kind,
-      data: { option },
+      data: { ...data, option },
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
+  // ── check ─────────────────────────────────────────────────────────────
   if (kind === "check") {
-    const itemIndex = typeof data.itemIndex === "number" ? Math.floor(data.itemIndex) : -1;
-    if (itemIndex < 0 || itemIndex > 64) {
-      return NextResponse.json({ error: "bad_item_index" }, { status: 400 });
-    }
+    // Accepts itemKey (string) for the new checklist, or itemIndex
+    // (number) for any legacy path. Both stored as itemKey.
+    const itemKey =
+      typeof data.itemKey === "string" ? (data.itemKey as string).slice(0, 80) :
+      typeof data.itemIndex === "number" ? `seed-${Math.floor(data.itemIndex as number)}` : "";
+    if (!itemKey) return NextResponse.json({ error: "item_key_required" }, { status: 400 });
     const checked = !!data.checked;
-    // Delete any prior tick on this (item, actor) — the latest wins.
+
+    // Delete prior check for this (actor, item).
     await admin
       .from("module_state")
       .delete()
@@ -131,7 +160,8 @@ export async function POST(
       .eq("kind", "check")
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId)
-      .filter("data->>itemIndex", "eq", String(itemIndex));
+      .filter("data->>itemKey", "eq", itemKey);
+
     if (checked) {
       const { error } = await admin.from("module_state").insert({
         id: newId(),
@@ -141,29 +171,20 @@ export async function POST(
         actor_id: actorId,
         display_name: displayName,
         kind,
-        data: { itemIndex, checked: true },
+        data: { ...data, itemKey, checked: true },
       });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true });
   }
 
+  // ── claim ─────────────────────────────────────────────────────────────
   if (kind === "claim") {
-    const slotLabel = typeof data.slotLabel === "string" ? data.slotLabel.slice(0, 80) : "";
+    const slotLabel = typeof data.slotLabel === "string" ? (data.slotLabel as string).slice(0, 80) : "";
     if (!slotLabel) return NextResponse.json({ error: "slot_label_required" }, { status: 400 });
-    // One claim per slot — reject if another actor already holds it.
-    const { data: holders } = await admin
-      .from("module_state")
-      .select("actor_kind, actor_id, data")
-      .eq("space_id", params.id)
-      .eq("module_index", moduleIndex)
-      .eq("kind", "claim")
-      .filter("data->>slotLabel", "eq", slotLabel);
-    const otherHolder = (holders || []).find(
-      (h) => !(h.actor_kind === actorKind && h.actor_id === actorId),
-    );
-    if (otherHolder) return NextResponse.json({ error: "slot_taken" }, { status: 409 });
-    // Idempotent for the same actor.
+    const claiming = data.claimed !== false; // default true; false = unclaim
+
+    // Delete existing claim for this (actor, slot).
     await admin
       .from("module_state")
       .delete()
@@ -173,6 +194,22 @@ export async function POST(
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId)
       .filter("data->>slotLabel", "eq", slotLabel);
+
+    if (!claiming) return NextResponse.json({ ok: true }); // unclaim = just delete
+
+    // Check if another actor already holds this slot.
+    const { data: holders } = await admin
+      .from("module_state")
+      .select("actor_kind, actor_id")
+      .eq("space_id", params.id)
+      .eq("module_index", moduleIndex)
+      .eq("kind", "claim")
+      .filter("data->>slotLabel", "eq", slotLabel);
+    const takenByOther = (holders || []).some(
+      (h) => !(h.actor_kind === actorKind && h.actor_id === actorId),
+    );
+    if (takenByOther) return NextResponse.json({ error: "slot_taken" }, { status: 409 });
+
     const { error } = await admin.from("module_state").insert({
       id: newId(),
       space_id: params.id,
@@ -181,14 +218,15 @@ export async function POST(
       actor_id: actorId,
       display_name: displayName,
       kind,
-      data: { slotLabel },
+      data: { ...data, slotLabel, claimed: true },
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
+  // ── voice ─────────────────────────────────────────────────────────────
   if (kind === "voice") {
-    const text = typeof data.text === "string" ? data.text.trim().slice(0, 800) : "";
+    const text = typeof data.text === "string" ? (data.text as string).trim().slice(0, 2000) : "";
     if (!text) return NextResponse.json({ error: "voice_text_required" }, { status: 400 });
     const { error } = await admin.from("module_state").insert({
       id: newId(),
@@ -198,19 +236,16 @@ export async function POST(
       actor_id: actorId,
       display_name: displayName,
       kind,
-      data: { text },
+      // Persist full data so id / role / parentId travel with the row.
+      data: { ...data, text },
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
+  // ── edit ──────────────────────────────────────────────────────────────
   if (kind === "edit") {
-    // Notes / stages last-write-wins. We don't dedupe — full history
-    // is kept, the UI shows latest.
-    const out: Record<string, unknown> = {};
-    if (typeof data.text === "string") out.text = data.text.slice(0, 4000);
-    if (typeof data.current === "number") out.current = Math.floor(data.current);
-    if (Object.keys(out).length === 0) {
+    if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: "edit_empty" }, { status: 400 });
     }
     const { error } = await admin.from("module_state").insert({
@@ -221,15 +256,20 @@ export async function POST(
       actor_id: actorId,
       display_name: displayName,
       kind,
-      data: out,
+      data,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
+  // ── add ───────────────────────────────────────────────────────────────
   if (kind === "add") {
-    const value = typeof data.value === "string" ? data.value.trim().slice(0, 200) : "";
-    if (!value) return NextResponse.json({ error: "add_value_required" }, { status: 400 });
+    // Accept any non-empty data; callers use different field names
+    // (text, name, value, …). We just persist the blob.
+    const hasContent = Object.values(data).some(
+      (v) => v !== null && v !== undefined && v !== "",
+    );
+    if (!hasContent) return NextResponse.json({ error: "add_empty" }, { status: 400 });
     const { error } = await admin.from("module_state").insert({
       id: newId(),
       space_id: params.id,
@@ -238,7 +278,46 @@ export async function POST(
       actor_id: actorId,
       display_name: displayName,
       kind,
-      data: { value },
+      data,
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── upload ────────────────────────────────────────────────────────────
+  if (kind === "upload") {
+    const url = typeof data.url === "string" ? (data.url as string).trim() : "";
+    if (!url.startsWith("https://")) {
+      return NextResponse.json({ error: "upload_url_required" }, { status: 400 });
+    }
+    const { error } = await admin.from("module_state").insert({
+      id: newId(),
+      space_id: params.id,
+      module_index: moduleIndex,
+      actor_kind: actorKind,
+      actor_id: actorId,
+      display_name: displayName,
+      kind,
+      data: { ...data, url },
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── stroke ────────────────────────────────────────────────────────────
+  if (kind === "stroke") {
+    if (!data.path || typeof data.path !== "string") {
+      return NextResponse.json({ error: "stroke_path_required" }, { status: 400 });
+    }
+    const { error } = await admin.from("module_state").insert({
+      id: newId(),
+      space_id: params.id,
+      module_index: moduleIndex,
+      actor_kind: actorKind,
+      actor_id: actorId,
+      display_name: displayName,
+      kind,
+      data,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
