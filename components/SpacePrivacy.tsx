@@ -2,27 +2,22 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { label } from "@/lib/labels";
 import type { Space } from "@/lib/types";
 
 /**
- * Privacy footer toggle — Public / Password.
+ * Privacy footer toggle — Public / Private.
  *
- * UI scaffolding for the visibility toggle. Wires the backend in a
- * follow-up: today this surface lets us SEE the affordance and copy
- * the password placeholder so we can position it in the footer.
- *
- * When visibility === 'password', the password row reveals with a copy
- * button. The actual password generation + hashing belongs in a
- * dedicated endpoint we'll wire after the layout shape sits.
+ * Every visible word reads from space.labels with Unicode-symbol
+ * fallbacks. The component imposes no language.
  */
 export function SpacePrivacy({ space }: { space: Space }) {
   const [mode, setMode] = useState<"public" | "password">(
     space.visibility === "password" ? "password" : "public",
   );
   const [copied, setCopied] = useState(false);
+  const L = space.labels;
 
-  // Placeholder password until the backend wiring lands — generated
-  // once per page-load so the UI feels real for testing.
   const [password] = useState(() =>
     typeof window !== "undefined"
       ? `pw-${Math.random().toString(36).slice(2, 10)}`
@@ -35,13 +30,12 @@ export function SpacePrivacy({ space }: { space: Space }) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
-      window.prompt("Password", password);
+      window.prompt("password", password);
     }
   };
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      {/* Two-way pill toggle */}
       <div
         className="flex items-center rounded-full p-0.5"
         style={{ background: "var(--v-rule)" }}
@@ -54,7 +48,7 @@ export function SpacePrivacy({ space }: { space: Space }) {
             color: mode === "public" ? "var(--v-bg)" : "var(--v-fg)",
           }}
         >
-          public
+          {label(L, "visibilityPublic")}
         </button>
         <button
           onClick={() => setMode("password")}
@@ -64,11 +58,10 @@ export function SpacePrivacy({ space }: { space: Space }) {
             color: mode === "password" ? "var(--v-bg)" : "var(--v-fg)",
           }}
         >
-          private
+          {label(L, "visibilityPrivate")}
         </button>
       </div>
 
-      {/* Password reveal when private — copy button */}
       <AnimatePresence>
         {mode === "password" && (
           <motion.div
@@ -89,7 +82,7 @@ export function SpacePrivacy({ space }: { space: Space }) {
               className="mono text-[10px] tracking-widest underline-offset-2 hover:underline"
               style={{ color: "var(--v-fg)" }}
             >
-              {copied ? "copied ✓" : "copy"}
+              {copied ? `${label(L, "copied")} ✓` : label(L, "copy")}
             </button>
           </motion.div>
         )}

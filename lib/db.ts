@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { sanitizeModules } from "./modules";
 import type {
-  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, Space, SpaceVersion, Vibe, Visibility,
+  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, Space, SpaceLabels, SpaceVersion, Vibe, Visibility,
 } from "./types";
 import { ALL_VIBES } from "./types";
 
@@ -36,6 +36,7 @@ type SpaceRow = {
   language: string;
   vibe: string;
   modules: unknown[] | null;
+  labels: Record<string, unknown> | null;
   anon_owner_token: string;
   owner_id: string | null;
   visibility: string | null;
@@ -110,6 +111,28 @@ function mapVisibility(raw: string | null): Visibility {
   return null;
 }
 
+const LABEL_KEYS: readonly (keyof SpaceLabels)[] = [
+  "publishCta", "publishTitle", "publishExplanation", "cancel",
+  "publishConfirm", "signInPrompt", "signInCta", "signedInAs",
+  "visibilityPublic", "visibilityPrivate", "copy", "copied",
+  "backToCurrent", "viewingVersionPrefix",
+  "emptyGrid", "emptyGridHint",
+  "rendererPending",
+];
+
+function mapLabels(raw: Record<string, unknown> | null): SpaceLabels {
+  const out: SpaceLabels = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const k of LABEL_KEYS) {
+    const v = (raw as Record<string, unknown>)[k];
+    if (typeof v === "string") {
+      const cleaned = v.trim().slice(0, 200);
+      if (cleaned) out[k] = cleaned;
+    }
+  }
+  return out;
+}
+
 function mapSpaceVersion(row: SpaceVersionRow): SpaceVersion {
   return {
     id: row.id,
@@ -137,6 +160,7 @@ function mapSpace(row: SpaceRow): Space {
     language: row.language || "en",
     vibe: mapVibe(row.vibe),
     modules,
+    labels: mapLabels(row.labels ?? null),
     anonOwnerTokenHint: !!row.anon_owner_token,
     owner: row.owner_id ? mapProfile(row.owner, row.owner_id) : null,
     visibility: mapVisibility(row.visibility),
@@ -148,7 +172,7 @@ function mapSpace(row: SpaceRow): Space {
 }
 
 const SPACE_SELECT = `
-  id, input_text, title, language, vibe, modules,
+  id, input_text, title, language, vibe, modules, labels,
   anon_owner_token, owner_id, visibility, password_hash,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),

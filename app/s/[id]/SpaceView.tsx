@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { fetchSpaceById } from "@/lib/db";
 import { bodyContainer, bodyItem, heroIn, synthesisIn } from "@/lib/anim";
-import type { HeadingWidget, Module, RichTextWidget, Space } from "@/lib/types";
+import { label } from "@/lib/labels";
+import type { HeadingWidget, Module, RichTextWidget, Space, SpaceLabels } from "@/lib/types";
 import { MagyCBadge } from "@/components/MagyCBadge";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { PublishButton } from "@/components/PublishButton";
@@ -91,7 +92,7 @@ export function SpaceView({ id }: { id: string }) {
             className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full"
             style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)", color: "var(--v-fg)" }}
           >
-            back to current
+            {label(space.labels, "backToCurrent")}
           </button>
         )}
         <PublishButton space={space} onChanged={refresh} />
@@ -126,7 +127,7 @@ export function SpaceView({ id }: { id: string }) {
             className="mono text-[10px] tracking-widest px-3 py-2 rounded-md inline-block"
             style={{ background: "var(--v-rule)", color: "var(--v-fg)" }}
           >
-            VIEWING VERSION {currentVersionNumber} · {new Date(space.versions[currentVersionNumber - 1].createdAt).toLocaleString()}
+            {label(space.labels, "viewingVersionPrefix")} {currentVersionNumber} · {new Date(space.versions[currentVersionNumber - 1].createdAt).toLocaleString()}
           </div>
         </div>
       )}
@@ -137,7 +138,7 @@ export function SpaceView({ id }: { id: string }) {
           {/* Grid column. */}
           <div className="flex-1 min-w-0">
             {bodyModules.length === 0 ? (
-              <EmptyGrid />
+              <EmptyGrid labels={space.labels} />
             ) : (
               <motion.div
                 initial="hidden"
@@ -151,7 +152,7 @@ export function SpaceView({ id }: { id: string }) {
                     variants={bodyItem}
                     className="col-span-12 sm:col-span-6 lg:col-span-6"
                   >
-                    <ModulePlaceholder type={m.type} />
+                    <ModulePlaceholder type={m.type} labels={space.labels} />
                   </motion.div>
                 ))}
               </motion.div>
@@ -187,7 +188,7 @@ export function SpaceView({ id }: { id: string }) {
    Empty-grid placeholder — visible while the chassis has no widgets
    ============================================================ */
 
-function EmptyGrid() {
+function EmptyGrid({ labels }: { labels: SpaceLabels }) {
   return (
     <div
       className="rounded-md flex items-center justify-center"
@@ -200,11 +201,13 @@ function EmptyGrid() {
     >
       <div className="text-center space-y-1.5 px-4">
         <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-muted)" }}>
-          EMPTY GRID · 12 COLUMNS
+          {label(labels, "emptyGrid")}
         </div>
-        <div className="mono text-[10px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>
-          widgets land here
-        </div>
+        {label(labels, "emptyGridHint") && (
+          <div className="mono text-[10px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>
+            {label(labels, "emptyGridHint")}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -213,9 +216,12 @@ function EmptyGrid() {
 /* ============================================================
    Placeholder for an actual widget — during the 29-widget iteration
    each renderer comes back online and replaces this stub.
+   The visible text is the AI-supplied rendererPending label
+   (or just an ellipsis fallback). The type discriminator stays
+   as a small internal hint — it's a placeholder, not the final UI.
    ============================================================ */
 
-function ModulePlaceholder({ type }: { type: string }) {
+function ModulePlaceholder({ type, labels }: { type: string; labels: SpaceLabels }) {
   return (
     <div
       className="rounded-md p-4 h-full min-h-[120px] flex flex-col gap-2"
@@ -225,7 +231,7 @@ function ModulePlaceholder({ type }: { type: string }) {
         {type.replace("_", " ")}
       </div>
       <div className="mono text-[10px] opacity-50" style={{ color: "var(--v-muted)" }}>
-        renderer pending
+        {label(labels, "rendererPending")}
       </div>
     </div>
   );

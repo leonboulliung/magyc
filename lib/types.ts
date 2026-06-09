@@ -457,6 +457,48 @@ export interface SpaceVersion {
 
 export type Visibility = "public" | "password" | null;
 
+/**
+ * Surface labels — the words the UI shows on a space.
+ *
+ * Every entry is OPTIONAL. The classifier fills as many as it can in
+ * the user's language during space creation. Components read each
+ * field defensively and fall back to a Unicode symbol or a minimal
+ * English fragment if missing — so a partial labels object never
+ * leaves the UI broken.
+ *
+ * The principle: this app has no system language. Nothing visible
+ * on a space comes from a hardcoded i18n bundle; it all derives
+ * from the user's input via the AI pass.
+ */
+export interface SpaceLabels {
+  // Publish flow
+  publishCta?: string;            // "publish →"
+  publishTitle?: string;          // modal heading
+  publishExplanation?: string;    // longer description
+  cancel?: string;
+  publishConfirm?: string;        // confirm button label
+  signInPrompt?: string;          // why sign-in is required
+  signInCta?: string;
+  signedInAs?: string;            // "logged in as"
+
+  // Privacy footer
+  visibilityPublic?: string;
+  visibilityPrivate?: string;
+  copy?: string;
+  copied?: string;
+
+  // Version banner
+  backToCurrent?: string;
+  viewingVersionPrefix?: string;
+
+  // Empty grid hint
+  emptyGrid?: string;
+  emptyGridHint?: string;
+
+  // Placeholder for unbuilt renderers (temporary, removed after Phase 1+)
+  rendererPending?: string;
+}
+
 export interface Space {
   id: string;
   inputText: string;
@@ -464,6 +506,9 @@ export interface Space {
   language: string;
   vibe: Vibe;
   modules: Module[];
+  /** AI-generated UI labels in `language`. May be sparsely filled;
+   *  renderers fall back to symbols. */
+  labels: SpaceLabels;
   anonOwnerTokenHint: boolean;
   owner: Profile | null;
   visibility: Visibility;

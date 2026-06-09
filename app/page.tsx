@@ -19,13 +19,16 @@ interface Answer {
 }
 
 /**
- * Home — three steps, all on one white page.
+ * Home — three steps on one white page.
  *
- *   1. INPUT     — single textarea, the only place free text lives.
- *   2. CLARIFY   — 2-4 multiple-choice questions surface; each has
- *                  3 options + an "anders…" custom-text fallback.
- *   3. BUILDING  — busy state while the classifier runs, then
- *                  redirect to /s/<id>.
+ * Strict rule: this surface has NO system language. Until a space is
+ * created (and the classifier has filled in the labels), the user
+ * sees only:
+ *   - their own typed text
+ *   - AI-generated text (clarify questions + options)
+ *   - universal Unicode symbols (← → × … ✕)
+ *
+ * No hard-coded words anywhere.
  */
 export default function HomePage() {
   const router = useRouter();
@@ -51,13 +54,13 @@ export default function HomePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json?.error || "failed");
+        setError("✕");
         return;
       }
       setQuestions(json.questions || []);
       setStage("clarify");
     } catch {
-      setError("failed");
+      setError("✕");
     } finally {
       setBusy(false);
     }
@@ -89,7 +92,7 @@ export default function HomePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json?.error || "failed");
+        setError("✕");
         setStage("clarify");
         setBusy(false);
         return;
@@ -99,7 +102,7 @@ export default function HomePage() {
       }
       router.push(`/s/${json.id}`);
     } catch {
-      setError("failed");
+      setError("✕");
       setStage("clarify");
       setBusy(false);
     }
@@ -122,12 +125,13 @@ export default function HomePage() {
                 disabled={busy}
               />
               <div className="mt-4 flex items-center justify-between gap-4">
-                <span className="mono text-[10px] tracking-widest opacity-40">
+                <span className="mono text-[10px] tracking-widest opacity-40 tabular-nums">
                   {text.length > 0 ? `${text.length}/1200` : ""}
                 </span>
                 <button
                   onClick={goClarify}
                   disabled={busy || text.trim().length < 3}
+                  aria-label="continue"
                   className="mono text-[11px] tracking-widest px-4 py-2 rounded-full bg-black text-white disabled:opacity-30 transition-opacity"
                 >
                   {busy ? "…" : "→"}
@@ -144,9 +148,6 @@ export default function HomePage() {
               <hr className="border-black/10" />
               {questions.map((q) => (
                 <div key={q.id} className="space-y-2.5">
-                  <div className="mono text-[10px] tracking-widest opacity-50">
-                    {q.id.toUpperCase()}
-                  </div>
                   <h3 className="text-[17px] sm:text-[19px] leading-snug">{q.text}</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {q.options.map((o) => {
@@ -181,14 +182,14 @@ export default function HomePage() {
                               setAnswer(q.id, q.text, v.trim());
                             }
                           }}
-                          placeholder="anders…"
+                          placeholder="…"
                           maxLength={120}
                           className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full bg-transparent outline-none"
                           style={{
                             border: "1px solid",
                             borderColor: customActive ? "#000" : "#0001",
                             color: "#000",
-                            minWidth: "120px",
+                            minWidth: "100px",
                           }}
                         />
                       );
@@ -200,16 +201,18 @@ export default function HomePage() {
               <div className="flex items-center justify-between pt-4">
                 <button
                   onClick={() => { setStage("input"); setAnswers({}); setCustomDrafts({}); }}
-                  className="mono text-[11px] tracking-widest opacity-50 hover:opacity-100"
+                  aria-label="back"
+                  className="mono text-[12px] tracking-widest opacity-50 hover:opacity-100"
                 >
-                  ← zurück
+                  ←
                 </button>
                 <button
                   onClick={goBuild}
                   disabled={busy || !allAnswered}
+                  aria-label="continue"
                   className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30 transition-opacity"
                 >
-                  {busy ? "…" : "weiter →"}
+                  {busy ? "…" : "→"}
                 </button>
               </div>
             </div>
@@ -217,13 +220,7 @@ export default function HomePage() {
 
           {stage === "building" && (
             <div className="text-center py-20 animate-fadeIn">
-              <div className="mono text-[10px] tracking-widest opacity-60 mb-4">
-                BAUE…
-              </div>
-              <div className="text-[16px] opacity-80 max-w-md mx-auto leading-relaxed">
-                Aus deinem Gedanken und deinen Antworten entsteht gleich ein
-                Raum, den du teilen kannst.
-              </div>
+              <div className="mono text-[24px] opacity-50 tracking-widest">…</div>
             </div>
           )}
 
@@ -233,7 +230,7 @@ export default function HomePage() {
         </div>
       </section>
       <footer className="px-6 py-3 mono text-[9px] tracking-widest text-center opacity-30">
-        <span>MAGYC.SITE</span>
+        <span>magyc.site</span>
       </footer>
     </main>
   );

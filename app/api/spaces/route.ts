@@ -93,6 +93,7 @@ export async function POST(req: Request) {
     language: result.language,
     vibe: result.vibe,
     modules: result.modules,
+    labels: result.labels,
     anon_owner_token: anonToken,
     visibility: null,
   });

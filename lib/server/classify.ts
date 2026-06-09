@@ -1,126 +1,185 @@
 import OpenAI from "openai";
-import { sanitizeModules } from "@/lib/modules";
-import { ALL_VIBES, type Module, type Vibe } from "@/lib/types";
+import {
+  MODULE_META,
+  alwaysInsertedTypes,
+  bodyTypes,
+  mandatoryConfigTypes,
+  sanitizeModules,
+} from "@/lib/modules";
+import { ALL_VIBES, type Module, type SpaceLabels, type Vibe } from "@/lib/types";
 
 /**
- * Classifier v3.1 — the "dossier author" pass.
+ * Classifier v4 — the dossier author for the 29-widget catalog.
  *
- * Input arrives WITH clarification answers from the prior clarify step.
- * The classifier no longer needs to guess audience, scope, timeframe,
- * privacy, where, commitment — it has them. Its job is to assemble a
- * grounded workspace where every module is FULLY AUTHORED.
+ * Builds the system prompt dynamically from MODULE_META so adding a
+ * widget type means one place (lib/modules.ts) and the prompt picks
+ * it up automatically.
  *
- * Key differences from v3.0:
- *   - Receives input + answers (a small object) instead of just input
- *   - Always produces a `synthesis` module (the AI's reflection
- *     paragraph) right after the headline
- *   - Modules NEVER ship empty — no empty notes, no half-baked
- *     framework, no checklist with one item
- *   - Labels are SPECIFIC to the input ("Was dich noch zögern lässt"),
- *     never generic ("Offene Frage")
- *   - Tags / notes / checklist items are read-only authoring by the
- *     AI — visitors only react (vote, claim, respond, tick)
+ * The classifier produces, in a single call:
+ *   - title + language + vibe
+ *   - 3 always-present header widgets (heading, rich_text, tags)
+ *   - 2-7 body widgets picked from the catalog according to the
+ *     relevantWhen rule per type
+ *   - a `labels` object with every UI string the surface needs, in
+ *     the input's language (the application itself has no own
+ *     visible language)
  */
 
-const SYSTEM_PROMPT = `You build a small "dossier" workspace for a person
-who described something — an idea, a question, a wish, a concern, a
-plan. You receive their original text AND their answers to 2–4
-clarification questions. Use those as ANCHORS — never invent facts
-beyond what the text or answers told you.
+interface CatalogEntry {
+  type: string;
+  rule: string;
+  mandatory: boolean;
+  source: string;
+}
 
-Return STRICT JSON, no preamble:
+function buildCatalog(): { header: CatalogEntry[]; body: CatalogEntry[] } {
+  const toEntry = (type: string): CatalogEntry => {
+    const meta = MODULE_META[type as keyof typeof MODULE_META];
+    return {
+      type,
+      rule: meta.relevantWhen,
+      mandatory: meta.requiresMandatoryConfig,
+      source: meta.externalSource ?? "none",
+    };
+  };
+  return {
+    header: alwaysInsertedTypes().map(toEntry),
+    body: bodyTypes().map(toEntry),
+  };
+}
+
+function buildSystemPrompt(): string {
+  const { header, body } = buildCatalog();
+
+  const headerLines = header
+    .map((e) => `  - ${e.type} — ${e.rule}`)
+    .join("\n");
+
+  const bodyLines = body
+    .map((e) => {
+      const tags: string[] = [];
+      if (e.mandatory) tags.push("MANDATORY-CONFIG");
+      if (e.source !== "none") tags.push(`source:${e.source}`);
+      const tagStr = tags.length ? `  [${tags.join(", ")}]` : "";
+      return `  - ${e.type}${tagStr}\n      ${e.rule}`;
+    })
+    .join("\n");
+
+  const mandatoryList = mandatoryConfigTypes().join(", ");
+
+  return `You compose a small "magyc.site" workspace from a single short input
+the user wrote — a thought, an idea, a wish, a concern, a plan.
+
+Return STRICT JSON, no preamble. Schema:
 
   {
-    "title":   "<3-8 word headline, in input's language>",
-    "language":"<ISO 639-1 code matching input>",
-    "vibe":    "<one of: editorial | document | dashboard | terminal | soft | minimal>",
-    "modules": [ ...3 to 6 modules from the registry below... ]
+    "title":    "<3-8 word headline in user's language>",
+    "language": "<ISO 639-1 code matching input>",
+    "vibe":     "<one of: editorial | document | dashboard | terminal | soft | minimal>",
+    "modules":  [ ... 5-10 widgets ... ],
+    "labels":   { ... UI strings in user's language ... }
   }
 
-Hard rules:
-- MATCH THE INPUT'S LANGUAGE. Every label, every text field, every
-  option string is in the language of the input.
-- ALWAYS first module: "headline" (title + optional subtitle).
-- ALWAYS second module: "synthesis" — your 2–4 sentence reflection
-  of what you understood, written in second person ("Du willst…",
-  "Du fragst dich…"). This is the user reading back what the app
-  understood. It MUST be specific to their input, not generic.
-- 3 to 6 modules total. Sparse > dense.
-- Every module must come FULLY AUTHORED. Visitors cannot type new
-  items — only react. So:
-    notes      → ship with 2–4 sentences of seeded prose
-    tags       → 3–6 specific tags
-    checklist  → 3–6 concrete action items
-    help_slots → 2–5 specific, named asks
-    poll       → real options that matter to the decision
-    open_question → a specific question only the input could raise
-    stages     → 3–6 concrete phase names
-- Module LABELS are SPECIFIC to the input. Examples:
-    not "Notizen" but "Was hinter der Idee steckt"
-    not "Offene Frage" but "Womit hier alles steht und fällt"
-    not "Hilfe-Slots" but "Wer was übernehmen müsste"
-    not "Phasen" but "Wie sich das entfaltet"
-- Never invent facts. No fake place names, no fake Wikipedia titles,
-  no fake coordinates, no fake numbers.
+HARD RULES
+----------
+- MATCH THE INPUT'S LANGUAGE for every visible string (titles,
+  microTitles, labels, options, descriptions). The application has
+  NO own language — every word the user sees on the page must come
+  from this response in their language.
+- Never invent specifics: no fake place names, no fake Wikipedia
+  titles, no fake coordinates, no fake numbers, no fake dates.
+- Module \`type\` discriminators stay in English — they are internal
+  identifiers, NEVER shown to the user.
 
-Allowed module types (pick 3–6, headline + synthesis are mandatory):
+THE THREE ALWAYS-PRESENT HEADER WIDGETS
+---------------------------------------
+These three MUST appear, in this order, at the start of the modules
+array. They live in the page's header zone, not in the grid.
 
-1. headline           { type, label, title, subtitle? }
-2. synthesis          { type, label, text }              ← always second
-3. tags               { type, label, tags:["…","…"] }
-4. notes              { type, label, text:"<seeded prose>" }
-5. open_question      { type, label, prompt:"…?" }
-6. poll               { type, label, question, options:["…","…"] }
-7. checklist          { type, label, items:[{text:"…"}] }
-8. help_slots         { type, label, slots:[{label:"…"}] }
-9. stages             { type, label, stages:["…"], current:0 }
-10. number_block      { type, label, value, caption }
-11. icon              { type, label, iconify:"lucide:book-open", size:64 }
-12. palette           { type, label, hue:"blue", steps:[3,6,9] }
-13. map               { type, label, center:[lng,lat], zoom:11,
-                         markers:[{lng,lat,label}] }
-14. time              { type, label, mode:"date|countdown|timeline",
-                         date:"YYYY-MM-DD", entries:[{date,label}],
-                         timezone:"Europe/Berlin" }
-15. knowledge         { type, label, topic:"<exact Wikipedia title>",
-                         source:"wikipedia", show:["summary","thumb"],
-                         attribution:{name:"Wikipedia",
-                           url:"https://en.wikipedia.org",
-                           license:"CC-BY-SA 4.0"} }
-16. framework         { type, label, kind:"okr|scqa|eisenhower|rice|
-                         kanban|adr|rfc|postmortem|faq|one_pager",
-                         prefill:{ "<slotName>":"<value>" } }
-17. typography        { type, label, heading, body }
-18. formula           { type, label, latex, display:"inline|block" }
-19. chart             { type, label, chartType:"bar|line|area",
-                         data:[{x,y}], xLabel, yLabel }
-20. image             { type, label, url, alt,
-                         attribution:{name,url,license} }
+${headerLines}
 
-Framework slot names per kind:
-  okr        : objective, kr1, kr2, kr3
-  scqa       : situation, complication, question, answer
-  eisenhower : urgent_important, important, urgent, neither
-  rice       : reach, impact, confidence, effort
-  kanban     : todo, doing, done
-  adr        : context, decision, consequences
-  rfc        : summary, motivation, design
-  postmortem : impact, root_cause, lessons
-  faq        : q1, a1, q2, a2
-  one_pager  : problem, proposal, success
+  Heading shape:
+    { "type": "heading", "text": "<title>", "level": 1, "microTitle"?: null }
 
-Always prefill what you can; don't leave a framework empty. If you'd
-have to leave half its slots empty, pick a different module instead.
+  Rich Text shape:
+    { "type": "rich_text",
+      "microTitle": "<small label in user's language, e.g. \"Kontext\", \"Background\", \"Idea\">",
+      "text": "<2-4 sentences of reflective prose>" }
 
-Vibe choice:
-- editorial — text-driven, reflective, formal ideas
-- document  — notes, memos, structured thinking
-- dashboard — numbers, comparisons, tracking
-- terminal  — technical, urgent, raw
-- soft      — personal, calm, creative
-- minimal   — default when nothing else fits
+  Tags shape:
+    { "type": "tags",
+      "tags": ["3-6 short tags in user's language"] }
+
+THE 26 BODY WIDGETS — pick 2-7 based on which RULES match the input
+-----------------------------------------------------------------
+Each entry below lists the widget type, optional tags (MANDATORY-CONFIG
+means the widget needs explicit data the user has confirmed, source
+indicates external data dependency), and the rule for inclusion.
+
+${bodyLines}
+
+PICKING RULES
+-------------
+- Read the input carefully. For each body widget, ask: does the rule
+  apply CONCRETELY to this input? If yes, include. If no, skip.
+- Be sparse. 2-7 body widgets total. A space crowded with widgets
+  is worse than one with the right 3.
+- Every body widget you include should serve THIS input — not a
+  generic shape it could fit into.
+- For MANDATORY-CONFIG widgets (${mandatoryList}): only include if
+  the input clearly tells you the data. If the input mentions a
+  location need but no actual place, prefer location_suggestions
+  over location_single. If chronology is unclear, prefer not to
+  include phases at all.
+
+WIDGET-SPECIFIC GUIDANCE
+------------------------
+For widgets that take seed content, the AI fills the seed; visitors
+react. Don't ship empty arrays. Examples:
+  - poll: question + 2-4 real options
+  - checklist: 3-6 concrete items
+  - work_packages: 2-5 concrete package labels
+  - crew: 2-5 role names
+  - phases: 3-6 phase labels in chronological order
+  - table: meaningful columns + at least 2 seed rows
+  - parts_list: 3-6 named items
+
+For widgets that mostly fill via collaboration (notes, qa, discussion,
+attachments, images, audio, sketch), provide an empty config plus a
+microTitle reflecting the input.
+
+LABELS — every UI string the surface needs
+------------------------------------------
+The labels object carries the words the published space displays.
+Every entry is in the user's language. Keep each under 60 characters.
+
+  {
+    "publishCta":          "<short verb for publishing, e.g. 'publish ↗'>",
+    "publishTitle":        "<5-8 words for publish modal heading>",
+    "publishExplanation":  "<1-2 sentences explaining publish in user's language>",
+    "cancel":              "<cancel>",
+    "publishConfirm":      "<confirm publishing>",
+    "signInPrompt":        "<short reason sign-in is required>",
+    "signInCta":           "<sign in label>",
+    "signedInAs":          "<'logged in as' phrase>",
+
+    "visibilityPublic":    "<public>",
+    "visibilityPrivate":   "<private>",
+    "copy":                "<copy>",
+    "copied":              "<copied>",
+
+    "backToCurrent":       "<back to current>",
+    "viewingVersionPrefix":"<'viewing version' phrase>",
+
+    "emptyGrid":           "<empty grid headline, e.g. 'empty grid'>",
+    "emptyGridHint":       "<short hint, e.g. 'widgets land here'>"
+  }
+
+If the input is in German: every label string in German.
+If French: French. Same for any other language. NEVER mix.
 
 Output ONLY the JSON object.`;
+}
 
 export interface ClassifyAnswer {
   questionId: string;
@@ -133,9 +192,32 @@ export interface ClassifyResult {
   language: string;
   vibe: Vibe;
   modules: Module[];
+  labels: SpaceLabels;
 }
 
 const VIBE_SET = new Set<string>(ALL_VIBES);
+
+const LABEL_KEYS: readonly (keyof SpaceLabels)[] = [
+  "publishCta", "publishTitle", "publishExplanation", "cancel",
+  "publishConfirm", "signInPrompt", "signInCta", "signedInAs",
+  "visibilityPublic", "visibilityPrivate", "copy", "copied",
+  "backToCurrent", "viewingVersionPrefix",
+  "emptyGrid", "emptyGridHint",
+];
+
+function sanitizeLabels(raw: unknown): SpaceLabels {
+  const out: SpaceLabels = {};
+  if (!raw || typeof raw !== "object") return out;
+  const r = raw as Record<string, unknown>;
+  for (const k of LABEL_KEYS) {
+    const v = r[k];
+    if (typeof v === "string") {
+      const cleaned = v.trim().slice(0, 200);
+      if (cleaned) out[k] = cleaned;
+    }
+  }
+  return out;
+}
 
 function prep(text: string): string {
   return text.replace(/\s+/g, " ").trim().slice(0, 1200);
@@ -166,7 +248,7 @@ export async function classifyInput(
     response_format: { type: "json_object" },
     temperature: 0.3,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: buildSystemPrompt() },
       { role: "user", content: buildUserMessage(input, answers) },
     ],
   });
@@ -188,11 +270,10 @@ export async function classifyInput(
   const vibeRaw = typeof parsed.vibe === "string" ? parsed.vibe.trim().toLowerCase() : "minimal";
   const vibe: Vibe = VIBE_SET.has(vibeRaw) ? (vibeRaw as Vibe) : "minimal";
   const modules = sanitizeModules(parsed.modules);
+  const labels = sanitizeLabels(parsed.labels);
 
-  // Enforce ordering of the header zone: heading → rich_text → tags →
-  // everything else. The prompt rewrite (Phase 0 Commit B) will make
-  // this a hard requirement on the AI side; for now we sort defensively
-  // and inject a heading from the title if the AI didn't produce one.
+  // Enforce header-zone ordering: heading → rich_text → tags → body.
+  // Inject a default heading from the title if the AI omitted one.
   const heading = modules.find((m) => m.type === "heading");
   const richText = modules.find((m) => m.type === "rich_text");
   const tags = modules.find((m) => m.type === "tags");
@@ -206,5 +287,5 @@ export async function classifyInput(
   if (tags) ordered.push(tags);
   ordered.push(...body);
 
-  return { title, language, vibe, modules: ordered };
+  return { title, language, vibe, modules: ordered, labels };
 }

@@ -3,16 +3,13 @@
 import { useState } from "react";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import { getSpaceOwnerToken } from "@/lib/anonId";
+import { label } from "@/lib/labels";
 import type { Space } from "@/lib/types";
 
 /**
- * Publish — shown only to the draft owner. The owner is identified by
- * possession of the `creator.space_owner.<id>` token in localStorage.
- * Publishing requires Clerk sign-in: the publish moment is when the
- * anonymous owner becomes a real account.
- *
- * Once published the button disappears; the space is "live" with v1
- * in the version bar.
+ * Publish — shown only to the draft owner. Every visible word reads
+ * from the space's AI-generated labels with Unicode-symbol fallbacks.
+ * The component imposes no language on the surface.
  */
 export function PublishButton({
   space,
@@ -25,11 +22,9 @@ export function PublishButton({
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const L = space.labels;
 
-  // Only show on drafts.
   if (space.visibility !== null) return null;
-
-  // Only show if the browser holds the owner token for this space.
   const ownerToken = getSpaceOwnerToken(space.id);
   if (!ownerToken) return null;
 
@@ -45,7 +40,7 @@ export function PublishButton({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json?.error || "failed");
+        setError(json?.error || "✕");
         return;
       }
       setOpen(false);
@@ -66,28 +61,29 @@ export function PublishButton({
           color: "var(--v-bg)",
         }}
       >
-        publish →
+        {label(L, "publishCta")}
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
           <div className="max-w-md w-full bg-white text-black p-6 rounded-lg space-y-5">
             <div className="space-y-1.5">
-              <div className="mono text-[10px] tracking-widest opacity-50">PUBLISH</div>
               <h2 className="font-black text-[22px] leading-snug">
-                Den Raum live nehmen
+                {label(L, "publishTitle")}
               </h2>
-              <p className="text-[13px] opacity-70 leading-relaxed">
-                Bis jetzt ist das ein Entwurf, den nur du mit dem Link erreichst.
-                Sobald du veröffentlichst, ist der Raum für jeden mit dem Link
-                lesbar. Versions-Historie startet ab diesem Moment.
-              </p>
+              {label(L, "publishExplanation") && (
+                <p className="text-[13px] opacity-70 leading-relaxed">
+                  {label(L, "publishExplanation")}
+                </p>
+              )}
             </div>
 
             <SignedIn>
-              <div className="mono text-[10px] tracking-widest opacity-60">
-                EINGELOGGT ALS @{user?.username || user?.id.slice(-6) || "—"}
-              </div>
+              {label(L, "signedInAs") && user && (
+                <div className="mono text-[10px] tracking-widest opacity-60">
+                  {label(L, "signedInAs")} {user.username || user.id.slice(-6)}
+                </div>
+              )}
               {error && (
                 <p className="mono text-[10px] tracking-widest opacity-80">{error}</p>
               )}
@@ -97,34 +93,34 @@ export function PublishButton({
                   className="mono text-[11px] tracking-widest opacity-60 hover:opacity-100"
                   disabled={busy}
                 >
-                  abbrechen
+                  {label(L, "cancel")}
                 </button>
                 <button
                   onClick={publish}
                   disabled={busy}
                   className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30"
                 >
-                  {busy ? "…" : "veröffentlichen →"}
+                  {busy ? "…" : label(L, "publishConfirm")}
                 </button>
               </div>
             </SignedIn>
 
             <SignedOut>
-              <p className="text-[13px] opacity-70 leading-relaxed">
-                Veröffentlichen erfordert eine Anmeldung — der Moment, in dem
-                aus deinem anonymen Entwurf eine Sache wird, für die du
-                stehst.
-              </p>
+              {label(L, "signInPrompt") && (
+                <p className="text-[13px] opacity-70 leading-relaxed">
+                  {label(L, "signInPrompt")}
+                </p>
+              )}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button
                   onClick={() => setOpen(false)}
                   className="mono text-[11px] tracking-widest opacity-60 hover:opacity-100"
                 >
-                  abbrechen
+                  {label(L, "cancel")}
                 </button>
                 <SignInButton mode="modal">
                   <button className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white">
-                    sign in →
+                    {label(L, "signInCta")}
                   </button>
                 </SignInButton>
               </div>
