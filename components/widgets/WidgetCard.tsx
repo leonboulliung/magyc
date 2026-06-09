@@ -1,16 +1,18 @@
 "use client";
 
+import { motion } from "motion/react";
+
 /**
- * Shared visual frame used by every non-header widget. Carries the
- * micro-title row and a consistent surface. Subjects can drop in
- * children freely.
+ * Shared visual frame for every non-header widget. Each card enters
+ * with a subtle lift (opacity + y) so the grid feels assembled rather
+ * than just appearing. The animation is very short so it doesn't
+ * compete with the grid stagger from GridZone.
  */
 export function WidgetCard({
   microTitle,
   description,
   attribution,
   children,
-  /** When true: no padding inside; child manages its own. */
   bare = false,
 }: {
   microTitle?: React.ReactNode;
@@ -20,9 +22,12 @@ export function WidgetCard({
   bare?: boolean;
 }) {
   return (
-    <div
+    <motion.div
       className={`rounded-md ${bare ? "" : "p-4"} h-full`}
       style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
       {microTitle && (
         <div
@@ -34,37 +39,24 @@ export function WidgetCard({
       )}
       {children}
       {description && (
-        <p
-          className="mono text-[10px] mt-3"
-          style={{ color: "var(--v-muted)" }}
-        >
+        <p className="mono text-[10px] mt-3" style={{ color: "var(--v-muted)" }}>
           {description}
         </p>
       )}
       {attribution && (
-        <p
-          className="mono text-[9px] mt-2 opacity-60"
-          style={{ color: "var(--v-muted)" }}
-        >
+        <p className="mono text-[9px] mt-2 opacity-60" style={{ color: "var(--v-muted)" }}>
           ↗ {attribution.name} ·{" "}
-          <a
-            href={attribution.url}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="underline"
-          >
+          <a href={attribution.url} target="_blank" rel="noreferrer noopener" className="underline">
             {attribution.license}
           </a>
         </p>
       )}
-    </div>
+    </motion.div>
   );
 }
 
 /**
- * A small avatar dot — used everywhere attribution shows up. Reads the
- * actor's snapshotted colour from state.data.color and falls back to
- * a neutral hairline circle.
+ * A small avatar dot — actor attribution. Appears with a quick pop.
  */
 export function ActorDot({
   color,
@@ -77,7 +69,7 @@ export function ActorDot({
 }) {
   const initial = (displayName || "?").slice(0, 1).toUpperCase();
   return (
-    <span
+    <motion.span
       className="inline-flex items-center justify-center rounded-full mono"
       style={{
         width: size,
@@ -91,8 +83,11 @@ export function ActorDot({
       }}
       title={displayName}
       aria-label={displayName}
+      initial={{ scale: 0.7, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 500, damping: 22 }}
     >
       {initial}
-    </span>
+    </motion.span>
   );
 }

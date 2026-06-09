@@ -1,14 +1,13 @@
 "use client";
 
+import { motion } from "motion/react";
 import type { SpaceVersion } from "@/lib/types";
+import { versionBarContainer, versionBarItem } from "@/lib/anim";
 
 /**
- * Version bar — a thin vertical column of dashes on the RIGHT edge of
- * a published space. Each dash is one snapshot in `space_versions`.
- * The currently-viewed version is filled; older snapshots are
- * hairlines.
- *
- * Draft spaces have no versions, so this component renders nothing.
+ * Version bar — thin vertical column of dashes on the right edge of a
+ * published space. Each dash is one snapshot. Staggered entrance via
+ * versionBarItem so the dashes appear one after another on load.
  */
 export function VersionBar({
   versions,
@@ -22,29 +21,36 @@ export function VersionBar({
   if (versions.length === 0) return null;
 
   return (
-    <nav
+    <motion.nav
       className="flex flex-col items-center gap-3 px-2 py-3"
       aria-label="Versions"
+      variants={versionBarContainer}
+      initial="hidden"
+      animate="show"
     >
       {versions.map((v) => {
         const picked = v.version === currentVersion;
         return (
-          <button
+          <motion.button
             key={v.id}
             onClick={() => onSelect(v.version)}
             aria-label={`Version ${v.version}${v.note ? ` — ${v.note}` : ""}`}
             title={`v${v.version} · ${new Date(v.createdAt).toLocaleString()}`}
-            className="block transition-all"
+            variants={versionBarItem}
+            whileHover={{ scaleX: 2.5, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
             style={{
+              display: "block",
               width: 2,
               height: picked ? 18 : 14,
               background: picked ? "var(--v-fg)" : "var(--v-muted)",
               opacity: picked ? 1 : 0.4,
               borderRadius: 1,
+              originX: "50%",
             }}
           />
         );
       })}
-    </nav>
+    </motion.nav>
   );
 }

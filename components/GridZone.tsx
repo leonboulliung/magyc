@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Module, ModuleStateEntry } from "@/lib/types";
+import { bodyContainer, bodyItem } from "@/lib/anim";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
 import { WidgetPicker } from "./WidgetPicker";
 
@@ -213,7 +214,12 @@ export function GridZone({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-12 gap-3">
+            <motion.div
+              className="grid grid-cols-12 gap-3"
+              variants={bodyContainer}
+              initial="hidden"
+              animate="show"
+            >
               <AnimatePresence initial={false}>
                 {displayed.map((item, pos) => {
                   const isFull = fullWidth.has(pos);
@@ -223,9 +229,9 @@ export function GridZone({
                     <motion.div
                       key={`${item.index}::${item.module.type}`}
                       layout
-                      initial={{ opacity: 0, scale: 0.97 }}
-                      animate={{ opacity: isDragging ? 0.35 : 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
+                      variants={bodyItem}
+                      animate={{ opacity: isDragging ? 0.35 : 1, scale: isDragging ? 0.97 : 1 }}
+                      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
                       transition={{ duration: 0.18 }}
                       /* Tailwind purge-safe: use conditional, not dynamic interpolation */
                       className={`relative group/cell ${isFull ? "col-span-12" : "col-span-12 sm:col-span-6"}`}
@@ -299,7 +305,7 @@ export function GridZone({
                   );
                 })}
               </AnimatePresence>
-            </div>
+            </motion.div>
 
             {/* Add button */}
             {isOwner && (
