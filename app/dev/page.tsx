@@ -1,0 +1,150 @@
+"use client";
+
+import { useState, useCallback, useRef, useEffect } from "react";
+import { WidgetContext } from "@/lib/widgetContext";
+import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
+import { PersonaSwitcher } from "@/components/PersonaSwitcher";
+import { makeOptimisticEntry, applyActionLocally } from "@/lib/state";
+import { styleVars, DEFAULT_STYLE } from "@/lib/style";
+import { fontStack, findFont } from "@/lib/fonts";
+import type { Module, ModuleStateEntry, ModuleStateKind, SpaceLabels } from "@/lib/types";
+
+/**
+ * /dev — local element showroom. Renders every body widget with seeded
+ * fake state and a local act() (no DB / auth), so the elements can be
+ * reviewed and exercised one by one. Also the masonry verification
+ * surface: the widgets here have deliberately varied heights.
+ *
+ * NOTE: config edits that PUT to the API (inline heading/text edits,
+ * regenerate) won't persist here — this is for layout + collaborative
+ * interaction review, not persistence.
+ */
+
+const DEMO_MODULES: Module[] = [
+  { type: "heading", text: "Element-Schaukasten", level: 1 },
+  { type: "rich_text", microTitle: "Kontext", text: "Alle Body-Module mit Beispieldaten. Stimmen, Häkchen, Claims und Nachrichten laufen lokal über act() — wechsle die Persona unten, um Mehrspieler zu simulieren." },
+  { type: "tags", tags: ["demo", "elemente", "test"] },
+
+  { type: "ai_summary", microTitle: "Einordnung", text: "Eine kurze, abstrahierende KI-Sicht auf die Sache, die den Kern greifbarer macht." },
+  { type: "icon", iconify: "lucide:sparkles" },
+  { type: "poll", microTitle: "Abstimmung", question: "Wann treffen wir uns?", options: ["Freitag", "Samstag", "Sonntag"] },
+  { type: "checklist", microTitle: "Aufgaben", items: [{ text: "Material besorgen" }, { text: "Ort buchen" }, { text: "Einladen" }] },
+  { type: "crew", microTitle: "Crew", roles: [{ name: "Organisation" }, { name: "Technik" }, { name: "Catering" }] },
+  { type: "work_packages", microTitle: "Arbeitspakete", packages: [{ label: "Aufbau", description: "Stände + Strom" }, { label: "Abbau" }] },
+  { type: "notes", microTitle: "Notizen" },
+  { type: "qa", microTitle: "Fragen" },
+  { type: "discussion", microTitle: "Diskussion" },
+  { type: "table", microTitle: "Vergleich", columns: ["Option", "Kosten", "Aufwand"], rows: [["A", "20€", "gering"], ["B", "50€", "mittel"]] },
+  { type: "parts_list", microTitle: "Utensilien", items: [{ name: "Klapptisch", quantity: "2" }, { name: "Kabeltrommel" }] },
+  { type: "range", microTitle: "Zeitraum", unit: "month", from: "Juni", to: "August" },
+  { type: "phases", microTitle: "Phasen", phases: [{ label: "Planung" }, { label: "Aufbau" }, { label: "Event" }, { label: "Nachbereitung" }], currentPhase: 1 },
+  { type: "date", microTitle: "Termin", date: "2026-08-15" },
+  { type: "appointment", microTitle: "Start", datetime: "2026-08-15T18:00:00.000Z" },
+  { type: "location_single", microTitle: "Ort", center: [2.3522, 48.8566], zoom: 13, label: "Paris" },
+  { type: "location_suggestions", microTitle: "Orts-Ideen", suggestions: [{ label: "Parc de la Villette" }, { label: "Canal Saint-Martin" }, { label: "Place des Vosges" }] },
+  { type: "wikipedia", microTitle: "Referenz", topic: "Repair Café", url: "https://en.wikipedia.org/wiki/Repair_Café", extract: "A Repair Café is a meeting where people repair household electrical and mechanical devices, computers, bicycles, clothing, and other items." },
+];
+
+// Seed a little collaborative state so the populated states are visible.
+function seed(): ModuleStateEntry[] {
+  const idxPoll = DEMO_MODULES.findIndex((m) => m.type === "poll");
+  const idxCheck = DEMO_MODULES.findIndex((m) => m.type === "checklist");
+  const idxCrew = DEMO_MODULES.findIndex((m) => m.type === "crew");
+  const idxDisc = DEMO_MODULES.findIndex((m) => m.type === "discussion");
+  const mk = (
+    moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>,
+    id: string, name: string, color: string,
+  ): ModuleStateEntry => ({
+    id, spaceId: "dev", moduleIndex,
+    actor: { kind: "anon", id, displayName: name, color },
+    kind, data: { ...data, color }, createdAt: Date.now() - Math.random() * 1e6,
+  });
+  return [
+    mk(idxPoll, "vote", { option: "Samstag" }, "seed-a", "Alice", "#7da3c0"),
+    mk(idxPoll, "vote", { option: "Samstag" }, "seed-b", "Bob", "#d4a373"),
+    mk(idxCheck, "check", { itemKey: "seed-0", checked: true }, "seed-a2", "Alice", "#7da3c0"),
+    mk(idxCrew, "claim", { slotLabel: "Technik", claimed: true }, "seed-b2", "Bob", "#d4a373"),
+    mk(idxDisc, "voice", { id: "m1", text: "Sollen wir Samstagnachmittag anpeilen?" }, "seed-a3", "Alice", "#7da3c0"),
+  ];
+}
+
+const DEMO_LABELS: SpaceLabels = { emptyGrid: "—", participants: "Beteiligte" };
+const ROW_GAP = 14;
+
+export default function DevPage() {
+  const [state, setState] = useState<ModuleStateEntry[]>(seed);
+
+  const act = useCallback(async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
+    const entry = makeOptimisticEntry("dev", moduleIndex, kind, data);
+    setState((prev) => applyActionLocally(prev, entry));
+    return true;
+  }, []);
+
+  const slice = (i: number) => state.filter((e) => e.moduleIndex === i).sort((a, b) => a.createdAt - b.createdAt);
+
+  const header = DEMO_MODULES.slice(0, 3);
+  const body = DEMO_MODULES.slice(3);
+
+  // Masonry (same technique as GridZone).
+  const roRef = useRef<ResizeObserver | null>(null);
+  const sizeCell = useCallback((cell: HTMLElement) => {
+    const card = cell.firstElementChild as HTMLElement | null;
+    const h = (card ?? cell).getBoundingClientRect().height;
+    if (h > 0) cell.style.gridRowEnd = `span ${Math.max(1, Math.ceil(h + ROW_GAP))}`;
+  }, []);
+  useEffect(() => {
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const cell = (e.target as HTMLElement).parentElement;
+        if (cell) sizeCell(cell);
+      }
+    });
+    roRef.current = ro;
+    return () => ro.disconnect();
+  }, [sizeCell]);
+  const cellRef = useCallback((el: HTMLDivElement | null) => {
+    if (!el || !roRef.current) return;
+    const card = el.firstElementChild;
+    if (card) { roRef.current.observe(card); sizeCell(el); }
+  }, [sizeCell]);
+
+  const vars = styleVars(DEFAULT_STYLE, fontStack(findFont(DEFAULT_STYLE.font)));
+
+  return (
+    <WidgetContext.Provider
+      value={{
+        spaceId: "dev",
+        language: "de",
+        labels: DEMO_LABELS,
+        isOwner: true,
+        ownerToken: null,
+        refresh: () => {},
+        act,
+      }}
+    >
+      <div className="vibe-root vibe-minimal min-h-screen" style={{ ...vars, background: "var(--v-page)" }}>
+        <div className="max-w-5xl mx-auto px-6 py-12 space-y-6">
+          <div className="mono text-[10px] tracking-widest opacity-40">/dev — element showroom</div>
+          {header.map((m, i) => (
+            <WidgetDispatcher key={`h${i}`} module={m} index={i} state={slice(i)} />
+          ))}
+
+          <div
+            className="grid grid-cols-12 mt-4"
+            style={{ columnGap: 12, gridAutoRows: "1px", gridAutoFlow: "row dense" }}
+          >
+            {body.map((m, bi) => {
+              const i = bi + 3;
+              return (
+                <div key={`${i}-${m.type}`} ref={cellRef} className="col-span-12 sm:col-span-6">
+                  <WidgetDispatcher module={m} index={i} state={slice(i)} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <PersonaSwitcher />
+      </div>
+    </WidgetContext.Provider>
+  );
+}
