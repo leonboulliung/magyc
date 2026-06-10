@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { fetchSpaceById } from "@/lib/db";
 import { bodyContainer, heroIn } from "@/lib/anim";
@@ -49,6 +49,21 @@ export function SpaceView({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Lazy external-reference hydration. Creation stores Wikipedia widgets
+  // topic-only (to stay under the serverless timeout); resolve them once
+  // on first load, then refresh to show the enriched cards.
+  const resolveTriedRef = useRef(false);
+  useEffect(() => {
+    if (!space || resolveTriedRef.current) return;
+    const needs = space.modules.some((m) => m.type === "wikipedia" && !m.url);
+    if (!needs) return;
+    resolveTriedRef.current = true;
+    fetch(`/api/spaces/${space.id}/resolve`, { method: "POST" })
+      .then((r) => r.json())
+      .then((j) => { if (j?.resolved) refresh(); })
+      .catch(() => {});
+  }, [space, refresh]);
 
   const isOwner = useIsOwner(space);
 

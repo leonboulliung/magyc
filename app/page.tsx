@@ -23,6 +23,26 @@ interface Answer {
   choice: string;
 }
 
+/**
+ * Read a human error string out of an API (or Vercel platform) error
+ * body. Vercel's own errors (504 timeout, function crash) return
+ * `error` as an OBJECT { code, message } — String()'ing that yields the
+ * useless "[object Object]". This unwraps any shape into readable text.
+ */
+function apiError(json: unknown, status: number): string {
+  const j = (json && typeof json === "object" ? json : {}) as Record<string, unknown>;
+  const pick = (v: unknown): string | null => {
+    if (typeof v === "string" && v.trim()) return v.trim();
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      if (typeof o.message === "string") return o.message;
+      if (typeof o.code === "string") return o.code;
+    }
+    return null;
+  };
+  return pick(j.detail) || pick(j.error) || (status === 504 ? "timeout" : `error ${status}`);
+}
+
 /** Slide variants for the per-question transition. */
 const slideVariants = {
   enter: (dir: number) => ({
@@ -74,7 +94,7 @@ export default function HomePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(String(json.error || res.status));
+        setError(apiError(json, res.status));
         return;
       }
       setQuestions(json.questions || []);
@@ -147,8 +167,7 @@ export default function HomePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Prefer the detail (the real cause) over the generic code.
-        setError(String(json.detail || json.error || res.status));
+        setError(apiError(json, res.status));
         setStage("clarify");
         setBusy(false);
         return;

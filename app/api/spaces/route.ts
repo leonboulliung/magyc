@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
-import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { sanitizeModules } from "@/lib/modules";
 import { newAnonToken, newId } from "@/lib/id";
 
@@ -110,21 +109,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "classify_failed", detail }, { status: 502 });
   }
 
-  // Hydrate external references — Wikipedia widgets get URL, extract,
-  // and thumbnail. Race against a 4 s hard timeout so slow Wikipedia
-  // responses never block space creation. Failures are always silent.
-  let hydratedModules: unknown[] = result.modules;
-  try {
-    const timeout = new Promise<unknown[]>((resolve) =>
-      setTimeout(() => resolve(result.modules), 2_500),
-    );
-    hydratedModules = await Promise.race([
-      resolveExternalRefs(result.modules, result.language),
-      timeout,
-    ]);
-  } catch {
-    // Wikipedia resolution failed — continue with unresolved modules.
-  }
+  // Wikipedia hydration is NOT done here — it would add ~2.5s to the
+  // creation request, pushing the two-stage classifier + geocoding past
+  // the serverless timeout. Instead the space is stored with topic-only
+  // Wikipedia widgets and SpaceView resolves them lazily on first load
+  // (POST /api/spaces/[id]/resolve). Geocoding already ran inside the
+  // author stage (coords are required before sanitisation).
+  const hydratedModules: unknown[] = result.modules;
 
   let admin;
   try {
