@@ -1,6 +1,22 @@
 import OpenAI from "openai";
 import { MODULE_META, mandatoryConfigTypes } from "@/lib/modules";
-import type { ModuleType } from "@/lib/types";
+import type { ClarifyPrefill, ModuleType } from "@/lib/types";
+
+/**
+ * Module types that currently have a clarify-editor on the frontend and
+ * can therefore be pulled forward for interactive pre-configuration.
+ * This set grows as editors are added — the mechanism itself is general.
+ */
+const PREFILLABLE: ReadonlySet<ModuleType> = new Set(["location_single", "phases", "date"]);
+
+const PREFILL_GUIDE: Partial<Record<ModuleType, string>> = {
+  location_single:
+    "a single, exact place that matters — the model cannot drop a map pin precisely, so the user should pick it. draft: { \"query\": \"<best-guess specific venue or empty>\", \"label\": \"<short>\" }",
+  phases:
+    "a process/chronology central to the matter that is worth walking through explicitly before building (e.g. the steps of a scientific method, an event arc). draft: { \"phases\": [{\"label\":\"...\",\"description\":\"...\"}], \"currentPhase\": 0 }",
+  date:
+    "a single decisive date the whole thing hinges on. draft: { \"date\": \"YYYY-MM-DD or empty\" }",
+};
 
 /**
  * Clarify v2 — single-step (B1), but aware of mandatory-config widgets.
@@ -39,6 +55,10 @@ function buildSystemPrompt(): string {
     .map((t) => `  - ${t}: ${MANDATORY_HINTS[t] ?? MODULE_META[t].relevantWhen}`)
     .join("\n");
 
+  const prefillSection = [...PREFILLABLE]
+    .map((t) => `  - ${t}: ${PREFILL_GUIDE[t]}`)
+    .join("\n");
+
   return `You receive ONE short text a user wrote — a thought, an idea,
 a wish, a concern, a plan. Identify 2–5 ambiguities or DATA POINTS
 that, when answered, will let an agentic process build a useful
@@ -65,6 +85,18 @@ Mandatory-config widgets (and when to ask for their data):
 
 ${mandatorySection}
 
+PRE-CONFIGURE (prefills) — beyond questions, you may pull a few
+precision-sensitive modules FORWARD so the user configures them
+interactively now, instead of an agent guessing later. Propose a
+module here ONLY when getting it exactly right early genuinely matters
+for THIS input. Choose ONLY from these types (each with its draft shape):
+
+${prefillSection}
+
+Give each a "reason" (one short line in the user's language) and a
+"draft" (your best starting guess in the shown shape). 0–2 prefills.
+Do not prefill something the input doesn't clearly call for.
+
 Return STRICT JSON, no preamble:
 
   {
@@ -81,6 +113,9 @@ Return STRICT JSON, no preamble:
         ]
       },
       ...
+    ],
+    "prefills": [
+      { "id": "p1", "type": "<one prefillable type>", "reason": "<short>", "draft": { ... } }
     ]
   }
 
@@ -115,6 +150,7 @@ export interface ClarifyQuestion {
 export interface ClarifyResult {
   language: string;
   questions: ClarifyQuestion[];
+  prefills: ClarifyPrefill[];
 }
 
 const MAX_INPUT_CHARS = 1200;
@@ -186,5 +222,23 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
   }
   if (questions.length < 1) throw new Error("clarify_empty");
 
-  return { language, questions };
+  // Prefills — modules to pre-configure. Keep only prefillable types
+  // with a sane draft object. Cap at 2.
+  const rawPrefills = Array.isArray(parsed.prefills) ? parsed.prefills : [];
+  const prefills: ClarifyPrefill[] = [];
+  for (const p of rawPrefills) {
+    if (!p || typeof p !== "object") continue;
+    const pr = p as Record<string, unknown>;
+    const type = typeof pr.type === "string" ? (pr.type as ModuleType) : null;
+    if (!type || !PREFILLABLE.has(type)) continue;
+    if (prefills.some((x) => x.type === type)) continue; // one per type
+    const reason = typeof pr.reason === "string" ? pr.reason.trim().slice(0, 140) : "";
+    const draft = pr.draft && typeof pr.draft === "object" && !Array.isArray(pr.draft)
+      ? (pr.draft as Record<string, unknown>)
+      : {};
+    prefills.push({ id: `p${prefills.length + 1}`, type, reason, draft });
+    if (prefills.length >= 2) break;
+  }
+
+  return { language, questions, prefills };
 }

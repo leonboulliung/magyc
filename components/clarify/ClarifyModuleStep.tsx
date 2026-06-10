@@ -1,0 +1,309 @@
+"use client";
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import type { ClarifyPrefill, Module } from "@/lib/types";
+import { MapCanvas, OSM_TILES } from "@/components/widgets/MapCanvas";
+
+/**
+ * ClarifyModuleStep — renders the interactive editor for one prefilled
+ * module during the clarify flow, and reports the user's configured
+ * Module (or null if they leave it unset / skip).
+ *
+ * This is the GENERAL mechanism: a registry keyed by module type. The
+ * map and phases editors below are the first two; adding another module
+ * to the prefill set is just another editor here.
+ */
+export function ClarifyModuleStep({
+  prefill,
+  value,
+  onChange,
+}: {
+  prefill: ClarifyPrefill;
+  value: Module | null;
+  onChange: (m: Module | null) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <p className="mono text-[10px] tracking-widest opacity-30">
+        {prefill.reason || prefill.type.replace("_", " ")}
+      </p>
+
+      {prefill.type === "location_single" && (
+        <LocationEditor draft={prefill.draft} value={value} onChange={onChange} />
+      )}
+      {prefill.type === "phases" && (
+        <PhasesEditor draft={prefill.draft} value={value} onChange={onChange} />
+      )}
+      {prefill.type === "date" && (
+        <DateEditor draft={prefill.draft} value={value} onChange={onChange} />
+      )}
+    </div>
+  );
+}
+
+// ── Location editor — search + mini map + pin ─────────────────────────
+
+interface GeoMatch { label: string; lng: number; lat: number; }
+
+function LocationEditor({
+  draft,
+  value,
+  onChange,
+}: {
+  draft: Record<string, unknown>;
+  value: Module | null;
+  onChange: (m: Module | null) => void;
+}) {
+  const initialLabel =
+    value && value.type === "location_single" ? (value.label ?? "") :
+    typeof draft.label === "string" ? draft.label :
+    typeof draft.query === "string" ? draft.query : "";
+
+  const initialSel: GeoMatch | null =
+    value && value.type === "location_single"
+      ? { lng: value.center[0], lat: value.center[1], label: value.label ?? "" }
+      : null;
+
+  const [query, setQuery] = useState(initialLabel);
+  const [results, setResults] = useState<GeoMatch[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<GeoMatch | null>(initialSel);
+  const [mapVersion, setMapVersion] = useState(0);
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectedRef = useRef<GeoMatch | null>(initialSel);
+
+  const emit = useCallback((s: GeoMatch | null) => {
+    selectedRef.current = s;
+    onChange(s ? { type: "location_single", center: [s.lng, s.lat], zoom: 14, label: s.label } : null);
+  }, [onChange]);
+
+  const runSearch = useCallback(async (q: string) => {
+    if (q.trim().length < 2) { setResults([]); return; }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(q.trim())}`);
+      const json = await res.json().catch(() => ({ results: [] }));
+      setResults(Array.isArray(json.results) ? json.results.slice(0, 5) : []);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  // If the AI gave a draft query and nothing is selected yet, try to
+  // resolve it once so the map starts on a sensible guess.
+  useEffect(() => {
+    if (!initialSel && typeof draft.query === "string" && draft.query.trim()) {
+      runSearch(draft.query).then(() => {/* results shown; user picks */});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function onQueryChange(v: string) {
+    setQuery(v);
+    if (debounce.current) clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => runSearch(v), 350);
+  }
+
+  function pick(m: GeoMatch) {
+    setSelected(m);
+    setResults([]);
+    setQuery(m.label);
+    setMapVersion((v) => v + 1);
+    emit(m);
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Search field */}
+      <div className="relative">
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder="…"
+          className="w-full text-[16px] px-3 py-2.5 rounded-lg bg-transparent outline-none"
+          style={{ border: "1px solid rgba(0,0,0,0.15)" }}
+        />
+        {searching && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] opacity-40">…</span>
+        )}
+
+        {/* Results dropdown */}
+        <AnimatePresence>
+          {results.length > 0 && (
+            <motion.ul
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden bg-white"
+              style={{ border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}
+            >
+              {results.map((r, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => pick(r)}
+                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-black/[0.04] transition-colors"
+                  >
+                    {r.label}
+                  </button>
+                </li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Mini map with the picked pin (draggable) */}
+      {selected && (
+        <div className="rounded-lg overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.12)" }}>
+          <MapCanvas
+            height={180}
+            deps={[mapVersion]}
+            setup={(L, el) => {
+              const s = selectedRef.current!;
+              const map = L.map(el, { scrollWheelZoom: false, zoomControl: false, attributionControl: false })
+                .setView([s.lat, s.lng], 14);
+              L.tileLayer(OSM_TILES, { maxZoom: 19 }).addTo(map);
+              const icon = L.divIcon({
+                html: `<div style="width:14px;height:14px;border-radius:50%;background:#0d0d0d;border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);"></div>`,
+                className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+              });
+              const marker = L.marker([s.lat, s.lng], { icon, draggable: true }).addTo(map);
+              marker.on("dragend", (e) => {
+                const p = (e.target as L.Marker).getLatLng();
+                const next = { ...selectedRef.current!, lng: p.lng, lat: p.lat };
+                setSelected(next);
+                emit(next); // update output without rebuilding the map
+              });
+              map.on("click", (e: L.LeafletMouseEvent) => {
+                marker.setLatLng(e.latlng);
+                const next = { ...selectedRef.current!, lng: e.latlng.lng, lat: e.latlng.lat };
+                setSelected(next);
+                emit(next);
+              });
+              return () => map.remove();
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Phases editor — editable ordered list ─────────────────────────────
+
+interface PhaseItem { label: string; description?: string; }
+
+function PhasesEditor({
+  draft,
+  value,
+  onChange,
+}: {
+  draft: Record<string, unknown>;
+  value: Module | null;
+  onChange: (m: Module | null) => void;
+}) {
+  const seed: PhaseItem[] =
+    value && value.type === "phases"
+      ? value.phases
+      : Array.isArray(draft.phases)
+        ? (draft.phases as unknown[])
+            .map((p) => {
+              const r = p as Record<string, unknown>;
+              return { label: typeof r?.label === "string" ? r.label : "", description: typeof r?.description === "string" ? r.description : undefined };
+            })
+            .filter((p) => p.label)
+        : [];
+
+  const [phases, setPhases] = useState<PhaseItem[]>(seed.length ? seed : [{ label: "" }]);
+
+  const emit = useCallback((list: PhaseItem[]) => {
+    const clean = list.filter((p) => p.label.trim());
+    onChange(clean.length >= 2 ? { type: "phases", phases: clean, currentPhase: 0 } : null);
+  }, [onChange]);
+
+  // Emit once on mount with the seed.
+  useEffect(() => { emit(phases); /* eslint-disable-next-line */ }, []);
+
+  function update(next: PhaseItem[]) { setPhases(next); emit(next); }
+  function setLabel(i: number, v: string) { update(phases.map((p, idx) => idx === i ? { ...p, label: v } : p)); }
+  function add() { update([...phases, { label: "" }]); }
+  function remove(i: number) { update(phases.filter((_, idx) => idx !== i)); }
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= phases.length) return;
+    const next = [...phases];
+    [next[i], next[j]] = [next[j], next[i]];
+    update(next);
+  }
+
+  return (
+    <div className="space-y-2">
+      <ol className="space-y-2">
+        {phases.map((p, i) => (
+          <li key={i} className="flex items-center gap-2">
+            <span className="mono text-[11px] tabular-nums opacity-40 w-5 shrink-0">{i + 1}</span>
+            <input
+              value={p.label}
+              onChange={(e) => setLabel(i, e.target.value)}
+              placeholder="…"
+              maxLength={80}
+              className="flex-1 text-[15px] px-3 py-2 rounded-lg bg-transparent outline-none"
+              style={{ border: "1px solid rgba(0,0,0,0.12)" }}
+            />
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="mono text-[12px] px-1.5 opacity-40 hover:opacity-90 disabled:opacity-15">↑</button>
+              <button type="button" onClick={() => move(i, 1)} disabled={i === phases.length - 1} className="mono text-[12px] px-1.5 opacity-40 hover:opacity-90 disabled:opacity-15">↓</button>
+              <button type="button" onClick={() => remove(i)} className="mono text-[13px] px-1.5 opacity-40 hover:opacity-90">×</button>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <button
+        type="button"
+        onClick={add}
+        className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full opacity-50 hover:opacity-100"
+        style={{ border: "1px dashed rgba(0,0,0,0.2)" }}
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+// ── Date editor — a single date ───────────────────────────────────────
+
+function DateEditor({
+  draft,
+  value,
+  onChange,
+}: {
+  draft: Record<string, unknown>;
+  value: Module | null;
+  onChange: (m: Module | null) => void;
+}) {
+  const initial =
+    value && value.type === "date" ? value.date :
+    typeof draft.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(draft.date) ? draft.date : "";
+  const [date, setDate] = useState(initial);
+
+  useEffect(() => {
+    if (initial) onChange({ type: "date", date: initial });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <input
+      type="date"
+      value={date}
+      onChange={(e) => {
+        setDate(e.target.value);
+        onChange(e.target.value ? { type: "date", date: e.target.value } : null);
+      }}
+      className="text-[16px] px-3 py-2.5 rounded-lg bg-transparent outline-none"
+      style={{ border: "1px solid rgba(0,0,0,0.15)" }}
+    />
+  );
+}

@@ -69,6 +69,47 @@ async function viaNominatim(query: string): Promise<GeoPoint | null> {
   return null;
 }
 
+export interface GeoMatch {
+  label: string;
+  lng: number;
+  lat: number;
+}
+
+/** Compose a readable label from a Photon feature's properties. */
+function photonLabel(props: Record<string, unknown>): string {
+  const parts = [props.name, props.street, props.city, props.state, props.country]
+    .map((p) => (typeof p === "string" ? p.trim() : ""))
+    .filter(Boolean);
+  // De-dup consecutive equal parts (name often equals city for cities).
+  const out: string[] = [];
+  for (const p of parts) if (out[out.length - 1] !== p) out.push(p);
+  return out.slice(0, 3).join(", ");
+}
+
+/**
+ * Search for places matching a query — the autocomplete behind the
+ * clarify location editor. Returns up to `limit` named matches with
+ * coordinates. Photon only (keyless, generous); no Nominatim fallback
+ * here to keep typing fast.
+ */
+export async function geocodeSearch(query: string, limit = 5): Promise<GeoMatch[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=${limit}`;
+  const json = await fetchJson(url, { accept: "application/json" });
+  const feats = (json as { features?: { geometry?: { coordinates?: number[] }; properties?: Record<string, unknown> }[] })?.features;
+  if (!Array.isArray(feats)) return [];
+  const out: GeoMatch[] = [];
+  for (const f of feats) {
+    const c = f.geometry?.coordinates;
+    if (!c || !isFiniteCoord(c[0], c[1])) continue;
+    const label = photonLabel(f.properties ?? {});
+    if (!label) continue;
+    out.push({ label, lng: c[0], lat: c[1] });
+  }
+  return out;
+}
+
 /** Geocode a single place name, with cache + provider fallback. */
 export async function geocode(query: string): Promise<GeoPoint | null> {
   const q = query.trim();

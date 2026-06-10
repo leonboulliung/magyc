@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { getAnonToken, rememberSpaceOwnerToken } from "@/lib/anonId";
 import { stagePage, clarifyItem } from "@/lib/anim";
+import type { ClarifyPrefill, Module } from "@/lib/types";
+import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 
 type Stage = "input" | "clarify" | "building";
 
@@ -45,6 +47,8 @@ export default function HomePage() {
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("en");
   const [questions, setQuestions] = useState<ClarifyQuestion[]>([]);
+  const [prefills, setPrefills] = useState<ClarifyPrefill[]>([]);
+  const [configured, setConfigured] = useState<Record<string, Module | null>>({});
   const [qIndex, setQIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -74,6 +78,8 @@ export default function HomePage() {
         return;
       }
       setQuestions(json.questions || []);
+      setPrefills(Array.isArray(json.prefills) ? json.prefills : []);
+      setConfigured({});
       setLanguage(json.language || "en");
       setQIndex(0);
       setDirection(1);
@@ -98,9 +104,12 @@ export default function HomePage() {
     }, 500);
   }
 
+  // Steps = questions first, then prefilled-module editors.
+  const totalSteps = questions.length + prefills.length;
+
   function goForward() {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
-    if (qIndex < questions.length - 1) {
+    if (qIndex < totalSteps - 1) {
       setDirection(1);
       setQIndex((i) => i + 1);
       setCustomDraft("");
@@ -129,11 +138,12 @@ export default function HomePage() {
     const payloadAnswers: Answer[] = questions
       .filter((q) => !!answers[q.id])
       .map((q) => ({ questionId: q.id, questionText: q.text, choice: answers[q.id] }));
+    const configuredModules = Object.values(configured).filter(Boolean);
     try {
       const res = await fetch("/api/spaces", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input: text.trim(), answers: payloadAnswers, anonToken: getAnonToken() }),
+        body: JSON.stringify({ input: text.trim(), answers: payloadAnswers, configuredModules, anonToken: getAnonToken() }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -152,9 +162,13 @@ export default function HomePage() {
     }
   }
 
-  const currentQ = questions[qIndex] ?? null;
-  const progress = questions.length > 0 ? (qIndex) / questions.length : 0;
-  const isLastQ = qIndex === questions.length - 1;
+  // Current step: a question (qIndex < questions.length) or a
+  // prefilled-module editor (after the questions).
+  const isModuleStep = qIndex >= questions.length;
+  const currentQ = !isModuleStep ? (questions[qIndex] ?? null) : null;
+  const currentPrefill = isModuleStep ? (prefills[qIndex - questions.length] ?? null) : null;
+  const progress = totalSteps > 0 ? qIndex / totalSteps : 0;
+  const isLastQ = qIndex === totalSteps - 1;
   const currentAnswer = currentQ ? answers[currentQ.id] : undefined;
   const isCustom = currentAnswer != null && currentQ != null &&
     !currentQ.options.some((o) => o.value === currentAnswer);
@@ -199,13 +213,13 @@ export default function HomePage() {
               </motion.div>
             )}
 
-            {stage === "clarify" && currentQ && (
+            {stage === "clarify" && (currentQ || currentPrefill) && (
               <motion.div key="clarify" variants={stagePage} initial="hidden" animate="show" exit="exit">
                 {/* Progress bar + step counter */}
                 <div className="mb-8 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="mono text-[9px] tracking-widest opacity-40 tabular-nums">
-                      {qIndex + 1} / {questions.length}
+                      {qIndex + 1} / {totalSteps}
                     </span>
                     {/* Skip all → submit immediately */}
                     <button
@@ -233,7 +247,7 @@ export default function HomePage() {
                 <div className="overflow-hidden" style={{ minHeight: 220 }}>
                   <AnimatePresence custom={direction} mode="wait" initial={false}>
                     <motion.div
-                      key={currentQ.id}
+                      key={currentQ?.id ?? currentPrefill?.id ?? "step"}
                       custom={direction}
                       variants={slideVariants}
                       initial="enter"
@@ -246,6 +260,16 @@ export default function HomePage() {
                         {text.trim().slice(0, 80)}
                       </p>
 
+                      {currentPrefill ? (
+                        <ClarifyModuleStep
+                          prefill={currentPrefill}
+                          value={configured[currentPrefill.id] ?? null}
+                          onChange={(mod) =>
+                            setConfigured((c) => ({ ...c, [currentPrefill.id]: mod }))
+                          }
+                        />
+                      ) : currentQ ? (
+                      <>
                       <h3 className="text-[18px] sm:text-[22px] leading-snug font-medium flex items-baseline gap-2">
                         {currentQ.kind === "data" && (
                           <span aria-hidden className="mono text-[11px] tracking-widest opacity-40">◆</span>
@@ -298,6 +322,8 @@ export default function HomePage() {
                           }}
                         />
                       </div>
+                      </>
+                      ) : null}
                     </motion.div>
                   </AnimatePresence>
                 </div>

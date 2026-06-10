@@ -467,16 +467,16 @@ function prep(text: string): string {
 export async function classifyInput(
   text: string,
   answers: ClassifyAnswer[] = [],
+  /** Modules the user already configured in the clarify step (location
+   *  pin, phases, …). These are kept verbatim — not re-authored, not
+   *  re-geocoded — and the author stage skips their type (and its
+   *  redundancy group, e.g. another place widget). */
+  configuredModules: Module[] = [],
 ): Promise<ClassifyResult> {
   if (!process.env.OPENAI_API_KEY) throw new Error("ai_not_configured");
   const input = prep(text);
   if (input.length < 3) throw new Error("input_too_short");
 
-  // The real 504 cause was sequential geocoding (now parallel), not the
-  // SDK retries — so keep retries for resilience against transient
-  // OpenAI errors (429/500), which otherwise surface as classify_failed.
-  // One retry is the balance: recovers from a hiccup without doubling the
-  // budget. The generous timeout is only a hang guard.
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     maxRetries: 1,
@@ -487,16 +487,32 @@ export async function classifyInput(
   const a = await analyze(client, input, answers);
 
   // Server-side deterministic selection.
-  const chosen = selectModuleTypes(a.scores);
+  let chosen = selectModuleTypes(a.scores);
+
+  // Honour pre-configured modules: drop their type AND any type in the
+  // same redundancy group from what the author will produce, so we never
+  // get a second place/date widget competing with the user's choice.
+  const preTypes = new Set(configuredModules.map((m) => m.type));
+  const suppress = new Set<ModuleType>(preTypes);
+  for (const t of preTypes) {
+    if (PLACE_GROUP.has(t)) PLACE_GROUP.forEach((x) => suppress.add(x));
+    if (DATE_GROUP.has(t)) DATE_GROUP.forEach((x) => suppress.add(x));
+  }
+  chosen = chosen.filter((t) => !suppress.has(t));
 
   // Stage B — author the chosen widgets in the detected language.
   const authored = await author(client, input, answers, a.language, chosen);
 
-  // Assemble in header-zone order: heading → rich_text → tags → body.
+  // Assemble in header-zone order: heading → rich_text → tags →
+  // (user-configured body first) → authored body.
+  const configuredBody = configuredModules.filter(
+    (m) => m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags",
+  );
   const ordered: Module[] = [];
   ordered.push({ type: "heading", text: a.title || input.slice(0, 60), level: 1 });
   if (authored.richText) ordered.push(authored.richText);
   if (authored.tags) ordered.push(authored.tags);
+  ordered.push(...configuredBody);
   ordered.push(...authored.body);
 
   return {

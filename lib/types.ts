@@ -399,6 +399,30 @@ export const HEADER_ZONE_TYPES: readonly ModuleType[] = [
   "tags",
 ] as const;
 
+/**
+ * Clarify prefill — a module the agentic AI judged important and
+ * precision-sensitive enough to have the user configure UP FRONT, in
+ * the clarify step, rather than letting the author stage guess it.
+ *
+ * This is a GENERAL mechanism, not a map special case: any module type
+ * that has a clarify-editor can be pulled forward. The map is just the
+ * most valuable case (an LLM can't place a pin precisely), the science
+ * example is `phases` (walk the process through before building), and
+ * the same applies to dates, polls, and more as editors are added.
+ *
+ * `draft` is the AI's starting guess (loose shape — each editor reads
+ * what it needs). The editor turns it into a real, valid Module that
+ * flows into the build pre-confirmed.
+ */
+export interface ClarifyPrefill {
+  id: string;
+  type: ModuleType;
+  /** One short line: why this is worth configuring now (in the user's language). */
+  reason: string;
+  /** The AI's starting draft — interpreted by the type's editor. */
+  draft: Record<string, unknown>;
+}
+
 // ============================================================
 // Module state — collaborative actions
 // ============================================================

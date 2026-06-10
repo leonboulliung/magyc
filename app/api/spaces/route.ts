@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { resolveExternalRefs } from "@/lib/server/wikipedia";
+import { sanitizeModules } from "@/lib/modules";
 import { newAnonToken, newId } from "@/lib/id";
 
 // The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
   let body: {
     input?: string;
     answers?: unknown;
+    configuredModules?: unknown;
     anonToken?: string;
   };
   try {
@@ -65,6 +67,11 @@ export async function POST(req: Request) {
     if (answers.length >= MAX_ANSWERS) break;
   }
 
+  // Pre-configured modules from the clarify step (location pin, phases,
+  // …). Sanitised into real Modules; anything malformed is dropped.
+  const configuredRaw = Array.isArray(body.configuredModules) ? body.configuredModules : [];
+  const configuredModules = sanitizeModules(configuredRaw.slice(0, 6));
+
   const anonToken = typeof body.anonToken === "string" && body.anonToken.length >= 16
     ? body.anonToken.slice(0, 64)
     : newAnonToken();
@@ -82,7 +89,7 @@ export async function POST(req: Request) {
 
   let result;
   try {
-    result = await classifyInput(input, answers);
+    result = await classifyInput(input, answers, configuredModules);
   } catch (e) {
     const err = e as { message?: string; status?: number; code?: string };
     const msg = err.message || "unknown";
