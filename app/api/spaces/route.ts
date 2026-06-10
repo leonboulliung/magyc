@@ -84,12 +84,23 @@ export async function POST(req: Request) {
   try {
     result = await classifyInput(input, answers);
   } catch (e) {
-    const msg = (e as Error).message || "unknown";
+    const err = e as { message?: string; status?: number; code?: string };
+    const msg = err.message || "unknown";
+    // Log the full error server-side so it appears in Vercel logs.
+    console.error("[spaces] classify failed:", err.status, err.code, msg);
     if (msg === "ai_not_configured")
       return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
     if (msg === "classify_unparseable")
       return NextResponse.json({ error: "classify_unparseable" }, { status: 500 });
-    return NextResponse.json({ error: "classify_failed", detail: msg }, { status: 502 });
+    // Surface a short, actionable detail to the client.
+    const detail = err.status === 429
+      ? "openai_rate_limited"
+      : err.status === 401
+        ? "openai_auth"
+        : err.code === "insufficient_quota"
+          ? "openai_quota"
+          : msg.slice(0, 120);
+    return NextResponse.json({ error: "classify_failed", detail }, { status: 502 });
   }
 
   // Hydrate external references — Wikipedia widgets get URL, extract,

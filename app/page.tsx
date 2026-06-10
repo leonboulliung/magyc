@@ -137,7 +137,8 @@ export default function HomePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(String(json.error || json.detail || res.status));
+        // Prefer the detail (the real cause) over the generic code.
+        setError(String(json.detail || json.error || res.status));
         setStage("clarify");
         setBusy(false);
         return;

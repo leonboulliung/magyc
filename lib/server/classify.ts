@@ -484,14 +484,15 @@ export async function classifyInput(
   const input = prep(text);
   if (input.length < 3) throw new Error("input_too_short");
 
-  // maxRetries: 0 is critical for the serverless time budget — the SDK
-  // defaults to 2 retries with backoff, which a single transient error
-  // could turn into a 10s+ stall (→ gateway 504). Per-request timeout is
-  // a hang guard so a stuck call fails fast instead of eating the budget.
+  // The real 504 cause was sequential geocoding (now parallel), not the
+  // SDK retries — so keep retries for resilience against transient
+  // OpenAI errors (429/500), which otherwise surface as classify_failed.
+  // One retry is the balance: recovers from a hiccup without doubling the
+  // budget. The generous timeout is only a hang guard.
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    maxRetries: 0,
-    timeout: 12_000,
+    maxRetries: 1,
+    timeout: 20_000,
   });
 
   // Stage A — analyze + score.
