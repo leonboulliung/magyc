@@ -3,6 +3,7 @@ import { MODULE_META, bodyTypes, sanitizeModules } from "@/lib/modules";
 import { ALL_VIBES, type Module, type ModuleType, type SpaceLabels, type SpaceStyle, type Vibe } from "@/lib/types";
 import { FONT_NAMES } from "@/lib/fonts";
 import { sanitizeStyle } from "@/lib/style";
+import { resolveGeocoding } from "@/lib/server/geocode";
 
 /**
  * Classifier v5 — two-stage scoring architecture.
@@ -48,7 +49,7 @@ import { sanitizeStyle } from "@/lib/style";
 const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
   { title: "REFERENCE & FRAMING", types: ["ai_summary", "wikipedia", "icon"] },
   { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "range", "phases"] },
-  { title: "PLACE", types: ["location_suggestions"] },
+  { title: "PLACE", types: ["location_single", "locations_multi", "location_suggestions", "route"] },
   { title: "PEOPLE & WORK", types: ["crew", "work_packages", "checklist"] },
   { title: "DISCUSSION & DECISIONS", types: ["notes", "qa", "poll", "discussion"] },
   { title: "STRUCTURED DATA", types: ["table", "parts_list"] },
@@ -57,8 +58,11 @@ const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
 
 const AI_SCORABLE_TYPES: ModuleType[] = SCORING_GROUPS.flatMap((g) => g.types);
 
-// Redundancy group: at most one of these date-style widgets per space.
+// Redundancy groups — at most one widget from each per space.
 const DATE_GROUP: ReadonlySet<ModuleType> = new Set(["date", "appointment", "appointments"]);
+const PLACE_GROUP: ReadonlySet<ModuleType> = new Set([
+  "location_single", "locations_multi", "location_suggestions", "route",
+]);
 
 // Selection tuning.
 const MIN_SCORE = 5;     // a module must score at least this to be considered
@@ -197,6 +201,7 @@ export function selectModuleTypes(scores: Record<string, number>): ModuleType[] 
 
   const chosen: ModuleType[] = [];
   let dateUsed = false;
+  let placeUsed = false;
 
   for (const { type, score } of ranked) {
     if (chosen.length >= MAX_BODY) break;
@@ -204,6 +209,10 @@ export function selectModuleTypes(scores: Record<string, number>): ModuleType[] 
     if (DATE_GROUP.has(type)) {
       if (dateUsed) continue; // keep only the highest-scoring date widget
       dateUsed = true;
+    }
+    if (PLACE_GROUP.has(type)) {
+      if (placeUsed) continue; // keep only the highest-scoring place widget
+      placeUsed = true;
     }
     chosen.push(type);
   }
@@ -217,7 +226,9 @@ export function selectModuleTypes(scores: Record<string, number>): ModuleType[] 
       if (chosen.includes(type)) continue;
       if (score <= 0) continue;
       if (DATE_GROUP.has(type) && dateUsed) continue;
+      if (PLACE_GROUP.has(type) && placeUsed) continue;
       if (DATE_GROUP.has(type)) dateUsed = true;
+      if (PLACE_GROUP.has(type)) placeUsed = true;
       chosen.push(type);
     }
   }
@@ -232,6 +243,9 @@ const SHAPE: Partial<Record<ModuleType, string>> = {
   ai_summary: `{"type":"ai_summary","microTitle":"<short label>","text":"<2-4 sentence abstract take>"}`,
   wikipedia: `{"type":"wikipedia","microTitle":"<short label>","topic":"<EXACT real Wikipedia article title — must be a genuinely existing article>"}`,
   icon: `{"type":"icon","iconify":"<iconify id, e.g. lucide:video, lucide:camera, phosphor:book>"}`,
+  location_single: `{"type":"location_single","microTitle":"<short label>","query":"<a REAL, specific, geocodable place — full name incl. city/country, e.g. 'Parc des Buttes-Chaumont, Paris'>","label":"<short display name>"}`,
+  locations_multi: `{"type":"locations_multi","microTitle":"<short label>","queries":[{"query":"<real geocodable place incl. city>","label":"<short>"}]}`,
+  route: `{"type":"route","microTitle":"<short label>","stops":[{"query":"<real geocodable place incl. city>","label":"<short>"}]}`,
   location_suggestions: `{"type":"location_suggestions","microTitle":"<short label>","suggestions":[{"label":"<real place name or place type>","address":"<optional>"}]}`,
   date: `{"type":"date","microTitle":"<short label>","date":"YYYY-MM-DD"}`,
   appointment: `{"type":"appointment","microTitle":"<short label>","datetime":"<ISO 8601>"}`,
@@ -333,6 +347,11 @@ CONTENT RULES:
 - Never invent specifics: no fake place names, no fake Wikipedia
   titles that don't exist, no fake dates, no fake numbers. If you lack
   a real value for a date/appointment, omit that widget from "body".
+- For map widgets (location_single, locations_multi, route), the
+  "query" must be a REAL, specific, geocodable place — include the city
+  and ideally the country (e.g. "Tour Eiffel, Paris, France"). If the
+  input names no concrete place, do NOT emit a coordinate map; the
+  selection already preferred location_suggestions for vague places.
 - Seed-content widgets (poll, checklist, crew, work_packages, phases,
   table, parts_list, location_suggestions) must contain real, concrete
   starter content drawn from the input — never empty arrays, never
@@ -420,7 +439,11 @@ async function author(
   const richText = parsed.richText ? sanitizeModules([parsed.richText])[0] ?? null : null;
   const tags = parsed.tags ? sanitizeModules([parsed.tags])[0] ?? null : null;
   const rawBody = Array.isArray(parsed.body) ? parsed.body : [];
-  const body = sanitizeModules(rawBody).filter(
+  // Resolve map widgets' place names into real coordinates BEFORE
+  // sanitisation (the sanitizer requires coords; the AI emits names).
+  // Unresolvable maps are dropped here rather than pinned to a guess.
+  const geocodedBody = await resolveGeocoding(rawBody);
+  const body = sanitizeModules(geocodedBody).filter(
     (m) => m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags",
   );
   const labels = sanitizeLabels(parsed.labels);
