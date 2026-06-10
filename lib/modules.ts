@@ -628,7 +628,7 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     partOfHeader: false,
     alwaysInserted: false,
     relevantWhen:
-      "the project is exploratory or operationally complex enough that scratch notes will accrue.",
+      "the work will genuinely accrue scratch observations worth keeping over time — research, fieldwork, iterative exploration. NOT a default; skip for simple, one-off, or self-contained matters.",
     requiresMandatoryConfig: false,
     externalSource: null,
     requiresAttribution: false,
@@ -640,7 +640,7 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     partOfHeader: false,
     alwaysInserted: false,
     relevantWhen:
-      "the approach is concrete enough that pretexts / details need clarification, OR open topics exist that the group needs to settle together.",
+      "there are genuine open questions the group must answer together before proceeding — concrete unknowns, not vague 'might have questions'.",
     requiresMandatoryConfig: false,
     externalSource: null,
     requiresAttribution: false,

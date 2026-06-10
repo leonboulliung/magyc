@@ -231,13 +231,14 @@ export function WidgetPicker({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.18 }}
-            className="absolute bottom-full mb-2 left-0 z-50 rounded-md overflow-hidden"
+            className="absolute bottom-full mb-2 left-1/2 z-50 rounded-md overflow-hidden"
             style={{
               width: 280,
+              transform: "translateX(-50%)",
               background: "var(--v-bg)",
               border: "1px solid var(--v-rule)",
               boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-              maxHeight: "60vh",
+              maxHeight: "min(60vh, 380px)",
               overflowY: "auto",
             }}
           >

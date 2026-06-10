@@ -4,6 +4,11 @@ import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { newAnonToken, newId } from "@/lib/id";
 
+// The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
+// author) plus a Wikipedia hydration pass. Give the function headroom
+// beyond the 10s default so it never times out mid-compose.
+export const maxDuration = 30;
+
 const lastCallAt = new Map<string, number>();
 // 8 s window — enough to prevent double-submit spam but allows
 // quick retries during testing / development.

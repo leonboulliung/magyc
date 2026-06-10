@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 import { bodyContainer, bodyItem } from "@/lib/anim";
@@ -10,26 +10,28 @@ import { WidgetPicker } from "./WidgetPicker";
 /**
  * GridZone — the body widget area of a space.
  *
- * Visual: a bounded, lightly-tinted surface with a hairline rule
- * border so the workspace area is unmistakably distinct from the
- * page chrome.  A faint column guide (12-col) is always visible at
- * very low opacity as an orientation aid.
+ * State model (v2): the server is the source of truth. Props are
+ * mirrored into `items` local state, re-synced whenever the prop set
+ * changes (detected via a content signature). All mutations are
+ * optimistic — the local list updates instantly, the server call
+ * follows, and the next refresh reconciles. This is what makes
+ * add / remove / reorder feel instant instead of laggy.
  *
- * Owner affordances (hover-reveal):
- *   ⠿  drag handle (top-left) — HTML5 drag-to-reorder
- *   ⇔/⇒  width toggle (top-right) — half ↔ full width
- *   ×  remove (top-right)
- *   +  add widget (bottom) — opens WidgetPicker
- *
- * API: PATCH /api/spaces/[id]/widgets (reorder), DELETE (remove),
- *      POST (add).
+ * Visual: a bounded surface with a faint crosshatch (graph-paper)
+ * grid as an orientation aid. Owner affordances reveal on hover.
  */
 
 export interface BodyItem {
   module: Module;
-  /** Original index in the full displayedModules array. */
+  /** Index in the full space.modules array — used by the dispatcher
+   *  for state posting and widget PUT/regenerate calls. */
   index: number;
   stateEntries: ModuleStateEntry[];
+}
+
+/** Content signature — changes when the server set changes. */
+function signatureOf(items: BodyItem[]): string {
+  return items.map((it) => `${it.index}:${it.module.type}`).join("|");
 }
 
 export function GridZone({
@@ -42,8 +44,6 @@ export function GridZone({
   onRefresh,
 }: {
   bodyItems: BodyItem[];
-  /** Header-zone modules (heading, rich_text, tags) — kept at the
-   *  front of the array when reordering body widgets. */
   headerModules: Module[];
   spaceId: string;
   ownerToken: string | null;
@@ -51,69 +51,53 @@ export function GridZone({
   labels: { emptyGrid?: string; emptyGridHint?: string };
   onRefresh: () => void;
 }) {
-  // ── Local display order ──────────────────────────────────────
-  // Tracks which bodyItem (by its position in the prop array) goes
-  // at each position in the visual grid.
-  const [order, setOrder] = useState<number[]>(() =>
-    bodyItems.map((_, i) => i),
-  );
-  // Reset when bodyItems changes after a server refresh.
-  const bodyLen = useRef(bodyItems.length);
-  if (bodyItems.length !== bodyLen.current) {
-    bodyLen.current = bodyItems.length;
-    setOrder(bodyItems.map((_, i) => i));
+  // ── Mirror props into local state, synced by signature ──────────
+  const [items, setItems] = useState<BodyItem[]>(bodyItems);
+  const sig = signatureOf(bodyItems);
+  const prevSig = useRef(sig);
+  if (sig !== prevSig.current) {
+    prevSig.current = sig;
+    setItems(bodyItems);
   }
 
-  // ── Widths (local only, not persisted) ───────────────────────
   const [fullWidth, setFullWidth] = useState<Set<number>>(new Set());
-
-  // ── Drag state ───────────────────────────────────────────────
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
-
-  // ── Saving indicator ─────────────────────────────────────────
   const [busy, setBusy] = useState(false);
-
-  // ── Picker ───────────────────────────────────────────────────
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // ── Helpers ──────────────────────────────────────────────────
-  const authBody = useCallback(
-    () => ({ anonOwnerToken: ownerToken }),
-    [ownerToken],
-  );
+  const body = (m: Record<string, unknown>) => JSON.stringify({ ...m, anonOwnerToken: ownerToken });
 
-  async function patchOrder(newOrder: number[]) {
+  // ── Reorder (optimistic) ────────────────────────────────────────
+  async function commitOrder(next: BodyItem[]) {
+    setItems(next);
     setBusy(true);
     try {
-      const full = [
-        ...headerModules,
-        ...newOrder.map((i) => bodyItems[i].module),
-      ];
-      const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
+      const modules = [...headerModules, ...next.map((it) => it.module)];
+      await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ modules: full, ...authBody() }),
+        body: body({ modules }),
       });
-      if (res.ok) onRefresh();
+      onRefresh();
     } finally {
       setBusy(false);
     }
   }
 
-  async function removeAt(orderPos: number) {
-    const globalIdx = bodyItems[order[orderPos]].index;
-    // Optimistic: remove from local order immediately so the UI
-    // responds at once, then sync to server.
-    const newOrder = order.filter((_, pos) => pos !== orderPos);
-    setOrder(newOrder);
-    bodyLen.current = newOrder.length; // prevent reset on next render
+  // ── Remove (optimistic) ─────────────────────────────────────────
+  async function removeAt(pos: number) {
+    const target = items[pos];
+    if (!target) return;
+    const next = items.filter((_, i) => i !== pos);
+    setItems(next);
+    prevSig.current = signatureOf(next); // suppress resync flicker
     setBusy(true);
     try {
       await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ index: globalIdx, ...authBody() }),
+        body: body({ index: target.index }),
       });
       onRefresh();
     } finally {
@@ -121,13 +105,22 @@ export function GridZone({
     }
   }
 
+  // ── Add (optimistic) ────────────────────────────────────────────
   async function addWidget(widget: Module) {
+    setPickerOpen(false);
+    // Optimistic placeholder with a temporary index past the current
+    // max; the real index arrives on refresh.
+    const tempIndex = headerModules.length + items.length + 1000;
+    const optimistic: BodyItem = { module: widget, index: tempIndex, stateEntries: [] };
+    const next = [...items, optimistic];
+    setItems(next);
+    prevSig.current = signatureOf(next);
     setBusy(true);
     try {
       await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ widget, ...authBody() }),
+        body: body({ widget }),
       });
       onRefresh();
     } finally {
@@ -135,49 +128,27 @@ export function GridZone({
     }
   }
 
-  // ── Drag event handlers ───────────────────────────────────────
-  function handleDragStart(pos: number) {
-    setDragFrom(pos);
-  }
-
-  function handleDragOver(e: React.DragEvent, pos: number) {
-    e.preventDefault();
-    if (dragFrom !== null && dragFrom !== pos) setDragOver(pos);
-  }
-
+  // ── Drag handlers ───────────────────────────────────────────────
   function handleDrop(pos: number) {
     if (dragFrom === null || dragFrom === pos) {
-      setDragFrom(null);
-      setDragOver(null);
+      setDragFrom(null); setDragOver(null);
       return;
     }
-    const o = [...order];
-    const item = o.splice(dragFrom, 1)[0];
-    o.splice(dragFrom < pos ? pos - 1 : pos, 0, item);
-    setOrder(o);
-    setDragFrom(null);
-    setDragOver(null);
-    patchOrder(o);
+    const next = [...items];
+    const moved = next.splice(dragFrom, 1)[0];
+    next.splice(dragFrom < pos ? pos - 1 : pos, 0, moved);
+    setDragFrom(null); setDragOver(null);
+    commitOrder(next);
   }
 
-  // ── Render ────────────────────────────────────────────────────
-  const displayed = order.map((i) => bodyItems[i]).filter(Boolean);
-  const isEmpty = displayed.length === 0;
+  const isEmpty = items.length === 0;
 
   return (
     <div
       className="rounded-lg relative"
-      style={{
-        background: "var(--v-bg)",
-        border: "1px solid var(--v-rule)",
-        minHeight: 240,
-      }}
+      style={{ background: "var(--v-bg)", border: "1px solid var(--v-rule)", minHeight: 240 }}
     >
-      {/* Crosshatch grid — dots at every column × row intersection.
-          Horizontal pitch: 1/12 of the container width.
-          Vertical pitch:   28px (matches typical line-height rhythm).
-          The dot is a tiny radial gradient so it reads as "+" without
-          being heavy. */}
+      {/* Crosshatch graph-paper grid */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden"
@@ -188,16 +159,13 @@ export function GridZone({
             width: "100%",
             height: "100%",
             backgroundImage: [
-              // Vertical column lines
               "repeating-linear-gradient(to right, var(--v-fg) 0, var(--v-fg) 1px, transparent 1px, transparent calc(100% / 12))",
-              // Horizontal row lines — 28px pitch
               "repeating-linear-gradient(to bottom, var(--v-fg) 0, var(--v-fg) 1px, transparent 1px, transparent 28px)",
             ].join(", "),
           }}
         />
       </div>
 
-      {/* Content */}
       <div className="relative p-3">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
@@ -207,22 +175,13 @@ export function GridZone({
               </p>
             )}
             {isOwner && (
-              <div className="relative">
-                <WidgetPicker
-                  open={pickerOpen}
-                  onClose={() => setPickerOpen(false)}
-                  onPick={(w) => { setPickerOpen(false); addWidget(w); }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setPickerOpen(true)}
-                  disabled={busy}
-                  className="mono text-[10px] tracking-widest px-5 py-2 rounded-full disabled:opacity-30"
-                  style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
-                >
-                  {busy ? "…" : "+"}
-                </button>
-              </div>
+              <AddButton
+                open={pickerOpen}
+                busy={busy}
+                onToggle={() => setPickerOpen((v) => !v)}
+                onClose={() => setPickerOpen(false)}
+                onPick={addWidget}
+              />
             )}
           </div>
         ) : (
@@ -234,8 +193,8 @@ export function GridZone({
               animate="show"
             >
               <AnimatePresence initial={false}>
-                {displayed.map((item, pos) => {
-                  const isFull = fullWidth.has(pos);
+                {items.map((item, pos) => {
+                  const isFull = fullWidth.has(item.index);
                   const isDragging = dragFrom === pos;
                   const isTarget = dragOver === pos;
                   return (
@@ -246,56 +205,43 @@ export function GridZone({
                       animate={{ opacity: isDragging ? 0.35 : 1, scale: isDragging ? 0.97 : 1 }}
                       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
                       transition={{ duration: 0.18 }}
-                      /* Tailwind purge-safe: use conditional, not dynamic interpolation */
                       className={`relative group/cell ${isFull ? "col-span-12" : "col-span-12 sm:col-span-6"}`}
                       style={{
                         outline: isTarget ? "2px dashed var(--v-fg)" : "none",
                         outlineOffset: 3,
                         borderRadius: 6,
-                        cursor: isOwner ? "default" : undefined,
                       }}
                       draggable={isOwner}
-                      onDragStart={() => handleDragStart(pos)}
-                      onDragOver={(e) => handleDragOver(e, pos)}
+                      onDragStart={() => setDragFrom(pos)}
+                      onDragOver={(e) => { e.preventDefault(); if (dragFrom !== null && dragFrom !== pos) setDragOver(pos); }}
                       onDrop={() => handleDrop(pos)}
                       onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
                     >
-                      {/* Widget itself */}
                       <WidgetDispatcher
                         module={item.module}
                         index={item.index}
                         state={item.stateEntries}
                       />
 
-                      {/* Owner overlay controls */}
                       {isOwner && (
                         <>
-                          {/* Drag handle */}
                           <div
                             className="absolute -top-0.5 -left-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity cursor-grab select-none"
                             style={{ color: "var(--v-muted)" }}
-                            onMouseDown={(e) => e.stopPropagation()}
                           >
-                            <span
-                              className="mono text-[12px] inline-block px-1 py-0.5 rounded-br"
-                              style={{ background: "var(--v-rule)", lineHeight: 1 }}
-                            >
+                            <span className="mono text-[12px] inline-block px-1 py-0.5 rounded-br" style={{ background: "var(--v-rule)", lineHeight: 1 }}>
                               ⠿
                             </span>
                           </div>
-
-                          {/* Width + remove */}
                           <div className="absolute -top-0.5 -right-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity flex items-center gap-0.5">
                             <button
                               type="button"
                               title={isFull ? "half width" : "full width"}
-                              onClick={() =>
-                                setFullWidth((s) => {
-                                  const n = new Set(s);
-                                  if (n.has(pos)) n.delete(pos); else n.add(pos);
-                                  return n;
-                                })
-                              }
+                              onClick={() => setFullWidth((s) => {
+                                const n = new Set(s);
+                                if (n.has(item.index)) n.delete(item.index); else n.add(item.index);
+                                return n;
+                              })}
                               className="mono text-[11px] px-1.5 py-0.5 rounded-bl"
                               style={{ background: "var(--v-rule)", color: "var(--v-muted)", lineHeight: 1 }}
                             >
@@ -320,28 +266,60 @@ export function GridZone({
               </AnimatePresence>
             </motion.div>
 
-            {/* Add button */}
             {isOwner && (
-              <div className="relative flex justify-center mt-4">
-                <WidgetPicker
+              <div className="flex justify-center mt-4">
+                <AddButton
                   open={pickerOpen}
+                  busy={busy}
+                  onToggle={() => setPickerOpen((v) => !v)}
                   onClose={() => setPickerOpen(false)}
-                  onPick={(w) => { setPickerOpen(false); addWidget(w); }}
+                  onPick={addWidget}
                 />
-                <button
-                  type="button"
-                  onClick={() => setPickerOpen((v) => !v)}
-                  disabled={busy}
-                  className="mono text-[10px] tracking-widest px-5 py-1.5 rounded-full transition-opacity disabled:opacity-30"
-                  style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
-                >
-                  {busy ? "…" : "+"}
-                </button>
               </div>
             )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The add-widget affordance. Self-contained relative anchor so the
+ * picker panel is reliably positioned above the button and centered.
+ */
+function AddButton({
+  open,
+  busy,
+  onToggle,
+  onClose,
+  onPick,
+}: {
+  open: boolean;
+  busy: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onPick: (w: Module) => void;
+}) {
+  return (
+    <div className="relative">
+      <WidgetPicker open={open} onClose={onClose} onPick={onPick} />
+      <motion.button
+        type="button"
+        onClick={onToggle}
+        disabled={busy}
+        className="mono text-[11px] tracking-widest px-5 py-2 rounded-full disabled:opacity-30"
+        style={{
+          border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
+          color: "var(--v-fg)",
+          background: "var(--v-bg)",
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      >
+        {busy ? "…" : "+"}
+      </motion.button>
     </div>
   );
 }

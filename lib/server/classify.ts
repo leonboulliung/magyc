@@ -1,201 +1,334 @@
 import OpenAI from "openai";
-import {
-  MODULE_META,
-  alwaysInsertedTypes,
-  bodyTypes,
-  mandatoryConfigTypes,
-  sanitizeModules,
-} from "@/lib/modules";
-import { ALL_VIBES, type Module, type SpaceLabels, type Vibe } from "@/lib/types";
+import { MODULE_META, sanitizeModules } from "@/lib/modules";
+import { ALL_VIBES, type Module, type ModuleType, type SpaceLabels, type Vibe } from "@/lib/types";
 
 /**
- * Classifier v4 — the dossier author for the 29-widget catalog.
+ * Classifier v5 — two-stage scoring architecture.
  *
- * Builds the system prompt dynamically from MODULE_META so adding a
- * widget type means one place (lib/modules.ts) and the prompt picks
- * it up automatically.
+ * v4 used a single call that both SELECTED and AUTHORED 26 widgets.
+ * That suffered three structural problems:
+ *   (a) position bias — modules late in the flat list got under-picked;
+ *   (b) vague-rule modules (notes, discussion, qa) dominated every
+ *       space regardless of fit;
+ *   (c) the model defaulted to the same "safe" few each time.
  *
- * The classifier produces, in a single call:
- *   - title + language + vibe
- *   - 3 always-present header widgets (heading, rich_text, tags)
- *   - 2-7 body widgets picked from the catalog according to the
- *     relevantWhen rule per type
- *   - a `labels` object with every UI string the surface needs, in
- *     the input's language (the application itself has no own
- *     visible language)
+ * v5 separates the two jobs so each is done well:
+ *
+ *   Stage A — analyze():
+ *     detects language + title + vibe, and SCORES every body module
+ *     0-10 independently. Because the model must emit a number for
+ *     EVERY module, none are forgotten at the tail of a list, and it
+ *     is explicitly told that low scores are the norm — only tools
+ *     that clearly serve THIS input score high.
+ *
+ *   selectModuleTypes():
+ *     deterministic, server-side selection from the scores. The model
+ *     never decides the final set — the server does, applying a
+ *     minimum-score threshold, redundancy caps (max one date widget),
+ *     and an overall cap. This is what removes the bias entirely:
+ *     selection is a pure function of independent scores.
+ *
+ *   Stage B — author():
+ *     given the chosen types + the detected language, generates the
+ *     header (rich_text, tags), each body config, and the labels.
+ *     Language is passed as a hard constraint, repeated, so an English
+ *     input never yields a German page.
+ *
+ * Coordinate map widgets (location_single, locations_multi, route) and
+ * gif are NOT AI-authored — they need geocoding / a real media URL the
+ * model cannot invent. They remain available via the manual picker.
+ * Place needs are served by location_suggestions (a text+vote list).
  */
 
-interface CatalogEntry {
-  type: string;
-  rule: string;
-  mandatory: boolean;
-  source: string;
+// ── The body widgets the AI is allowed to author ──────────────────────
+// Grouped by function for the scoring prompt so the model sees semantic
+// structure instead of a flat registry list.
+const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
+  { title: "REFERENCE & FRAMING", types: ["ai_summary", "wikipedia", "icon"] },
+  { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "range", "phases"] },
+  { title: "PLACE", types: ["location_suggestions"] },
+  { title: "PEOPLE & WORK", types: ["crew", "work_packages", "checklist"] },
+  { title: "DISCUSSION & DECISIONS", types: ["notes", "qa", "poll", "discussion"] },
+  { title: "STRUCTURED DATA", types: ["table", "parts_list"] },
+  { title: "MEDIA", types: ["attachments", "images", "audio", "sketch"] },
+];
+
+const AI_SCORABLE_TYPES: ModuleType[] = SCORING_GROUPS.flatMap((g) => g.types);
+
+// Redundancy group: at most one of these date-style widgets per space.
+const DATE_GROUP: ReadonlySet<ModuleType> = new Set(["date", "appointment", "appointments"]);
+
+// Selection tuning.
+const MIN_SCORE = 5;     // a module must score at least this to be considered
+const MAX_BODY = 6;      // never more than this many body widgets
+const MIN_BODY = 2;      // try to land at least this many so a page isn't bare
+
+// ── Stage A: analyze + score ──────────────────────────────────────────
+
+interface AnalyzeResult {
+  language: string;
+  title: string;
+  vibe: Vibe;
+  scores: Record<string, number>;
 }
 
-function buildCatalog(): { header: CatalogEntry[]; body: CatalogEntry[] } {
-  const toEntry = (type: string): CatalogEntry => {
-    const meta = MODULE_META[type as keyof typeof MODULE_META];
-    return {
-      type,
-      rule: meta.relevantWhen,
-      mandatory: meta.requiresMandatoryConfig,
-      source: meta.externalSource ?? "none",
-    };
-  };
-  return {
-    header: alwaysInsertedTypes().map(toEntry),
-    body: bodyTypes().map(toEntry),
-  };
+function buildScoringCatalog(): string {
+  return SCORING_GROUPS.map((group) => {
+    const lines = group.types
+      .map((t) => `    - ${t}: ${MODULE_META[t].relevantWhen}`)
+      .join("\n");
+    return `  ${group.title}\n${lines}`;
+  }).join("\n\n");
 }
 
-function buildSystemPrompt(): string {
-  const { header, body } = buildCatalog();
+function buildAnalyzeSystemPrompt(): string {
+  const catalog = buildScoringCatalog();
+  const typeList = AI_SCORABLE_TYPES.join(", ");
 
-  const headerLines = header
-    .map((e) => `  - ${e.type} — ${e.rule}`)
-    .join("\n");
+  return `You are the analysis stage of a workspace composer. You receive a
+short input the user wrote (an idea, wish, plan, concern) and you do
+exactly two things:
 
-  const bodyLines = body
-    .map((e) => {
-      const tags: string[] = [];
-      if (e.mandatory) tags.push("MANDATORY-CONFIG");
-      if (e.source !== "none") tags.push(`source:${e.source}`);
-      const tagStr = tags.length ? `  [${tags.join(", ")}]` : "";
-      return `  - ${e.type}${tagStr}\n      ${e.rule}`;
-    })
-    .join("\n");
+1. DETECT the language of the input and a few framing facts.
+2. SCORE how well each available widget fits THIS SPECIFIC input.
 
-  const mandatoryList = mandatoryConfigTypes().join(", ");
+Return STRICT JSON, no preamble:
 
-  return `You compose a small "magyc.site" workspace from a single short input
-the user wrote — a thought, an idea, a wish, a concern, a plan.
-
-Return STRICT JSON, no preamble. Schema:
-
-  {
-    "title":    "<3-8 word headline in user's language>",
-    "language": "<ISO 639-1 code matching input>",
-    "vibe":     "<one of: editorial | document | dashboard | terminal | soft | minimal>",
-    "modules":  [ ... 5-10 widgets ... ],
-    "labels":   { ... UI strings in user's language ... }
+{
+  "language": "<ISO 639-1 code of the INPUT's language>",
+  "title": "<3-8 word headline in the input's language>",
+  "vibe": "<editorial | document | dashboard | terminal | soft | minimal>",
+  "scores": {
+    "<every widget type below>": <integer 0-10>
   }
+}
 
-HARD RULES
-----------
-- MATCH THE INPUT'S LANGUAGE for every visible string (titles,
-  microTitles, labels, options, descriptions). The application has
-  NO own language — every word the user sees on the page must come
-  from this response in their language.
-- Never invent specifics: no fake place names, no fake Wikipedia
-  titles, no fake coordinates, no fake numbers, no fake dates.
-- Module \`type\` discriminators stay in English — they are internal
-  identifiers, NEVER shown to the user.
+SCORING RULES — read carefully, this is the important part:
+- Output a score for EVERY widget type listed below. All ${AI_SCORABLE_TYPES.length}
+  must be present as keys. A missing key is an error.
+- Score each widget INDEPENDENTLY against the input. A widget's
+  position in this list is irrelevant — judge it on its own merit.
+- Most widgets should score LOW (0-3) for any given input. That is
+  correct and expected. A typical input is genuinely served by only
+  3-5 widgets. Do NOT spread mediocre scores to be "helpful".
+- Reserve 8-10 for widgets that obviously and concretely serve THIS
+  input. Reserve 5-7 for plausible fits. Score 0-4 for everything
+  that would only fit a generic version of the input.
+- Be especially strict with discussion, notes, qa, poll — only score
+  them high when the input GENUINELY needs that exact interaction,
+  not just because most projects "could" have a discussion.
 
-THE THREE ALWAYS-PRESENT HEADER WIDGETS
----------------------------------------
-These three MUST appear, in this order, at the start of the modules
-array. They live in the page's header zone, not in the grid.
+THE WIDGETS:
 
-${headerLines}
+${catalog}
 
-  Heading shape:
-    { "type": "heading", "text": "<title>", "level": 1, "microTitle"?: null }
-
-  Rich Text shape:
-    { "type": "rich_text",
-      "microTitle": "<small label in user's language, e.g. \"Kontext\", \"Background\", \"Idea\">",
-      "text": "<2-4 sentences of reflective prose>" }
-
-  Tags shape:
-    { "type": "tags",
-      "tags": ["3-6 short tags in user's language"] }
-
-THE 26 BODY WIDGETS — pick 2-7 based on which RULES match the input
------------------------------------------------------------------
-Each entry below lists the widget type, optional tags (MANDATORY-CONFIG
-means the widget needs explicit data the user has confirmed, source
-indicates external data dependency), and the rule for inclusion.
-
-${bodyLines}
-
-PICKING RULES
--------------
-- Read the input carefully. For each body widget, ask: does the rule
-  apply CONCRETELY to this input? If yes, include. If no, skip.
-- Be sparse. 2-7 body widgets total. A space crowded with widgets
-  is worse than one with the right 3.
-- Every body widget you include should serve THIS input — not a
-  generic shape it could fit into.
-- For MANDATORY-CONFIG widgets (${mandatoryList}): only include if
-  the input clearly tells you the data. If the input mentions a
-  location need but no actual place, prefer location_suggestions
-  over location_single. If chronology is unclear, prefer not to
-  include phases at all.
-
-WIDGET-SPECIFIC GUIDANCE
-------------------------
-For widgets that take seed content, the AI fills the seed; visitors
-react. Don't ship empty arrays. Examples:
-  - poll: question + 2-4 real options
-  - checklist: 3-6 concrete items
-  - work_packages: 2-5 concrete package labels
-  - crew: 2-5 role names
-  - phases: 3-6 phase labels in chronological order
-  - table: meaningful columns + at least 2 seed rows
-  - parts_list: 3-6 named items
-
-For widgets that mostly fill via collaboration (notes, qa, discussion,
-attachments, images, audio, sketch), provide an empty config plus a
-microTitle reflecting the input.
-
-LABELS — every UI string the surface needs
-------------------------------------------
-The labels object carries the words the published space displays.
-Every entry is in the user's language. Keep each under 60 characters.
-
-  {
-    "publishCta":          "<short verb for publishing, e.g. 'publish ↗'>",
-    "publishTitle":        "<5-8 words for publish modal heading>",
-    "publishExplanation":  "<1-2 sentences explaining publish in user's language>",
-    "cancel":              "<cancel>",
-    "publishConfirm":      "<confirm publishing>",
-    "signInPrompt":        "<short reason sign-in is required>",
-    "signInCta":           "<sign in label>",
-    "signedInAs":          "<'logged in as' phrase>",
-
-    "visibilityPublic":    "<public>",
-    "visibilityPrivate":   "<private>",
-    "copy":                "<copy>",
-    "copied":              "<copied>",
-
-    "backToCurrent":       "<back to current>",
-    "viewingVersionPrefix":"<'viewing version' phrase>",
-
-    "emptyGrid":           "<empty grid headline, e.g. 'empty grid'>",
-    "emptyGridHint":       "<short hint, e.g. 'widgets land here'>"
-  }
-
-If the input is in German: every label string in German.
-If French: French. Same for any other language. NEVER mix.
+The complete set of keys your "scores" object must contain:
+${typeList}
 
 Output ONLY the JSON object.`;
 }
 
-export interface ClassifyAnswer {
-  questionId: string;
-  questionText: string;
-  choice: string;
-}
-
-export interface ClassifyResult {
-  title: string;
-  language: string;
-  vibe: Vibe;
-  modules: Module[];
-  labels: SpaceLabels;
+function buildAnalyzeUserMessage(input: string, answers: ClassifyAnswer[]): string {
+  const lines: string[] = ["INPUT:", input.trim()];
+  if (answers.length > 0) {
+    lines.push("", "CLARIFICATIONS (the user answered these):");
+    for (const a of answers) lines.push(`- ${a.questionText.trim()} → ${a.choice.trim()}`);
+  }
+  return lines.join("\n");
 }
 
 const VIBE_SET = new Set<string>(ALL_VIBES);
+
+async function analyze(
+  client: OpenAI,
+  input: string,
+  answers: ClassifyAnswer[],
+): Promise<AnalyzeResult> {
+  const completion = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    response_format: { type: "json_object" },
+    temperature: 0.2, // low — scoring should be stable, not creative
+    messages: [
+      { role: "system", content: buildAnalyzeSystemPrompt() },
+      { role: "user", content: buildAnalyzeUserMessage(input, answers) },
+    ],
+  });
+
+  const raw = completion.choices[0]?.message?.content || "{}";
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("classify_unparseable");
+  }
+
+  const language = typeof parsed.language === "string"
+    ? parsed.language.trim().slice(0, 8).toLowerCase()
+    : "en";
+  const title = typeof parsed.title === "string"
+    ? parsed.title.replace(/\s+/g, " ").trim().slice(0, 120)
+    : "";
+  const vibeRaw = typeof parsed.vibe === "string" ? parsed.vibe.trim().toLowerCase() : "minimal";
+  const vibe: Vibe = VIBE_SET.has(vibeRaw) ? (vibeRaw as Vibe) : "minimal";
+
+  const scores: Record<string, number> = {};
+  const rawScores = parsed.scores && typeof parsed.scores === "object"
+    ? (parsed.scores as Record<string, unknown>)
+    : {};
+  for (const t of AI_SCORABLE_TYPES) {
+    const v = rawScores[t];
+    const n = typeof v === "number" ? v : Number(v);
+    scores[t] = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : 0;
+  }
+
+  return { language, title, vibe, scores };
+}
+
+// ── Server-side selection (the anti-bias core) ────────────────────────
+
+export function selectModuleTypes(scores: Record<string, number>): ModuleType[] {
+  const ranked = AI_SCORABLE_TYPES
+    .map((type) => ({ type, score: scores[type] ?? 0 }))
+    // Sort by score desc; stable tie-break by registry order keeps it
+    // deterministic without privileging any single module.
+    .sort((a, b) => b.score - a.score);
+
+  const chosen: ModuleType[] = [];
+  let dateUsed = false;
+
+  for (const { type, score } of ranked) {
+    if (chosen.length >= MAX_BODY) break;
+    if (score < MIN_SCORE) break; // ranked desc — nothing below passes
+    if (DATE_GROUP.has(type)) {
+      if (dateUsed) continue; // keep only the highest-scoring date widget
+      dateUsed = true;
+    }
+    chosen.push(type);
+  }
+
+  // Fallback: if too few cleared the threshold, take the next-best
+  // candidates (even below threshold) so the page isn't bare — but
+  // never anything that scored a flat 0.
+  if (chosen.length < MIN_BODY) {
+    for (const { type, score } of ranked) {
+      if (chosen.length >= MIN_BODY) break;
+      if (chosen.includes(type)) continue;
+      if (score <= 0) continue;
+      if (DATE_GROUP.has(type) && dateUsed) continue;
+      if (DATE_GROUP.has(type)) dateUsed = true;
+      chosen.push(type);
+    }
+  }
+
+  return chosen;
+}
+
+// ── Stage B: author the selected widgets ──────────────────────────────
+
+/** Compact JSON shape hint per authorable widget type. */
+const SHAPE: Partial<Record<ModuleType, string>> = {
+  ai_summary: `{"type":"ai_summary","microTitle":"<short label>","text":"<2-4 sentence abstract take>"}`,
+  wikipedia: `{"type":"wikipedia","microTitle":"<short label>","topic":"<EXACT real Wikipedia article title — must be a genuinely existing article>"}`,
+  icon: `{"type":"icon","iconify":"<iconify id, e.g. lucide:video, lucide:camera, phosphor:book>"}`,
+  location_suggestions: `{"type":"location_suggestions","microTitle":"<short label>","suggestions":[{"label":"<real place name or place type>","address":"<optional>"}]}`,
+  date: `{"type":"date","microTitle":"<short label>","date":"YYYY-MM-DD"}`,
+  appointment: `{"type":"appointment","microTitle":"<short label>","datetime":"<ISO 8601>"}`,
+  appointments: `{"type":"appointments","microTitle":"<short label>","entries":[{"datetime":"<ISO 8601>","label":"<short>"}]}`,
+  range: `{"type":"range","microTitle":"<short label>","unit":"time|weekday|month|year|date|place|amount|generic","from":"<value>","to":"<value>"}`,
+  phases: `{"type":"phases","microTitle":"<short label>","phases":[{"label":"<short>","description":"<optional>"}],"currentPhase":0}`,
+  crew: `{"type":"crew","microTitle":"<short label>","roles":[{"name":"<role>"}]}`,
+  work_packages: `{"type":"work_packages","microTitle":"<short label>","packages":[{"label":"<package>","description":"<optional>"}]}`,
+  checklist: `{"type":"checklist","microTitle":"<short label>","items":[{"text":"<concrete item>"}]}`,
+  notes: `{"type":"notes","microTitle":"<short label>"}`,
+  qa: `{"type":"qa","microTitle":"<short label>"}`,
+  poll: `{"type":"poll","microTitle":"<short label>","question":"<question>","options":["<opt>","<opt>"]}`,
+  discussion: `{"type":"discussion","microTitle":"<short label>"}`,
+  table: `{"type":"table","microTitle":"<short label>","columns":["<col>","<col>"],"rows":[["<cell>","<cell>"]]}`,
+  parts_list: `{"type":"parts_list","microTitle":"<short label>","items":[{"name":"<item>","quantity":"<optional>"}]}`,
+  attachments: `{"type":"attachments","microTitle":"<short label>"}`,
+  images: `{"type":"images","microTitle":"<short label>"}`,
+  audio: `{"type":"audio","microTitle":"<short label>"}`,
+  sketch: `{"type":"sketch","microTitle":"<short label>"}`,
+};
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English", de: "German", fr: "French", es: "Spanish", it: "Italian",
+  pt: "Portuguese", nl: "Dutch", pl: "Polish", ru: "Russian", ja: "Japanese",
+  zh: "Chinese", ar: "Arabic", tr: "Turkish", ko: "Korean", sv: "Swedish",
+};
+
+function languageName(code: string): string {
+  return LANGUAGE_NAMES[code.split("-")[0]] || code;
+}
+
+interface AuthorResult {
+  richText: Module | null;
+  tags: Module | null;
+  body: Module[];
+  labels: SpaceLabels;
+}
+
+function buildAuthorSystemPrompt(language: string, chosen: ModuleType[]): string {
+  const langName = languageName(language);
+  const shapes = chosen
+    .map((t) => `  - ${t}:\n      ${SHAPE[t] ?? `{"type":"${t}","microTitle":"<short label>"}`}`)
+    .join("\n");
+
+  return `You are the authoring stage of a workspace composer. The widgets to
+build have ALREADY been chosen. Your job is to fill them with content
+that serves the user's input.
+
+OUTPUT LANGUAGE: ${langName} (code: ${language}).
+EVERY visible string you write — titles, microTitles, prose, tags,
+options, item text, labels — MUST be in ${langName}. This is absolute.
+The only thing that stays in English is the internal "type" field.
+
+Return STRICT JSON, no preamble:
+
+{
+  "richText": { "type":"rich_text", "microTitle":"<small framing word in ${langName}>", "text":"<2-4 reflective sentences in ${langName}>" },
+  "tags":     { "type":"tags", "tags":["<3-6 short tags in ${langName}>"] },
+  "body":     [ <one object per chosen widget, in the order listed> ],
+  "labels":   { ...UI strings in ${langName}... }
+}
+
+THE CHOSEN BODY WIDGETS — author exactly these, in this order:
+${shapes}
+
+CONTENT RULES:
+- Never invent specifics: no fake place names, no fake Wikipedia
+  titles that don't exist, no fake dates, no fake numbers. If you lack
+  a real value for a date/appointment, omit that widget from "body".
+- Seed-content widgets (poll, checklist, crew, work_packages, phases,
+  table, parts_list, location_suggestions) must contain real, concrete
+  starter content drawn from the input — never empty arrays, never
+  placeholder text like "Option 1".
+- Collaboration widgets (notes, qa, discussion, attachments, images,
+  audio, sketch) take only a microTitle — no seed content.
+- microTitles are short (1-3 words) and in ${langName}.
+
+LABELS — the UI chrome strings, all in ${langName}, each under 60 chars:
+{
+  "publishCta": "<verb for publish, e.g. publish ↗>",
+  "publishTitle": "<5-8 word publish modal heading>",
+  "publishExplanation": "<1-2 sentences explaining publishing>",
+  "cancel": "<cancel>",
+  "publishConfirm": "<confirm publishing>",
+  "signInPrompt": "<short reason sign-in is needed>",
+  "signInCta": "<sign in>",
+  "signedInAs": "<'logged in as' phrase>",
+  "visibilityPublic": "<public>",
+  "visibilityPrivate": "<private>",
+  "copy": "<copy>",
+  "copied": "<copied>",
+  "backToCurrent": "<back to current>",
+  "viewingVersionPrefix": "<'viewing version' phrase>",
+  "emptyGrid": "<empty-grid headline>",
+  "emptyGridHint": "<short hint that widgets go here>"
+}
+
+Output ONLY the JSON object.`;
+}
 
 const LABEL_KEYS: readonly (keyof SpaceLabels)[] = [
   "publishCta", "publishTitle", "publishExplanation", "cancel",
@@ -219,37 +352,24 @@ function sanitizeLabels(raw: unknown): SpaceLabels {
   return out;
 }
 
-function prep(text: string): string {
-  return text.replace(/\s+/g, " ").trim().slice(0, 1200);
-}
-
-function buildUserMessage(input: string, answers: ClassifyAnswer[]): string {
-  const lines: string[] = [`INPUT:`, input.trim()];
-  if (answers.length > 0) {
-    lines.push("", "ANSWERS:");
-    for (const a of answers) {
-      lines.push(`- ${a.questionText.trim()} → ${a.choice.trim()}`);
-    }
+async function author(
+  client: OpenAI,
+  input: string,
+  answers: ClassifyAnswer[],
+  language: string,
+  chosen: ModuleType[],
+): Promise<AuthorResult> {
+  if (chosen.length === 0) {
+    // No body widgets — still author header + labels.
   }
-  return lines.join("\n");
-}
 
-export async function classifyInput(
-  text: string,
-  answers: ClassifyAnswer[] = [],
-): Promise<ClassifyResult> {
-  if (!process.env.OPENAI_API_KEY) throw new Error("ai_not_configured");
-  const input = prep(text);
-  if (input.length < 3) throw new Error("input_too_short");
-
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },
-    temperature: 0.3,
+    temperature: 0.6, // higher — authoring benefits from some variety
     messages: [
-      { role: "system", content: buildSystemPrompt() },
-      { role: "user", content: buildUserMessage(input, answers) },
+      { role: "system", content: buildAuthorSystemPrompt(language, chosen) },
+      { role: "user", content: buildAnalyzeUserMessage(input, answers) },
     ],
   });
 
@@ -261,31 +381,68 @@ export async function classifyInput(
     throw new Error("classify_unparseable");
   }
 
-  const title = typeof parsed.title === "string"
-    ? parsed.title.replace(/\s+/g, " ").trim().slice(0, 120)
-    : "";
-  const language = typeof parsed.language === "string"
-    ? parsed.language.trim().slice(0, 8).toLowerCase()
-    : "en";
-  const vibeRaw = typeof parsed.vibe === "string" ? parsed.vibe.trim().toLowerCase() : "minimal";
-  const vibe: Vibe = VIBE_SET.has(vibeRaw) ? (vibeRaw as Vibe) : "minimal";
-  const modules = sanitizeModules(parsed.modules);
+  const richText = parsed.richText ? sanitizeModules([parsed.richText])[0] ?? null : null;
+  const tags = parsed.tags ? sanitizeModules([parsed.tags])[0] ?? null : null;
+  const rawBody = Array.isArray(parsed.body) ? parsed.body : [];
+  const body = sanitizeModules(rawBody).filter(
+    (m) => m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags",
+  );
   const labels = sanitizeLabels(parsed.labels);
 
-  // Enforce header-zone ordering: heading → rich_text → tags → body.
-  // Inject a default heading from the title if the AI omitted one.
-  const heading = modules.find((m) => m.type === "heading");
-  const richText = modules.find((m) => m.type === "rich_text");
-  const tags = modules.find((m) => m.type === "tags");
-  const body = modules.filter((m) =>
-    m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags",
-  );
-  const ordered: Module[] = [];
-  if (heading) ordered.push(heading);
-  else if (title) ordered.push({ type: "heading", text: title, level: 1 });
-  if (richText) ordered.push(richText);
-  if (tags) ordered.push(tags);
-  ordered.push(...body);
+  return { richText, tags, body, labels };
+}
 
-  return { title, language, vibe, modules: ordered, labels };
+// ── Public API ────────────────────────────────────────────────────────
+
+export interface ClassifyAnswer {
+  questionId: string;
+  questionText: string;
+  choice: string;
+}
+
+export interface ClassifyResult {
+  title: string;
+  language: string;
+  vibe: Vibe;
+  modules: Module[];
+  labels: SpaceLabels;
+}
+
+function prep(text: string): string {
+  return text.replace(/\s+/g, " ").trim().slice(0, 1200);
+}
+
+export async function classifyInput(
+  text: string,
+  answers: ClassifyAnswer[] = [],
+): Promise<ClassifyResult> {
+  if (!process.env.OPENAI_API_KEY) throw new Error("ai_not_configured");
+  const input = prep(text);
+  if (input.length < 3) throw new Error("input_too_short");
+
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  // Stage A — analyze + score.
+  const a = await analyze(client, input, answers);
+
+  // Server-side deterministic selection.
+  const chosen = selectModuleTypes(a.scores);
+
+  // Stage B — author the chosen widgets in the detected language.
+  const authored = await author(client, input, answers, a.language, chosen);
+
+  // Assemble in header-zone order: heading → rich_text → tags → body.
+  const ordered: Module[] = [];
+  ordered.push({ type: "heading", text: a.title || input.slice(0, 60), level: 1 });
+  if (authored.richText) ordered.push(authored.richText);
+  if (authored.tags) ordered.push(authored.tags);
+  ordered.push(...authored.body);
+
+  return {
+    title: a.title,
+    language: a.language,
+    vibe: a.vibe,
+    modules: ordered,
+    labels: authored.labels,
+  };
 }
