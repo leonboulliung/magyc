@@ -495,8 +495,35 @@ export interface SpaceLabels {
   emptyGrid?: string;
   emptyGridHint?: string;
 
+  // Participants strip
+  participants?: string;          // "people" / "Beteiligte" — heading for the contributors strip
+
   // Placeholder for unbuilt renderers (temporary, removed after Phase 1+)
   rendererPending?: string;
+
+  /** Emergent per-space labels for the widget picker, keyed by module
+   *  type. AI-generated in the space language so the picker has no
+   *  static system language. Falls back to a built-in table, then to a
+   *  universal symbol. */
+  widgetLabels?: Record<string, string>;
+}
+
+/**
+ * Per-space visual style. Auto-assigned by the AI at creation to match
+ * the input's mood, then freely editable by the owner. Overrides the
+ * vibe tokens when present.
+ *
+ *   font        — a Google Fonts family name (loaded dynamically).
+ *   color1      — primary ink: text, borders, map pins.
+ *   color2      — accent: widget highlights, map fills/routes.
+ *   background  — the page canvas behind the content. The element grid
+ *                 itself stays white with a black dot pattern regardless.
+ */
+export interface SpaceStyle {
+  font: string;
+  color1: string;
+  color2: string;
+  background: string;
 }
 
 export interface Space {
@@ -509,6 +536,8 @@ export interface Space {
   /** AI-generated UI labels in `language`. May be sparsely filled;
    *  renderers fall back to symbols. */
   labels: SpaceLabels;
+  /** Per-space visual style (font + colors). Null until assigned. */
+  style: SpaceStyle | null;
   anonOwnerTokenHint: boolean;
   owner: Profile | null;
   visibility: Visibility;

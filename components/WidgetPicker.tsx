@@ -102,7 +102,18 @@ function getLangMap(lang: string): LangMap {
   return TRANSLATIONS[code] || TRANSLATIONS.en!;
 }
 
-function labelFor(type: ModuleType, lang: string): string {
+/**
+ * Resolve a widget label. Priority:
+ *   1. emergent — the AI-generated label in the space's language
+ *      (space.labels.widgetLabels), so the picker has no static system
+ *      language;
+ *   2. the built-in translation table for the space language;
+ *   3. the raw type name.
+ */
+function labelFor(type: ModuleType, lang: string, emergent?: Record<string, string>): string {
+  if (emergent && typeof emergent[type] === "string" && emergent[type].trim()) {
+    return emergent[type];
+  }
   return getLangMap(lang)[type] || type.replace("_", " ");
 }
 
@@ -220,6 +231,7 @@ export function WidgetPicker({
 }) {
   const ctx = useWidgetContext();
   const lang = ctx.language || "en";
+  const emergent = ctx.labels.widgetLabels;
 
   return (
     <AnimatePresence>
@@ -264,7 +276,7 @@ export function WidgetPicker({
                         {e.symbol}
                       </span>
                       <span className="text-[11px] truncate" style={{ color: "var(--v-fg)" }}>
-                        {labelFor(e.type, lang)}
+                        {labelFor(e.type, lang, emergent)}
                       </span>
                     </motion.button>
                   ))}

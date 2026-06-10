@@ -146,22 +146,28 @@ export function GridZone({
   return (
     <div
       className="rounded-lg relative"
-      style={{ background: "var(--v-bg)", border: "1px solid var(--v-rule)", minHeight: 240 }}
+      style={{
+        // The element grid is ALWAYS white with a black dot grid,
+        // independent of the space's background color — a stable,
+        // neutral canvas the colored widgets sit on.
+        background: "#ffffff",
+        border: "1px solid var(--v-rule)",
+        minHeight: 240,
+      }}
     >
-      {/* Crosshatch graph-paper grid */}
+      {/* Dot grid — a black dot at every 24px lattice point. */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden"
-        style={{ opacity: 0.07 }}
       >
         <div
           style={{
             width: "100%",
             height: "100%",
-            backgroundImage: [
-              "repeating-linear-gradient(to right, var(--v-fg) 0, var(--v-fg) 1px, transparent 1px, transparent calc(100% / 12))",
-              "repeating-linear-gradient(to bottom, var(--v-fg) 0, var(--v-fg) 1px, transparent 1px, transparent 28px)",
-            ].join(", "),
+            backgroundImage:
+              "radial-gradient(circle, rgba(0,0,0,0.18) 1px, transparent 1.4px)",
+            backgroundSize: "24px 24px",
+            backgroundPosition: "12px 12px",
           }}
         />
       </div>

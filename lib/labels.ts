@@ -16,6 +16,7 @@ const FALLBACKS: Required<Pick<SpaceLabels,
   | "visibilityPublic" | "visibilityPrivate" | "copy" | "copied"
   | "backToCurrent" | "viewingVersionPrefix"
   | "emptyGrid" | "emptyGridHint"
+  | "participants"
   | "rendererPending"
 >> = {
   publishCta:           "↗",
@@ -34,6 +35,7 @@ const FALLBACKS: Required<Pick<SpaceLabels,
   viewingVersionPrefix: "v",
   emptyGrid:            "▢",
   emptyGridHint:        "",
+  participants:         "",
   rendererPending:      "…",
 };
 
@@ -41,5 +43,6 @@ export function label(
   labels: SpaceLabels | undefined,
   key: keyof typeof FALLBACKS,
 ): string {
-  return labels?.[key] ?? FALLBACKS[key];
+  const v = labels?.[key];
+  return typeof v === "string" ? v : FALLBACKS[key];
 }

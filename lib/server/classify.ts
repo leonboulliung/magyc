@@ -1,6 +1,8 @@
 import OpenAI from "openai";
-import { MODULE_META, sanitizeModules } from "@/lib/modules";
-import { ALL_VIBES, type Module, type ModuleType, type SpaceLabels, type Vibe } from "@/lib/types";
+import { MODULE_META, bodyTypes, sanitizeModules } from "@/lib/modules";
+import { ALL_VIBES, type Module, type ModuleType, type SpaceLabels, type SpaceStyle, type Vibe } from "@/lib/types";
+import { FONT_NAMES } from "@/lib/fonts";
+import { sanitizeStyle } from "@/lib/style";
 
 /**
  * Classifier v5 — two-stage scoring architecture.
@@ -266,7 +268,13 @@ interface AuthorResult {
   tags: Module | null;
   body: Module[];
   labels: SpaceLabels;
+  style: SpaceStyle | null;
+  widgetLabels: Record<string, string>;
 }
+
+/** All body widget types that can appear in the picker — these get an
+ *  emergent label in the space language. */
+const PICKER_TYPES: ModuleType[] = bodyTypes();
 
 function buildAuthorSystemPrompt(language: string, chosen: ModuleType[]): string {
   const langName = languageName(language);
@@ -274,14 +282,18 @@ function buildAuthorSystemPrompt(language: string, chosen: ModuleType[]): string
     .map((t) => `  - ${t}:\n      ${SHAPE[t] ?? `{"type":"${t}","microTitle":"<short label>"}`}`)
     .join("\n");
 
+  const pickerList = PICKER_TYPES.join(", ");
+  const fontList = FONT_NAMES.join(", ");
+
   return `You are the authoring stage of a workspace composer. The widgets to
 build have ALREADY been chosen. Your job is to fill them with content
-that serves the user's input.
+that serves the user's input, and to assign a fitting visual style.
 
 OUTPUT LANGUAGE: ${langName} (code: ${language}).
 EVERY visible string you write — titles, microTitles, prose, tags,
-options, item text, labels — MUST be in ${langName}. This is absolute.
-The only thing that stays in English is the internal "type" field.
+options, item text, labels, widgetLabels — MUST be in ${langName}.
+This is absolute. The only thing that stays in English is the
+internal "type" field.
 
 Return STRICT JSON, no preamble:
 
@@ -289,11 +301,33 @@ Return STRICT JSON, no preamble:
   "richText": { "type":"rich_text", "microTitle":"<small framing word in ${langName}>", "text":"<2-4 reflective sentences in ${langName}>" },
   "tags":     { "type":"tags", "tags":["<3-6 short tags in ${langName}>"] },
   "body":     [ <one object per chosen widget, in the order listed> ],
-  "labels":   { ...UI strings in ${langName}... }
+  "labels":   { ...UI strings in ${langName}... },
+  "style":    { "font":"<one family from the list>", "color1":"#rrggbb", "color2":"#rrggbb", "background":"#rrggbb" },
+  "widgetLabels": { "<each module type>": "<1-2 word label in ${langName}>" }
 }
 
 THE CHOSEN BODY WIDGETS — author exactly these, in this order:
 ${shapes}
+
+STYLE — assign a palette + font that matches the input's MOOD:
+- font: choose exactly one family name from this list:
+  ${fontList}
+  Match register — serif/Fraunces/Lora for warm or editorial; a clean
+  sans (Inter/DM Sans/Work Sans) for practical/organisational; mono
+  (JetBrains Mono/Space Mono) for technical; display (Unbounded/Syne/
+  Bricolage Grotesque) for bold/creative; hand (Caveat/Shantell Sans)
+  for playful.
+- color1: the primary ink (text, borders, map pins). Dark and readable
+  — high contrast on a near-white page. NOT pure black unless minimal.
+- color2: an accent (widget highlights, map fills) that harmonises with
+  color1 and the mood.
+- background: a near-white page canvas, possibly a faint warm/cool tint
+  (#ffffff to a very light shade). Keep it light — the content sits on
+  top of it.
+
+WIDGET LABELS — a short label in ${langName} for EVERY module type
+below, for the add-widget menu. 1-2 words each. All keys required:
+  ${pickerList}
 
 CONTENT RULES:
 - Never invent specifics: no fake place names, no fake Wikipedia
@@ -324,7 +358,8 @@ LABELS — the UI chrome strings, all in ${langName}, each under 60 chars:
   "backToCurrent": "<back to current>",
   "viewingVersionPrefix": "<'viewing version' phrase>",
   "emptyGrid": "<empty-grid headline>",
-  "emptyGridHint": "<short hint that widgets go here>"
+  "emptyGridHint": "<short hint that widgets go here>",
+  "participants": "<1 word for the people involved, e.g. 'people'>"
 }
 
 Output ONLY the JSON object.`;
@@ -335,18 +370,19 @@ const LABEL_KEYS: readonly (keyof SpaceLabels)[] = [
   "publishConfirm", "signInPrompt", "signInCta", "signedInAs",
   "visibilityPublic", "visibilityPrivate", "copy", "copied",
   "backToCurrent", "viewingVersionPrefix",
-  "emptyGrid", "emptyGridHint",
+  "emptyGrid", "emptyGridHint", "participants",
 ];
 
 function sanitizeLabels(raw: unknown): SpaceLabels {
   const out: SpaceLabels = {};
   if (!raw || typeof raw !== "object") return out;
   const r = raw as Record<string, unknown>;
+  const strOut = out as Record<string, string>;
   for (const k of LABEL_KEYS) {
     const v = r[k];
     if (typeof v === "string") {
       const cleaned = v.trim().slice(0, 200);
-      if (cleaned) out[k] = cleaned;
+      if (cleaned) strOut[k] = cleaned;
     }
   }
   return out;
@@ -388,8 +424,19 @@ async function author(
     (m) => m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags",
   );
   const labels = sanitizeLabels(parsed.labels);
+  const style = sanitizeStyle(parsed.style);
 
-  return { richText, tags, body, labels };
+  // Widget labels — keep only string values for known module types.
+  const widgetLabels: Record<string, string> = {};
+  if (parsed.widgetLabels && typeof parsed.widgetLabels === "object") {
+    const wl = parsed.widgetLabels as Record<string, unknown>;
+    for (const t of PICKER_TYPES) {
+      const v = wl[t];
+      if (typeof v === "string" && v.trim()) widgetLabels[t] = v.trim().slice(0, 40);
+    }
+  }
+
+  return { richText, tags, body, labels, style, widgetLabels };
 }
 
 // ── Public API ────────────────────────────────────────────────────────
@@ -406,6 +453,7 @@ export interface ClassifyResult {
   vibe: Vibe;
   modules: Module[];
   labels: SpaceLabels;
+  style: SpaceStyle | null;
 }
 
 function prep(text: string): string {
@@ -438,11 +486,19 @@ export async function classifyInput(
   if (authored.tags) ordered.push(authored.tags);
   ordered.push(...authored.body);
 
+  // Fold the emergent widget labels into the labels object so they
+  // travel with the space and reach the picker.
+  const labels: SpaceLabels = { ...authored.labels };
+  if (Object.keys(authored.widgetLabels).length > 0) {
+    labels.widgetLabels = authored.widgetLabels;
+  }
+
   return {
     title: a.title,
     language: a.language,
     vibe: a.vibe,
     modules: ordered,
-    labels: authored.labels,
+    labels,
+    style: authored.style,
   };
 }

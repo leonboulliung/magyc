@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { sanitizeModules } from "./modules";
 import type {
-  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, Space, SpaceLabels, SpaceVersion, Vibe, Visibility,
+  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, Space, SpaceLabels, SpaceStyle, SpaceVersion, Vibe, Visibility,
 } from "./types";
 import { ALL_VIBES } from "./types";
 
@@ -37,6 +37,7 @@ type SpaceRow = {
   vibe: string;
   modules: unknown[] | null;
   labels: Record<string, unknown> | null;
+  style: Record<string, unknown> | null;
   anon_owner_token: string;
   owner_id: string | null;
   visibility: string | null;
@@ -116,21 +117,42 @@ const LABEL_KEYS: readonly (keyof SpaceLabels)[] = [
   "publishConfirm", "signInPrompt", "signInCta", "signedInAs",
   "visibilityPublic", "visibilityPrivate", "copy", "copied",
   "backToCurrent", "viewingVersionPrefix",
-  "emptyGrid", "emptyGridHint",
+  "emptyGrid", "emptyGridHint", "participants",
   "rendererPending",
 ];
 
 function mapLabels(raw: Record<string, unknown> | null): SpaceLabels {
   const out: SpaceLabels = {};
   if (!raw || typeof raw !== "object") return out;
+  const strOut = out as Record<string, string>;
   for (const k of LABEL_KEYS) {
     const v = (raw as Record<string, unknown>)[k];
     if (typeof v === "string") {
       const cleaned = v.trim().slice(0, 200);
-      if (cleaned) out[k] = cleaned;
+      if (cleaned) strOut[k] = cleaned;
     }
   }
+  // Emergent widget-picker labels — an untyped string map.
+  const wl = (raw as Record<string, unknown>).widgetLabels;
+  if (wl && typeof wl === "object") {
+    const cleaned: Record<string, string> = {};
+    for (const [k, v] of Object.entries(wl as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim()) cleaned[k] = v.trim().slice(0, 40);
+    }
+    if (Object.keys(cleaned).length > 0) out.widgetLabels = cleaned;
+  }
   return out;
+}
+
+function mapStyle(raw: Record<string, unknown> | null): SpaceStyle | null {
+  if (!raw || typeof raw !== "object") return null;
+  const font = typeof raw.font === "string" ? raw.font.trim().slice(0, 60) : "";
+  const c1 = typeof raw.color1 === "string" ? raw.color1.trim() : "";
+  const c2 = typeof raw.color2 === "string" ? raw.color2.trim() : "";
+  const bg = typeof raw.background === "string" ? raw.background.trim() : "";
+  const hex = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/;
+  if (!font || !hex.test(c1) || !hex.test(c2) || !hex.test(bg)) return null;
+  return { font, color1: c1, color2: c2, background: bg };
 }
 
 function mapSpaceVersion(row: SpaceVersionRow): SpaceVersion {
@@ -161,6 +183,7 @@ function mapSpace(row: SpaceRow): Space {
     vibe: mapVibe(row.vibe),
     modules,
     labels: mapLabels(row.labels ?? null),
+    style: mapStyle(row.style ?? null),
     anonOwnerTokenHint: !!row.anon_owner_token,
     owner: row.owner_id ? mapProfile(row.owner, row.owner_id) : null,
     visibility: mapVisibility(row.visibility),
@@ -172,7 +195,7 @@ function mapSpace(row: SpaceRow): Space {
 }
 
 const SPACE_SELECT = `
-  id, input_text, title, language, vibe, modules, labels,
+  id, input_text, title, language, vibe, modules, labels, style,
   anon_owner_token, owner_id, visibility, password_hash,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),

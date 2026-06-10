@@ -125,6 +125,7 @@ export async function POST(req: Request) {
     vibe: result.vibe,
     modules: hydratedModules,
     labels: result.labels,
+    style: result.style,
     anon_owner_token: anonToken,
     visibility: null,
   });

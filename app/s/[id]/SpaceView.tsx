@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { fetchSpaceById } from "@/lib/db";
-import { bodyContainer, bodyItem, heroIn } from "@/lib/anim";
+import { bodyContainer, heroIn } from "@/lib/anim";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
 import { useIsOwner } from "@/lib/hooks";
 import { WidgetContext } from "@/lib/widgetContext";
-import type { Module, ModuleStateEntry, Space, SpaceLabels } from "@/lib/types";
+import type { Module, ModuleStateEntry, Space, SpaceStyle } from "@/lib/types";
+import { DEFAULT_STYLE, styleVars } from "@/lib/style";
+import { findFont, fontStack, googleFontsHref } from "@/lib/fonts";
 import { MagyCBadge } from "@/components/MagyCBadge";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { PublishButton } from "@/components/PublishButton";
@@ -16,6 +18,8 @@ import { SpacePrivacy } from "@/components/SpacePrivacy";
 import { VersionBar } from "@/components/VersionBar";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { GridZone } from "@/components/GridZone";
+import { ParticipantsBar } from "@/components/ParticipantsBar";
+import { StyleEditor } from "@/components/StyleEditor";
 
 /**
  * Space view — v4 chassis with the Phase-1 widget renderers wired in.
@@ -52,6 +56,32 @@ export function SpaceView({ id }: { id: string }) {
     if (!space || !isOwner) return null;
     return getSpaceOwnerToken(space.id);
   }, [space, isOwner]);
+
+  // ── Visual style ────────────────────────────────────────────────
+  // Local override lets the StyleEditor preview changes instantly
+  // before the server round-trip. Falls back to the space's stored
+  // style, then to a neutral default.
+  const [styleOverride, setStyleOverride] = useState<SpaceStyle | null>(null);
+  const effectiveStyle: SpaceStyle = styleOverride ?? space?.style ?? DEFAULT_STYLE;
+
+  // Load the chosen Google Font (injects one <link> per family, kept
+  // around so switching fonts doesn't thrash the DOM).
+  useEffect(() => {
+    const spec = findFont(effectiveStyle.font);
+    if (!spec) return;
+    const id = `gfont-${spec.name.replace(/\s+/g, "-")}`;
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = googleFontsHref([spec]);
+    document.head.appendChild(link);
+  }, [effectiveStyle.font]);
+
+  const rootStyleVars = useMemo(
+    () => styleVars(effectiveStyle, fontStack(findFont(effectiveStyle.font))),
+    [effectiveStyle],
+  );
 
   // Which modules to render — historical snapshot or current.
   const { displayedModules, currentVersionNumber } = useMemo(() => {
@@ -126,7 +156,10 @@ export function SpaceView({ id }: { id: string }) {
         refresh,
       }}
     >
-      <div className={`vibe-root vibe-${space.vibe} min-h-screen flex flex-col`}>
+      <div
+        className={`vibe-root vibe-${space.vibe} min-h-screen flex flex-col`}
+        style={{ ...rootStyleVars, background: "var(--v-page, var(--v-bg))" }}
+      >
         {/* Floating top-right controls */}
         <div className="fixed top-4 right-4 z-30 flex items-center gap-2">
           {isHistorical && (
@@ -137,6 +170,15 @@ export function SpaceView({ id }: { id: string }) {
             >
               {label(space.labels, "backToCurrent")}
             </button>
+          )}
+          {isOwner && !isHistorical && (
+            <StyleEditor
+              style={effectiveStyle}
+              spaceId={space.id}
+              ownerToken={ownerToken}
+              onPreview={setStyleOverride}
+              onSaved={refresh}
+            />
           )}
           <PublishButton space={space} onChanged={refresh} />
         </div>
@@ -168,6 +210,19 @@ export function SpaceView({ id }: { id: string }) {
                 />
               </motion.div>
             )}
+
+            {/* Participants strip — owner + everyone who has contributed. */}
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
+            >
+              <ParticipantsBar
+                state={space.state}
+                owner={space.owner}
+                label={label(space.labels, "participants")}
+              />
+            </motion.div>
           </div>
         </header>
 
@@ -225,30 +280,5 @@ export function SpaceView({ id }: { id: string }) {
         <PersonaSwitcher />
       </div>
     </WidgetContext.Provider>
-  );
-}
-
-function EmptyGrid({ labels }: { labels: SpaceLabels }) {
-  return (
-    <div
-      className="rounded-md flex items-center justify-center"
-      style={{
-        minHeight: "320px",
-        border: "1px dashed var(--v-rule)",
-        background:
-          "repeating-linear-gradient(to right, transparent, transparent calc((100% / 12) - 1px), var(--v-rule) calc((100% / 12) - 1px), var(--v-rule) calc((100% / 12)))",
-      }}
-    >
-      <div className="text-center space-y-1.5 px-4">
-        <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-muted)" }}>
-          {label(labels, "emptyGrid")}
-        </div>
-        {label(labels, "emptyGridHint") && (
-          <div className="mono text-[10px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>
-            {label(labels, "emptyGridHint")}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
