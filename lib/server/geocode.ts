@@ -33,7 +33,7 @@ function isFiniteCoord(lng: unknown, lat: unknown): lng is number {
 
 async function fetchJson(url: string, headers: Record<string, string>): Promise<unknown | null> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3500);
+  const timer = setTimeout(() => controller.abort(), 2500);
   try {
     const res = await fetch(url, { headers, signal: controller.signal, cache: "no-store" });
     if (!res.ok) return null;
@@ -90,49 +90,77 @@ function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-/** A place-bearing entry can carry a `query` (to geocode) or already a
- *  lng/lat. Returns a resolved { lng, lat, label } or null. */
-async function resolvePoint(entry: unknown): Promise<{ lng: number; lat: number; label?: string } | null> {
+/** Pull the geocode query from a place entry, or null if it already
+ *  has trusted coordinates / nothing to resolve. */
+function entryQuery(entry: unknown): { query: string | null; coords: { lng: number; lat: number } | null; label?: string } {
   const r = asRecord(entry);
-  if (!r) return null;
+  if (!r) return { query: null, coords: null };
   const label = str(r.label) || str(r.query) || undefined;
-  // Already has coordinates? Trust them.
   if (isFiniteCoord(r.lng, r.lat)) {
-    return { lng: r.lng as number, lat: r.lat as number, label };
+    return { query: null, coords: { lng: r.lng as number, lat: r.lat as number }, label };
   }
   const query = str(r.query) || str(r.label) || str(r.name);
-  if (!query) return null;
-  const pt = await geocode(query);
-  if (!pt) return null;
-  return { lng: pt.lng, lat: pt.lat, label };
+  return { query: query || null, coords: null, label };
 }
 
 /**
  * Walk a raw modules array (pre-sanitisation) and resolve every map
- * widget's place names into coordinates. Returns a NEW array where:
+ * widget's place names into coordinates. ALL geocode lookups across the
+ * whole space run in PARALLEL (Photon has no strict rate limit), so a
+ * route with several stops costs ~one request-time, not N × it — this
+ * is what keeps space creation under the serverless timeout.
+ *
  *   - location_single gains a real `center`, or is dropped if unresolved
  *   - locations_multi keeps only resolved locations (dropped if none)
  *   - route keeps only resolved stops (dropped if fewer than 2)
  * Non-map modules pass through untouched. Capped at MAX_GEOCODES total.
  */
-const MAX_GEOCODES = 10;
+const MAX_GEOCODES = 8;
+const MAP_TYPES = new Set(["location_single", "locations_multi", "route"]);
 
 export async function resolveGeocoding(rawModules: unknown[]): Promise<unknown[]> {
-  let budget = MAX_GEOCODES;
-  const out: unknown[] = [];
+  // Pass 1 — collect every unique query the space needs, up to budget.
+  const queries = new Set<string>();
+  for (const mod of rawModules) {
+    const r = asRecord(mod);
+    if (!r || !MAP_TYPES.has(str(r.type))) continue;
+    const type = str(r.type);
+    if (type === "location_single") {
+      const q = str(r.query) || str(r.label);
+      const has = isFiniteCoord(r.center && (r.center as number[])[0], r.center && (r.center as number[])[1]);
+      if (q && !has) queries.add(q);
+    } else {
+      const arr = Array.isArray(r.queries) ? r.queries
+        : Array.isArray(r.stops) ? r.stops
+        : Array.isArray(r.locations) ? r.locations : [];
+      for (const entry of arr) {
+        const { query } = entryQuery(entry);
+        if (query) queries.add(query);
+      }
+    }
+    if (queries.size >= MAX_GEOCODES) break;
+  }
 
+  // Pass 2 — resolve them all in parallel; results land in the cache.
+  const list = [...queries].slice(0, MAX_GEOCODES);
+  await Promise.all(list.map((q) => geocode(q)));
+
+  // Synchronous cache reader (every needed query is now cached).
+  const lookup = (q: string | null): GeoPoint | null =>
+    q ? (CACHE.get(q) ?? null) : null;
+
+  // Pass 3 — rebuild the modules using resolved coordinates.
+  const out: unknown[] = [];
   for (const mod of rawModules) {
     const r = asRecord(mod);
     if (!r) { out.push(mod); continue; }
     const type = str(r.type);
 
     if (type === "location_single") {
-      if (budget <= 0) continue;
-      budget--;
+      const has = isFiniteCoord(r.center && (r.center as number[])[0], r.center && (r.center as number[])[1]);
+      if (has) { out.push(mod); continue; }
       const query = str(r.query) || str(r.label);
-      const existing = isFiniteCoord(r.center && (r.center as number[])[0], r.center && (r.center as number[])[1]);
-      if (existing) { out.push(mod); continue; }
-      const pt = query ? await geocode(query) : null;
+      const pt = lookup(query);
       if (!pt) continue; // drop — never pin to a guess
       out.push({
         type,
@@ -145,13 +173,12 @@ export async function resolveGeocoding(rawModules: unknown[]): Promise<unknown[]
     }
 
     if (type === "locations_multi") {
-      const raw = Array.isArray(r.queries) ? r.queries : Array.isArray(r.locations) ? r.locations : [];
+      const arr = Array.isArray(r.queries) ? r.queries : Array.isArray(r.locations) ? r.locations : [];
       const locations: { lng: number; lat: number; label?: string }[] = [];
-      for (const entry of raw) {
-        if (budget <= 0) break;
-        budget--;
-        const pt = await resolvePoint(entry);
-        if (pt) locations.push(pt);
+      for (const entry of arr) {
+        const { query, coords, label } = entryQuery(entry);
+        const pt = coords ?? lookup(query);
+        if (pt) locations.push({ lng: pt.lng, lat: pt.lat, label });
       }
       if (locations.length === 0) continue;
       out.push({ type, microTitle: str(r.microTitle) || undefined, locations });
@@ -159,15 +186,14 @@ export async function resolveGeocoding(rawModules: unknown[]): Promise<unknown[]
     }
 
     if (type === "route") {
-      const raw = Array.isArray(r.stops) ? r.stops : Array.isArray(r.queries) ? r.queries : [];
+      const arr = Array.isArray(r.stops) ? r.stops : Array.isArray(r.queries) ? r.queries : [];
       const stops: { lng: number; lat: number; label?: string }[] = [];
-      for (const entry of raw) {
-        if (budget <= 0) break;
-        budget--;
-        const pt = await resolvePoint(entry);
-        if (pt) stops.push(pt);
+      for (const entry of arr) {
+        const { query, coords, label } = entryQuery(entry);
+        const pt = coords ?? lookup(query);
+        if (pt) stops.push({ lng: pt.lng, lat: pt.lat, label });
       }
-      if (stops.length < 2) continue; // a route needs at least two points
+      if (stops.length < 2) continue;
       out.push({ type, microTitle: str(r.microTitle) || undefined, stops });
       continue;
     }

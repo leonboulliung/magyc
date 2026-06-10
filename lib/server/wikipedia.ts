@@ -53,7 +53,7 @@ async function fetchSummary(host: string, title: string): Promise<SummaryRespons
   const encoded = encodeURIComponent(title.replace(/\s+/g, "_"));
   const url = `https://${host}/api/rest_v1/page/summary/${encoded}?redirect=true`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3_000);
+  const timer = setTimeout(() => controller.abort(), 2_200);
   try {
     const res = await fetch(url, {
       headers: { "user-agent": "magyc.site/0.1 (https://magyc.site)" },
@@ -73,7 +73,7 @@ async function fetchSummary(host: string, title: string): Promise<SummaryRespons
 async function openSearch(host: string, query: string): Promise<string | null> {
   const url = `https://${host}/w/api.php?action=opensearch&format=json&limit=1&search=${encodeURIComponent(query)}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3_000);
+  const timer = setTimeout(() => controller.abort(), 2_200);
   try {
     const res = await fetch(url, {
       headers: { "user-agent": "magyc.site/0.1 (https://magyc.site)" },

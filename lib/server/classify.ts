@@ -296,7 +296,6 @@ function buildAuthorSystemPrompt(language: string, chosen: ModuleType[]): string
     .map((t) => `  - ${t}:\n      ${SHAPE[t] ?? `{"type":"${t}","microTitle":"<short label>"}`}`)
     .join("\n");
 
-  const pickerList = PICKER_TYPES.join(", ");
   const fontList = FONT_NAMES.join(", ");
 
   return `You are the authoring stage of a workspace composer. The widgets to
@@ -305,9 +304,8 @@ that serves the user's input, and to assign a fitting visual style.
 
 OUTPUT LANGUAGE: ${langName} (code: ${language}).
 EVERY visible string you write — titles, microTitles, prose, tags,
-options, item text, labels, widgetLabels — MUST be in ${langName}.
-This is absolute. The only thing that stays in English is the
-internal "type" field.
+options, item text, labels — MUST be in ${langName}. This is absolute.
+The only thing that stays in English is the internal "type" field.
 
 Return STRICT JSON, no preamble:
 
@@ -316,8 +314,7 @@ Return STRICT JSON, no preamble:
   "tags":     { "type":"tags", "tags":["<3-6 short tags in ${langName}>"] },
   "body":     [ <one object per chosen widget, in the order listed> ],
   "labels":   { ...UI strings in ${langName}... },
-  "style":    { "font":"<one family from the list>", "color1":"#rrggbb", "color2":"#rrggbb", "background":"#rrggbb" },
-  "widgetLabels": { "<each module type>": "<1-2 word label in ${langName}>" }
+  "style":    { "font":"<one family from the list>", "color1":"#rrggbb", "color2":"#rrggbb", "background":"#rrggbb" }
 }
 
 THE CHOSEN BODY WIDGETS — author exactly these, in this order:
@@ -338,10 +335,6 @@ STYLE — assign a palette + font that matches the input's MOOD:
 - background: a near-white page canvas, possibly a faint warm/cool tint
   (#ffffff to a very light shade). Keep it light — the content sits on
   top of it.
-
-WIDGET LABELS — a short label in ${langName} for EVERY module type
-below, for the add-widget menu. 1-2 words each. All keys required:
-  ${pickerList}
 
 CONTENT RULES:
 - Never invent specifics: no fake place names, no fake Wikipedia
@@ -491,7 +484,15 @@ export async function classifyInput(
   const input = prep(text);
   if (input.length < 3) throw new Error("input_too_short");
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  // maxRetries: 0 is critical for the serverless time budget — the SDK
+  // defaults to 2 retries with backoff, which a single transient error
+  // could turn into a 10s+ stall (→ gateway 504). Per-request timeout is
+  // a hang guard so a stuck call fails fast instead of eating the budget.
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    maxRetries: 0,
+    timeout: 12_000,
+  });
 
   // Stage A — analyze + score.
   const a = await analyze(client, input, answers);

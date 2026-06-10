@@ -98,7 +98,7 @@ export async function POST(req: Request) {
   let hydratedModules: unknown[] = result.modules;
   try {
     const timeout = new Promise<unknown[]>((resolve) =>
-      setTimeout(() => resolve(result.modules), 4_000),
+      setTimeout(() => resolve(result.modules), 2_500),
     );
     hydratedModules = await Promise.race([
       resolveExternalRefs(result.modules, result.language),
