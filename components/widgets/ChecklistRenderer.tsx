@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState, getSelfId } from "@/lib/state";
+import { getSelfId } from "@/lib/state";
 import type { ChecklistWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -77,8 +77,7 @@ export function ChecklistRenderer({
 
   async function toggle(itemKey: string) {
     const next = !isMine(itemKey);
-    await postState(ctx.spaceId, index, "check", { itemKey, checked: next });
-    ctx.refresh();
+    await ctx.act(index, "check", { itemKey, checked: next });
   }
 
   const [pending, setPending] = useState("");
@@ -89,8 +88,7 @@ export function ChecklistRenderer({
     setPending("");
     setAdding(false);
     if (!v) return;
-    await postState(ctx.spaceId, index, "add", { text: v });
-    ctx.refresh();
+    await ctx.act(index, "add", { text: v });
   }
 
   return (

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState, getSelfId } from "@/lib/state";
+import { getSelfId } from "@/lib/state";
 import type { CrewWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -53,8 +53,7 @@ export function CrewRenderer({
 
   async function toggleClaim(slot: string) {
     const next = !iClaimed(slot);
-    await postState(ctx.spaceId, index, "claim", { slotLabel: slot, claimed: next });
-    ctx.refresh();
+    await ctx.act(index, "claim", { slotLabel: slot, claimed: next });
   }
 
   async function shareRole(slot: string) {

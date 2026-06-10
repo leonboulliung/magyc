@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState } from "@/lib/state";
 import type { DiscussionWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -57,12 +56,11 @@ export function DiscussionRenderer({
   async function post(parentId: string | null, text: string) {
     const v = text.trim();
     if (!v) return;
-    await postState(ctx.spaceId, index, "voice", {
+    await ctx.act(index, "voice", {
       id: newId(),
       text: v,
       parentId: parentId || undefined,
     });
-    ctx.refresh();
   }
 
   async function postTop() {

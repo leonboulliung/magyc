@@ -2,13 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { fetchSpaceById } from "@/lib/db";
+import { fetchSpaceById, mapStateRow, type ModuleStateRow } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
+import {
+  applyActionLocally,
+  makeOptimisticEntry,
+  mergeRealtimeInsert,
+  postState,
+} from "@/lib/state";
 import { bodyContainer, heroIn } from "@/lib/anim";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
 import { useIsOwner } from "@/lib/hooks";
 import { WidgetContext } from "@/lib/widgetContext";
-import type { Module, ModuleStateEntry, Space, SpaceStyle } from "@/lib/types";
+import type { Module, ModuleStateEntry, ModuleStateKind, Space, SpaceStyle } from "@/lib/types";
 import { DEFAULT_STYLE, styleVars } from "@/lib/style";
 import { findFont, fontStack, googleFontsHref } from "@/lib/fonts";
 import { MagyCBadge } from "@/components/MagyCBadge";
@@ -72,6 +79,63 @@ export function SpaceView({ id }: { id: string }) {
     return getSpaceOwnerToken(space.id);
   }, [space, isOwner]);
 
+  // ── Live collaborative state ────────────────────────────────────
+  // `liveState` is the working copy of module_state: seeded from the
+  // fetched space, updated (a) optimistically on own actions and
+  // (b) by the realtime channel for everyone's confirmed rows. This
+  // replaces the old pattern of re-fetching the entire space graph
+  // after every click.
+  const [liveState, setLiveState] = useState<ModuleStateEntry[]>([]);
+  const realtimeUp = useRef(false);
+
+  useEffect(() => {
+    if (space) setLiveState(space.state);
+  }, [space]);
+
+  useEffect(() => {
+    if (!space?.id) return;
+    const channel = supabase
+      .channel(`ms-${space.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "module_state", filter: `space_id=eq.${space.id}` },
+        (payload) => {
+          const entry = mapStateRow(payload.new as ModuleStateRow);
+          setLiveState((prev) => mergeRealtimeInsert(prev, entry));
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "module_state", filter: `space_id=eq.${space.id}` },
+        (payload) => {
+          const oldId = (payload.old as { id?: string } | null)?.id;
+          if (oldId) setLiveState((prev) => prev.filter((e) => e.id !== oldId));
+        },
+      )
+      .subscribe((status) => {
+        realtimeUp.current = status === "SUBSCRIBED";
+      });
+    return () => {
+      realtimeUp.current = false;
+      supabase.removeChannel(channel);
+    };
+  }, [space?.id]);
+
+  /** Optimistic collaborative action: apply locally with the server's
+   *  semantics, fire the write, reconcile via realtime (or refresh as
+   *  fallback when the channel isn't up / the write fails). */
+  const act = useCallback(
+    async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
+      if (!space?.id) return false;
+      const entry = makeOptimisticEntry(space.id, moduleIndex, kind, data);
+      setLiveState((prev) => applyActionLocally(prev, entry));
+      const ok = await postState(space.id, moduleIndex, kind, data);
+      if (!ok || !realtimeUp.current) refresh(); // resync: rollback or no-channel fallback
+      return ok;
+    },
+    [space?.id, refresh],
+  );
+
   // ── Visual style ────────────────────────────────────────────────
   // Local override lets the StyleEditor preview changes instantly
   // before the server round-trip. Falls back to the space's stored
@@ -110,20 +174,20 @@ export function SpaceView({ id }: { id: string }) {
     return { displayedModules: space.modules, currentVersionNumber: latest };
   }, [space, viewVersion]);
 
-  // Pre-slice state by moduleIndex once so each renderer only sees
-  // its own actions. The slice is keyed by index and sorted oldest-
-  // first so renderers can fold a chronological log directly.
+  // Pre-slice the LIVE state by moduleIndex so each renderer only sees
+  // its own actions. Derived from liveState (optimistic + realtime),
+  // not from the fetched snapshot — this is what makes every click
+  // feel instant and other users' actions appear without a reload.
   const stateByModule = useMemo(() => {
     const out = new Map<number, ModuleStateEntry[]>();
-    if (!space) return out;
-    for (const e of space.state) {
+    for (const e of liveState) {
       const arr = out.get(e.moduleIndex) || [];
       arr.push(e);
       out.set(e.moduleIndex, arr);
     }
     for (const arr of out.values()) arr.sort((a, b) => a.createdAt - b.createdAt);
     return out;
-  }, [space]);
+  }, [liveState]);
 
   // Split into header zones + body.
   const { hero, tagsModule, tagsIndex, body } = useMemo(() => {
@@ -169,6 +233,7 @@ export function SpaceView({ id }: { id: string }) {
         isOwner,
         ownerToken,
         refresh,
+        act,
       }}
     >
       <div
@@ -233,7 +298,7 @@ export function SpaceView({ id }: { id: string }) {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
             >
               <ParticipantsBar
-                state={space.state}
+                state={liveState}
                 owner={space.owner}
                 label={label(space.labels, "participants")}
               />

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState } from "@/lib/state";
 import type { ModuleStateEntry, PartsListWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -77,12 +76,11 @@ export function PartsListRenderer({
     setPendingQty("");
     setPendingUrl("");
     setAdding(false);
-    await postState(ctx.spaceId, index, "add", {
+    await ctx.act(index, "add", {
       name,
       quantity: qty || undefined,
       imageUrl: url || undefined,
     });
-    ctx.refresh();
   }
 
   return (

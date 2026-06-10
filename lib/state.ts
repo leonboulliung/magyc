@@ -61,6 +61,106 @@ export async function postState(
 }
 
 // ============================================================
+// Optimistic local apply — mirrors the server's per-kind semantics
+// ============================================================
+
+/** Build the entry the server WILL create for an action, with a temp
+ *  id. Appended locally before the write so the UI reacts instantly;
+ *  the realtime INSERT replaces it with the real row. */
+export function makeOptimisticEntry(
+  spaceId: string,
+  moduleIndex: number,
+  kind: ModuleStateKind,
+  data: Record<string, unknown>,
+): ModuleStateEntry {
+  return {
+    id: `tmp_${Math.random().toString(36).slice(2, 10)}`,
+    spaceId,
+    moduleIndex,
+    actor: {
+      kind: "anon",
+      id: getSelfId(),
+      displayName: getAnonDisplayName() || undefined,
+      color: getMyColor(),
+    },
+    kind,
+    data: { ...data, color: getMyColor() },
+    createdAt: Date.now(),
+  };
+}
+
+/**
+ * Apply an action to the local entry list the same way the server
+ * applies it to the table, so the optimistic UI state matches what the
+ * next read would return:
+ *   vote  — one active vote per actor+module; empty option = retract
+ *   check — one check per actor+itemKey; checked:false = remove
+ *   claim — one claim per actor+slotLabel; claimed:false = release
+ *   everything else — plain append
+ */
+export function applyActionLocally(
+  entries: ModuleStateEntry[],
+  entry: ModuleStateEntry,
+): ModuleStateEntry[] {
+  const me = entry.actor.id;
+  const { moduleIndex, kind, data } = entry;
+  let next = entries;
+
+  if (kind === "vote") {
+    next = next.filter(
+      (e) => !(e.kind === "vote" && e.moduleIndex === moduleIndex && e.actor.id === me),
+    );
+    const option = typeof data.option === "string" ? data.option : "";
+    if (!option) return next; // retraction — delete only
+    return [...next, entry];
+  }
+
+  if (kind === "check") {
+    const itemKey = typeof data.itemKey === "string" ? data.itemKey : "";
+    next = next.filter(
+      (e) => !(e.kind === "check" && e.moduleIndex === moduleIndex && e.actor.id === me &&
+        e.data.itemKey === itemKey),
+    );
+    if (!data.checked) return next;
+    return [...next, entry];
+  }
+
+  if (kind === "claim") {
+    const slotLabel = typeof data.slotLabel === "string" ? data.slotLabel : "";
+    next = next.filter(
+      (e) => !(e.kind === "claim" && e.moduleIndex === moduleIndex && e.actor.id === me &&
+        e.data.slotLabel === slotLabel),
+    );
+    if (data.claimed === false) return next; // release — delete only
+    return [...next, entry];
+  }
+
+  return [...next, entry];
+}
+
+/**
+ * Merge a realtime INSERT into the local list: drop the oldest matching
+ * optimistic temp entry from the same actor (it has been confirmed),
+ * then append the real row if it isn't already present.
+ */
+export function mergeRealtimeInsert(
+  entries: ModuleStateEntry[],
+  incoming: ModuleStateEntry,
+): ModuleStateEntry[] {
+  let next = entries;
+  if (incoming.actor.id === getSelfId()) {
+    const i = next.findIndex(
+      (e) => e.id.startsWith("tmp_") &&
+        e.moduleIndex === incoming.moduleIndex &&
+        e.kind === incoming.kind,
+    );
+    if (i >= 0) next = [...next.slice(0, i), ...next.slice(i + 1)];
+  }
+  if (next.some((e) => e.id === incoming.id)) return next;
+  return [...next, incoming];
+}
+
+// ============================================================
 // Aggregations over the state list — used by renderers
 // ============================================================
 

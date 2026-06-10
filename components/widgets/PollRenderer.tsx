@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState, getSelfId } from "@/lib/state";
+import { getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, PollWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -49,8 +49,7 @@ export function PollRenderer({
 
   async function vote(option: string) {
     const next = mine === option ? "" : option; // toggle off if same
-    await postState(ctx.spaceId, index, "vote", { option: next });
-    ctx.refresh();
+    await ctx.act(index, "vote", { option: next });
   }
 
   return (

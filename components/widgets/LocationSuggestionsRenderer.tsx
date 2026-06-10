@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState, getSelfId } from "@/lib/state";
+import { getSelfId } from "@/lib/state";
 import type { LocationSuggestionsWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -56,8 +56,7 @@ export function LocationSuggestionsRenderer({
 
   async function vote(label: string) {
     const next = mine === label ? "" : label;
-    await postState(ctx.spaceId, index, "vote", { option: next });
-    ctx.refresh();
+    await ctx.act(index, "vote", { option: next });
   }
 
   return (

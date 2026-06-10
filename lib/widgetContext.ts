@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { SpaceLabels } from "./types";
+import type { ModuleStateKind, SpaceLabels } from "./types";
 
 /**
  * Per-space context shared by every widget renderer. Carries the
@@ -15,8 +15,16 @@ export interface WidgetContextValue {
   isOwner: boolean;
   /** Anon owner token, present when isOwner && draft. */
   ownerToken: string | null;
-  /** Re-fetch the space + state. Called by widgets after PUT / regenerate. */
+  /** Re-fetch the space + state. Called by widgets after PUT / regenerate
+   *  (widget CONFIG changes). Collaborative actions use `act` instead. */
   refresh: () => void;
+  /**
+   * Post a collaborative action with optimistic local apply. The UI
+   * updates instantly; the server write follows; the realtime channel
+   * reconciles. Replaces the old `postState(...) + refresh()` pattern,
+   * which re-fetched the whole space graph on every click.
+   */
+  act: (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => Promise<boolean>;
 }
 
 export const WidgetContext = createContext<WidgetContextValue | null>(null);

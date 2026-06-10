@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState } from "@/lib/state";
 import type { ModuleStateEntry, QAWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -45,24 +44,22 @@ export function QaRenderer({
     setPendingQ("");
     setAskOpen(false);
     if (!v) return;
-    await postState(ctx.spaceId, index, "voice", {
+    await ctx.act(index, "voice", {
       id: newId("q"),
       role: "question",
       text: v,
     });
-    ctx.refresh();
   }
 
   async function answer(qid: string, text: string) {
     const v = text.trim();
     if (!v) return;
-    await postState(ctx.spaceId, index, "voice", {
+    await ctx.act(index, "voice", {
       id: newId("a"),
       role: "answer",
       parentId: qid,
       text: v,
     });
-    ctx.refresh();
   }
 
   return (

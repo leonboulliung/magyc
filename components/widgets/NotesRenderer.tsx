@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState } from "@/lib/state";
 import type { ModuleStateEntry, NotesWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -35,13 +34,11 @@ export function NotesRenderer({
     setPending("");
     setAdding(false);
     if (!v) return;
-    await postState(ctx.spaceId, index, "add", { id: newId(), text: v });
-    ctx.refresh();
+    await ctx.act(index, "add", { id: newId(), text: v });
   }
 
   async function editNote(id: string, text: string) {
-    await postState(ctx.spaceId, index, "edit", { id, text });
-    ctx.refresh();
+    await ctx.act(index, "edit", { id, text });
   }
 
   return (

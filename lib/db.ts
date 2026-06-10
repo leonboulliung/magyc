@@ -19,7 +19,9 @@ type ProfileRow = {
   created_at: string;
 };
 
-type ModuleStateRow = {
+/** Exported — the realtime channel receives raw module_state rows and
+ *  maps them with mapStateRow below. */
+export type ModuleStateRow = {
   id: string;
   space_id: string;
   module_index: number;
@@ -83,6 +85,12 @@ function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
 const ALLOWED_STATE_KINDS = new Set<ModuleStateKind>([
   "vote", "check", "claim", "voice", "edit", "add", "upload", "stroke",
 ]);
+
+/** Map a raw module_state row (DB read or realtime payload) into the
+ *  typed entry every renderer consumes. */
+export function mapStateRow(row: ModuleStateRow): ModuleStateEntry {
+  return mapModuleStateEntry(row);
+}
 
 function mapModuleStateEntry(row: ModuleStateRow): ModuleStateEntry {
   const actor: Actor = {

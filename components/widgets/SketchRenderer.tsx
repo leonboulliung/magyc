@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState, getMyColor, getSelfId } from "@/lib/state";
+import { getMyColor, getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, SketchWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -99,8 +99,7 @@ export function SketchRenderer({
     const path = currentPath.current;
     currentPath.current = "";
     if (!path || path.length < 8) return; // too short to save
-    await postState(ctx.spaceId, index, "stroke", { path, color: myColor, width: 3 });
-    ctx.refresh();
+    await ctx.act(index, "stroke", { path, color: myColor, width: 3 });
   }
 
   // ── Local undo (newest stroke of current actor) ──────────────────
