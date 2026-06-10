@@ -46,3 +46,17 @@ export function label(
   const v = labels?.[key];
   return typeof v === "string" ? v : FALLBACKS[key];
 }
+
+/**
+ * The canonical list of AI-generated label keys — the string fields the
+ * classifier authors and that are read back from storage. Single source
+ * shared by the classifier and the db mapper (rendererPending is excluded:
+ * it is a fallback-only symbol, never generated or stored).
+ */
+export const AI_LABEL_KEYS: readonly (keyof SpaceLabels)[] = [
+  "publishCta", "publishTitle", "publishExplanation", "cancel",
+  "publishConfirm", "signInPrompt", "signInCta", "signedInAs",
+  "visibilityPublic", "visibilityPrivate", "copy", "copied",
+  "backToCurrent", "viewingVersionPrefix",
+  "emptyGrid", "emptyGridHint", "participants",
+];

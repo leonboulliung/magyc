@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState, getMyColor } from "@/lib/state";
+import { postState, getMyColor, getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, SketchWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -106,7 +106,7 @@ export function SketchRenderer({
   // ── Local undo (newest stroke of current actor) ──────────────────
   function undo() {
     // Find my most recent non-undone stroke.
-    const myId = typeof window !== "undefined" ? (localStorage.getItem("ccp-anon-token") || "") : "";
+    const myId = getSelfId();
     const mine = strokes
       .filter((e) => e.actor.id === myId)
       .map((e) => e.id);

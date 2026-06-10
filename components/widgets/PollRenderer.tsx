@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState } from "@/lib/state";
+import { postState, getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, PollWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -32,9 +32,7 @@ export function PollRenderer({
     latestByActor.set(e.actor.id, e);
   }
 
-  const myId = typeof window !== "undefined"
-    ? (localStorage.getItem("ccp-anon-token") || "")
-    : "";
+  const myId = getSelfId();
   const myEntry = latestByActor.get(myId) || null;
   const mine = myEntry && typeof myEntry.data.option === "string" ? (myEntry.data.option as string) : null;
 

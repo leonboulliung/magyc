@@ -260,7 +260,11 @@ export async function regenerateWidget(ctx: RegenContext): Promise<RegenResult> 
 
   const { system, user } = handler(ctx, count);
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    maxRetries: 1,
+    timeout: 15_000,
+  });
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },

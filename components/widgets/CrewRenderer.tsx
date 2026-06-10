@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState } from "@/lib/state";
+import { postState, getSelfId } from "@/lib/state";
 import type { CrewWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -45,9 +45,7 @@ export function CrewRenderer({
     buckets.set(slot, arr);
   }
 
-  const myId = typeof window !== "undefined"
-    ? (localStorage.getItem("ccp-anon-token") || "")
-    : "";
+  const myId = getSelfId();
 
   function iClaimed(slot: string): boolean {
     return (buckets.get(slot) || []).some((e) => e.actor.id === myId);

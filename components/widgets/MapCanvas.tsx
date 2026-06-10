@@ -55,10 +55,7 @@ export function MapCanvas({
       await new Promise<void>((r) => setTimeout(r, 0));
     }
 
-    const [L, gestureHandling] = await Promise.all([
-      import("leaflet"),
-      import("leaflet-gesture-handling").catch(() => null),
-    ]);
+    const L = await import("leaflet");
 
     // Leaflet CSS — inject once into the document head.
     if (!document.getElementById("leaflet-css")) {
@@ -67,11 +64,6 @@ export function MapCanvas({
       link.rel = "stylesheet";
       link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
       document.head.appendChild(link);
-    }
-
-    // Register gesture-handling plugin if available.
-    if (gestureHandling && (L as unknown as Record<string, unknown>).GestureHandling) {
-      // Plugin self-registers; nothing to do.
     }
 
     // Let the caller drive the rest.

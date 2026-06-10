@@ -1,8 +1,9 @@
 import OpenAI from "openai";
-import { MODULE_META, bodyTypes, sanitizeModules } from "@/lib/modules";
+import { MODULE_META, sanitizeModules } from "@/lib/modules";
 import { ALL_VIBES, type Module, type ModuleType, type SpaceLabels, type SpaceStyle, type Vibe } from "@/lib/types";
 import { FONT_NAMES } from "@/lib/fonts";
 import { sanitizeStyle } from "@/lib/style";
+import { AI_LABEL_KEYS } from "@/lib/labels";
 import { resolveGeocoding } from "@/lib/server/geocode";
 
 /**
@@ -283,12 +284,7 @@ interface AuthorResult {
   body: Module[];
   labels: SpaceLabels;
   style: SpaceStyle | null;
-  widgetLabels: Record<string, string>;
 }
-
-/** All body widget types that can appear in the picker — these get an
- *  emergent label in the space language. */
-const PICKER_TYPES: ModuleType[] = bodyTypes();
 
 function buildAuthorSystemPrompt(language: string, chosen: ModuleType[]): string {
   const langName = languageName(language);
@@ -377,20 +373,12 @@ LABELS — the UI chrome strings, all in ${langName}, each under 60 chars:
 Output ONLY the JSON object.`;
 }
 
-const LABEL_KEYS: readonly (keyof SpaceLabels)[] = [
-  "publishCta", "publishTitle", "publishExplanation", "cancel",
-  "publishConfirm", "signInPrompt", "signInCta", "signedInAs",
-  "visibilityPublic", "visibilityPrivate", "copy", "copied",
-  "backToCurrent", "viewingVersionPrefix",
-  "emptyGrid", "emptyGridHint", "participants",
-];
-
 function sanitizeLabels(raw: unknown): SpaceLabels {
   const out: SpaceLabels = {};
   if (!raw || typeof raw !== "object") return out;
   const r = raw as Record<string, unknown>;
   const strOut = out as Record<string, string>;
-  for (const k of LABEL_KEYS) {
+  for (const k of AI_LABEL_KEYS) {
     const v = r[k];
     if (typeof v === "string") {
       const cleaned = v.trim().slice(0, 200);
@@ -442,17 +430,7 @@ async function author(
   const labels = sanitizeLabels(parsed.labels);
   const style = sanitizeStyle(parsed.style);
 
-  // Widget labels — keep only string values for known module types.
-  const widgetLabels: Record<string, string> = {};
-  if (parsed.widgetLabels && typeof parsed.widgetLabels === "object") {
-    const wl = parsed.widgetLabels as Record<string, unknown>;
-    for (const t of PICKER_TYPES) {
-      const v = wl[t];
-      if (typeof v === "string" && v.trim()) widgetLabels[t] = v.trim().slice(0, 40);
-    }
-  }
-
-  return { richText, tags, body, labels, style, widgetLabels };
+  return { richText, tags, body, labels, style };
 }
 
 // ── Public API ────────────────────────────────────────────────────────
@@ -511,19 +489,12 @@ export async function classifyInput(
   if (authored.tags) ordered.push(authored.tags);
   ordered.push(...authored.body);
 
-  // Fold the emergent widget labels into the labels object so they
-  // travel with the space and reach the picker.
-  const labels: SpaceLabels = { ...authored.labels };
-  if (Object.keys(authored.widgetLabels).length > 0) {
-    labels.widgetLabels = authored.widgetLabels;
-  }
-
   return {
     title: a.title,
     language: a.language,
     vibe: a.vibe,
     modules: ordered,
-    labels,
+    labels: authored.labels,
     style: authored.style,
   };
 }

@@ -399,13 +399,6 @@ export const HEADER_ZONE_TYPES: readonly ModuleType[] = [
   "tags",
 ] as const;
 
-// Convenient helpers preserved from the old shape — kept here so other
-// modules don't break. Headline / Synthesis used to be distinct types
-// in v3; they're collapsed into Heading + RichText now. The aliases let
-// the SpaceView pick the right element by lookup.
-export type HeadlineModule = HeadingWidget;
-export type SynthesisModule = RichTextWidget;
-
 // ============================================================
 // Module state — collaborative actions
 // ============================================================

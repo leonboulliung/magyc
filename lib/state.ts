@@ -2,9 +2,21 @@
 
 import { getAnonDisplayName, getAnonToken } from "./anonId";
 import { getActivePersona } from "./personas";
+import { PALETTE, colorForId } from "./palette";
 import type { ModuleStateEntry, ModuleStateKind } from "./types";
 
-const PALETTE = ["#7da3c0", "#d4a373", "#a3c08e", "#c0857d", "#8d8dc0", "#c0bd7d"];
+/**
+ * The current actor's id — the value the server stamps on this
+ * browser's collaborative actions (`actor.id`). Renderers compare
+ * against it to answer "is this MY vote / claim / stroke?". It MUST
+ * match what the API records, which is the anon token (persona-aware).
+ *
+ * This replaces six renderers that read a non-existent localStorage
+ * key directly and so always saw an empty id.
+ */
+export function getSelfId(): string {
+  return getAnonToken();
+}
 
 /** Stable colour for the current actor — persona swatch if a persona
  *  is active, else a deterministic pick from the anon token. */
@@ -12,18 +24,13 @@ export function getMyColor(): string {
   if (typeof window === "undefined") return PALETTE[0];
   const persona = getActivePersona();
   if (persona) return persona.swatch;
-  const seed = getAnonToken();
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h + seed.charCodeAt(i)) % PALETTE.length;
-  return PALETTE[h];
+  return colorForId(getAnonToken());
 }
 
 /** Stable colour for a known actor id (anon token or user id). Used
  *  by renderers to show consistent attribution across page renders. */
 export function colorFor(actorId: string): string {
-  let h = 0;
-  for (let i = 0; i < actorId.length; i++) h = (h + actorId.charCodeAt(i)) % PALETTE.length;
-  return PALETTE[h];
+  return colorForId(actorId);
 }
 
 /**

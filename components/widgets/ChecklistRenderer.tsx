@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { postState } from "@/lib/state";
+import { postState, getSelfId } from "@/lib/state";
 import type { ChecklistWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -68,9 +68,7 @@ export function ChecklistRenderer({
     checksByItem.set(itemKey, arr);
   }
 
-  const myId = typeof window !== "undefined"
-    ? (localStorage.getItem("ccp-anon-token") || "")
-    : "";
+  const myId = getSelfId();
 
   function isMine(itemKey: string): boolean {
     const checkers = checksByItem.get(itemKey) || [];

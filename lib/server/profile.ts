@@ -1,5 +1,6 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { colorForId } from "@/lib/palette";
 
 /**
  * Ensure a `profiles` row exists for a Clerk user. Idempotent. Snapshots
@@ -30,14 +31,10 @@ export async function ensureProfile(userId: string): Promise<void> {
     displayName = `user-${userId.slice(-6)}`;
   }
 
-  // Pick a color from a small curated palette so widgets that
-  // attribute by color (Sketch strokes, Checklist marks) have
-  // something to render. Derived from the Clerk user id so each
-  // person keeps the same accent forever.
-  const palette = ["#7da3c0", "#d4a373", "#a3c08e", "#c0857d", "#8d8dc0", "#c0bd7d"];
-  let bucket = 0;
-  for (let i = 0; i < userId.length; i++) bucket = (bucket + userId.charCodeAt(i)) % palette.length;
-  const color = palette[bucket];
+  // A stable accent derived from the Clerk user id, so widgets that
+  // attribute by colour (Sketch strokes, Checklist marks) always have
+  // something to render and each person keeps the same accent forever.
+  const color = colorForId(userId);
 
   await admin.from("profiles").upsert(
     {

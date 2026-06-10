@@ -128,7 +128,11 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
   const input = prep(text);
   if (input.length < 3) throw new Error("input_too_short");
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    maxRetries: 1,
+    timeout: 15_000,
+  });
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },
