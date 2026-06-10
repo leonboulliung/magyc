@@ -103,6 +103,11 @@ export function GridZone({
 
   async function removeAt(orderPos: number) {
     const globalIdx = bodyItems[order[orderPos]].index;
+    // Optimistic: remove from local order immediately so the UI
+    // responds at once, then sync to server.
+    const newOrder = order.filter((_, pos) => pos !== orderPos);
+    setOrder(newOrder);
+    bodyLen.current = newOrder.length; // prevent reset on next render
     setBusy(true);
     try {
       await fetch(`/api/spaces/${spaceId}/widgets`, {
@@ -168,18 +173,26 @@ export function GridZone({
         minHeight: 240,
       }}
     >
-      {/* Column-guide overlay — 12-col, barely-visible */}
+      {/* Crosshatch grid — dots at every column × row intersection.
+          Horizontal pitch: 1/12 of the container width.
+          Vertical pitch:   28px (matches typical line-height rhythm).
+          The dot is a tiny radial gradient so it reads as "+" without
+          being heavy. */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden"
-        style={{ opacity: 0.04 }}
+        style={{ opacity: 0.07 }}
       >
         <div
           style={{
             width: "100%",
             height: "100%",
-            backgroundImage:
+            backgroundImage: [
+              // Vertical column lines
               "repeating-linear-gradient(to right, var(--v-fg) 0, var(--v-fg) 1px, transparent 1px, transparent calc(100% / 12))",
+              // Horizontal row lines — 28px pitch
+              "repeating-linear-gradient(to bottom, var(--v-fg) 0, var(--v-fg) 1px, transparent 1px, transparent 28px)",
+            ].join(", "),
           }}
         />
       </div>

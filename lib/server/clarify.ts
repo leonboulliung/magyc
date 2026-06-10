@@ -86,9 +86,12 @@ Return STRICT JSON, no preamble:
 
 Hard rules:
 - 2 to 5 questions. Pick only those whose answer truly matters.
-- 3 options per question. Each is a SHORT label (1-4 words) in the
-  user's language. The frontend always appends an implicit
-  custom-text option — you do NOT generate it.
+- 2–8 options per question. Scale to context: if there are only 3
+  meaningful answers, use 3. If the question is "which arrondissement?"
+  or "which city?" or any enumerable set, list ALL relevant ones (up to
+  8). Each is a SHORT label (1-4 words) in the user's language. The
+  frontend always appends an implicit custom-text option — you do NOT
+  generate it.
 - Match the input's language for ALL strings.
 - "data" questions are OPTIONAL — only include when the input clearly
   implies one of the mandatory-config widgets above. Do not force-ask
@@ -167,7 +170,7 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
         ? String((o as { value: string }).value).trim().slice(0, 36)
         : "";
       if (v) options.push({ value: v });
-      if (options.length >= 4) break;
+      if (options.length >= 10) break; // allow up to 10 contextual options
     }
     if (options.length < 2) continue;
     questions.push({
