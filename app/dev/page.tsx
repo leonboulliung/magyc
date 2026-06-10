@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { WidgetContext } from "@/lib/widgetContext";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
@@ -69,7 +69,6 @@ function seed(): ModuleStateEntry[] {
 }
 
 const DEMO_LABELS: SpaceLabels = { emptyGrid: "—", participants: "Beteiligte" };
-const ROW_GAP = 14;
 
 export default function DevPage() {
   const [state, setState] = useState<ModuleStateEntry[]>(seed);
@@ -84,29 +83,6 @@ export default function DevPage() {
 
   const header = DEMO_MODULES.slice(0, 3);
   const body = DEMO_MODULES.slice(3);
-
-  // Masonry (same technique as GridZone).
-  const roRef = useRef<ResizeObserver | null>(null);
-  const sizeCell = useCallback((cell: HTMLElement) => {
-    const card = cell.firstElementChild as HTMLElement | null;
-    const h = (card ?? cell).getBoundingClientRect().height;
-    if (h > 0) cell.style.gridRowEnd = `span ${Math.max(1, Math.ceil(h + ROW_GAP))}`;
-  }, []);
-  useEffect(() => {
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) {
-        const cell = (e.target as HTMLElement).parentElement;
-        if (cell) sizeCell(cell);
-      }
-    });
-    roRef.current = ro;
-    return () => ro.disconnect();
-  }, [sizeCell]);
-  const cellRef = useCallback((el: HTMLDivElement | null) => {
-    if (!el || !roRef.current) return;
-    const card = el.firstElementChild;
-    if (card) { roRef.current.observe(card); sizeCell(el); }
-  }, [sizeCell]);
 
   const vars = styleVars(DEFAULT_STYLE, fontStack(findFont(DEFAULT_STYLE.font)));
 
@@ -129,14 +105,11 @@ export default function DevPage() {
             <WidgetDispatcher key={`h${i}`} module={m} index={i} state={slice(i)} />
           ))}
 
-          <div
-            className="grid grid-cols-12 mt-4"
-            style={{ columnGap: 12, gridAutoRows: "1px", gridAutoFlow: "row dense" }}
-          >
+          <div className="columns-1 sm:columns-2 mt-4" style={{ columnGap: 12 }}>
             {body.map((m, bi) => {
               const i = bi + 3;
               return (
-                <div key={`${i}-${m.type}`} ref={cellRef} className="col-span-12 sm:col-span-6">
+                <div key={`${i}-${m.type}`} className="mb-3 break-inside-avoid">
                   <WidgetDispatcher module={m} index={i} state={slice(i)} />
                 </div>
               );

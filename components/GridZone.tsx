@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 import { bodyContainer, bodyItem } from "@/lib/anim";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
 import { WidgetPicker } from "./WidgetPicker";
-
-// Masonry tuning: the grid uses 1px auto-rows, and each cell spans the
-// number of rows its content actually needs (+ ROW_GAP for breathing
-// room). With grid-auto-flow:dense, short widgets pack into the gaps a
-// tall neighbour would otherwise leave — no more half-empty cards.
-const ROW_GAP = 14;
 
 /**
  * GridZone — the body widget area of a space.
@@ -71,36 +65,6 @@ export function GridZone({
   const [dragOver, setDragOver] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-
-  // ── Masonry: per-cell row-span from measured content height ─────────
-  const roRef = useRef<ResizeObserver | null>(null);
-
-  const sizeCell = useCallback((cell: HTMLElement) => {
-    const card = cell.firstElementChild as HTMLElement | null;
-    const h = (card ?? cell).getBoundingClientRect().height;
-    if (h > 0) cell.style.gridRowEnd = `span ${Math.max(1, Math.ceil(h + ROW_GAP))}`;
-  }, []);
-
-  useEffect(() => {
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) {
-        const cell = (e.target as HTMLElement).parentElement;
-        if (cell) sizeCell(cell);
-      }
-    });
-    roRef.current = ro;
-    return () => ro.disconnect();
-  }, [sizeCell]);
-
-  /** Ref callback for each grid cell: observe its content + size now. */
-  const cellRef = useCallback((el: HTMLDivElement | null) => {
-    if (!el || !roRef.current) return;
-    const card = el.firstElementChild;
-    if (card) {
-      roRef.current.observe(card);
-      sizeCell(el);
-    }
-  }, [sizeCell]);
 
   const body = (m: Record<string, unknown>) => JSON.stringify({ ...m, anonOwnerToken: ownerToken });
 
@@ -228,9 +192,13 @@ export function GridZone({
           </div>
         ) : (
           <>
+            {/* Masonry via CSS multi-column: widgets size to their
+                content and pack tightly with no measurement, no overlap,
+                and the container grows to contain them automatically.
+                Full-width widgets break out with column-span: all. */}
             <motion.div
-              className="grid grid-cols-12"
-              style={{ columnGap: 12, gridAutoRows: "1px", gridAutoFlow: "row dense" }}
+              className="columns-1 sm:columns-2"
+              style={{ columnGap: 12 }}
               variants={bodyContainer}
               initial="hidden"
               animate="show"
@@ -243,13 +211,13 @@ export function GridZone({
                   return (
                     <motion.div
                       key={`${item.index}::${item.module.type}`}
-                      ref={cellRef}
                       variants={bodyItem}
                       animate={{ opacity: isDragging ? 0.35 : 1 }}
                       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
                       transition={{ duration: 0.18 }}
-                      className={`relative group/cell ${isFull ? "col-span-12" : "col-span-12 sm:col-span-6"}`}
+                      className="relative group/cell mb-3 break-inside-avoid"
                       style={{
+                        columnSpan: isFull ? "all" : undefined,
                         outline: isTarget ? "2px dashed var(--v-fg)" : "none",
                         outlineOffset: 3,
                         borderRadius: 6,
