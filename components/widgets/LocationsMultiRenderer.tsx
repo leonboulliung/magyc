@@ -4,7 +4,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { LocationsMultiWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
-import { MapCanvas, OSM_TILES, OSM_ATTRIBUTION } from "./MapCanvas";
+import { MapCanvas, OSM_TILES } from "./MapCanvas";
 
 /**
  * Mehrere Locations — multiple pins on one map. Fits all markers in
@@ -29,22 +29,26 @@ export function LocationsMultiRenderer({
         bare
       >
         <MapCanvas
-          height={240}
+          height={220}
           deps={[JSON.stringify(locs)]}
           setup={(L, el) => {
-            const map = L.map(el, { scrollWheelZoom: false });
-            L.tileLayer(OSM_TILES, { attribution: OSM_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+            const map = L.map(el, {
+              scrollWheelZoom: false,
+              zoomControl: false,
+              attributionControl: false,
+            });
+            L.tileLayer(OSM_TILES, { maxZoom: 19 }).addTo(map);
 
             const icon = L.divIcon({
               html: `<div style="
-                width:10px;height:10px;border-radius:50%;
-                background:var(--v-fg);
-                border:2px solid var(--v-bg);
+                width:13px;height:13px;border-radius:50%;
+                background:var(--v-accent);
+                border:2.5px solid #fff;
                 box-shadow:0 1px 3px rgba(0,0,0,0.2);
               "></div>`,
               className: "",
-              iconSize: [10, 10],
-              iconAnchor: [5, 5],
+              iconSize: [13, 13],
+              iconAnchor: [6.5, 6.5],
             });
 
             const markers: L.LatLng[] = [];

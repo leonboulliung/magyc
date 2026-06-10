@@ -5,7 +5,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { LocationSingleWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
-import { MapCanvas, OSM_TILES, OSM_ATTRIBUTION } from "./MapCanvas";
+import { MapCanvas, OSM_TILES } from "./MapCanvas";
 
 /**
  * Eine Location — single pinned map.
@@ -48,29 +48,30 @@ export function LocationSingleRenderer({
         bare
       >
         <MapCanvas
-          height={220}
+          height={200}
           deps={[lat, lng, zoom, ctx.isOwner]}
           setup={(L, el) => {
-            const map = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], zoom);
-            L.tileLayer(OSM_TILES, { attribution: OSM_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+            const map = L.map(el, {
+              scrollWheelZoom: false,
+              zoomControl: false,
+              attributionControl: false,
+            }).setView([lat, lng], zoom);
+            L.tileLayer(OSM_TILES, { maxZoom: 19 }).addTo(map);
 
+            // Accent (color2) pin — a soft dot, no heavy shadow.
             const icon = L.divIcon({
               html: `<div style="
-                width:12px;height:12px;border-radius:50%;
-                background:var(--v-fg);
-                border:2px solid var(--v-bg);
-                box-shadow:0 1px 4px rgba(0,0,0,0.25);
+                width:14px;height:14px;border-radius:50%;
+                background:var(--v-accent);
+                border:2.5px solid #fff;
+                box-shadow:0 1px 3px rgba(0,0,0,0.2);
               "></div>`,
               className: "",
-              iconSize: [12, 12],
-              iconAnchor: [6, 6],
+              iconSize: [14, 14],
+              iconAnchor: [7, 7],
             });
 
             const marker = L.marker([lat, lng], { icon, draggable: ctx.isOwner }).addTo(map);
-
-            if (m.label) {
-              marker.bindTooltip(m.label, { permanent: true, direction: "top", offset: [0, -8], className: "" });
-            }
 
             if (ctx.isOwner) {
               marker.on("dragend", (e) => {

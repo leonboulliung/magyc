@@ -4,7 +4,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { RouteWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
-import { MapCanvas, OSM_TILES, OSM_ATTRIBUTION } from "./MapCanvas";
+import { MapCanvas, OSM_TILES } from "./MapCanvas";
 
 /**
  * Route — ordered stops connected by a polyline. The CSV notes this
@@ -32,37 +32,41 @@ export function RouteRenderer({
         bare
       >
         <MapCanvas
-          height={260}
+          height={230}
           deps={[JSON.stringify(stops)]}
           setup={(L, el) => {
-            const map = L.map(el, { scrollWheelZoom: false });
-            L.tileLayer(OSM_TILES, { attribution: OSM_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+            const map = L.map(el, {
+              scrollWheelZoom: false,
+              zoomControl: false,
+              attributionControl: false,
+            });
+            L.tileLayer(OSM_TILES, { maxZoom: 19 }).addTo(map);
 
             const points: L.LatLng[] = stops.map((s) => L.latLng(s.lat, s.lng));
 
-            // Polyline between stops.
+            // Polyline between stops — in the accent colour (color2).
             if (points.length > 1) {
               L.polyline(points, {
-                color: "var(--v-fg, #0d0d0d)",
-                weight: 2,
-                opacity: 0.7,
-                dashArray: "6 4",
+                color: "var(--v-accent, #6b6b6b)",
+                weight: 2.5,
+                opacity: 0.85,
+                dashArray: "6 5",
               }).addTo(map);
             }
 
-            // Stop markers — numbered.
+            // Stop markers — numbered, accent-filled.
             const NUMERALS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];
             stops.forEach((stop, i) => {
               const numeral = NUMERALS[i] ?? String(i + 1);
               const icon = L.divIcon({
                 html: `<div style="
                   width:20px;height:20px;border-radius:50%;
-                  background:var(--v-fg);
-                  color:var(--v-bg,#fff);
+                  background:var(--v-accent);
+                  color:#fff;
                   display:flex;align-items:center;justify-content:center;
                   font-size:11px;font-weight:700;
-                  border:2px solid var(--v-bg,#fff);
-                  box-shadow:0 1px 4px rgba(0,0,0,0.25);
+                  border:2.5px solid #fff;
+                  box-shadow:0 1px 3px rgba(0,0,0,0.2);
                 ">${numeral}</div>`,
                 className: "",
                 iconSize: [20, 20],

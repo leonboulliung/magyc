@@ -97,7 +97,13 @@ export function MapCanvas({
   );
 }
 
-/** Shared OSM tile layer URL and attribution string. */
-export const OSM_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+/**
+ * Shared tile layer. We use CARTO's "Positron (no labels)" basemap —
+ * a very light, minimal, label-free style that reads as a calm backdrop
+ * the coloured pins sit on, instead of the busy default OSM tiles with
+ * their road names and POIs. Free, keyless. Retina via {r}.
+ */
+export const OSM_TILES =
+  "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
 export const OSM_ATTRIBUTION =
-  '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
+  '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';

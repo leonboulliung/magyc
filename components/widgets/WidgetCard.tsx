@@ -24,7 +24,12 @@ export function WidgetCard({
   return (
     <motion.div
       className={`rounded-md ${bare ? "" : "p-4"} h-full`}
-      style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}
+      style={{
+        // Body widgets carry the space's secondary colour (color2):
+        // a faint wash for the surface + a softened accent frame.
+        border: "1px solid var(--v-widget-border, var(--v-rule))",
+        background: "var(--v-widget, var(--v-bg))",
+      }}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}

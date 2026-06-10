@@ -53,6 +53,76 @@ export function readableOn(bg: string): string {
   return luminance(bg) > 0.5 ? "#0d0d0d" : "#ffffff";
 }
 
+// ── HSL conversion + per-role lightness clamping ──────────────────────
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return [h, s, l];
+}
+
+function hue2rgb(p: number, q: number, t: number): number {
+  if (t < 0) t += 1;
+  if (t > 1) t -= 1;
+  if (t < 1 / 6) return p + (q - p) * 6 * t;
+  if (t < 1 / 2) return q;
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+  return p;
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  let r: number, g: number, b: number;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+  const to = (x: number) => Math.round(x * 255).toString(16).padStart(2, "0");
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
+
+const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
+
+/** Re-light a colour into a target lightness/saturation band, keeping
+ *  its hue. Guarantees readability regardless of what the AI returns. */
+function reLight(hex: string, lMin: number, lMax: number, sMax: number): string {
+  const [r, g, b] = toRgb(hex);
+  const [h, s, l] = rgbToHsl(r, g, b);
+  return hslToHex(h, clamp(s, 0, sMax), clamp(l, lMin, lMax));
+}
+
+/**
+ * Force a style into the always-readable design band:
+ *   - background: a very light, low-saturation canvas (the white grid
+ *     and tinted widgets sit on top of it)
+ *   - color1 (ink): dark enough to read on that canvas
+ *   - color2 (accent): a mid-lightness, saturated accent for widgets/maps
+ * This is applied to every style — AI-assigned or editor-picked — so the
+ * surface can never end up unreadable.
+ */
+export function normalizeStyle(style: SpaceStyle): SpaceStyle {
+  return {
+    font: style.font,
+    background: reLight(style.background, 0.9, 0.985, 0.28),
+    color1: reLight(style.color1, 0.14, 0.42, 0.9),
+    color2: reLight(style.color2, 0.4, 0.6, 0.85),
+  };
+}
+
 /**
  * Build the CSS-variable overrides from a style. These are applied
  * inline on the space root, where they win over the vibe class vars.
@@ -76,24 +146,30 @@ export function styleVars(style: SpaceStyle, fontStackValue: string): React.CSSP
     ["--v-bg" as string]: "#ffffff",
     ["--v-rule" as string]: mix(ink, "#ffffff", 0.86),
     ["--v-muted" as string]: mix(ink, "#ffffff", 0.5),
+    // Body widgets carry color2: a faint wash for the card surface and a
+    // softened accent for the card frame. The white dot-grid shows
+    // between them, so the tint reads clearly without hurting contrast.
+    ["--v-widget" as string]: mix(accent, "#ffffff", 0.9),
+    ["--v-widget-border" as string]: mix(accent, "#ffffff", 0.45),
     ["--v-font" as string]: fontStackValue,
     ["--v-heading" as string]: fontStackValue,
   } as React.CSSProperties;
 }
 
-/** Validate an arbitrary object into a SpaceStyle, or null. */
+/** Validate an arbitrary object into a SpaceStyle, or null. Always
+ *  normalised into the readable design band. */
 export function sanitizeStyle(raw: unknown): SpaceStyle | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   const font = typeof r.font === "string" ? r.font.trim().slice(0, 60) : "";
   if (!font) return null;
   if (!isHex(r.color1) || !isHex(r.color2) || !isHex(r.background)) return null;
-  return {
+  return normalizeStyle({
     font,
     color1: normHex(r.color1 as string),
     color2: normHex(r.color2 as string),
     background: normHex(r.background as string),
-  };
+  });
 }
 
 /** A neutral default when no style was assigned. */

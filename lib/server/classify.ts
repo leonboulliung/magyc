@@ -324,23 +324,33 @@ STYLE — assign a palette + font that matches the input's MOOD:
   (JetBrains Mono/Space Mono) for technical; display (Unbounded/Syne/
   Bricolage Grotesque) for bold/creative; hand (Caveat/Shantell Sans)
   for playful.
-- color1: the primary ink (text, borders, map pins). Dark and readable
-  — high contrast on a near-white page. NOT pure black unless minimal.
-- color2: an accent (widget highlights, map fills) that harmonises with
-  color1 and the mood.
-- background: a near-white page canvas, possibly a faint warm/cool tint
-  (#ffffff to a very light shade). Keep it light — the content sits on
-  top of it.
+  Pick the COLOUR HUES from the SUBJECT itself — what the matter is
+  actually about, not a generic palette. Examples: a repair café →
+  warm craft tones (amber, terracotta, moss); a sea-swim group → cool
+  blue-greens; a jazz night → deep wine/indigo; a garden project →
+  leaf greens. Avoid hot neon / candy colours unless the subject is
+  explicitly loud or playful. Tasteful and on-topic beats vivid.
+  (The system automatically re-lightens your choices into a readable
+  band — a light canvas, dark ink, mid accent — so you only need to
+  get the HUE and mood right, not the exact lightness.)
+- color1: the primary ink hue (text, borders).
+- color2: the accent hue (widget tint + map pins/routes) — clearly
+  distinct from color1, drawn from the same subject palette.
+- background: the page-canvas hue (a faint tint of the subject's mood).
 
 CONTENT RULES:
 - Never invent specifics: no fake place names, no fake Wikipedia
   titles that don't exist, no fake dates, no fake numbers. If you lack
   a real value for a date/appointment, omit that widget from "body".
 - For map widgets (location_single, locations_multi, route), the
-  "query" must be a REAL, specific, geocodable place — include the city
-  and ideally the country (e.g. "Tour Eiffel, Paris, France"). If the
-  input names no concrete place, do NOT emit a coordinate map; the
-  selection already preferred location_suggestions for vague places.
+  "query" must be a SPECIFIC, named, geocodable VENUE or address —
+  a hall, park, café, landmark, street address — with its city and
+  country (e.g. "Parc des Buttes-Chaumont, Paris, France"). A bare
+  city or district name ("Paris", "11e arrondissement") is NOT
+  acceptable — it pins the map to a meaningless centroid. If the input
+  names only a city/area and no specific venue, emit
+  location_suggestions (a text list of candidate venues) instead of a
+  coordinate map.
 - Seed-content widgets (poll, checklist, crew, work_packages, phases,
   table, parts_list, location_suggestions) must contain real, concrete
   starter content drawn from the input — never empty arrays, never
