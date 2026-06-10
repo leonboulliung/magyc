@@ -14,6 +14,7 @@ import { bodyContainer, heroIn } from "@/lib/anim";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
 import { useIsOwner } from "@/lib/hooks";
+import { useDevMode } from "@/lib/devFlag";
 import { WidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleStateEntry, ModuleStateKind, Space, SpaceStyle } from "@/lib/types";
 import { DEFAULT_STYLE, styleVars } from "@/lib/style";
@@ -73,6 +74,7 @@ export function SpaceView({ id }: { id: string }) {
   }, [space, refresh]);
 
   const isOwner = useIsOwner(space);
+  const devMode = useDevMode();
 
   const ownerToken = useMemo(() => {
     if (!space || !isOwner) return null;
@@ -357,7 +359,9 @@ export function SpaceView({ id }: { id: string }) {
           </div>
         </footer>
 
-        <PersonaSwitcher />
+        {/* Dev-only: persona switcher for simulating multiplayer.
+            Hidden in production; enable on any space with ?dev=1. */}
+        {devMode && <PersonaSwitcher />}
       </div>
     </WidgetContext.Provider>
   );
