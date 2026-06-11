@@ -1,9 +1,28 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// No protected routes — every surface is public until the next concept
-// dictates otherwise. Clerk's middleware still runs so auth state is
-// available to every page; we just don't enforce sign-in anywhere.
-export default clerkMiddleware();
+// Redirect root domain (magyc.site) to www (www.magyc.site)
+function redirectRootToWWW(request: NextRequest) {
+  const host = request.headers.get("host") || "";
+  if (host === "magyc.site") {
+    const url = request.nextUrl.clone();
+    url.hostname = "www.magyc.site";
+    return NextResponse.redirect(url, { status: 301 });
+  }
+  return null;
+}
+
+// Clerk middleware + domain redirect
+const clerkAuth = clerkMiddleware();
+
+export default async function middleware(request: NextRequest) {
+  // Try domain redirect first
+  const domainRedirect = redirectRootToWWW(request);
+  if (domainRedirect) return domainRedirect;
+
+  // Then run Clerk middleware
+  return clerkAuth(request);
+};
 
 export const config = {
   matcher: [
