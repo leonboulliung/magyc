@@ -93,14 +93,23 @@ faithfully:
                            count, a span). Only when the input implies
                            such a widget.
 
-  "text"   — open writing, in the user's own words. Its essence: the
-             VALUE of the answer is the wording itself — something only
-             this user can author, that no named set of options could
-             stand in for without flattening it. It costs the user
-             effort (typing), so it must EARN that cost. The honest
-             test: if you can imagine naming the options, it is not
-             "text" — it is "choice". Reach for "text" only when the
-             substance genuinely lives in the user's phrasing.
+  "text"   — open writing, in the user's own words. The LEAST
+             structured kind, and therefore the LAST resort. Its
+             essence: the VALUE of the answer is the wording itself —
+             something only this user can author, that no named set of
+             options and no structured field could stand in for without
+             flattening it. It costs the user the most effort (typing),
+             so it must EARN that cost.
+
+             The hierarchy that decides this: anything with an EXACT
+             form is captured more faithfully AND more cheaply by a
+             structured kind than by prose — a point in time or a place
+             on a map by "module", one of a knowable set by "choice".
+             Before you ever emit "text", confirm that NEITHER "choice"
+             NOR "module" fits. A date, a place, a count, a yes/no, a
+             pick from alternatives is NEVER "text". Reach for "text"
+             only for what has no such form — where the substance truly
+             lives in the user's own phrasing.
 
   "module" — pull a precision-sensitive widget FORWARD so the user
              configures it interactively NOW. Propose ONLY when getting
