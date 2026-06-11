@@ -136,12 +136,18 @@ export function SketchRenderer({
             viewBox="0 0 800 500"
             preserveAspectRatio="xMidYMid meet"
             width="100%"
-            style={{ display: "block", touchAction: "none", cursor: drawing ? "crosshair" : "crosshair" }}
+            style={{ display: "block", touchAction: "none", cursor: "crosshair" }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerUp}
           >
+            <defs>
+              <pattern id={`dotgrid-${index}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="10" cy="10" r="1.2" fill="#888" opacity="0.18" />
+              </pattern>
+            </defs>
+            <rect width="800" height="500" fill={`url(#dotgrid-${index})`} />
             {!cleared && strokes.map((e) => (
               <path
                 key={e.id}

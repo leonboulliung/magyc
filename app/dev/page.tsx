@@ -7,7 +7,8 @@ import { PersonaSwitcher } from "@/components/PersonaSwitcher";
 import { makeOptimisticEntry, applyActionLocally } from "@/lib/state";
 import { styleVars, DEFAULT_STYLE } from "@/lib/style";
 import { fontStack, findFont } from "@/lib/fonts";
-import type { Module, ModuleStateEntry, ModuleStateKind, SpaceLabels } from "@/lib/types";
+import type { Module, ModuleStateEntry, ModuleStateKind, ModuleType, SpaceLabels } from "@/lib/types";
+import { ALL_MODULE_TYPES } from "@/lib/types";
 
 /**
  * /dev — local element showroom. Renders every body widget with seeded
@@ -43,7 +44,37 @@ const DEMO_MODULES: Module[] = [
   { type: "location_single", microTitle: "Ort", center: [2.3522, 48.8566], zoom: 13, label: "Paris" },
   { type: "location_suggestions", microTitle: "Orts-Ideen", suggestions: [{ label: "Parc de la Villette" }, { label: "Canal Saint-Martin" }, { label: "Place des Vosges" }] },
   { type: "wikipedia", microTitle: "Referenz", topic: "Repair Café", url: "https://en.wikipedia.org/wiki/Repair_Café", extract: "A Repair Café is a meeting where people repair household electrical and mechanical devices, computers, bicycles, clothing, and other items." },
+  { type: "locations_multi", microTitle: "Mehrere Orte", locations: [
+    { lng: 13.405, lat: 52.52, label: "Berlin" },
+    { lng: 9.993, lat: 53.551, label: "Hamburg" },
+    { lng: 11.576, lat: 48.137, label: "München" },
+  ]},
+  { type: "route", microTitle: "Route", stops: [
+    { lng: 2.3522, lat: 48.8566, label: "Paris" },
+    { lng: 4.3517, lat: 50.8503, label: "Brüssel" },
+    { lng: 4.9041, lat: 52.3676, label: "Amsterdam" },
+  ]},
+  { type: "appointments", microTitle: "Termine", entries: [
+    { datetime: "2026-08-15T18:00:00.000Z", label: "Kick-off" },
+    { datetime: "2026-08-22T18:00:00.000Z", label: "Review" },
+    { datetime: "2026-09-05T18:00:00.000Z", label: "Abschluss" },
+  ]},
+  { type: "attachments", microTitle: "Anhänge" },
+  { type: "images", microTitle: "Fotos" },
+  { type: "audio", microTitle: "Töne" },
+  { type: "sketch", microTitle: "Skizze", placeholder: "zeichnen…" },
+  { type: "gif", microTitle: "GIF", gifUrl: "https://media.giphy.com/media/3o7TKMt1VVNkHV2PaE/giphy.gif" },
 ];
+
+// Compile-time guard: every body type must appear in DEMO_MODULES.
+// If a new widget type is added to ALL_MODULE_TYPES, this will error
+// until a demo entry is added here — no more silent drift.
+const _demoTypes = new Set(DEMO_MODULES.map((m) => m.type));
+const _missingFromDemo = (ALL_MODULE_TYPES as readonly ModuleType[]).filter((t) => !_demoTypes.has(t));
+if (_missingFromDemo.length > 0) {
+  // eslint-disable-next-line no-console
+  console.warn("[dev] Missing demo entries for:", _missingFromDemo);
+}
 
 // Seed a little collaborative state so the populated states are visible.
 function seed(): ModuleStateEntry[] {
@@ -51,6 +82,7 @@ function seed(): ModuleStateEntry[] {
   const idxCheck = DEMO_MODULES.findIndex((m) => m.type === "checklist");
   const idxCrew = DEMO_MODULES.findIndex((m) => m.type === "crew");
   const idxDisc = DEMO_MODULES.findIndex((m) => m.type === "discussion");
+  const idxSketch = DEMO_MODULES.findIndex((m) => m.type === "sketch");
   const mk = (
     moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>,
     id: string, name: string, color: string,
@@ -65,6 +97,8 @@ function seed(): ModuleStateEntry[] {
     mk(idxCheck, "check", { itemKey: "seed-0", checked: true }, "seed-a2", "Alice", "#7da3c0"),
     mk(idxCrew, "claim", { slotLabel: "Technik", claimed: true }, "seed-b2", "Bob", "#d4a373"),
     mk(idxDisc, "voice", { id: "m1", text: "Sollen wir Samstagnachmittag anpeilen?" }, "seed-a3", "Alice", "#7da3c0"),
+    mk(idxSketch, "stroke", { path: "M120 180 L200 120 L280 180 L200 240 Z", width: 3 }, "seed-sk-a", "Alice", "#7da3c0"),
+    mk(idxSketch, "stroke", { path: "M350 140 C400 80 480 80 500 160 C520 240 460 280 400 260 C340 240 300 200 350 140", width: 3 }, "seed-sk-b", "Bob", "#d4a373"),
   ];
 }
 
