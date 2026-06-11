@@ -76,24 +76,22 @@ export default function HomePage() {
   const dotFieldRef = useRef<DotFieldHandle>(null);
   const enterKeyRef = useRef<HTMLButtonElement>(null);
 
-  /** Send the signature wave out from an element (or screen centre),
-   *  then run the action. Used on every "commit" the app makes so the
-   *  grid always answers a decision. */
-  function rippleFrom(el: HTMLElement | null) {
-    let x = window.innerWidth / 2;
-    let y = window.innerHeight / 2;
+  /** Viewport centre of an element (or screen centre as fallback). */
+  function originOf(el: HTMLElement | null): { x: number; y: number } {
     if (el) {
       const r = el.getBoundingClientRect();
-      x = r.left + r.width / 2;
-      y = r.top + r.height / 2;
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }
-    dotFieldRef.current?.ripple(x, y);
+    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
   }
 
-  /** Input-stage submit: wave from the Enter key, then clarify. */
+  /** Input-stage submit: wave from the Enter key + keep the grid
+   *  pulsing through the AI wait, then clarify. */
   function submitInput() {
     if (busy || text.trim().length < 3) return;
-    rippleFrom(enterKeyRef.current);
+    const o = originOf(enterKeyRef.current);
+    dotFieldRef.current?.ripple(o.x, o.y);
+    dotFieldRef.current?.setThinking(true, o.x, o.y);
     goClarify();
   }
 
@@ -129,6 +127,7 @@ export default function HomePage() {
       setError("✕");
     } finally {
       setBusy(false);
+      dotFieldRef.current?.setThinking(false);
     }
   }
 
@@ -172,8 +171,12 @@ export default function HomePage() {
 
   async function goBuild() {
     if (busy) return;
-    // Final commit — the grid answers from the centre while it builds.
-    dotFieldRef.current?.ripple(window.innerWidth / 2, window.innerHeight / 2);
+    // Final commit — the grid answers from the centre and keeps pulsing
+    // through the build wait.
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    dotFieldRef.current?.ripple(cx, cy);
+    dotFieldRef.current?.setThinking(true, cx, cy);
     setBusy(true);
     setStage("building");
     setError("");
@@ -198,14 +201,17 @@ export default function HomePage() {
         setError(apiError(json, res.status));
         setStage("clarify");
         setBusy(false);
+        dotFieldRef.current?.setThinking(false);
         return;
       }
       if (json.anonOwnerToken) rememberSpaceOwnerToken(json.id, json.anonOwnerToken);
+      // Keep pulsing — navigation unmounts the page on success.
       router.push(`/s/${json.id}`);
     } catch {
       setError("✕");
       setStage("clarify");
       setBusy(false);
+      dotFieldRef.current?.setThinking(false);
     }
   }
 
@@ -336,9 +342,10 @@ export default function HomePage() {
                       exit="exit"
                       className="space-y-5"
                     >
-                      {/* The user's input as context */}
-                      <p className="mono text-[10px] tracking-widest opacity-30 truncate">
-                        {text.trim().slice(0, 80)}
+                      {/* The user's input as context — one quiet line,
+                          cleanly elided (it's no longer load-bearing). */}
+                      <p className="mono text-[10px] tracking-widest opacity-30 truncate" title={text.trim()}>
+                        {text.trim()}
                       </p>
 
                       {currentStep.kind === "module" ? (
@@ -412,7 +419,7 @@ export default function HomePage() {
                                     background: picked ? "#000" : "transparent",
                                     color: picked ? "#fff" : "#000",
                                   }}
-                                  whileHover={{ scale: 1.03 }}
+                                  whileHover={{ y: -2 }}
                                   whileTap={{ scale: 0.96 }}
                                   transition={{ type: "spring", stiffness: 400, damping: 20 }}
                                 >

@@ -37,9 +37,15 @@ export const EnterKey = forwardRef<
       }
       transition={{ type: "spring", stiffness: 700, damping: 28 }}
     >
-      <span className="flex items-center gap-3">
-        <span className="text-[22px] leading-none" aria-hidden>⏎</span>
-        <span className="mono text-[11px] tracking-[0.3em] uppercase">
+      <span className="flex items-center justify-center gap-3">
+        <span
+          aria-hidden
+          className="inline-flex items-center justify-center text-[22px]"
+          style={{ lineHeight: 1, height: "1em", transform: "translateY(1px)" }}
+        >
+          ⏎
+        </span>
+        <span className="mono text-[11px] tracking-[0.3em] uppercase leading-none">
           {busy ? "···" : "enter"}
         </span>
       </span>

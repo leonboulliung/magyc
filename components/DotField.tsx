@@ -17,8 +17,14 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
  */
 
 export interface DotFieldHandle {
-  /** Emit a wave from a viewport coordinate. */
+  /** Emit a single wave from a viewport coordinate. */
   ripple: (x: number, y: number) => void;
+  /**
+   * Sustained mode: while `on`, waves keep emanating from the origin
+   * (concentric "thinking" pulses) so the surface never goes dead
+   * during an async wait. Turning it off lets the current wave finish.
+   */
+  setThinking: (on: boolean, x?: number, y?: number) => void;
 }
 
 const SPACING = 28;      // lattice pitch (px)
@@ -33,8 +39,12 @@ export const DotField = forwardRef<DotFieldHandle, { color?: string; className?:
   function DotField({ color = "17,17,17", className }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const triggerRef = useRef<(x: number, y: number) => void>(() => {});
+    const thinkRef = useRef<(on: boolean, x?: number, y?: number) => void>(() => {});
 
-    useImperativeHandle(ref, () => ({ ripple: (x, y) => triggerRef.current(x, y) }), []);
+    useImperativeHandle(ref, () => ({
+      ripple: (x, y) => triggerRef.current(x, y),
+      setThinking: (on, x, y) => thinkRef.current(on, x, y),
+    }), []);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -51,6 +61,8 @@ export const DotField = forwardRef<DotFieldHandle, { color?: string; className?:
       let h = 0;
       let raf: number | null = null;
       let wave: { x: number; y: number; start: number } | null = null;
+      let thinking = false;
+      let thinkOrigin = { x: 0, y: 0 };
 
       function drawStatic() {
         if (!ctx) return;
@@ -90,6 +102,13 @@ export const DotField = forwardRef<DotFieldHandle, { color?: string; className?:
           }
         }
         if (radius > maxDist + WAVE_WIDTH) {
+          if (thinking) {
+            // Loop: a fresh wave from the thinking origin, so the
+            // surface keeps pulsing until the wait resolves.
+            wave = { x: thinkOrigin.x, y: thinkOrigin.y, start: now };
+            raf = requestAnimationFrame(frame);
+            return;
+          }
           wave = null;
           drawStatic();
           raf = null;
@@ -112,6 +131,17 @@ export const DotField = forwardRef<DotFieldHandle, { color?: string; className?:
         if (reduced) return;
         wave = { x, y, start: performance.now() };
         if (raf == null) raf = requestAnimationFrame(frame);
+      };
+
+      thinkRef.current = (on: boolean, x?: number, y?: number) => {
+        if (reduced) return;
+        thinking = on;
+        if (on) {
+          thinkOrigin = { x: x ?? w / 2, y: y ?? h / 2 };
+          if (!wave) wave = { x: thinkOrigin.x, y: thinkOrigin.y, start: performance.now() };
+          if (raf == null) raf = requestAnimationFrame(frame);
+        }
+        // off: the running wave finishes and frame() settles.
       };
 
       resize();
