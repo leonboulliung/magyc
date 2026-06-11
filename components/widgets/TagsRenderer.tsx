@@ -42,7 +42,7 @@ export function TagsRenderer({
         anonOwnerToken: ctx.ownerToken,
       }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, tags: next });
   }
 
   async function add() {

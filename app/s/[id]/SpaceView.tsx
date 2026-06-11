@@ -58,6 +58,21 @@ export function SpaceView({ id }: { id: string }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Optimistic local copy of the current modules. Patched on config
+  // edits so saves are instant; reset to server truth whenever the
+  // space is (re)fetched. null until the first space load.
+  const [localModules, setLocalModules] = useState<Module[] | null>(null);
+  useEffect(() => { setLocalModules(space ? space.modules : null); }, [space]);
+  const patchModule = useCallback((i: number, mod: Module) => {
+    setLocalModules((prev) => {
+      const base = prev ?? space?.modules ?? [];
+      if (i < 0 || i >= base.length) return prev;
+      const next = [...base];
+      next[i] = mod;
+      return next;
+    });
+  }, [space]);
+
   // Lazy external-reference hydration. Creation stores Wikipedia widgets
   // topic-only (to stay under the serverless timeout); resolve them once
   // on first load, then refresh to show the enriched cards.
@@ -173,8 +188,10 @@ export function SpaceView({ id }: { id: string }) {
       const v = space.versions.find((vv) => vv.version === target);
       if (v) return { displayedModules: v.modules, currentVersionNumber: target };
     }
-    return { displayedModules: space.modules, currentVersionNumber: latest };
-  }, [space, viewVersion]);
+    // Current version: prefer the optimistic local copy so a just-saved
+    // edit is visible immediately, without a full refetch.
+    return { displayedModules: localModules ?? space.modules, currentVersionNumber: latest };
+  }, [space, viewVersion, localModules]);
 
   // Pre-slice the LIVE state by moduleIndex so each renderer only sees
   // its own actions. Derived from liveState (optimistic + realtime),
@@ -235,6 +252,7 @@ export function SpaceView({ id }: { id: string }) {
         isOwner,
         ownerToken,
         refresh,
+        patchModule,
         act,
       }}
     >

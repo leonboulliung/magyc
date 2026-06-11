@@ -29,7 +29,7 @@ export function AppointmentsRenderer({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ widget: next, anonOwnerToken: ctx.ownerToken }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, next);
   }
 
   const sortedEntries = [...m.entries]

@@ -48,7 +48,7 @@ export function PhasesRenderer({
       }),
     });
     setSaving(false);
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, currentPhase: i });
   }
 
   // Progress: 0 → full at last phase.

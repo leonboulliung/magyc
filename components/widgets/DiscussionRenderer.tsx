@@ -73,12 +73,6 @@ export function DiscussionRenderer({
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        {tops.length === 0 && (
-          <p className="mono text-[11px] opacity-50 mb-3" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "…"}
-          </p>
-        )}
-
         <ul className="space-y-3">
           <AnimatePresence initial={false}>
             {tops.map((e) => (
@@ -122,11 +116,12 @@ export function DiscussionRenderer({
             <button
               type="button"
               onClick={() => setOpen(true)}
-              aria-label="write"
-              className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
-              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+              aria-label="write a message"
+              className={`flex items-center gap-2 mono text-[11px] tracking-widest px-3 py-2 rounded-md opacity-70 hover:opacity-100 transition-opacity ${tops.length === 0 ? "w-full" : ""}`}
+              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
             >
-              +
+              <span aria-hidden>↩</span>
+              <span className="opacity-70">{m.placeholder || "…"}</span>
             </button>
           )}
         </div>

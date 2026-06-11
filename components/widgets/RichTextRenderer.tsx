@@ -65,7 +65,7 @@ export function RichTextRenderer({
         anonOwnerToken: ctx.ownerToken,
       }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, microTitle: next || undefined });
   }
 
   async function saveBody() {
@@ -80,7 +80,7 @@ export function RichTextRenderer({
         anonOwnerToken: ctx.ownerToken,
       }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, text: next });
   }
 
   const emptyBody = !m.text.trim();

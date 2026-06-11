@@ -81,6 +81,9 @@ export function CrewRenderer({
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
+        <p className="mono text-[9px] tracking-widest opacity-40 mb-2" style={{ color: "var(--v-muted)" }}>
+          ○ → ●
+        </p>
         <ul className="space-y-1.5">
           <AnimatePresence initial={false}>
             {m.roles.map((role) => {

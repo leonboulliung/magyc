@@ -50,7 +50,7 @@ export function AiSummaryRenderer({
         anonOwnerToken: ctx.ownerToken,
       }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, text: next });
   }
 
   return (

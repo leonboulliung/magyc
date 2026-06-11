@@ -29,7 +29,7 @@ export function TableRenderer({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ widget: next, anonOwnerToken: ctx.ownerToken }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, next);
   }
 
   function setCell(r: number, c: number, value: string) {

@@ -120,10 +120,14 @@ export function WidgetShell({
   }
 
   async function pick(s: Module) {
+    setOpen(false);
+    setSuggestions([]);
     if (onPick) {
+      // Custom merge paths may touch state too — full resync is safest.
       await onPick(s);
+      ctx.refresh();
     } else {
-      // Default: replace via PUT.
+      // Default: replace via PUT, then patch locally (instant, no flash).
       await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
@@ -132,10 +136,8 @@ export function WidgetShell({
           anonOwnerToken: ctx.ownerToken,
         }),
       });
+      ctx.patchModule(index, s);
     }
-    setOpen(false);
-    setSuggestions([]);
-    ctx.refresh();
   }
 
   const showAffordances = ctx.isOwner && (canRegenerate || promptEditable);

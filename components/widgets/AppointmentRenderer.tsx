@@ -23,15 +23,13 @@ export function AppointmentRenderer({
   async function save(next: string) {
     setEditing(false);
     if (!next || next === m.datetime) return;
+    const updated = { ...m, datetime: new Date(next).toISOString() };
     await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, datetime: new Date(next).toISOString() },
-        anonOwnerToken: ctx.ownerToken,
-      }),
+      body: JSON.stringify({ widget: updated, anonOwnerToken: ctx.ownerToken }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, updated);
   }
 
   const parts = formatDateTime(m.datetime, ctx.language);

@@ -34,7 +34,7 @@ export function DateRenderer({
         anonOwnerToken: ctx.ownerToken,
       }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, date: next });
   }
 
   const parts = formatDate(m.date, ctx.language);

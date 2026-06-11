@@ -129,7 +129,7 @@ async function save(
       anonOwnerToken: ctx.ownerToken,
     }),
   });
-  ctx.refresh();
+  ctx.patchModule(index, { ...m, ...patch });
 }
 
 const ICON_FOR_UNIT: Record<RangeWidget["unit"], string> = {

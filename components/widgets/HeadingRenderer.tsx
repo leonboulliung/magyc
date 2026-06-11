@@ -57,7 +57,7 @@ export function HeadingRenderer({
         anonOwnerToken: ctx.ownerToken,
       }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, text: next });
   }
 
   function cancel() {

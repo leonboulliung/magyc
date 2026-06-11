@@ -129,6 +129,7 @@ export default function DevPage() {
         isOwner: true,
         ownerToken: null,
         refresh: () => {},
+        patchModule: () => {},
         act,
       }}
     >

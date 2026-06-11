@@ -63,7 +63,7 @@ export function GifRenderer({
         anonOwnerToken: ctx.ownerToken,
       }),
     });
-    ctx.refresh();
+    ctx.patchModule(index, { ...m, gifUrl: r.gifUrl, thumbnailUrl: r.thumbnailUrl });
   }
 
   return (
