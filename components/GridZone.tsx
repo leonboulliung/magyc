@@ -34,6 +34,10 @@ function signatureOf(items: BodyItem[]): string {
   return items.map((it) => `${it.index}:${it.module.type}`).join("|");
 }
 
+/** Widget types whose manual add should be AI-authored from space
+ *  context instead of keeping a generic placeholder (icon = star). */
+const AI_FILL_ON_ADD: ReadonlySet<string> = new Set(["icon"]);
+
 export function GridZone({
   bodyItems,
   headerModules,
@@ -117,14 +121,45 @@ export function GridZone({
     prevSig.current = signatureOf(next);
     setBusy(true);
     try {
-      await fetch(`/api/spaces/${spaceId}/widgets`, {
+      const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: body({ widget }),
       });
+      const json = await res.json().catch(() => ({} as { index?: number }));
+      const realIndex = typeof json.index === "number" ? json.index : null;
+      // Manual adds of AI-authorable widgets should NOT keep their dumb
+      // placeholder (e.g. icon = star). Author it from space context.
+      if (realIndex !== null && AI_FILL_ON_ADD.has(widget.type)) {
+        await fillFromContext(realIndex);
+      }
       onRefresh();
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** Run regenerate (count:1) for a freshly-added widget and persist
+   *  the AI's choice, so a manual add lands as a fitting widget rather
+   *  than a generic default. Best-effort — silent on failure. */
+  async function fillFromContext(realIndex: number) {
+    try {
+      const res = await fetch(`/api/spaces/${spaceId}/widgets/${realIndex}/regenerate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ count: 1, anonToken: ownerToken }),
+      });
+      const json = await res.json().catch(() => ({} as { suggestions?: Module[] }));
+      const picked = Array.isArray(json.suggestions) ? json.suggestions[0] : null;
+      if (picked) {
+        await fetch(`/api/spaces/${spaceId}/widgets/${realIndex}`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: body({ widget: picked }),
+        });
+      }
+    } catch {
+      // leave the placeholder; the owner can still ⇆ for alternatives
     }
   }
 
@@ -223,7 +258,20 @@ export function GridZone({
                         borderRadius: 6,
                       }}
                       draggable={isOwner}
-                      onDragStart={() => setDragFrom(pos)}
+                      onDragStart={(e) => {
+                        setDragFrom(pos);
+                        // Use the cell itself as the drag image. Without
+                        // this the browser snapshots a large region (incl.
+                        // neighbouring text / the footer) as the ghost.
+                        // (motion.div types onDragStart as a Framer gesture;
+                        // at runtime it's the native DragEvent.)
+                        const dt = (e as unknown as DragEvent).dataTransfer;
+                        const el = e.currentTarget as Element;
+                        if (dt) {
+                          dt.effectAllowed = "move";
+                          try { dt.setDragImage(el, 20, 20); } catch { /* noop */ }
+                        }
+                      }}
                       onDragOver={(e) => { e.preventDefault(); if (dragFrom !== null && dragFrom !== pos) setDragOver(pos); }}
                       onDrop={() => handleDrop(pos)}
                       onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
