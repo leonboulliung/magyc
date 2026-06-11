@@ -87,17 +87,28 @@ is its INPUT MODALITY. Choose the modality that fits the step:
                             needs before the workspace can render.
                             ONLY when the input strongly implies one.
 
-  "text"   — OPEN free-text, no chips. Use ONLY when offering options
-             would LEAD or REDUCE the answer — an open, generative
-             answer the user must phrase themselves. Examples of GOOD
-             text steps:
-               "Describe the mission of your plan in one sentence."
-               "What would make this a success, in your words?"
-               "Give this a working name."
-             Reach for "text" RARELY — at most 1, occasionally 2.
-             Typing is friction; prefer "choice" whenever an
-             enumerable set of answers exists. Never use "text" for
-             something a few chips could capture.
+  "text"   — OPEN free-text, no chips. The RARE exception, not a
+             convenience. Use ONLY when the VALUE of the answer is the
+             user's own exact wording, and no small set of chips could
+             stand in.
+
+             DECISION TEST — before emitting "text", try to write 3–6
+             plausible chip options for the question. If you can write
+             them, it MUST be "choice". Only if any option set would
+             FALSIFY or FLATTEN the answer may it be "text".
+
+             GOOD "text" (the answer IS the phrasing):
+               "Name this in your own words."
+               "In one sentence, what is the heart of it?"
+               "Describe the feeling you want people to leave with."
+             BAD "text" (enumerable — these are CHOICE, not text):
+               goals / purpose      → e.g. learn · sell · community · fun
+               preferences          → e.g. vegetarian · vegan · none
+               constraints / limits → e.g. budget · time · space
+               audience / scale     → e.g. friends · public · invite-only
+             If a question is about a goal, a preference, a constraint,
+             an audience, a frequency, or a count, it is ENUMERABLE —
+             use "choice". Typing is friction; default to chips.
 
   "module" — pull a precision-sensitive widget FORWARD so the user
              configures it interactively NOW. Propose ONLY when getting
@@ -150,8 +161,9 @@ Return STRICT JSON, no preamble:
 
 Hard rules:
 - 2 to 5 steps total. Pick only those whose answer truly matters.
-- Most steps should be "choice". "text" is rare (<= 2). "module" is
-  0–2 and only for precision-sensitive widgets listed above.
+- DEFAULT to "choice". Aim for AT MOST ONE "text" step, often zero —
+  only when chips would falsify the answer (the DECISION TEST above).
+  "module" is 0–2 and only for precision-sensitive widgets listed above.
 - "choice": 2–8 options. Scale to context: if there are only 3
   meaningful answers, use 3. If the question is enumerable ("which
   arrondissement?", "which city?"), list ALL relevant ones (up to 8).
