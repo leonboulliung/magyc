@@ -32,19 +32,22 @@ const ALLOWED_KINDS: ReadonlySet<ModuleStateKind> = new Set([
   "vote", "check", "claim", "voice", "edit", "add", "upload", "stroke",
 ]);
 
-/** Maximum number of bytes we allow in the data blob. */
-const MAX_DATA_BYTES = 16_000;
+/** Maximum number of bytes we allow in the data blob. Generous enough
+ *  for a single sketch stroke's SVG path (which can be long) while
+ *  still far below any base64 image — those never travel through state
+ *  (uploads store a Storage URL, not the blob). */
+const MAX_DATA_BYTES = 48_000;
+/** Per-string cap. Sketch paths are the one legitimate long string. */
+const MAX_STRING_LEN = 44_000;
 
 /** Sanitise a data blob — cap total serialized size, keep shape. */
 function sanitizeData(d: unknown): Record<string, unknown> {
   if (!d || typeof d !== "object" || Array.isArray(d)) return {};
   const raw = d as Record<string, unknown>;
-  // Drop keys whose value is a large blob (e.g. base64 images should not
-  // come through state — they belong in Storage).
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(raw)) {
-    if (typeof v === "string" && v.length > 4000) continue; // cap strings
-    if (typeof v === "object" && v !== null) continue;      // no nested objs
+    if (typeof v === "string" && v.length > MAX_STRING_LEN) continue; // cap strings
+    if (typeof v === "object" && v !== null) continue;                // no nested objs
     out[k] = v;
   }
   const serialized = JSON.stringify(out);

@@ -13,10 +13,14 @@ import { MapCanvas, OSM_TILES } from "./MapCanvas";
  *   - Zoom: +/− buttons + double-click (scroll-wheel stays off so the
  *     map never hijacks page scroll).
  *   - Editable place: owner clicks the label → searches via /api/geocode
- *     → picks from a dropdown → the pin + view + label update and PUT.
- *   - Pin can still be moved by dragging it or clicking the map.
+ *     → picks from a dropdown → the pin, view and label update.
+ *   - Pin moves by dragging it or clicking the map; the label then
+ *     reverse-geocodes to track the new spot.
  *
- * Attribution: OpenStreetMap / CARTO (shown in the card footer).
+ * Persistence is SILENT (PUT without a full-space refetch): a pin drag
+ * must not rebuild the map (which flashed it transparent) nor refetch
+ * everything. The marker is already where the user put it; we just
+ * write it through. The map only re-centres on an explicit search-pick.
  */
 export function LocationSingleRenderer({
   module: m,
@@ -26,9 +30,23 @@ export function LocationSingleRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
-  const [lng, lat] = m.center;
-  const zoom = m.zoom ?? 13;
 
+  // View center drives the map's setView + the MapCanvas rebuild dep.
+  // It changes ONLY on a search-pick (deliberate re-centre), never on a
+  // pin drag — so dragging never tears the map down.
+  const [view, setView] = useState<[number, number]>(m.center);
+  const [label, setLabel] = useState(m.label || m.microTitle || "");
+  const zoomRef = useRef(m.zoom ?? 13);
+
+  // Re-sync if the module changes from outside (version switch, etc.).
+  useEffect(() => {
+    setView(m.center);
+    setLabel(m.label || m.microTitle || "");
+    zoomRef.current = m.zoom ?? 13;
+  }, [m.center, m.label, m.microTitle, m.zoom]);
+
+  /** Persist a change WITHOUT a full refetch. The map is already in the
+   *  desired visual state locally; we only need the write to land. */
   async function persist(next: Partial<LocationSingleWidget>) {
     if (!ctx.isOwner) return;
     await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
@@ -38,32 +56,46 @@ export function LocationSingleRenderer({
         widget: { ...m, ...next },
         anonOwnerToken: ctx.ownerToken,
       }),
-    });
-    ctx.refresh();
+    }).catch(() => {});
+  }
+
+  /** Pin moved: persist coords + relabel from reverse geocoding. Does
+   *  NOT touch `view`, so the map is not rebuilt. */
+  async function onPinMoved(lng: number, lat: number) {
+    if (!ctx.isOwner) return;
+    persist({ center: [lng, lat] });
+    try {
+      const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+      const json = await res.json().catch(() => ({}));
+      if (typeof json.label === "string" && json.label) {
+        setLabel(json.label);
+        persist({ center: [lng, lat], label: json.label });
+      }
+    } catch { /* keep the old label */ }
   }
 
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard
-        microTitle={m.microTitle ?? m.label}
+        microTitle={m.microTitle ?? label}
         description={m.description}
         attribution={m.attribution ?? { name: "OpenStreetMap", url: "https://www.openstreetmap.org/copyright", license: "ODbL" }}
         bare
       >
         <MapCanvas
           height={200}
-          deps={[lat, lng, zoom, ctx.isOwner]}
+          deps={[view[1], view[0], ctx.isOwner]}
           setup={(L, el) => {
+            const [vLng, vLat] = view;
             const map = L.map(el, {
               scrollWheelZoom: false,
               zoomControl: true,
               doubleClickZoom: true,
               attributionControl: false,
-            }).setView([lat, lng], zoom);
+            }).setView([vLat, vLng], zoomRef.current);
             map.zoomControl.setPosition("topright");
             L.tileLayer(OSM_TILES, { maxZoom: 19 }).addTo(map);
 
-            // Accent (color2) pin — a soft dot, no heavy shadow.
             const icon = L.divIcon({
               html: `<div style="
                 width:14px;height:14px;border-radius:50%;
@@ -76,21 +108,20 @@ export function LocationSingleRenderer({
               iconAnchor: [7, 7],
             });
 
-            const marker = L.marker([lat, lng], { icon, draggable: ctx.isOwner }).addTo(map);
+            const marker = L.marker([vLat, vLng], { icon, draggable: ctx.isOwner }).addTo(map);
 
             if (ctx.isOwner) {
               marker.on("dragend", (e) => {
                 const p = (e.target as L.Marker).getLatLng();
-                persist({ center: [p.lng, p.lat] });
+                onPinMoved(p.lng, p.lat);
               });
               map.on("click", (e: L.LeafletMouseEvent) => {
                 marker.setLatLng(e.latlng);
-                persist({ center: [e.latlng.lng, e.latlng.lat] });
+                onPinMoved(e.latlng.lng, e.latlng.lat);
               });
-              // Remember the zoom the owner settles on.
               map.on("zoomend", () => {
                 const z = map.getZoom();
-                if (z !== zoom) persist({ zoom: z });
+                if (z !== zoomRef.current) { zoomRef.current = z; persist({ zoom: z }); }
               });
             }
 
@@ -99,11 +130,13 @@ export function LocationSingleRenderer({
         />
 
         <LocationLabel
-          label={m.label || m.microTitle || ""}
+          label={label}
           isOwner={ctx.isOwner}
-          onPick={(match) =>
-            persist({ center: [match.lng, match.lat], label: match.label })
-          }
+          onPick={(match) => {
+            setLabel(match.label);
+            setView([match.lng, match.lat]); // deliberate re-centre
+            persist({ center: [match.lng, match.lat], label: match.label });
+          }}
         />
       </WidgetCard>
     </WidgetShell>

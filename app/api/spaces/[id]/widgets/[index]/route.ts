@@ -95,26 +95,43 @@ export async function PUT(
     .eq("id", params.id);
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
 
-  // If published: snapshot a new version.
+  // If published: snapshot a version — but COALESCE rapid edits. A pin
+  // drag or a flurry of inline edits should not each become a version.
+  // If the newest version is younger than COALESCE_MS, update it in
+  // place; only an edit after a quiet gap starts a fresh version.
+  const COALESCE_MS = 90_000;
   let newVersion: number | null = null;
   if (space.visibility !== null) {
     const { data: latest } = await admin
       .from("space_versions")
-      .select("version")
+      .select("id, version, created_at")
       .eq("space_id", params.id)
       .order("version", { ascending: false })
       .limit(1);
-    const nextVersion = ((latest && latest[0]?.version) ?? 0) + 1;
-    const { error: vErr } = await admin.from("space_versions").insert({
-      id: newId(),
-      space_id: params.id,
-      version: nextVersion,
-      title: space.title || "",
-      modules: nextModules,
-      note,
-    });
-    if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
-    newVersion = nextVersion;
+    const top = latest && latest[0];
+    const topAgeMs = top?.created_at ? Date.now() - new Date(top.created_at).getTime() : Infinity;
+
+    if (top && topAgeMs < COALESCE_MS) {
+      // Fold this edit into the most recent version.
+      const { error: vErr } = await admin
+        .from("space_versions")
+        .update({ modules: nextModules, title: space.title || "", note })
+        .eq("id", top.id);
+      if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+      newVersion = top.version;
+    } else {
+      const nextVersion = (top?.version ?? 0) + 1;
+      const { error: vErr } = await admin.from("space_versions").insert({
+        id: newId(),
+        space_id: params.id,
+        version: nextVersion,
+        title: space.title || "",
+        modules: nextModules,
+        note,
+      });
+      if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+      newVersion = nextVersion;
+    }
   }
 
   return NextResponse.json({ ok: true, version: newVersion });

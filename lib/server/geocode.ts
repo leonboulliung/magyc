@@ -110,6 +110,17 @@ export async function geocodeSearch(query: string, limit = 5): Promise<GeoMatch[
   return out;
 }
 
+/** Reverse-geocode coordinates into a readable place label — used when
+ *  the owner drags the pin so the location TEXT tracks the new spot. */
+export async function reverseGeocode(lng: number, lat: number): Promise<string | null> {
+  if (!isFiniteCoord(lng, lat)) return null;
+  const url = `https://photon.komoot.io/reverse?lon=${lng}&lat=${lat}`;
+  const json = await fetchJson(url, { accept: "application/json" });
+  const feat = (json as { features?: { properties?: Record<string, unknown> }[] })?.features?.[0];
+  if (!feat?.properties) return null;
+  return photonLabel(feat.properties) || null;
+}
+
 /** Geocode a single place name, with cache + provider fallback. */
 export async function geocode(query: string): Promise<GeoPoint | null> {
   const q = query.trim();
