@@ -1,8 +1,8 @@
-# Creator.Paris — Aktueller Stand (Briefing für GPT-Session)
+# MAGYC — Aktueller Stand (Briefing für GPT-Session)
 
-**Stand:** 26. Mai 2026
-**Repo:** github.com/leonboulliung/creator-paris (branch: main)
-**Prod:** creator-paris.vercel.app
+**Stand:** 11. Juni 2026
+**Repo:** github.com/leonboulliung/magyc (branch: main)
+**Prod:** magyc.site
 **Owner:** Leon Boulliung
 
 ---

@@ -1,14 +1,10 @@
-# Creator.Paris
+# MAGYC — AI-Powered Spaces
 
-A living city layer. **One card per person.** Paris.
+Transform text into structured, collaborative workspaces. Drop an idea, get a plan.
 
-Each user posts ONE active card — an invitation, a curation, a thing they want
-company for this week. Posting a new one moves the previous into a personal
-**Carnet** (archive). Over weeks and months the Carnet becomes a cultural
-footprint through the city.
-
-Local-only MVP — `localStorage` is the database. No backend, no auth, no AI,
-no notifications, no payments.
+**MAGYC** breaks down your input into organized **Spaces** with 29 widget types:
+maps, timelines, checklists, sketches, galleries, discussions, crew rosters,
+work packages, and more. Edit collaboratively in real-time with teammates.
 
 ## Run
 
