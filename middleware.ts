@@ -1,28 +1,15 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// Redirect root domain (magyc.site) to www (www.magyc.site)
-function redirectRootToWWW(request: NextRequest) {
+export default clerkMiddleware((auth, request: NextRequest) => {
+  // Redirect root domain (magyc.site) to www (www.magyc.site)
   const host = request.headers.get("host") || "";
   if (host === "magyc.site") {
     const url = request.nextUrl.clone();
     url.hostname = "www.magyc.site";
     return NextResponse.redirect(url, { status: 301 });
   }
-  return null;
-}
-
-// Clerk middleware + domain redirect
-const clerkAuth = clerkMiddleware();
-
-export default async function middleware(request: NextRequest) {
-  // Try domain redirect first
-  const domainRedirect = redirectRootToWWW(request);
-  if (domainRedirect) return domainRedirect;
-
-  // Then run Clerk middleware
-  return clerkAuth(request);
-};
+});
 
 export const config = {
   matcher: [
