@@ -78,6 +78,12 @@ export const clarifyItem: Variants = {
   show:   { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
 };
 
+/** Chip row on clarify steps — staggered after the slide-in completes. */
+export const chipGrid: Variants = {
+  hidden: {},
+  show: { transition: { delayChildren: 0.28, staggerChildren: 0.065 } },
+};
+
 /** Version bar dashes appear with a quick stagger when a space loads. */
 export const versionBarContainer: Variants = {
   hidden: {},

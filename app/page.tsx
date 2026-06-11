@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { getAnonToken, rememberSpaceOwnerToken } from "@/lib/anonId";
-import { stagePage } from "@/lib/anim";
+import { stagePage, chipGrid, clarifyItem } from "@/lib/anim";
 import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 
@@ -198,6 +198,14 @@ export default function HomePage() {
 
             {stage === "input" && (
               <motion.div key="input" variants={stagePage} initial="hidden" animate="show" exit="exit">
+                {/* Brand anchor — fades back as the user starts typing */}
+                <motion.div
+                  className="mb-8"
+                  animate={{ opacity: text.length > 0 ? 0.18 : 0.5 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                >
+                  <span className="mono text-[11px] tracking-[0.32em]">MAGYC</span>
+                </motion.div>
                 <textarea
                   autoFocus
                   value={text}
@@ -287,9 +295,14 @@ export default function HomePage() {
                         />
                       ) : currentStep.kind === "text" ? (
                         <>
-                          <h3 className="text-[18px] sm:text-[22px] leading-snug font-medium">
+                          <motion.h3
+                            className="text-[18px] sm:text-[22px] leading-snug font-medium"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.32, ease: "easeOut", delay: 0.15 }}
+                          >
                             {currentStep.text}
-                          </h3>
+                          </motion.h3>
                           <textarea
                             autoFocus
                             value={currentAnswer ?? ""}
@@ -311,19 +324,30 @@ export default function HomePage() {
                         </>
                       ) : (
                         <>
-                          <h3 className="text-[18px] sm:text-[22px] leading-snug font-medium flex items-baseline gap-2">
+                          <motion.h3
+                            className="text-[18px] sm:text-[22px] leading-snug font-medium flex items-baseline gap-2"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.32, ease: "easeOut", delay: 0.15 }}
+                          >
                             {currentStep.category === "data" && (
                               <span aria-hidden className="mono text-[11px] tracking-widest opacity-40">◆</span>
                             )}
                             <span>{currentStep.text}</span>
-                          </h3>
+                          </motion.h3>
 
-                          <div className="flex flex-wrap gap-2">
+                          <motion.div
+                            className="flex flex-wrap gap-2"
+                            initial="hidden"
+                            animate="show"
+                            variants={chipGrid}
+                          >
                             {currentStep.options.map((o) => {
                               const picked = currentAnswer === o.value;
                               return (
                                 <motion.button
                                   key={o.value}
+                                  variants={clarifyItem}
                                   onClick={() => pickAnswer(currentStep.id, o.value)}
                                   className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full"
                                   style={{
@@ -362,7 +386,7 @@ export default function HomePage() {
                                 minWidth: "80px",
                               }}
                             />
-                          </div>
+                          </motion.div>
                         </>
                       )}
                     </motion.div>
