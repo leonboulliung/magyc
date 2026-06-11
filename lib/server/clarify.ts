@@ -7,11 +7,17 @@ import type { ClarifyStep, ClarifyPrefill, ModuleType } from "@/lib/types";
  * can therefore be pulled forward for interactive pre-configuration.
  * This set grows as editors are added — the mechanism itself is general.
  */
-const PREFILLABLE: ReadonlySet<ModuleType> = new Set(["location_single", "phases", "date"]);
+const PREFILLABLE: ReadonlySet<ModuleType> = new Set([
+  "location_single", "locations_multi", "route", "phases", "date",
+]);
 
 const PREFILL_GUIDE: Partial<Record<ModuleType, string>> = {
   location_single:
     "a single, exact place that matters — the model cannot drop a map pin precisely, so the user should pick it. draft: { \"query\": \"<best-guess specific venue or empty>\", \"label\": \"<short>\" }",
+  locations_multi:
+    "several specific places the matter spans (venues to compare, stops to gather) — the model cannot pin them, so the user should. draft: { \"queries\": [\"<place 1>\", \"<place 2>\"] }",
+  route:
+    "an ordered journey through specific places — the user pins the stops in order. draft: { \"queries\": [\"<start>\", \"<via>\", \"<end>\"] }",
   phases:
     "a process/chronology central to the matter that is worth walking through explicitly before building (e.g. the steps of a scientific method, an event arc). draft: { \"phases\": [{\"label\":\"...\",\"description\":\"...\"}], \"currentPhase\": 0 }",
   date:
