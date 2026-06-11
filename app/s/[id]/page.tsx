@@ -9,14 +9,14 @@ export async function generateMetadata(
   const space = await fetchSpaceById(params.id).catch(() => null);
   if (!space) return { title: "—", robots: { index: false, follow: false } };
   return {
-    title: space.title || "Creator",
+    title: space.title || "MAGYC",
     description: space.inputText.slice(0, 200),
     openGraph: {
       type: "article",
-      title: space.title || "Creator",
+      title: space.title || "MAGYC",
       description: space.inputText.slice(0, 200),
       url: `/s/${space.id}`,
-      siteName: "Creator",
+      siteName: "MAGYC",
     },
   };
 }
