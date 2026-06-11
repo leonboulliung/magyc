@@ -4,18 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { getAnonToken, rememberSpaceOwnerToken } from "@/lib/anonId";
-import { stagePage, clarifyItem } from "@/lib/anim";
-import type { ClarifyPrefill, Module } from "@/lib/types";
+import { stagePage } from "@/lib/anim";
+import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 
 type Stage = "input" | "clarify" | "building";
-
-interface ClarifyQuestion {
-  id: string;
-  kind?: "general" | "data";
-  text: string;
-  options: { value: string }[];
-}
 
 interface Answer {
   questionId: string;
@@ -43,7 +36,7 @@ function apiError(json: unknown, status: number): string {
   return pick(j.detail) || pick(j.error) || (status === 504 ? "timeout" : `error ${status}`);
 }
 
-/** Slide variants for the per-question transition. */
+/** Slide variants for the per-step transition. */
 const slideVariants = {
   enter: (dir: number) => ({
     opacity: 0,
@@ -65,13 +58,15 @@ export default function HomePage() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("input");
   const [text, setText] = useState("");
-  const [language, setLanguage] = useState("en");
-  const [questions, setQuestions] = useState<ClarifyQuestion[]>([]);
-  const [prefills, setPrefills] = useState<ClarifyPrefill[]>([]);
-  const [configured, setConfigured] = useState<Record<string, Module | null>>({});
-  const [qIndex, setQIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
+  const [, setLanguage] = useState("en");
+  // One ordered list of typed clarify steps (choice | text | module).
+  const [steps, setSteps] = useState<ClarifyStep[]>([]);
+  // Answers to choice/text steps, keyed by step id.
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  // Configured modules from "module" steps, keyed by step id.
+  const [configured, setConfigured] = useState<Record<string, Module | null>>({});
+  const [stepIndex, setStepIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [customDraft, setCustomDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -97,13 +92,12 @@ export default function HomePage() {
         setError(apiError(json, res.status));
         return;
       }
-      setQuestions(json.questions || []);
-      setPrefills(Array.isArray(json.prefills) ? json.prefills : []);
-      setConfigured({});
+      setSteps(Array.isArray(json.steps) ? json.steps : []);
       setLanguage(json.language || "en");
-      setQIndex(0);
-      setDirection(1);
       setAnswers({});
+      setConfigured({});
+      setStepIndex(0);
+      setDirection(1);
       setCustomDraft("");
       setStage("clarify");
     } catch {
@@ -113,25 +107,26 @@ export default function HomePage() {
     }
   }
 
-  function pickAnswer(qid: string, qtext: string, value: string) {
-    setAnswers((a) => ({ ...a, [qid]: value }));
+  const totalSteps = steps.length;
+  const currentStep: ClarifyStep | null = steps[stepIndex] ?? null;
+
+  function pickAnswer(stepId: string, value: string) {
+    setAnswers((a) => ({ ...a, [stepId]: value }));
     setCustomDraft("");
-    // Auto-advance to the next question after a brief pause so the
-    // user can see their selection highlighted before it slides away.
+    // Auto-advance after a brief pause so the user sees the selection
+    // highlight before it slides away. Only chips auto-advance — typing
+    // (custom input, text steps) must not yank the step away.
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
     advanceTimer.current = setTimeout(() => {
       goForward();
     }, 500);
   }
 
-  // Steps = questions first, then prefilled-module editors.
-  const totalSteps = questions.length + prefills.length;
-
   function goForward() {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
-    if (qIndex < totalSteps - 1) {
+    if (stepIndex < totalSteps - 1) {
       setDirection(1);
-      setQIndex((i) => i + 1);
+      setStepIndex((i) => i + 1);
       setCustomDraft("");
     } else {
       goBuild();
@@ -140,9 +135,9 @@ export default function HomePage() {
 
   function goBack() {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
-    if (qIndex > 0) {
+    if (stepIndex > 0) {
       setDirection(-1);
-      setQIndex((i) => i - 1);
+      setStepIndex((i) => i - 1);
       setCustomDraft("");
     } else {
       setStage("input");
@@ -155,10 +150,16 @@ export default function HomePage() {
     setBusy(true);
     setStage("building");
     setError("");
-    const payloadAnswers: Answer[] = questions
-      .filter((q) => !!answers[q.id])
-      .map((q) => ({ questionId: q.id, questionText: q.text, choice: answers[q.id] }));
-    const configuredModules = Object.values(configured).filter(Boolean);
+    // Choice + text steps become Q&A pairs; module steps become
+    // pre-configured Modules. The classifier consumes both unchanged.
+    const payloadAnswers: Answer[] = steps
+      .filter((s) => s.kind === "choice" || s.kind === "text")
+      .filter((s) => answers[s.id])
+      .map((s) => ({ questionId: s.id, questionText: s.text, choice: answers[s.id] }));
+    const configuredModules = steps
+      .filter((s) => s.kind === "module")
+      .map((s) => configured[s.id])
+      .filter(Boolean);
     try {
       const res = await fetch("/api/spaces", {
         method: "POST",
@@ -181,16 +182,13 @@ export default function HomePage() {
     }
   }
 
-  // Current step: a question (qIndex < questions.length) or a
-  // prefilled-module editor (after the questions).
-  const isModuleStep = qIndex >= questions.length;
-  const currentQ = !isModuleStep ? (questions[qIndex] ?? null) : null;
-  const currentPrefill = isModuleStep ? (prefills[qIndex - questions.length] ?? null) : null;
-  const progress = totalSteps > 0 ? qIndex / totalSteps : 0;
-  const isLastQ = qIndex === totalSteps - 1;
-  const currentAnswer = currentQ ? answers[currentQ.id] : undefined;
-  const isCustom = currentAnswer != null && currentQ != null &&
-    !currentQ.options.some((o) => o.value === currentAnswer);
+  const progress = totalSteps > 0 ? stepIndex / totalSteps : 0;
+  const isLastStep = stepIndex === totalSteps - 1;
+  const currentAnswer = currentStep ? answers[currentStep.id] : undefined;
+  const isCustom =
+    currentStep?.kind === "choice" &&
+    currentAnswer != null &&
+    !currentStep.options.some((o) => o.value === currentAnswer);
 
   return (
     <main className="min-h-screen bg-white text-black flex flex-col">
@@ -232,13 +230,13 @@ export default function HomePage() {
               </motion.div>
             )}
 
-            {stage === "clarify" && (currentQ || currentPrefill) && (
+            {stage === "clarify" && currentStep && (
               <motion.div key="clarify" variants={stagePage} initial="hidden" animate="show" exit="exit">
                 {/* Progress bar + step counter */}
                 <div className="mb-8 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="mono text-[9px] tracking-widest opacity-40 tabular-nums">
-                      {qIndex + 1} / {totalSteps}
+                      {stepIndex + 1} / {totalSteps}
                     </span>
                     {/* Skip all → submit immediately */}
                     <button
@@ -262,11 +260,11 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Single question — slides in/out */}
+                {/* Single step — slides in/out */}
                 <div className="overflow-hidden" style={{ minHeight: 220 }}>
                   <AnimatePresence custom={direction} mode="wait" initial={false}>
                     <motion.div
-                      key={currentQ?.id ?? currentPrefill?.id ?? "step"}
+                      key={currentStep.id}
                       custom={direction}
                       variants={slideVariants}
                       initial="enter"
@@ -279,70 +277,94 @@ export default function HomePage() {
                         {text.trim().slice(0, 80)}
                       </p>
 
-                      {currentPrefill ? (
+                      {currentStep.kind === "module" ? (
                         <ClarifyModuleStep
-                          prefill={currentPrefill}
-                          value={configured[currentPrefill.id] ?? null}
+                          prefill={currentStep}
+                          value={configured[currentStep.id] ?? null}
                           onChange={(mod) =>
-                            setConfigured((c) => ({ ...c, [currentPrefill.id]: mod }))
+                            setConfigured((c) => ({ ...c, [currentStep.id]: mod }))
                           }
                         />
-                      ) : currentQ ? (
-                      <>
-                      <h3 className="text-[18px] sm:text-[22px] leading-snug font-medium flex items-baseline gap-2">
-                        {currentQ.kind === "data" && (
-                          <span aria-hidden className="mono text-[11px] tracking-widest opacity-40">◆</span>
-                        )}
-                        <span>{currentQ.text}</span>
-                      </h3>
+                      ) : currentStep.kind === "text" ? (
+                        <>
+                          <h3 className="text-[18px] sm:text-[22px] leading-snug font-medium">
+                            {currentStep.text}
+                          </h3>
+                          <textarea
+                            autoFocus
+                            value={currentAnswer ?? ""}
+                            onChange={(e) =>
+                              setAnswers((a) => ({ ...a, [currentStep.id]: e.target.value }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                                e.preventDefault();
+                                goForward();
+                              }
+                            }}
+                            rows={3}
+                            maxLength={currentStep.maxLength ?? 240}
+                            placeholder={currentStep.placeholder ?? "…"}
+                            className="w-full text-[16px] leading-relaxed p-3 rounded-lg bg-transparent outline-none resize-none placeholder:text-black/25"
+                            style={{ border: "1px solid rgba(0,0,0,0.15)" }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="text-[18px] sm:text-[22px] leading-snug font-medium flex items-baseline gap-2">
+                            {currentStep.category === "data" && (
+                              <span aria-hidden className="mono text-[11px] tracking-widest opacity-40">◆</span>
+                            )}
+                            <span>{currentStep.text}</span>
+                          </h3>
 
-                      <div className="flex flex-wrap gap-2">
-                        {currentQ.options.map((o) => {
-                          const picked = currentAnswer === o.value;
-                          return (
-                            <motion.button
-                              key={o.value}
-                              onClick={() => pickAnswer(currentQ.id, currentQ.text, o.value)}
-                              className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full"
+                          <div className="flex flex-wrap gap-2">
+                            {currentStep.options.map((o) => {
+                              const picked = currentAnswer === o.value;
+                              return (
+                                <motion.button
+                                  key={o.value}
+                                  onClick={() => pickAnswer(currentStep.id, o.value)}
+                                  className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full"
+                                  style={{
+                                    border: "1px solid",
+                                    borderColor: picked ? "#000" : "rgba(0,0,0,0.12)",
+                                    background: picked ? "#000" : "transparent",
+                                    color: picked ? "#fff" : "#000",
+                                  }}
+                                  whileHover={{ scale: 1.03 }}
+                                  whileTap={{ scale: 0.96 }}
+                                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                                >
+                                  {o.value}
+                                </motion.button>
+                              );
+                            })}
+                            {/* Custom text input */}
+                            <input
+                              type="text"
+                              value={customDraft}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setCustomDraft(v);
+                                if (v.trim()) setAnswers((a) => ({ ...a, [currentStep.id]: v.trim() }));
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && customDraft.trim()) goForward();
+                              }}
+                              placeholder="…"
+                              maxLength={120}
+                              className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full bg-transparent outline-none"
                               style={{
                                 border: "1px solid",
-                                borderColor: picked ? "#000" : "rgba(0,0,0,0.12)",
-                                background: picked ? "#000" : "transparent",
-                                color: picked ? "#fff" : "#000",
+                                borderColor: isCustom ? "#000" : "rgba(0,0,0,0.08)",
+                                color: "#000",
+                                minWidth: "80px",
                               }}
-                              whileHover={{ scale: 1.03 }}
-                              whileTap={{ scale: 0.96 }}
-                              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                            >
-                              {o.value}
-                            </motion.button>
-                          );
-                        })}
-                        {/* Custom text input */}
-                        <input
-                          type="text"
-                          value={customDraft}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setCustomDraft(v);
-                            if (v.trim()) setAnswers((a) => ({ ...a, [currentQ.id]: v.trim() }));
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && customDraft.trim()) goForward();
-                          }}
-                          placeholder="…"
-                          maxLength={120}
-                          className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full bg-transparent outline-none"
-                          style={{
-                            border: "1px solid",
-                            borderColor: isCustom ? "#000" : "rgba(0,0,0,0.08)",
-                            color: "#000",
-                            minWidth: "80px",
-                          }}
-                        />
-                      </div>
-                      </>
-                      ) : null}
+                            />
+                          </div>
+                        </>
+                      )}
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -361,13 +383,13 @@ export default function HomePage() {
                   <motion.button
                     onClick={goForward}
                     disabled={busy}
-                    aria-label={isLastQ ? "build" : "next"}
+                    aria-label={isLastStep ? "build" : "next"}
                     className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                   >
-                    {busy ? "…" : isLastQ ? "→" : "→"}
+                    {busy ? "…" : "→"}
                   </motion.button>
                 </div>
               </motion.div>

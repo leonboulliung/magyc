@@ -399,10 +399,63 @@ export const HEADER_ZONE_TYPES: readonly ModuleType[] = [
   "tags",
 ] as const;
 
+// ============================================================
+// Clarify steps — the modalities of the clarify flow
+//
+// A clarify run returns an ordered list of typed steps. The MODALITY
+// is the discriminator (`kind`), exactly mirroring how the classifier
+// picks Module types. The AI chooses which modality fits each step;
+// nothing is hardcoded. Adding a new modality = one more union member
+// + one more renderer branch, never a special case threaded through
+// the stage machine.
+//
+//   choice  — multiple-choice chips (+ implicit custom-text fallback).
+//             The default: an enumerable answer space, the point is to
+//             disambiguate.
+//   text    — open free-text. Used ONLY when chips would distort an
+//             open, generative answer (a mission line, naming a thing,
+//             the core in one sentence). Rare and high-value.
+//   module  — a precision-sensitive Module pulled forward for
+//             interactive pre-configuration (map pin, phases, date).
+// ============================================================
+
+export interface ClarifyStepBase {
+  /** Stable per-run id: s1, s2, … Used as the answer/config key. */
+  id: string;
+}
+
 /**
- * Clarify prefill — a module the agentic AI judged important and
- * precision-sensitive enough to have the user configure UP FRONT, in
- * the clarify step, rather than letting the author stage guess it.
+ * Multiple-choice question. Chips, each a short label. The frontend
+ * always appends an implicit custom-text option — the AI does not
+ * generate it.
+ */
+export interface ClarifyChoiceStep extends ClarifyStepBase {
+  kind: "choice";
+  /** Secondary semantic tag — only drives the a11y marker, not layout.
+   *  "data" = answers a mandatory-config widget; "general" = intent. */
+  category?: "general" | "data";
+  text: string;
+  options: { value: string }[];
+}
+
+/**
+ * Open free-text question. No chips — the answer is meant to be prose.
+ * Reach for this only when offering options would lead or reduce the
+ * answer (e.g. "Describe the mission in one sentence").
+ */
+export interface ClarifyTextStep extends ClarifyStepBase {
+  kind: "text";
+  text: string;
+  /** Optional hint shown in the field, in the user's language. */
+  placeholder?: string;
+  /** Soft cap; frontend enforces. Defaults applied at render. */
+  maxLength?: number;
+}
+
+/**
+ * Module pre-configuration — a module the agentic AI judged important
+ * and precision-sensitive enough to have the user configure UP FRONT,
+ * rather than letting the author stage guess it.
  *
  * This is a GENERAL mechanism, not a map special case: any module type
  * that has a clarify-editor can be pulled forward. The map is just the
@@ -414,14 +467,19 @@ export const HEADER_ZONE_TYPES: readonly ModuleType[] = [
  * what it needs). The editor turns it into a real, valid Module that
  * flows into the build pre-confirmed.
  */
-export interface ClarifyPrefill {
-  id: string;
+export interface ClarifyPrefill extends ClarifyStepBase {
+  kind: "module";
   type: ModuleType;
   /** One short line: why this is worth configuring now (in the user's language). */
   reason: string;
   /** The AI's starting draft — interpreted by the type's editor. */
   draft: Record<string, unknown>;
 }
+
+/** The discriminated union of clarify modalities. */
+export type ClarifyStep = ClarifyChoiceStep | ClarifyTextStep | ClarifyPrefill;
+
+export type ClarifyStepKind = ClarifyStep["kind"];
 
 // ============================================================
 // Module state — collaborative actions

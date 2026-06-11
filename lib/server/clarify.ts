@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { MODULE_META, mandatoryConfigTypes } from "@/lib/modules";
-import type { ClarifyPrefill, ModuleType } from "@/lib/types";
+import type { ClarifyStep, ClarifyPrefill, ModuleType } from "@/lib/types";
 
 /**
  * Module types that currently have a clarify-editor on the frontend and
@@ -19,21 +19,24 @@ const PREFILL_GUIDE: Partial<Record<ModuleType, string>> = {
 };
 
 /**
- * Clarify v2 — single-step (B1), but aware of mandatory-config widgets.
+ * Clarify v3 — one ordered list of typed STEPS, each with a modality.
  *
- * The classifier is the one that DECIDES which widgets to use, but
- * mandatory-config widgets (location_single, route, phases, …) need
- * specific data from the user before the page can be assembled. Rather
- * than ask in a separate second pass, we let this clarify call decide
- * which data questions are worth asking up front.
+ * The classifier downstream DECIDES which widgets a space uses. Clarify
+ * only resolves the ambiguities and gathers the precision-sensitive
+ * data that the build needs up front. It returns a single ordered list
+ * where each step's `kind` is its input modality:
  *
- * The result is one mixed list of 2–5 questions: some "general"
- * (intent / scope / commitment), some "data" (a specific place, a
- * chronology, …). The frontend renders both kinds identically but
- * marks the data ones for screen readers.
+ *   choice — multiple-choice chips. The default. Use when the answer
+ *            space is enumerable and the job is to disambiguate.
+ *   text   — open free-text. Use ONLY when chips would lead or reduce
+ *            an open, generative answer (a mission line, naming a
+ *            thing, the core in one sentence). Rare and high-value.
+ *   module — pull a mandatory-config widget FORWARD so the user
+ *            configures it interactively now (a map pin, a chronology,
+ *            a decisive date), instead of an agent guessing later.
  *
- * Each question still has 3 short MC options + an implicit
- * custom-text fallback the frontend draws itself.
+ * The MODALITY is the discriminator — the AI picks it per step, the
+ * same way the classifier picks widget types. Nothing is hardcoded.
  */
 
 const MANDATORY_HINTS: Partial<Record<ModuleType, string>> = {
@@ -61,50 +64,67 @@ function buildSystemPrompt(): string {
 
   return `You receive ONE short text a user wrote — a thought, an idea,
 a wish, a concern, a plan. Identify 2–5 ambiguities or DATA POINTS
-that, when answered, will let an agentic process build a useful
+that, when resolved, will let an agentic process build a useful
 workspace from the input.
 
-Two kinds of questions exist. Tag each with a "kind" field:
+Return them as an ordered list of STEPS. Each step has a "kind" that
+is its INPUT MODALITY. Choose the modality that fits the step:
 
-  "general" — intent / scope / commitment / audience / recurrence.
-              Examples of GOOD subjects:
-                  just friends or a wider circle
-                  one-off or recurring
-                  this week / this month / sometime
-                  serious about it or just exploring
-              Examples of BAD subjects:
-                  surface preferences (colors, fonts, vibe)
-                  confirmations of what the input already states
-                  yes/no on the original input
+  "choice" — multiple-choice chips. THE DEFAULT. Use when the answer
+             space is enumerable and the job is to disambiguate.
+             Tag each choice step with a "category":
+               "general" — intent / scope / commitment / audience /
+                            recurrence. GOOD subjects:
+                              just friends or a wider circle
+                              one-off or recurring
+                              this week / this month / sometime
+                              serious about it or just exploring
+                            BAD subjects:
+                              surface preferences (colors, fonts, vibe)
+                              confirmations of what the input states
+                              yes/no on the original input
+               "data"    — concrete data a mandatory-config widget
+                            needs before the workspace can render.
+                            ONLY when the input strongly implies one.
 
-  "data" — concrete data ONE of the mandatory-config widgets needs
-           before the workspace can render. ONLY include if the input
-           strongly suggests such a widget is needed.
+  "text"   — OPEN free-text, no chips. Use ONLY when offering options
+             would LEAD or REDUCE the answer — an open, generative
+             answer the user must phrase themselves. Examples of GOOD
+             text steps:
+               "Describe the mission of your plan in one sentence."
+               "What would make this a success, in your words?"
+               "Give this a working name."
+             Reach for "text" RARELY — at most 1, occasionally 2.
+             Typing is friction; prefer "choice" whenever an
+             enumerable set of answers exists. Never use "text" for
+             something a few chips could capture.
 
-Mandatory-config widgets (and when to ask for their data):
-
-${mandatorySection}
-
-PRE-CONFIGURE (prefills) — beyond questions, you may pull a few
-precision-sensitive modules FORWARD so the user configures them
-interactively now, instead of an agent guessing later. Propose a
-module here ONLY when getting it exactly right early genuinely matters
-for THIS input. Choose ONLY from these types (each with its draft shape):
+  "module" — pull a precision-sensitive widget FORWARD so the user
+             configures it interactively NOW. Propose ONLY when getting
+             it exactly right early genuinely matters for THIS input.
+             Choose ONLY from these types (each with its draft shape):
 
 ${prefillSection}
 
-Give each a "reason" (one short line in the user's language) and a
-"draft" (your best starting guess in the shown shape). 0–2 prefills.
-Do not prefill something the input doesn't clearly call for.
+             Give each a "reason" (one short line in the user's
+             language) and a "draft" (your best starting guess in the
+             shown shape). 0–2 module steps. Do not pull one forward
+             that the input doesn't clearly call for.
+
+Mandatory-config widgets and when their data is worth a "data" choice
+step or a "module" step:
+
+${mandatorySection}
 
 Return STRICT JSON, no preamble:
 
   {
     "language": "<ISO 639-1 code matching input>",
-    "questions": [
+    "steps": [
       {
-        "id": "q1",
-        "kind": "general" | "data",
+        "id": "s1",
+        "kind": "choice",
+        "category": "general",
         "text": "<short question, <= 100 chars>",
         "options": [
           { "value": "<short label, 1-4 words, <= 24 chars>" },
@@ -112,51 +132,97 @@ Return STRICT JSON, no preamble:
           { "value": "<short label, 1-4 words, <= 24 chars>" }
         ]
       },
-      ...
-    ],
-    "prefills": [
-      { "id": "p1", "type": "<one prefillable type>", "reason": "<short>", "draft": { ... } }
+      {
+        "id": "s2",
+        "kind": "text",
+        "text": "<short open question, <= 100 chars>",
+        "placeholder": "<short hint, optional>"
+      },
+      {
+        "id": "s3",
+        "kind": "module",
+        "type": "<one module type from the list>",
+        "reason": "<short, user's language>",
+        "draft": { ... }
+      }
     ]
   }
 
 Hard rules:
-- 2 to 5 questions. Pick only those whose answer truly matters.
-- 2–8 options per question. Scale to context: if there are only 3
-  meaningful answers, use 3. If the question is "which arrondissement?"
-  or "which city?" or any enumerable set, list ALL relevant ones (up to
-  8). Each is a SHORT label (1-4 words) in the user's language. The
+- 2 to 5 steps total. Pick only those whose answer truly matters.
+- Most steps should be "choice". "text" is rare (<= 2). "module" is
+  0–2 and only for precision-sensitive widgets listed above.
+- "choice": 2–8 options. Scale to context: if there are only 3
+  meaningful answers, use 3. If the question is enumerable ("which
+  arrondissement?", "which city?"), list ALL relevant ones (up to 8).
+  Each option is a SHORT label (1-4 words) in the user's language. The
   frontend always appends an implicit custom-text option — you do NOT
   generate it.
+- At most one "module" step per widget type. Don't ask the same kind
+  of data twice across steps.
 - Match the input's language for ALL strings.
-- "data" questions are OPTIONAL — only include when the input clearly
-  implies one of the mandatory-config widgets above. Do not force-ask
-  for data when the input is too abstract.
-- A workspace can have at most one "data" question per mandatory
-  widget type. Don't ask the same kind of data twice.
-- "id" values: q1, q2, q3, q4, q5.
+- "id" values: s1, s2, s3, s4, s5 in order.
 
 Output ONLY the JSON object.`;
 }
 
-export type ClarifyQuestionKind = "general" | "data";
-
-export interface ClarifyQuestion {
-  id: string;
-  kind: ClarifyQuestionKind;
-  text: string;
-  options: { value: string }[];
-}
-
 export interface ClarifyResult {
   language: string;
-  questions: ClarifyQuestion[];
-  prefills: ClarifyPrefill[];
+  steps: ClarifyStep[];
 }
 
 const MAX_INPUT_CHARS = 1200;
+const MAX_STEPS = 5;
+const MAX_MODULE_STEPS = 2;
+const MAX_TEXT_STEPS = 2;
 
 function prep(text: string): string {
   return text.replace(/\s+/g, " ").trim().slice(0, MAX_INPUT_CHARS);
+}
+
+/** Parse one raw choice step. Returns null if unusable. */
+function parseChoice(qr: Record<string, unknown>): Omit<Extract<ClarifyStep, { kind: "choice" }>, "id"> | null {
+  const text = typeof qr.text === "string"
+    ? qr.text.trim().replace(/\s+/g, " ").slice(0, 140)
+    : "";
+  if (!text) return null;
+  const catRaw = typeof qr.category === "string" ? qr.category.trim().toLowerCase() : "general";
+  const category: "general" | "data" = catRaw === "data" ? "data" : "general";
+  const rawOpts = Array.isArray(qr.options) ? qr.options : [];
+  const options: { value: string }[] = [];
+  for (const o of rawOpts) {
+    if (!o || typeof o !== "object") continue;
+    const v = typeof (o as { value?: unknown }).value === "string"
+      ? String((o as { value: string }).value).trim().slice(0, 36)
+      : "";
+    if (v) options.push({ value: v });
+    if (options.length >= 10) break; // allow up to 10 contextual options
+  }
+  if (options.length < 2) return null;
+  return { kind: "choice", category, text, options };
+}
+
+/** Parse one raw text step. Returns null if unusable. */
+function parseText(qr: Record<string, unknown>): Omit<Extract<ClarifyStep, { kind: "text" }>, "id"> | null {
+  const text = typeof qr.text === "string"
+    ? qr.text.trim().replace(/\s+/g, " ").slice(0, 140)
+    : "";
+  if (!text) return null;
+  const placeholder = typeof qr.placeholder === "string"
+    ? qr.placeholder.trim().slice(0, 80)
+    : undefined;
+  return { kind: "text", text, placeholder, maxLength: 240 };
+}
+
+/** Parse one raw module step. Returns null if unusable. */
+function parseModule(pr: Record<string, unknown>): Omit<ClarifyPrefill, "id"> | null {
+  const type = typeof pr.type === "string" ? (pr.type as ModuleType) : null;
+  if (!type || !PREFILLABLE.has(type)) return null;
+  const reason = typeof pr.reason === "string" ? pr.reason.trim().slice(0, 140) : "";
+  const draft = pr.draft && typeof pr.draft === "object" && !Array.isArray(pr.draft)
+    ? (pr.draft as Record<string, unknown>)
+    : {};
+  return { kind: "module", type, reason, draft };
 }
 
 export async function clarifyInput(text: string): Promise<ClarifyResult> {
@@ -190,55 +256,64 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
     ? parsed.language.trim().slice(0, 8).toLowerCase()
     : "en";
 
-  const rawQs = Array.isArray(parsed.questions) ? parsed.questions : [];
-  const questions: ClarifyQuestion[] = [];
-  for (let i = 0; i < rawQs.length && questions.length < 5; i++) {
-    const q = rawQs[i];
-    if (!q || typeof q !== "object") continue;
-    const qr = q as Record<string, unknown>;
-    const text = typeof qr.text === "string"
-      ? qr.text.trim().replace(/\s+/g, " ").slice(0, 140)
-      : "";
-    if (!text) continue;
-    const kindRaw = typeof qr.kind === "string" ? qr.kind.trim().toLowerCase() : "general";
-    const kind: ClarifyQuestionKind = kindRaw === "data" ? "data" : "general";
-    const rawOpts = Array.isArray(qr.options) ? qr.options : [];
-    const options: { value: string }[] = [];
-    for (const o of rawOpts) {
-      if (!o || typeof o !== "object") continue;
-      const v = typeof (o as { value?: unknown }).value === "string"
-        ? String((o as { value: string }).value).trim().slice(0, 36)
-        : "";
-      if (v) options.push({ value: v });
-      if (options.length >= 10) break; // allow up to 10 contextual options
+  // The model returns one ordered `steps` list. (Tolerate the legacy
+  // shape — questions/prefills — by folding them in, so an occasional
+  // stale completion still works.)
+  const rawSteps: unknown[] = Array.isArray(parsed.steps)
+    ? parsed.steps
+    : [
+        ...(Array.isArray(parsed.questions) ? parsed.questions : []),
+        ...(Array.isArray(parsed.prefills)
+          ? (parsed.prefills as unknown[]).map((p) =>
+              p && typeof p === "object" ? { kind: "module", ...(p as object) } : p,
+            )
+          : []),
+      ];
+
+  // First pass: parse every step, partitioning modules out so we can
+  // keep them last (the "answer quick, then configure" arc), and cap
+  // each modality independently.
+  const nonModule: ClarifyStep[] = [];
+  const moduleSteps: ClarifyStep[] = [];
+  let textCount = 0;
+  const seenModuleTypes = new Set<ModuleType>();
+
+  for (const s of rawSteps) {
+    if (!s || typeof s !== "object") continue;
+    const sr = s as Record<string, unknown>;
+    // Infer kind: explicit, else legacy heuristics (has options → choice).
+    let kind = typeof sr.kind === "string" ? sr.kind.trim().toLowerCase() : "";
+    if (!kind) kind = Array.isArray(sr.options) ? "choice" : sr.type ? "module" : "";
+
+    if (kind === "module") {
+      if (moduleSteps.length >= MAX_MODULE_STEPS) continue;
+      const parsedMod = parseModule(sr);
+      if (!parsedMod) continue;
+      if (seenModuleTypes.has(parsedMod.type)) continue; // one per type
+      seenModuleTypes.add(parsedMod.type);
+      moduleSteps.push({ id: "", ...parsedMod });
+    } else if (kind === "text") {
+      if (textCount >= MAX_TEXT_STEPS) continue;
+      const parsedText = parseText(sr);
+      if (!parsedText) continue;
+      textCount++;
+      nonModule.push({ id: "", ...parsedText });
+    } else {
+      // default / "choice"
+      const parsedChoice = parseChoice(sr);
+      if (!parsedChoice) continue;
+      nonModule.push({ id: "", ...parsedChoice });
     }
-    if (options.length < 2) continue;
-    questions.push({
-      id: `q${questions.length + 1}`,
-      kind,
-      text,
-      options,
-    });
-  }
-  if (questions.length < 1) throw new Error("clarify_empty");
-
-  // Prefills — modules to pre-configure. Keep only prefillable types
-  // with a sane draft object. Cap at 2.
-  const rawPrefills = Array.isArray(parsed.prefills) ? parsed.prefills : [];
-  const prefills: ClarifyPrefill[] = [];
-  for (const p of rawPrefills) {
-    if (!p || typeof p !== "object") continue;
-    const pr = p as Record<string, unknown>;
-    const type = typeof pr.type === "string" ? (pr.type as ModuleType) : null;
-    if (!type || !PREFILLABLE.has(type)) continue;
-    if (prefills.some((x) => x.type === type)) continue; // one per type
-    const reason = typeof pr.reason === "string" ? pr.reason.trim().slice(0, 140) : "";
-    const draft = pr.draft && typeof pr.draft === "object" && !Array.isArray(pr.draft)
-      ? (pr.draft as Record<string, unknown>)
-      : {};
-    prefills.push({ id: `p${prefills.length + 1}`, type, reason, draft });
-    if (prefills.length >= 2) break;
+    if (nonModule.length + moduleSteps.length >= MAX_STEPS) break;
   }
 
-  return { language, questions, prefills };
+  // Stitch: non-module steps first (in AI order), modules last; assign
+  // stable ids s1..sN over the final order.
+  const steps: ClarifyStep[] = [...nonModule, ...moduleSteps]
+    .slice(0, MAX_STEPS)
+    .map((s, i) => ({ ...s, id: `s${i + 1}` }));
+
+  if (steps.length < 1) throw new Error("clarify_empty");
+
+  return { language, steps };
 }
