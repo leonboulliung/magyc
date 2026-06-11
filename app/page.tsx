@@ -7,6 +7,8 @@ import { getAnonToken, rememberSpaceOwnerToken } from "@/lib/anonId";
 import { stagePage, chipGrid, clarifyItem } from "@/lib/anim";
 import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
+import { DotField, type DotFieldHandle } from "@/components/DotField";
+import { EnterKey } from "@/components/EnterKey";
 
 type Stage = "input" | "clarify" | "building";
 
@@ -71,6 +73,29 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dotFieldRef = useRef<DotFieldHandle>(null);
+  const enterKeyRef = useRef<HTMLButtonElement>(null);
+
+  /** Send the signature wave out from an element (or screen centre),
+   *  then run the action. Used on every "commit" the app makes so the
+   *  grid always answers a decision. */
+  function rippleFrom(el: HTMLElement | null) {
+    let x = window.innerWidth / 2;
+    let y = window.innerHeight / 2;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      x = r.left + r.width / 2;
+      y = r.top + r.height / 2;
+    }
+    dotFieldRef.current?.ripple(x, y);
+  }
+
+  /** Input-stage submit: wave from the Enter key, then clarify. */
+  function submitInput() {
+    if (busy || text.trim().length < 3) return;
+    rippleFrom(enterKeyRef.current);
+    goClarify();
+  }
 
   // Clean up auto-advance timer on unmount
   useEffect(() => () => { if (advanceTimer.current) clearTimeout(advanceTimer.current); }, []);
@@ -147,6 +172,8 @@ export default function HomePage() {
 
   async function goBuild() {
     if (busy) return;
+    // Final commit — the grid answers from the centre while it builds.
+    dotFieldRef.current?.ripple(window.innerWidth / 2, window.innerHeight / 2);
     setBusy(true);
     setStage("building");
     setError("");
@@ -191,17 +218,35 @@ export default function HomePage() {
     !currentStep.options.some((o) => o.value === currentAnswer);
 
   return (
-    <main className="min-h-screen bg-white text-black flex flex-col">
-      <section className="flex-1 flex items-center justify-center px-6 py-12">
+    <main className="relative min-h-screen text-black flex flex-col overflow-hidden" style={{ background: "#fafafa" }}>
+      {/* Infinite dot field — the signature surface. Fixed behind all
+          stages so the wave can ripple across the whole viewport. */}
+      <div className="fixed inset-0 z-0">
+        <DotField ref={dotFieldRef} />
+      </div>
+
+      <section className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait" initial={false}>
 
             {stage === "input" && (
-              <motion.div key="input" variants={stagePage} initial="hidden" animate="show" exit="exit">
+              <motion.div
+                key="input"
+                variants={stagePage}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="rounded-3xl p-6 sm:p-9"
+                style={{
+                  background: "#fff",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
+                }}
+              >
                 {/* Brand anchor — fades back as the user starts typing */}
                 <motion.div
-                  className="mb-8"
-                  animate={{ opacity: text.length > 0 ? 0.18 : 0.5 }}
+                  className="mb-6"
+                  animate={{ opacity: text.length > 0 ? 0.16 : 0.42 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                 >
                   <span className="mono text-[11px] tracking-[0.32em]">MAGYC</span>
@@ -210,36 +255,47 @@ export default function HomePage() {
                   autoFocus
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  rows={6}
+                  rows={5}
                   maxLength={1200}
                   placeholder="…"
-                  className="w-full text-[20px] sm:text-[24px] leading-relaxed p-4 bg-transparent border-0 outline-none resize-none placeholder:text-black/30"
+                  className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none placeholder:text-black/25"
                   disabled={busy}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); goClarify(); }
+                    // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.
+                    if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+                      e.preventDefault();
+                      submitInput();
+                    }
                   }}
                 />
-                <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="mt-6 flex items-end justify-between gap-4">
                   <span className="mono text-[10px] tracking-widest opacity-40 tabular-nums">
                     {text.length > 0 ? `${text.length}/1200` : ""}
                   </span>
-                  <motion.button
-                    onClick={goClarify}
+                  <EnterKey
+                    ref={enterKeyRef}
+                    onPress={submitInput}
                     disabled={busy || text.trim().length < 3}
-                    aria-label="continue"
-                    className="mono text-[11px] tracking-widest px-4 py-2 rounded-full bg-black text-white disabled:opacity-30"
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  >
-                    {busy ? "…" : "→"}
-                  </motion.button>
+                    busy={busy}
+                  />
                 </div>
               </motion.div>
             )}
 
             {stage === "clarify" && currentStep && (
-              <motion.div key="clarify" variants={stagePage} initial="hidden" animate="show" exit="exit">
+              <motion.div
+                key="clarify"
+                variants={stagePage}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="rounded-3xl p-6 sm:p-9"
+                style={{
+                  background: "#fff",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
+                }}
+              >
                 {/* Progress bar + step counter */}
                 <div className="mb-8 space-y-2">
                   <div className="flex items-center justify-between">
@@ -426,7 +482,12 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="py-20"
+                className="rounded-3xl py-20"
+                style={{
+                  background: "#fff",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
+                }}
               >
                 <BuildingScreen inputText={text} />
               </motion.div>
@@ -446,7 +507,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="px-6 py-3 mono text-[9px] tracking-widest text-center opacity-30">
+      <footer className="relative z-10 px-6 py-3 mono text-[9px] tracking-widest text-center opacity-30">
         <span>magyc.site</span>
       </footer>
     </main>
