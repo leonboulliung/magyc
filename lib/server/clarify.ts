@@ -63,52 +63,44 @@ function buildSystemPrompt(): string {
     .join("\n");
 
   return `You receive ONE short text a user wrote — a thought, an idea,
-a wish, a concern, a plan. Identify 2–5 ambiguities or DATA POINTS
-that, when resolved, will let an agentic process build a useful
+a wish, a concern, a plan. Your job: surface the few genuine gaps or
+ambiguities that, once resolved, let an agentic process build a useful
 workspace from the input.
 
-Return them as an ordered list of STEPS. Each step has a "kind" that
-is its INPUT MODALITY. Choose the modality that fits the step:
+ONE objective governs everything: structure the input with the LEAST
+friction for the user while still capturing what genuinely helps the
+build. Don't ask what the input already answers. Don't add steps for
+their own sake. Every step must earn its place by removing real
+ambiguity at the lowest possible cost to the user.
 
-  "choice" — multiple-choice chips. THE DEFAULT. Use when the answer
-             space is enumerable and the job is to disambiguate.
+Each step has a "kind" — the interaction it asks for. Understand what
+each one IS, then pick the cheapest one that captures the answer
+faithfully:
+
+  "choice" — a single tap among named options. The cheapest possible
+             interaction, and therefore the DEFAULT. Its essence: you
+             already know — or can name — the space of sensible
+             answers, so the user just resolves which one. The moment
+             you can write a handful of real options that cover the
+             likely answers without distorting them, this is the right
+             kind. (The user can still type their own; the frontend
+             appends that fallback — you do NOT generate it.)
              Tag each choice step with a "category":
-               "general" — intent / scope / commitment / audience /
-                            recurrence. GOOD subjects:
-                              just friends or a wider circle
-                              one-off or recurring
-                              this week / this month / sometime
-                              serious about it or just exploring
-                            BAD subjects:
-                              surface preferences (colors, fonts, vibe)
-                              confirmations of what the input states
-                              yes/no on the original input
-               "data"    — concrete data a mandatory-config widget
-                            needs before the workspace can render.
-                            ONLY when the input strongly implies one.
+               "general" — the answer shapes intent / scope / audience
+                           / commitment / timing.
+               "data"    — the answer is concrete data a mandatory-
+                           config widget needs to render (a place, a
+                           count, a span). Only when the input implies
+                           such a widget.
 
-  "text"   — OPEN free-text, no chips. The RARE exception, not a
-             convenience. Use ONLY when the VALUE of the answer is the
-             user's own exact wording, and no small set of chips could
-             stand in.
-
-             DECISION TEST — before emitting "text", try to write 3–6
-             plausible chip options for the question. If you can write
-             them, it MUST be "choice". Only if any option set would
-             FALSIFY or FLATTEN the answer may it be "text".
-
-             GOOD "text" (the answer IS the phrasing):
-               "Name this in your own words."
-               "In one sentence, what is the heart of it?"
-               "Describe the feeling you want people to leave with."
-             BAD "text" (enumerable — these are CHOICE, not text):
-               goals / purpose      → e.g. learn · sell · community · fun
-               preferences          → e.g. vegetarian · vegan · none
-               constraints / limits → e.g. budget · time · space
-               audience / scale     → e.g. friends · public · invite-only
-             If a question is about a goal, a preference, a constraint,
-             an audience, a frequency, or a count, it is ENUMERABLE —
-             use "choice". Typing is friction; default to chips.
+  "text"   — open writing, in the user's own words. Its essence: the
+             VALUE of the answer is the wording itself — something only
+             this user can author, that no named set of options could
+             stand in for without flattening it. It costs the user
+             effort (typing), so it must EARN that cost. The honest
+             test: if you can imagine naming the options, it is not
+             "text" — it is "choice". Reach for "text" only when the
+             substance genuinely lives in the user's phrasing.
 
   "module" — pull a precision-sensitive widget FORWARD so the user
              configures it interactively NOW. Propose ONLY when getting
@@ -161,9 +153,10 @@ Return STRICT JSON, no preamble:
 
 Hard rules:
 - 2 to 5 steps total. Pick only those whose answer truly matters.
-- DEFAULT to "choice". Aim for AT MOST ONE "text" step, often zero —
-  only when chips would falsify the answer (the DECISION TEST above).
-  "module" is 0–2 and only for precision-sensitive widgets listed above.
+- Let the friction objective decide each kind, not a quota. In
+  practice "choice" dominates because it is cheapest; "text" is the
+  rare case where the user's own wording is the answer; "module" is
+  0–2 and only for the precision-sensitive widgets listed above.
 - "choice": 2–8 options. Scale to context: if there are only 3
   meaningful answers, use 3. If the question is enumerable ("which
   arrondissement?", "which city?"), list ALL relevant ones (up to 8).
