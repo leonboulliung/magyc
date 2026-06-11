@@ -191,16 +191,11 @@ export function SpaceView({ id }: { id: string }) {
     return out;
   }, [liveState]);
 
-  // Split into header zones + body. The icon is hoisted OUT of the
-  // body grid into the header's top-right slot (it's too small to sit
-  // cleanly as a masonry cell). Only the first icon is hoisted; any
-  // extra icons fall through to the body.
-  const { hero, tagsModule, tagsIndex, iconModule, iconIndex, body } = useMemo(() => {
+  // Split into header zones + body.
+  const { hero, tagsModule, tagsIndex, body } = useMemo(() => {
     const heroItems: { module: Module; index: number }[] = [];
     let tagsM: Module | null = null;
     let tagsI = -1;
-    let iconM: Module | null = null;
-    let iconI = -1;
     const bodyItems: { module: Module; index: number }[] = [];
     displayedModules.forEach((m, i) => {
       if (m.type === "heading" || m.type === "rich_text") {
@@ -208,14 +203,11 @@ export function SpaceView({ id }: { id: string }) {
       } else if (m.type === "tags") {
         tagsM = m;
         tagsI = i;
-      } else if (m.type === "icon" && iconI === -1) {
-        iconM = m;
-        iconI = i;
       } else {
         bodyItems.push({ module: m, index: i });
       }
     });
-    return { hero: heroItems, tagsModule: tagsM, tagsIndex: tagsI, iconModule: iconM, iconIndex: iconI, body: bodyItems };
+    return { hero: heroItems, tagsModule: tagsM, tagsIndex: tagsI, body: bodyItems };
   }, [displayedModules]);
 
   if (!loaded) return <div className="min-h-screen bg-white" />;
@@ -276,34 +268,16 @@ export function SpaceView({ id }: { id: string }) {
         {/* HEADER ZONE — heading + rich_text, not in grid. */}
         <header className="w-full">
           <div className="max-w-5xl mx-auto px-4 sm:px-10 pt-14 sm:pt-20 pb-8 sm:pb-12 space-y-6">
-            <div className="flex items-start gap-5 sm:gap-8">
-              <motion.div initial="hidden" animate="show" variants={heroIn} className="flex-1 min-w-0 space-y-6">
-                {hero.map(({ module: m, index: i }) => (
-                  <WidgetDispatcher
-                    key={`hero-${i}`}
-                    module={m}
-                    index={i}
-                    state={stateByModule.get(i) ?? []}
-                  />
-                ))}
-              </motion.div>
-
-              {/* Icon slot — hoisted top-right of the static text area. */}
-              {iconModule && (
-                <motion.div
-                  className="shrink-0"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-                >
-                  <WidgetDispatcher
-                    module={iconModule}
-                    index={iconIndex}
-                    state={stateByModule.get(iconIndex) ?? []}
-                  />
-                </motion.div>
-              )}
-            </div>
+            <motion.div initial="hidden" animate="show" variants={heroIn} className="space-y-6">
+              {hero.map(({ module: m, index: i }) => (
+                <WidgetDispatcher
+                  key={`hero-${i}`}
+                  module={m}
+                  index={i}
+                  state={stateByModule.get(i) ?? []}
+                />
+              ))}
+            </motion.div>
 
             {tagsModule && (
               <motion.div
