@@ -64,6 +64,7 @@ export function TagsRenderer({
     <WidgetShell
       module={m}
       index={index}
+      canRegenerate={false}
       renderSuggestion={(s) =>
         s.type === "tags" ? (
           <div className="flex flex-wrap gap-1">

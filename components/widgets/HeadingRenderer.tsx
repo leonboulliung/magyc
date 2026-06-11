@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { HeadingWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
+import { EditControls } from "./EditControls";
 
 /**
  * Heading widget renderer.
@@ -71,6 +72,7 @@ export function HeadingRenderer({
     <WidgetShell
       module={m}
       index={index}
+      regenerateGlyph="⇆"
       renderSuggestion={(s) =>
         s.type === "heading" ? (
           <div className="space-y-0.5">
@@ -80,29 +82,32 @@ export function HeadingRenderer({
       }
     >
       {editing ? (
-        <textarea
-          ref={ref}
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            autoResize(e.currentTarget);
-          }}
-          onBlur={save}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              save();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              cancel();
-            }
-          }}
-          placeholder={m.placeholder ?? ""}
-          maxLength={200}
-          rows={1}
-          className={`vibe-heading font-black ${sizeClass} leading-[0.95] w-full bg-transparent border-0 outline-none resize-none overflow-hidden`}
-          style={{ color: "var(--v-fg)" }}
-        />
+        <div className="relative">
+          <textarea
+            ref={ref}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              autoResize(e.currentTarget);
+            }}
+            onBlur={save}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                save();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancel();
+              }
+            }}
+            placeholder={m.placeholder ?? ""}
+            maxLength={200}
+            rows={1}
+            className={`vibe-heading font-black ${sizeClass} leading-[0.95] w-full bg-transparent border-0 outline-none resize-none overflow-hidden`}
+            style={{ color: "var(--v-fg)" }}
+          />
+          <EditControls onSave={save} onCancel={cancel} />
+        </div>
       ) : (
         <h1
           onClick={() => { if (ctx.isOwner) setEditing(true); }}

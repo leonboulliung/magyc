@@ -24,8 +24,18 @@ export function WidgetShell({
   index,
   children,
   className,
-  /** When true, shows the ↻ regenerate affordance on hover. */
+  /** When true, shows the ⇆ alternatives affordance on hover. */
   canRegenerate = true,
+  /** Glyph for the alternatives affordance. ↻ reads as "reload";
+   *  ⇆ reads as "swap to another option". Per-widget choice. */
+  regenerateGlyph = "↻",
+  /** When true, shows the ✦ prompt-edit affordance — a small bubble
+   *  where the owner types a natural-language change request that the
+   *  regenerate endpoint applies as USER GUIDANCE (count:1). */
+  promptEditable = false,
+  /** If provided, the prompt-edit bubble also offers a ✎ "edit by
+   *  hand" shortcut that calls this (renderer enters inline edit). */
+  onManualEdit,
   /** Render a preview row for a suggestion in the popover. */
   renderSuggestion,
   /** Called when the user picks a suggestion. Default: PUT it through
@@ -37,6 +47,9 @@ export function WidgetShell({
   children: React.ReactNode;
   className?: string;
   canRegenerate?: boolean;
+  regenerateGlyph?: string;
+  promptEditable?: boolean;
+  onManualEdit?: () => void;
   renderSuggestion?: (s: Module) => React.ReactNode;
   onPick?: (s: Module) => Promise<void> | void;
 }) {
@@ -46,6 +59,9 @@ export function WidgetShell({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [suggestions, setSuggestions] = useState<Module[]>([]);
+  // Prompt-edit bubble state.
+  const [bubble, setBubble] = useState(false);
+  const [prompt, setPrompt] = useState("");
 
   async function fetchSuggestions() {
     if (busy) return;
@@ -72,6 +88,37 @@ export function WidgetShell({
     }
   }
 
+  /** Prompt-edit: send the change request as USER GUIDANCE, apply the
+   *  single returned alternative directly. */
+  async function submitPrompt() {
+    const guidance = prompt.trim();
+    if (!guidance || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/spaces/${ctx.spaceId}/widgets/${index}/regenerate`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ count: 1, basePrompt: guidance, anonToken: ctx.ownerToken }),
+        },
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError("✕");
+        return;
+      }
+      const next = Array.isArray(json.suggestions) ? json.suggestions[0] : null;
+      if (!next) { setError("✕"); return; }
+      await pick(next as Module);
+      setBubble(false);
+      setPrompt("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function pick(s: Module) {
     if (onPick) {
       await onPick(s);
@@ -91,6 +138,8 @@ export function WidgetShell({
     ctx.refresh();
   }
 
+  const showAffordances = ctx.isOwner && (canRegenerate || promptEditable);
+
   return (
     <div
       className={`relative group ${className ?? ""}`}
@@ -99,33 +148,108 @@ export function WidgetShell({
     >
       {children}
 
-      {/* Regenerate affordance — only when owner, hovered, and a
-          handler is wanted. Sits at top-right, doesn't disturb the
-          widget surface. */}
-      {ctx.isOwner && canRegenerate && (
+      {/* Affordance cluster — alternatives (⇆/↻) and/or prompt-edit (✦).
+          Only when owner, hovered. Sits at top-right. */}
+      {showAffordances && (
         <AnimatePresence>
-          {(hover || busy || open) && (
-            <motion.button
+          {(hover || busy || open || bubble) && (
+            <motion.div
               initial={{ opacity: 0, y: -2 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -2 }}
               transition={{ duration: 0.15 }}
-              onClick={fetchSuggestions}
-              disabled={busy}
-              aria-label="regenerate"
-              className="absolute -top-2 -right-2 mono text-[11px] w-7 h-7 rounded-full flex items-center justify-center"
-              style={{
-                background: "var(--v-bg)",
-                color: "var(--v-fg)",
-                border: "1px solid var(--v-rule)",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-              }}
+              className="absolute -top-2 -right-2 flex items-center gap-1"
             >
-              {busy ? "…" : "↻"}
-            </motion.button>
+              {promptEditable && (
+                <button
+                  onClick={() => { setBubble((b) => !b); setOpen(false); }}
+                  disabled={busy}
+                  aria-label="edit with prompt"
+                  className="mono text-[11px] w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{
+                    background: bubble ? "var(--v-fg)" : "var(--v-bg)",
+                    color: bubble ? "var(--v-bg)" : "var(--v-accent, var(--v-fg))",
+                    border: "1px solid var(--v-rule)",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  ✦
+                </button>
+              )}
+              {canRegenerate && (
+                <button
+                  onClick={fetchSuggestions}
+                  disabled={busy}
+                  aria-label="alternatives"
+                  className="mono text-[11px] w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "var(--v-bg)",
+                    color: "var(--v-fg)",
+                    border: "1px solid var(--v-rule)",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  {busy ? "…" : regenerateGlyph}
+                </button>
+              )}
+            </motion.div>
           )}
         </AnimatePresence>
       )}
+
+      {/* Prompt-edit bubble */}
+      <AnimatePresence>
+        {bubble && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            className="absolute right-0 top-full mt-2 z-40 rounded-xl overflow-hidden"
+            style={{
+              width: "min(320px, 90vw)",
+              background: "var(--v-bg)",
+              border: "1px solid var(--v-rule)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            }}
+          >
+            <div className="flex items-center gap-2 px-3 pt-2.5 pb-1">
+              <span aria-hidden style={{ color: "var(--v-accent, var(--v-fg))" }}>✦</span>
+              <input
+                autoFocus
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); submitPrompt(); }
+                  else if (e.key === "Escape") { setBubble(false); setPrompt(""); }
+                }}
+                placeholder="…"
+                maxLength={400}
+                className="flex-1 text-[14px] bg-transparent outline-none"
+                style={{ color: "var(--v-fg)" }}
+              />
+              <button
+                onClick={submitPrompt}
+                disabled={busy || !prompt.trim()}
+                aria-label="apply"
+                className="mono text-[13px] opacity-60 hover:opacity-100 disabled:opacity-25"
+                style={{ color: "var(--v-fg)" }}
+              >
+                {busy ? "…" : "→"}
+              </button>
+            </div>
+            {onManualEdit && (
+              <button
+                onClick={() => { setBubble(false); setPrompt(""); onManualEdit(); }}
+                className="w-full text-left px-3 py-2 mono text-[10px] tracking-widest opacity-50 hover:opacity-90 transition-opacity flex items-center gap-2"
+                style={{ borderTop: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+              >
+                <span aria-hidden>✎</span>
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Suggestions popover */}
       <AnimatePresence>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { RichTextWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
+import { EditControls } from "./EditControls";
 
 /**
  * Rich-text widget renderer.
@@ -88,6 +89,9 @@ export function RichTextRenderer({
     <WidgetShell
       module={m}
       index={index}
+      canRegenerate={false}
+      promptEditable
+      onManualEdit={() => setEditingBody(true)}
       renderSuggestion={(s) =>
         s.type === "rich_text" ? (
           <div className="space-y-0.5">
@@ -138,30 +142,36 @@ export function RichTextRenderer({
 
         {/* Body */}
         {editingBody ? (
-          <textarea
-            ref={bodyRef}
-            value={bodyDraft}
-            onChange={(e) => {
-              setBodyDraft(e.target.value);
-              autoResize(e.currentTarget);
-            }}
-            onBlur={saveBody}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                saveBody();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                setBodyDraft(m.text);
-                setEditingBody(false);
-              }
-            }}
-            placeholder={m.placeholder ?? ""}
-            maxLength={4000}
-            rows={3}
-            className="vibe-heading text-[17px] sm:text-[19px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden max-w-2xl"
-            style={{ color: "var(--v-fg)" }}
-          />
+          <div className="max-w-2xl">
+            <textarea
+              ref={bodyRef}
+              value={bodyDraft}
+              onChange={(e) => {
+                setBodyDraft(e.target.value);
+                autoResize(e.currentTarget);
+              }}
+              onBlur={saveBody}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  saveBody();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setBodyDraft(m.text);
+                  setEditingBody(false);
+                }
+              }}
+              placeholder={m.placeholder ?? ""}
+              maxLength={4000}
+              rows={3}
+              className="vibe-heading text-[17px] sm:text-[19px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
+              style={{ color: "var(--v-fg)" }}
+            />
+            <EditControls
+              onSave={saveBody}
+              onCancel={() => { setBodyDraft(m.text); setEditingBody(false); }}
+            />
+          </div>
         ) : (
           <p
             onClick={() => { if (ctx.isOwner) setEditingBody(true); }}

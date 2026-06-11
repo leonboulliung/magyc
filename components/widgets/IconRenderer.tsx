@@ -3,19 +3,18 @@
 import { Icon } from "@iconify/react";
 import type { IconWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
-import { WidgetCard } from "./WidgetCard";
 
 /**
  * Icon — single SVG icon from Iconify.
  *
- * The classifier picks an Iconify identifier (set:name). The regenerate
- * flow returns 6 candidates with a refresh button for 5 more — handled
- * by the shared WidgetShell + the per-icon suggestion preview rendered
- * here.
+ * Rendered as a COMPACT square tile: the icon fills its area, no card
+ * chrome, no identifier label. The icon visually carries the
+ * workspace's semantic anchor, so it earns its space by being the
+ * content — not by sitting in a big padded card.
  *
- * No editing in the body besides regenerate. The icon visually carries
- * the workspace's semantic anchor; the microTitle is intentionally not
- * shown for this widget (per the type definition's comment in types.ts).
+ * The ⇆ alternatives affordance (6 candidates + refresh) is provided
+ * by the shared WidgetShell on hover; the microTitle is intentionally
+ * not shown (per the type definition's comment in types.ts).
  */
 export function IconRenderer({
   module: m,
@@ -28,6 +27,7 @@ export function IconRenderer({
     <WidgetShell
       module={m}
       index={index}
+      regenerateGlyph="⇆"
       renderSuggestion={(s) =>
         s.type === "icon" ? (
           <div className="flex items-center gap-2.5">
@@ -39,25 +39,20 @@ export function IconRenderer({
         ) : null
       }
     >
-      <WidgetCard description={m.description}>
-        <div className="flex items-center justify-center py-3">
-          <div
-            className="inline-flex items-center justify-center rounded-md"
-            style={{
-              width: 72,
-              height: 72,
-              border: "1px solid var(--v-rule)",
-              background: "var(--v-bg)",
-              color: "var(--v-fg)",
-            }}
-          >
-            <Icon icon={m.iconify} width={40} height={40} />
-          </div>
-        </div>
-        <div className="mono text-[9px] tracking-widest text-center opacity-50" style={{ color: "var(--v-muted)" }}>
-          {m.iconify}
-        </div>
-      </WidgetCard>
+      {/* Compact square — small fixed tile the icon nearly fills, so
+          the widget hugs its content instead of padding a big card. */}
+      <div
+        className="inline-flex items-center justify-center rounded-md"
+        style={{
+          width: 84,
+          height: 84,
+          border: "1px solid var(--v-widget-border, var(--v-rule))",
+          background: "var(--v-widget, var(--v-bg))",
+          color: "var(--v-fg)",
+        }}
+      >
+        <Icon icon={m.iconify} width={52} height={52} />
+      </div>
     </WidgetShell>
   );
 }

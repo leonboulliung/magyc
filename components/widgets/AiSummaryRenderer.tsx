@@ -5,6 +5,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { AISummaryWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
+import { EditControls } from "./EditControls";
 
 /**
  * Ki-Einordnung — short AI take. Renders the text with a small ✦
@@ -56,6 +57,9 @@ export function AiSummaryRenderer({
     <WidgetShell
       module={m}
       index={index}
+      canRegenerate={false}
+      promptEditable
+      onManualEdit={() => setEditing(true)}
       renderSuggestion={(s) =>
         s.type === "ai_summary" ? (
           <div className="space-y-0.5">
@@ -79,20 +83,26 @@ export function AiSummaryRenderer({
         description={m.description}
       >
         {editing ? (
-          <textarea
-            ref={ref}
-            value={draft}
-            onChange={(e) => { setDraft(e.target.value); autoResize(e.currentTarget); }}
-            onBlur={save}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
-              else if (e.key === "Escape") { e.preventDefault(); setDraft(m.text); setEditing(false); }
-            }}
-            maxLength={1200}
-            rows={3}
-            className="text-[15px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
-            style={{ color: "var(--v-fg)" }}
-          />
+          <div>
+            <textarea
+              ref={ref}
+              value={draft}
+              onChange={(e) => { setDraft(e.target.value); autoResize(e.currentTarget); }}
+              onBlur={save}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
+                else if (e.key === "Escape") { e.preventDefault(); setDraft(m.text); setEditing(false); }
+              }}
+              maxLength={1200}
+              rows={3}
+              className="text-[15px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
+              style={{ color: "var(--v-fg)" }}
+            />
+            <EditControls
+              onSave={save}
+              onCancel={() => { setDraft(m.text); setEditing(false); }}
+            />
+          </div>
         ) : (
           <p
             onClick={() => { if (ctx.isOwner) setEditing(true); }}
