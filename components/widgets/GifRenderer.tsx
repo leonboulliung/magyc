@@ -66,6 +66,10 @@ export function GifRenderer({
     ctx.patchModule(index, { ...m, gifUrl: r.gifUrl, thumbnailUrl: r.thumbnailUrl });
   }
 
+  // A freshly-added GIF carries a placeholder loading.gif — treat that
+  // as unconfigured so the empty state IS the search, not a broken frame.
+  const unconfigured = !m.gifUrl || /loading\.gif/i.test(m.gifUrl);
+
   return (
     <WidgetShell
       module={m}
@@ -78,29 +82,73 @@ export function GifRenderer({
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description} bare>
-        {/* Main GIF */}
-        <div className="relative overflow-hidden" style={{ minHeight: 160 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={m.gifUrl}
-            alt={m.microTitle || "gif"}
-            className="w-full object-cover block"
-            style={{ maxHeight: 300 }}
-          />
+        {unconfigured ? (
+          /* Empty state IS the picker — search inline on add. */
+          ctx.isOwner ? (
+            <div className="p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span aria-hidden className="mono text-[12px] opacity-40" style={{ color: "var(--v-fg)" }}>▷</span>
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => handleQueryChange(e.target.value)}
+                  placeholder="…"
+                  maxLength={100}
+                  className="flex-1 text-[13px] bg-transparent outline-none"
+                  style={{ color: "var(--v-fg)" }}
+                />
+                {searching2 && <span className="mono text-[11px] opacity-40">…</span>}
+              </div>
+              {results.length > 0 && (
+                <div
+                  className="grid gap-0.5 overflow-y-auto"
+                  style={{ gridTemplateColumns: "repeat(3, 1fr)", maxHeight: 240 }}
+                >
+                  {results.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => pick(r)}
+                      className="overflow-hidden rounded-sm hover:opacity-80 transition-opacity"
+                      style={{ aspectRatio: "1/1" }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.thumbnailUrl || r.gifUrl} alt={r.title} className="w-full h-full object-cover" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-10 mono text-[11px] tracking-widest opacity-30" style={{ color: "var(--v-muted)" }}>
+              ▷
+            </div>
+          )
+        ) : (
+          /* Configured GIF */
+          <div className="relative overflow-hidden" style={{ minHeight: 160 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={m.gifUrl}
+              alt={m.microTitle || "gif"}
+              className="w-full object-cover block"
+              style={{ maxHeight: 300 }}
+            />
 
-          {/* Owner swap overlay */}
-          {ctx.isOwner && (
-            <button
-              type="button"
-              onClick={() => setSearching(true)}
-              aria-label="change gif"
-              className="absolute top-2 right-2 mono text-[10px] tracking-widest px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
-            >
-              ⎘
-            </button>
-          )}
-        </div>
+            {/* Owner swap overlay */}
+            {ctx.isOwner && (
+              <button
+                type="button"
+                onClick={() => setSearching(true)}
+                aria-label="change gif"
+                className="absolute top-2 right-2 mono text-[10px] tracking-widest px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
+              >
+                ⎘
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Search modal */}
         <AnimatePresence>
@@ -179,8 +227,9 @@ export function GifRenderer({
           )}
         </AnimatePresence>
 
-        {/* Owner search button when not searching */}
-        {ctx.isOwner && !searching && (
+        {/* Owner search button when not searching — only for an already
+            configured gif (unconfigured shows the inline picker above). */}
+        {ctx.isOwner && !searching && !unconfigured && (
           <div className="px-3 pb-2 pt-1">
             <button
               onClick={() => setSearching(true)}
