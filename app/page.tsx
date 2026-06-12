@@ -261,17 +261,11 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="relative w-full"
+                className="flex flex-col gap-5"
               >
-                {/* The card is just the input now. Its corner radius
-                    matches the Thing-page widgets (6px) so the Enter
-                    key's notch cradles this corner cleanly. It reserves
-                    bottom-right room (margins) for the key to dock. */}
                 <div
-                  className="rounded-md p-6 sm:p-8"
+                  className="w-full rounded-3xl p-6 sm:p-8"
                   style={{
-                    marginRight: 68,
-                    marginBottom: 54,
                     background: "#fff",
                     border: "1px solid rgba(0,0,0,0.06)",
                     boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
@@ -301,10 +295,8 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Enter key docks into the card's bottom-right corner —
-                    its rounded 6px notch cradles the card's 6px corner
-                    with a uniform ~8px of air. */}
-                <div className="absolute" style={{ right: 0, bottom: 0 }}>
+                {/* Enter key — simply bottom-right, below the card. */}
+                <div className="flex justify-end">
                   <EnterKey
                     ref={enterKeyRef}
                     onPress={submitInput}
