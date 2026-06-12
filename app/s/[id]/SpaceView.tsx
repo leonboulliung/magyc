@@ -104,6 +104,10 @@ export function SpaceView({ id }: { id: string }) {
   // after every click.
   const [liveState, setLiveState] = useState<ModuleStateEntry[]>([]);
   const realtimeUp = useRef(false);
+  // Always-current snapshot of liveState, so an optimistic action can
+  // roll back to the exact prior state on failure without a refetch.
+  const liveStateRef = useRef<ModuleStateEntry[]>([]);
+  liveStateRef.current = liveState;
 
   useEffect(() => {
     if (space) setLiveState(space.state);
@@ -139,18 +143,26 @@ export function SpaceView({ id }: { id: string }) {
   }, [space?.id]);
 
   /** Optimistic collaborative action: apply locally with the server's
-   *  semantics, fire the write, reconcile via realtime (or refresh as
-   *  fallback when the channel isn't up / the write fails). */
+   *  semantics, fire the write, and leave the optimistic entry in place.
+   *
+   *  Crucially it does NOT refetch on success — the local copy already
+   *  matches what we just wrote, so a full space refetch would only
+   *  replace an instant update with a slow one (the source of the
+   *  per-click delay on every widget, sketch included). Realtime
+   *  reconciles the temp row → real row in the background when the
+   *  channel is up; when it isn't, the optimistic entry simply stays.
+   *  On a server rejection we roll back to the exact prior state. */
   const act = useCallback(
     async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
       if (!space?.id) return false;
+      const snapshot = liveStateRef.current;
       const entry = makeOptimisticEntry(space.id, moduleIndex, kind, data);
       setLiveState((prev) => applyActionLocally(prev, entry));
       const ok = await postState(space.id, moduleIndex, kind, data);
-      if (!ok || !realtimeUp.current) refresh(); // resync: rollback or no-channel fallback
+      if (!ok) setLiveState(snapshot); // targeted rollback — no refetch
       return ok;
     },
-    [space?.id, refresh],
+    [space?.id],
   );
 
   // ── Visual style ────────────────────────────────────────────────
