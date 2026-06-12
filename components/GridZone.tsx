@@ -21,7 +21,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
-import { WidgetPicker } from "./WidgetPicker";
+import { WidgetPickerContent } from "./WidgetPicker";
+import { Popover } from "./ui/Popover";
 
 /**
  * GridZone — the body widget area of a space.
@@ -382,24 +383,32 @@ function AddButton({
   onPick: (w: Module) => void;
 }) {
   return (
-    <div className="relative">
-      <WidgetPicker open={open} onClose={onClose} onPick={onPick} />
-      <motion.button
-        type="button"
-        onClick={onToggle}
-        disabled={busy}
-        className="mono text-[11px] tracking-widest px-5 py-2 rounded-full disabled:opacity-30"
-        style={{
-          border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
-          color: "var(--v-fg)",
-          background: "var(--v-bg)",
-        }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.96 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
-      >
-        {busy ? "…" : "+"}
-      </motion.button>
-    </div>
+    <Popover
+      open={open}
+      onOpenChange={(o) => (o ? onToggle() : onClose())}
+      side="top"
+      sideOffset={8}
+      trigger={
+        <motion.button
+          type="button"
+          disabled={busy}
+          className="mono text-[11px] tracking-widest px-5 py-2 rounded-full disabled:opacity-30"
+          style={{
+            border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
+            color: "var(--v-fg)",
+            background: "var(--v-bg)",
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        >
+          {busy ? "…" : "+"}
+        </motion.button>
+      }
+    >
+      <WidgetPickerContent
+        onPick={(w) => { onPick(w); onClose(); }}
+      />
+    </Popover>
   );
 }

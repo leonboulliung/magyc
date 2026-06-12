@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleType } from "@/lib/types";
 
@@ -219,14 +219,12 @@ function defaultWidget(type: ModuleType): Module | null {
   }
 }
 
-// ── Component ────────────────────────────────────────────────────────
-export function WidgetPicker({
-  open,
-  onClose,
+// ── Content ──────────────────────────────────────────────────────────
+// Just the grouped grid of widget types. Dismissal / positioning /
+// focus are owned by the Radix Popover this is rendered inside.
+export function WidgetPickerContent({
   onPick,
 }: {
-  open: boolean;
-  onClose: () => void;
   onPick: (widget: Module) => void;
 }) {
   const ctx = useWidgetContext();
@@ -234,58 +232,33 @@ export function WidgetPicker({
   const emergent = ctx.labels.widgetLabels;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={onClose} />
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.97 }}
-            transition={{ duration: 0.18 }}
-            className="absolute bottom-full mb-2 left-1/2 z-50 rounded-md overflow-hidden"
-            style={{
-              width: 280,
-              transform: "translateX(-50%)",
-              background: "var(--v-bg)",
-              border: "1px solid var(--v-rule)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-              maxHeight: "min(60vh, 380px)",
-              overflowY: "auto",
-            }}
-          >
-            {GROUPS.map((group, gi) => (
-              <div key={gi} style={{ borderBottom: gi < GROUPS.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
-                <div className="grid grid-cols-2 gap-0.5 p-1.5">
-                  {group.entries.map((e) => (
-                    <motion.button
-                      key={e.type}
-                      type="button"
-                      onClick={() => {
-                        const w = defaultWidget(e.type);
-                        if (w) { onPick(w); onClose(); }
-                      }}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded text-left"
-                      whileHover={{ background: "rgba(0,0,0,0.04)" }}
-                      transition={{ duration: 0.1 }}
-                    >
-                      <span
-                        className="mono text-[11px] shrink-0 w-4 text-center"
-                        style={{ color: "var(--v-muted)" }}
-                      >
-                        {e.symbol}
-                      </span>
-                      <span className="text-[11px] truncate" style={{ color: "var(--v-fg)" }}>
-                        {labelFor(e.type, lang, emergent)}
-                      </span>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
+    <div style={{ width: 280, maxHeight: "min(60vh, 380px)", overflowY: "auto" }}>
+      {GROUPS.map((group, gi) => (
+        <div key={gi} style={{ borderBottom: gi < GROUPS.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
+          <div className="grid grid-cols-2 gap-0.5 p-1.5">
+            {group.entries.map((e) => (
+              <motion.button
+                key={e.type}
+                type="button"
+                onClick={() => {
+                  const w = defaultWidget(e.type);
+                  if (w) onPick(w);
+                }}
+                className="flex items-center gap-2 px-2.5 py-2 rounded text-left"
+                whileHover={{ background: "rgba(0,0,0,0.04)" }}
+                transition={{ duration: 0.1 }}
+              >
+                <span className="mono text-[11px] shrink-0 w-4 text-center" style={{ color: "var(--v-muted)" }}>
+                  {e.symbol}
+                </span>
+                <span className="text-[11px] truncate" style={{ color: "var(--v-fg)" }}>
+                  {labelFor(e.type, lang, emergent)}
+                </span>
+              </motion.button>
             ))}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
