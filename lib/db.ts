@@ -58,7 +58,9 @@ type SpaceVersionRow = {
   space_id: string;
   version: number;
   title: string;
-  modules: unknown[] | null;
+  // Not loaded by the space query (only by fetchVersionModules on demand)
+  // — the list query stays light. Absent → mapped to [].
+  modules?: unknown[] | null;
   note: string | null;
   created_at: string;
 };
@@ -190,7 +192,7 @@ const SPACE_SELECT = `
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
   state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
-  versions:space_versions(id, space_id, version, title, modules, note, created_at)
+  versions:space_versions(id, space_id, version, title, note, created_at)
 `;
 
 // ============================================================
@@ -205,6 +207,20 @@ export async function fetchSpaceById(id: string): Promise<Space | null> {
     .maybeSingle();
   if (error) throw error;
   return data ? mapSpace(data as unknown as SpaceRow) : null;
+}
+
+/** Load ONE historical version's modules on demand — the space query no
+ *  longer ships every version's full module set, so viewing history
+ *  fetches just the snapshot being opened. */
+export async function fetchVersionModules(spaceId: string, version: number): Promise<Module[] | null> {
+  const { data, error } = await supabase
+    .from("space_versions")
+    .select("modules")
+    .eq("space_id", spaceId)
+    .eq("version", version)
+    .maybeSingle();
+  if (error || !data) return null;
+  return sanitizeModules((data as { modules?: unknown[] | null }).modules ?? []);
 }
 
 export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {

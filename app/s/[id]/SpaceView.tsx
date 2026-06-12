@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { fetchSpaceById, mapStateRow, type ModuleStateRow } from "@/lib/db";
+import { fetchSpaceById, fetchVersionModules, mapStateRow, type ModuleStateRow } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import {
   applyActionLocally,
@@ -45,9 +45,11 @@ import { StyleEditor } from "@/components/StyleEditor";
  * Rich Text, and Tags as real editable renderers; everything else
  * falls to a pending placeholder which is replaced phase by phase.
  */
-export function SpaceView({ id }: { id: string }) {
-  const [space, setSpace] = useState<Space | null>(null);
-  const [loaded, setLoaded] = useState(false);
+export function SpaceView({ id, initialSpace = null }: { id: string; initialSpace?: Space | null }) {
+  // Seeded from the server-rendered fetch — content is present on first
+  // paint, no client fetch waterfall.
+  const [space, setSpace] = useState<Space | null>(initialSpace);
+  const [loaded, setLoaded] = useState(!!initialSpace);
   const [viewVersion, setViewVersion] = useState<number | null>(null);
 
   const refresh = useCallback(() => {
@@ -56,7 +58,13 @@ export function SpaceView({ id }: { id: string }) {
       .catch(() => setLoaded(true));
   }, [id]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  // Only fetch on the client when the server didn't hand us the space
+  // (transient server miss). Otherwise the initial data is enough and
+  // realtime keeps it fresh — no redundant load query.
+  useEffect(() => {
+    if (!initialSpace) refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Optimistic local copy of the current modules. Patched on config
   // edits so saves are instant; reset to server truth whenever the
@@ -191,19 +199,35 @@ export function SpaceView({ id }: { id: string }) {
     [effectiveStyle],
   );
 
+  // Which version is shown. The space query no longer ships every
+  // version's modules, so an OLD version's snapshot is fetched on demand.
+  const latestVersion = space && space.versions.length > 0
+    ? space.versions[space.versions.length - 1].version
+    : 0;
+  const targetVersion = viewVersion ?? latestVersion;
+  const isOldVersion = targetVersion > 0 && targetVersion < latestVersion;
+
+  const [versionModules, setVersionModules] = useState<Record<number, Module[]>>({});
+  useEffect(() => {
+    if (!space || !isOldVersion || versionModules[targetVersion]) return;
+    let cancelled = false;
+    fetchVersionModules(space.id, targetVersion).then((mods) => {
+      if (!cancelled && mods) setVersionModules((m) => ({ ...m, [targetVersion]: mods }));
+    });
+    return () => { cancelled = true; };
+  }, [space, isOldVersion, targetVersion, versionModules]);
+
   // Which modules to render — historical snapshot or current.
   const { displayedModules, currentVersionNumber } = useMemo(() => {
     if (!space) return { displayedModules: [] as Module[], currentVersionNumber: 0 };
-    const latest = space.versions.length > 0 ? space.versions[space.versions.length - 1].version : 0;
-    const target = viewVersion ?? latest;
-    if (target > 0 && target < latest) {
-      const v = space.versions.find((vv) => vv.version === target);
-      if (v) return { displayedModules: v.modules, currentVersionNumber: target };
+    if (isOldVersion) {
+      // [] while the snapshot loads; fills in when fetchVersionModules returns.
+      return { displayedModules: versionModules[targetVersion] ?? [], currentVersionNumber: targetVersion };
     }
     // Current version: prefer the optimistic local copy so a just-saved
     // edit is visible immediately, without a full refetch.
-    return { displayedModules: localModules ?? space.modules, currentVersionNumber: latest };
-  }, [space, viewVersion, localModules]);
+    return { displayedModules: localModules ?? space.modules, currentVersionNumber: latestVersion };
+  }, [space, isOldVersion, targetVersion, versionModules, localModules, latestVersion]);
 
   // Pre-slice the LIVE state by moduleIndex so each renderer only sees
   // its own actions. Derived from liveState (optimistic + realtime),

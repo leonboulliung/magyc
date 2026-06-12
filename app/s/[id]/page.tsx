@@ -1,12 +1,19 @@
-import { Suspense } from "react";
+import { cache } from "react";
 import type { Metadata } from "next";
 import { fetchSpaceById } from "@/lib/db";
 import { SpaceView } from "./SpaceView";
 
+/**
+ * Request-level dedupe: generateMetadata and the page both need the
+ * space, but it should only be fetched ONCE per request. React's cache()
+ * memoizes the call across the metadata + render passes.
+ */
+const getSpace = cache((id: string) => fetchSpaceById(id).catch(() => null));
+
 export async function generateMetadata(
   { params }: { params: { id: string } },
 ): Promise<Metadata> {
-  const space = await fetchSpaceById(params.id).catch(() => null);
+  const space = await getSpace(params.id);
   if (!space) return { title: "—", robots: { index: false, follow: false } };
   return {
     title: space.title || "MAGYC",
@@ -21,10 +28,13 @@ export async function generateMetadata(
   };
 }
 
-export default function SpacePage({ params }: { params: { id: string } }) {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-white" />}>
-      <SpaceView id={params.id} />
-    </Suspense>
-  );
+/**
+ * The space is fetched on the SERVER and handed to the client view as
+ * initial data — so the content is in the HTML on first paint, with no
+ * client-side fetch waterfall. SpaceView then takes over for realtime +
+ * optimistic edits.
+ */
+export default async function SpacePage({ params }: { params: { id: string } }) {
+  const space = await getSpace(params.id);
+  return <SpaceView id={params.id} initialSpace={space} />;
 }
