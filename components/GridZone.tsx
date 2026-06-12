@@ -47,7 +47,6 @@ export interface BodyItem {
   /** Index in the full space.modules array — used by the dispatcher
    *  for state posting and widget PUT/regenerate calls. */
   index: number;
-  stateEntries: ModuleStateEntry[];
 }
 
 /** Content signature — changes when the server set changes. */
@@ -61,6 +60,7 @@ const AI_FILL_ON_ADD: ReadonlySet<string> = new Set(["icon"]);
 
 export function GridZone({
   bodyItems,
+  stateByModule,
   headerModules,
   spaceId,
   ownerToken,
@@ -69,6 +69,7 @@ export function GridZone({
   onRefresh,
 }: {
   bodyItems: BodyItem[];
+  stateByModule: Map<number, ModuleStateEntry[]>;
   headerModules: Module[];
   spaceId: string;
   ownerToken: string | null;
@@ -158,7 +159,7 @@ export function GridZone({
     // Optimistic placeholder with a temporary index past the current
     // max; the real index arrives on refresh.
     const tempIndex = headerModules.length + items.length + 1000;
-    const optimistic: BodyItem = { module: widget, index: tempIndex, stateEntries: [] };
+    const optimistic: BodyItem = { module: widget, index: tempIndex };
     const next = [...items, optimistic];
     setItems(next);
     prevSig.current = signatureOf(next);
@@ -253,6 +254,7 @@ export function GridZone({
                     <SortableCell
                       key={`${item.index}::${item.module.type}`}
                       item={item}
+                      stateEntries={stateByModule.get(item.index) ?? []}
                       isOwner={isOwner}
                       isFull={fullWidth.has(item.index)}
                       busy={busy}
@@ -283,6 +285,7 @@ export function GridZone({
  */
 function SortableCell({
   item,
+  stateEntries,
   isOwner,
   isFull,
   busy,
@@ -290,6 +293,7 @@ function SortableCell({
   onRemove,
 }: {
   item: BodyItem;
+  stateEntries: ModuleStateEntry[];
   isOwner: boolean;
   isFull: boolean;
   busy: boolean;
@@ -321,7 +325,7 @@ function SortableCell({
         position: "relative",
       }}
     >
-      <WidgetDispatcher module={item.module} index={item.index} state={item.stateEntries} />
+      <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
 
       {isOwner && (
         <>

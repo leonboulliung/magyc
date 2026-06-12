@@ -383,8 +383,8 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
                   bodyItems={body.map(({ module: m, index: i }) => ({
                     module: m,
                     index: i,
-                    stateEntries: stateByModule.get(i) ?? [],
                   }))}
+                  stateByModule={stateByModule}
                   headerModules={[...hero.map(h => h.module), ...(tagsModule ? [tagsModule] : [])]}
                   spaceId={space.id}
                   ownerToken={ownerToken}
