@@ -261,12 +261,16 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="flex flex-col items-center gap-6"
+                className="relative w-full"
               >
-                {/* The card is just the input now — clean. */}
+                {/* The card is just the input now. It leaves room on its
+                    bottom-right (margins) so the Enter key can dock into
+                    that corner without overflowing the column. */}
                 <div
-                  className="w-full rounded-3xl p-6 sm:p-8"
+                  className="rounded-3xl p-6 sm:p-8"
                   style={{
+                    marginRight: 72,
+                    marginBottom: 56,
                     background: "#fff",
                     border: "1px solid rgba(0,0,0,0.06)",
                     boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
@@ -296,13 +300,17 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Enter key sits OUTSIDE the card. */}
-                <EnterKey
-                  ref={enterKeyRef}
-                  onPress={submitInput}
-                  disabled={busy || text.trim().length < 3}
-                  busy={busy}
-                />
+                {/* Enter key docks into the card's bottom-right corner —
+                    its rounded notch cradles the card's corner with ~8px
+                    of air. */}
+                <div className="absolute" style={{ right: 4, bottom: 2 }}>
+                  <EnterKey
+                    ref={enterKeyRef}
+                    onPress={submitInput}
+                    disabled={busy || text.trim().length < 3}
+                    busy={busy}
+                  />
+                </div>
               </motion.div>
             )}
 
