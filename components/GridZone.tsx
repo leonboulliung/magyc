@@ -1,24 +1,44 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { Module, ModuleStateEntry } from "@/lib/types";
-import { bodyContainer, bodyItem } from "@/lib/anim";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
 import { WidgetPicker } from "./WidgetPicker";
 
 /**
  * GridZone — the body widget area of a space.
  *
- * State model (v2): the server is the source of truth. Props are
- * mirrored into `items` local state, re-synced whenever the prop set
- * changes (detected via a content signature). All mutations are
- * optimistic — the local list updates instantly, the server call
- * follows, and the next refresh reconciles. This is what makes
- * add / remove / reorder feel instant instead of laggy.
+ * State model: the server is the source of truth. Props are mirrored
+ * into `items` local state, re-synced whenever the prop set changes
+ * (detected via a content signature). All mutations are optimistic —
+ * the local list updates instantly, the server call follows, and the
+ * next refresh reconciles.
  *
- * Visual: a bounded surface with a faint crosshatch (graph-paper)
- * grid as an orientation aid. Owner affordances reveal on hover.
+ * Reorder is powered by @dnd-kit/sortable, dragged ONLY from each
+ * cell's grip handle so it never fights the widget's own interactions
+ * (a map pan, a poll tap) and the dragged node stays mounted (no map
+ * re-init). Keyboard drag + screen-reader announcements come for free.
+ *
+ * Visual: a bounded white surface with a faint dot grid; widgets pack
+ * in a CSS multi-column masonry, half- or full-width per cell.
  */
 
 export interface BodyItem {
@@ -65,10 +85,15 @@ export function GridZone({
   }
 
   const [fullWidth, setFullWidth] = useState<Set<number>>(new Set());
-  const [dragFrom, setDragFrom] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  const sensors = useSensors(
+    // A small distance threshold means a click on the grip that doesn't
+    // move won't be read as a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const body = (m: Record<string, unknown>) => JSON.stringify({ ...m, anonOwnerToken: ownerToken });
 
@@ -89,11 +114,20 @@ export function GridZone({
     }
   }
 
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((it) => String(it.index) === active.id);
+    const newIndex = items.findIndex((it) => String(it.index) === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    commitOrder(arrayMove(items, oldIndex, newIndex));
+  }
+
   // ── Remove (optimistic) ─────────────────────────────────────────
-  async function removeAt(pos: number) {
-    const target = items[pos];
+  async function removeAt(targetIndex: number) {
+    const target = items.find((it) => it.index === targetIndex);
     if (!target) return;
-    const next = items.filter((_, i) => i !== pos);
+    const next = items.filter((it) => it.index !== targetIndex);
     setItems(next);
     prevSig.current = signatureOf(next); // suppress resync flicker
     setBusy(true);
@@ -107,6 +141,14 @@ export function GridZone({
     } finally {
       setBusy(false);
     }
+  }
+
+  function toggleFull(targetIndex: number) {
+    setFullWidth((s) => {
+      const n = new Set(s);
+      if (n.has(targetIndex)) n.delete(targetIndex); else n.add(targetIndex);
+      return n;
+    });
   }
 
   // ── Add (optimistic) ────────────────────────────────────────────
@@ -163,44 +205,26 @@ export function GridZone({
     }
   }
 
-  // ── Drag handlers ───────────────────────────────────────────────
-  function handleDrop(pos: number) {
-    if (dragFrom === null || dragFrom === pos) {
-      setDragFrom(null); setDragOver(null);
-      return;
-    }
-    const next = [...items];
-    const moved = next.splice(dragFrom, 1)[0];
-    next.splice(dragFrom < pos ? pos - 1 : pos, 0, moved);
-    setDragFrom(null); setDragOver(null);
-    commitOrder(next);
-  }
-
   const isEmpty = items.length === 0;
 
   return (
     <div
       className="rounded-lg relative"
       style={{
-        // The element grid is ALWAYS white with a black dot grid,
-        // independent of the space's background color — a stable,
-        // neutral canvas the colored widgets sit on.
+        // Always white with a dot grid, independent of the space's
+        // background — a stable neutral canvas the coloured widgets sit on.
         background: "#ffffff",
         border: "1px solid var(--v-rule)",
         minHeight: 240,
       }}
     >
-      {/* Dot grid — a black dot at every 24px lattice point. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden"
-      >
+      {/* Dot grid — a dot at every 24px lattice point. */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden">
         <div
           style={{
             width: "100%",
             height: "100%",
-            backgroundImage:
-              "radial-gradient(circle, rgba(0,0,0,0.18) 1px, transparent 1.4px)",
+            backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.18) 1px, transparent 1.4px)",
             backgroundSize: "24px 24px",
             backgroundPosition: "12px 12px",
           }}
@@ -216,129 +240,126 @@ export function GridZone({
               </p>
             )}
             {isOwner && (
-              <AddButton
-                open={pickerOpen}
-                busy={busy}
-                onToggle={() => setPickerOpen((v) => !v)}
-                onClose={() => setPickerOpen(false)}
-                onPick={addWidget}
-              />
+              <AddButton open={pickerOpen} busy={busy} onToggle={() => setPickerOpen((v) => !v)} onClose={() => setPickerOpen(false)} onPick={addWidget} />
             )}
           </div>
         ) : (
           <>
-            {/* Masonry via CSS multi-column: widgets size to their
-                content and pack tightly with no measurement, no overlap,
-                and the container grows to contain them automatically.
-                Full-width widgets break out with column-span: all. */}
-            <motion.div
-              className="columns-1 sm:columns-2"
-              style={{ columnGap: 12 }}
-              variants={bodyContainer}
-              initial="hidden"
-              animate="show"
-            >
-              <AnimatePresence initial={false}>
-                {items.map((item, pos) => {
-                  const isFull = fullWidth.has(item.index);
-                  const isDragging = dragFrom === pos;
-                  const isTarget = dragOver === pos;
-                  return (
-                    <motion.div
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={items.map((it) => String(it.index))} strategy={rectSortingStrategy}>
+                <div className="columns-1 sm:columns-2" style={{ columnGap: 12 }}>
+                  {items.map((item) => (
+                    <SortableCell
                       key={`${item.index}::${item.module.type}`}
-                      variants={bodyItem}
-                      animate={{ opacity: isDragging ? 0.35 : 1 }}
-                      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-                      transition={{ duration: 0.18 }}
-                      className="relative group/cell mb-3 break-inside-avoid"
-                      style={{
-                        columnSpan: isFull ? "all" : undefined,
-                        outline: isTarget ? "2px dashed var(--v-fg)" : "none",
-                        outlineOffset: 3,
-                        borderRadius: 6,
-                      }}
-                      draggable={isOwner}
-                      onDragStart={(e) => {
-                        setDragFrom(pos);
-                        // Use the cell itself as the drag image. Without
-                        // this the browser snapshots a large region (incl.
-                        // neighbouring text / the footer) as the ghost.
-                        // (motion.div types onDragStart as a Framer gesture;
-                        // at runtime it's the native DragEvent.)
-                        const dt = (e as unknown as DragEvent).dataTransfer;
-                        const el = e.currentTarget as Element;
-                        if (dt) {
-                          dt.effectAllowed = "move";
-                          try { dt.setDragImage(el, 20, 20); } catch { /* noop */ }
-                        }
-                      }}
-                      onDragOver={(e) => { e.preventDefault(); if (dragFrom !== null && dragFrom !== pos) setDragOver(pos); }}
-                      onDrop={() => handleDrop(pos)}
-                      onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
-                    >
-                      <WidgetDispatcher
-                        module={item.module}
-                        index={item.index}
-                        state={item.stateEntries}
-                      />
-
-                      {isOwner && (
-                        <>
-                          <div
-                            className="absolute -top-0.5 -left-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity cursor-grab select-none"
-                            style={{ color: "var(--v-muted)" }}
-                          >
-                            <span className="mono text-[12px] inline-block px-1 py-0.5 rounded-br" style={{ background: "var(--v-rule)", lineHeight: 1 }}>
-                              ⠿
-                            </span>
-                          </div>
-                          <div className="absolute -top-0.5 -right-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity flex items-center gap-0.5">
-                            <button
-                              type="button"
-                              title={isFull ? "half width" : "full width"}
-                              onClick={() => setFullWidth((s) => {
-                                const n = new Set(s);
-                                if (n.has(item.index)) n.delete(item.index); else n.add(item.index);
-                                return n;
-                              })}
-                              className="mono text-[11px] px-1.5 py-0.5 rounded-bl"
-                              style={{ background: "var(--v-rule)", color: "var(--v-muted)", lineHeight: 1 }}
-                            >
-                              {isFull ? "⇒" : "⇔"}
-                            </button>
-                            <button
-                              type="button"
-                              title="remove"
-                              onClick={() => removeAt(pos)}
-                              disabled={busy}
-                              className="mono text-[11px] px-1.5 py-0.5 rounded-bl disabled:opacity-30"
-                              style={{ background: "var(--v-rule)", color: "var(--v-muted)", lineHeight: 1 }}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </motion.div>
+                      item={item}
+                      isOwner={isOwner}
+                      isFull={fullWidth.has(item.index)}
+                      busy={busy}
+                      onToggleFull={() => toggleFull(item.index)}
+                      onRemove={() => removeAt(item.index)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
 
             {isOwner && (
               <div className="flex justify-center mt-4">
-                <AddButton
-                  open={pickerOpen}
-                  busy={busy}
-                  onToggle={() => setPickerOpen((v) => !v)}
-                  onClose={() => setPickerOpen(false)}
-                  onPick={addWidget}
-                />
+                <AddButton open={pickerOpen} busy={busy} onToggle={() => setPickerOpen((v) => !v)} onClose={() => setPickerOpen(false)} onPick={addWidget} />
               </div>
             )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A single draggable, removable, full/half-width widget cell. Drag is
+ * initiated only from the grip handle (setActivatorNodeRef + listeners),
+ * leaving the rest of the card free for the widget's own interactions.
+ */
+function SortableCell({
+  item,
+  isOwner,
+  isFull,
+  busy,
+  onToggleFull,
+  onRemove,
+}: {
+  item: BodyItem;
+  isOwner: boolean;
+  isFull: boolean;
+  busy: boolean;
+  onToggleFull: () => void;
+  onRemove: () => void;
+}) {
+  const {
+    setNodeRef,
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: String(item.index), disabled: !isOwner });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="relative group/cell mb-3"
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        columnSpan: isFull ? "all" : undefined,
+        breakInside: "avoid",
+        borderRadius: 6,
+        opacity: isDragging ? 0.4 : 1,
+        zIndex: isDragging ? 30 : undefined,
+        position: "relative",
+      }}
+    >
+      <WidgetDispatcher module={item.module} index={item.index} state={item.stateEntries} />
+
+      {isOwner && (
+        <>
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-label="reorder"
+            className="absolute -top-0.5 -left-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity select-none"
+            style={{ cursor: "grab", touchAction: "none", color: "var(--v-muted)", background: "transparent", border: "none", padding: 0 }}
+          >
+            <span className="mono text-[12px] inline-block px-1 py-0.5 rounded-br" style={{ background: "var(--v-rule)", lineHeight: 1 }}>
+              ⠿
+            </span>
+          </button>
+          <div className="absolute -top-0.5 -right-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity flex items-center gap-0.5">
+            <button
+              type="button"
+              title={isFull ? "half width" : "full width"}
+              onClick={onToggleFull}
+              className="mono text-[11px] px-1.5 py-0.5 rounded-bl"
+              style={{ background: "var(--v-rule)", color: "var(--v-muted)", lineHeight: 1 }}
+            >
+              {isFull ? "⇒" : "⇔"}
+            </button>
+            <button
+              type="button"
+              title="remove"
+              onClick={onRemove}
+              disabled={busy}
+              className="mono text-[11px] px-1.5 py-0.5 rounded-bl disabled:opacity-30"
+              style={{ background: "var(--v-rule)", color: "var(--v-muted)", lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
