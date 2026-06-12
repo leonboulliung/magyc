@@ -263,14 +263,15 @@ export default function HomePage() {
                 exit="exit"
                 className="relative w-full"
               >
-                {/* The card is just the input now. It leaves room on its
-                    bottom-right (margins) so the Enter key can dock into
-                    that corner without overflowing the column. */}
+                {/* The card is just the input now. Its corner radius
+                    matches the Thing-page widgets (6px) so the Enter
+                    key's notch cradles this corner cleanly. It reserves
+                    bottom-right room (margins) for the key to dock. */}
                 <div
-                  className="rounded-3xl p-6 sm:p-8"
+                  className="rounded-md p-6 sm:p-8"
                   style={{
-                    marginRight: 72,
-                    marginBottom: 56,
+                    marginRight: 68,
+                    marginBottom: 54,
                     background: "#fff",
                     border: "1px solid rgba(0,0,0,0.06)",
                     boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
@@ -301,9 +302,9 @@ export default function HomePage() {
                 </div>
 
                 {/* Enter key docks into the card's bottom-right corner —
-                    its rounded notch cradles the card's corner with ~8px
-                    of air. */}
-                <div className="absolute" style={{ right: 4, bottom: 2 }}>
+                    its rounded 6px notch cradles the card's 6px corner
+                    with a uniform ~8px of air. */}
+                <div className="absolute" style={{ right: 0, bottom: 0 }}>
                   <EnterKey
                     ref={enterKeyRef}
                     onPress={submitInput}
