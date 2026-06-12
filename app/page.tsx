@@ -224,14 +224,33 @@ export default function HomePage() {
     !currentStep.options.some((o) => o.value === currentAnswer);
 
   return (
-    <main className="relative min-h-screen text-black flex flex-col overflow-hidden" style={{ background: "#fafafa" }}>
-      {/* Infinite dot field — the signature surface. Fixed behind all
-          stages so the wave can ripple across the whole viewport. */}
+    // fixed inset-0 locks the home to the viewport — no page scroll or
+    // rubber-band bounce on mobile. Other routes (the space view) keep
+    // their normal scrolling.
+    <main
+      className="fixed inset-0 text-black flex flex-col overflow-hidden"
+      style={{ background: "#fafafa", overscrollBehavior: "none" }}
+    >
+      {/* Infinite dot field — the signature surface, behind everything. */}
       <div className="fixed inset-0 z-0">
         <DotField ref={dotFieldRef} />
       </div>
 
-      <section className="relative z-10 flex-1 flex items-center justify-center px-6 py-12">
+      {/* Brand watermark — large, full-bleed, very low opacity. */}
+      <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="select-none"
+          style={{ width: "min(1200px, 94vw)", maxWidth: "none", opacity: 0.08 }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+        />
+      </div>
+
+      <section className="relative z-10 flex-1 flex items-center justify-center px-6 py-8 min-h-0">
         <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait" initial={false}>
 
@@ -242,57 +261,48 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="rounded-3xl p-6 sm:p-9"
-                style={{
-                  background: "#fff",
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
-                }}
+                className="flex flex-col items-center gap-6"
               >
-                {/* Brand mark — recedes as the user starts typing */}
-                <motion.div
-                  className="mb-7"
-                  animate={{ opacity: text.length > 0 ? 0.5 : 1 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logo.png"
-                    alt="MAGYC"
-                    draggable={false}
-                    className="select-none"
-                    style={{ height: 30, width: "auto" }}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                  />
-                </motion.div>
-                <textarea
-                  autoFocus
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  rows={5}
-                  maxLength={1200}
-                  placeholder=""
-                  className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none"
-                  disabled={busy}
-                  onKeyDown={(e) => {
-                    // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.
-                    if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
-                      e.preventDefault();
-                      submitInput();
-                    }
+                {/* The card is just the input now — clean. */}
+                <div
+                  className="w-full rounded-3xl p-6 sm:p-8"
+                  style={{
+                    background: "#fff",
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
                   }}
-                />
-                <div className="mt-6 flex items-end justify-between gap-4">
-                  <span className="mono text-[10px] tracking-widest opacity-40 tabular-nums">
-                    {text.length > 0 ? `${text.length}/1200` : ""}
-                  </span>
-                  <EnterKey
-                    ref={enterKeyRef}
-                    onPress={submitInput}
-                    disabled={busy || text.trim().length < 3}
-                    busy={busy}
+                >
+                  <textarea
+                    autoFocus
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    rows={4}
+                    maxLength={1200}
+                    placeholder=""
+                    className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none"
+                    disabled={busy}
+                    onKeyDown={(e) => {
+                      // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.
+                      if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+                        e.preventDefault();
+                        submitInput();
+                      }
+                    }}
                   />
+                  <div className="mt-3 flex justify-end">
+                    <span className="mono text-[10px] tracking-widest opacity-30 tabular-nums">
+                      {text.length > 0 ? `${text.length}/1200` : ""}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Enter key sits OUTSIDE the card. */}
+                <EnterKey
+                  ref={enterKeyRef}
+                  onPress={submitInput}
+                  disabled={busy || text.trim().length < 3}
+                  busy={busy}
+                />
               </motion.div>
             )}
 
