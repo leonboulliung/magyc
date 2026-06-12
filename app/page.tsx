@@ -249,13 +249,21 @@ export default function HomePage() {
                   boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
                 }}
               >
-                {/* Brand anchor — fades back as the user starts typing */}
+                {/* Brand mark — recedes as the user starts typing */}
                 <motion.div
-                  className="mb-6"
-                  animate={{ opacity: text.length > 0 ? 0.16 : 0.42 }}
+                  className="mb-7"
+                  animate={{ opacity: text.length > 0 ? 0.5 : 1 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                 >
-                  <span className="mono text-[11px] tracking-[0.32em]">MAGYC</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logo.png"
+                    alt="MAGYC"
+                    draggable={false}
+                    className="select-none"
+                    style={{ height: 30, width: "auto" }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
                 </motion.div>
                 <textarea
                   autoFocus
@@ -263,8 +271,8 @@ export default function HomePage() {
                   onChange={(e) => setText(e.target.value)}
                   rows={5}
                   maxLength={1200}
-                  placeholder="…"
-                  className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none placeholder:text-black/25"
+                  placeholder=""
+                  className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none"
                   disabled={busy}
                   onKeyDown={(e) => {
                     // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.
