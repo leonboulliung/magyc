@@ -22,7 +22,7 @@ function safeCreate(): SupabaseClient {
     // Last-resort minimal stub so module load never throws on the client.
     if (typeof window !== "undefined") {
       // eslint-disable-next-line no-console
-      console.error("[creator.paris] Supabase init failed", e);
+      console.error("[MAGYC] Supabase init failed", e);
     }
     return createClient("https://placeholder.supabase.co", "sb_publishable_placeholder", {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -35,7 +35,7 @@ export const supabase: SupabaseClient = safeCreate();
 if (!supabaseConfigured && typeof window !== "undefined") {
   // eslint-disable-next-line no-console
   console.warn(
-    "[creator.paris] Supabase env vars missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel.",
+    "[MAGYC] Supabase env vars missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel.",
   );
 }
 

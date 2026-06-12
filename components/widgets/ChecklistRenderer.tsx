@@ -156,7 +156,7 @@ export function ChecklistRenderer({
               }}
               maxLength={200}
               placeholder="…"
-              className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-md"
+              className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
           ) : (
@@ -222,4 +222,3 @@ function CheckBox({
     </button>
   );
 }
-

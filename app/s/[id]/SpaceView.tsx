@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
+import { useUser } from "@clerk/nextjs";
 import { fetchSpaceById, fetchVersionModules, mapStateRow, type ModuleStateRow } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import {
   applyActionLocally,
+  getSelfId,
   makeOptimisticEntry,
   mergeRealtimeInsert,
   postState,
@@ -29,6 +31,21 @@ import { GridZone } from "@/components/GridZone";
 import { ParticipantsBar } from "@/components/ParticipantsBar";
 import { StyleEditor } from "@/components/StyleEditor";
 
+interface SpaceNotice {
+  tone: "saving" | "success" | "error";
+  message: string;
+  actionLabel?: string;
+  onAction?: (() => void) | null;
+}
+
+function apiErrorMessage(json: unknown, fallback = "save_failed"): string {
+  if (!json || typeof json !== "object") return fallback;
+  const data = json as Record<string, unknown>;
+  if (typeof data.detail === "string" && data.detail.trim()) return data.detail.trim();
+  if (typeof data.error === "string" && data.error.trim()) return data.error.trim();
+  return fallback;
+}
+
 /**
  * Space view — v4 chassis with the Phase-1 widget renderers wired in.
  *
@@ -46,6 +63,7 @@ import { StyleEditor } from "@/components/StyleEditor";
  * falls to a pending placeholder which is replaced phase by phase.
  */
 export function SpaceView({ id, initialSpace = null }: { id: string; initialSpace?: Space | null }) {
+  const { user } = useUser();
   // Seeded from the server-rendered fetch — content is present on first
   // paint, no client fetch waterfall.
   const [space, setSpace] = useState<Space | null>(initialSpace);
@@ -66,20 +84,115 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isOwner = useIsOwner(space);
+  const devMode = useDevMode();
+
+  const ownerToken = useMemo(() => {
+    if (!space || !isOwner) return null;
+    return getSpaceOwnerToken(space.id);
+  }, [space, isOwner]);
+
   // Optimistic local copy of the current modules. Patched on config
   // edits so saves are instant; reset to server truth whenever the
   // space is (re)fetched. null until the first space load.
   const [localModules, setLocalModules] = useState<Module[] | null>(null);
   useEffect(() => { setLocalModules(space ? space.modules : null); }, [space]);
+  const modulesRef = useRef<Module[]>(initialSpace?.modules ?? []);
+  useEffect(() => {
+    modulesRef.current = localModules ?? space?.modules ?? [];
+  }, [localModules, space]);
   const patchModule = useCallback((i: number, mod: Module) => {
     setLocalModules((prev) => {
       const base = prev ?? space?.modules ?? [];
       if (i < 0 || i >= base.length) return prev;
       const next = [...base];
       next[i] = mod;
+      modulesRef.current = next;
       return next;
     });
   }, [space]);
+
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [notice, setNotice] = useState<SpaceNotice | null>(null);
+  const announce = useCallback((next: SpaceNotice | null, durationMs = 1800) => {
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    setNotice(next);
+    if (next && durationMs > 0) {
+      noticeTimerRef.current = setTimeout(() => setNotice((current) => (
+        current === next ? null : current
+      )), durationMs);
+    }
+  }, []);
+  useEffect(() => () => {
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+  }, []);
+
+  const saveModule = useCallback(
+    async (
+      index: number,
+      module: Module,
+      options?: {
+        note?: string;
+        resolveExternal?: boolean;
+        successMessage?: string;
+        errorMessage?: string;
+        undoModule?: Module | null;
+        allowUndo?: boolean;
+        quiet?: boolean;
+      },
+    ) => {
+      if (!space?.id) return false;
+      const previous = modulesRef.current[index] ?? null;
+      patchModule(index, module);
+      if (!options?.quiet) announce({ tone: "saving", message: "saving…" }, 0);
+      try {
+        const res = await fetch(`/api/spaces/${space.id}/widgets/${index}`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            widget: module,
+            anonOwnerToken: ownerToken,
+            note: options?.note,
+            resolveExternal: options?.resolveExternal,
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(apiErrorMessage(json, options?.errorMessage ?? "save_failed"));
+        const persisted = (json && typeof json === "object" && "widget" in json)
+          ? (json as { widget?: Module }).widget
+          : null;
+        if (persisted) patchModule(index, persisted);
+        const canUndo = options?.allowUndo !== false && options?.undoModule;
+        if (!options?.quiet) {
+          announce({
+            tone: "success",
+            message: options?.successMessage ?? "saved",
+            actionLabel: canUndo ? "undo" : undefined,
+            onAction: canUndo
+              ? () => {
+                  void saveModule(index, options.undoModule as Module, {
+                    successMessage: "restored",
+                    errorMessage: "restore_failed",
+                    allowUndo: false,
+                  });
+                }
+              : null,
+          }, canUndo ? 5000 : 1600);
+        } else {
+          announce(null);
+        }
+        return true;
+      } catch (error) {
+        if (previous) patchModule(index, previous);
+        announce({
+          tone: "error",
+          message: error instanceof Error ? error.message : options?.errorMessage ?? "save_failed",
+        }, 3600);
+        return false;
+      }
+    },
+    [announce, ownerToken, patchModule, space?.id],
+  );
 
   // Lazy external-reference hydration. Creation stores Wikipedia widgets
   // topic-only (to stay under the serverless timeout); resolve them once
@@ -95,14 +208,6 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
       .then((j) => { if (j?.resolved) refresh(); })
       .catch(() => {});
   }, [space, refresh]);
-
-  const isOwner = useIsOwner(space);
-  const devMode = useDevMode();
-
-  const ownerToken = useMemo(() => {
-    if (!space || !isOwner) return null;
-    return getSpaceOwnerToken(space.id);
-  }, [space, isOwner]);
 
   // ── Live collaborative state ────────────────────────────────────
   // `liveState` is the working copy of module_state: seeded from the
@@ -123,6 +228,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
 
   useEffect(() => {
     if (!space?.id) return;
+    const selfActorId = user?.id ?? getSelfId();
     const channel = supabase
       .channel(`ms-${space.id}`)
       .on(
@@ -130,7 +236,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         { event: "INSERT", schema: "public", table: "module_state", filter: `space_id=eq.${space.id}` },
         (payload) => {
           const entry = mapStateRow(payload.new as ModuleStateRow);
-          setLiveState((prev) => mergeRealtimeInsert(prev, entry));
+          setLiveState((prev) => mergeRealtimeInsert(prev, entry, selfActorId));
         },
       )
       .on(
@@ -148,7 +254,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
       realtimeUp.current = false;
       supabase.removeChannel(channel);
     };
-  }, [space?.id]);
+  }, [space?.id, user?.id]);
 
   /** Optimistic collaborative action: apply locally with the server's
    *  semantics, fire the write, and leave the optimistic entry in place.
@@ -164,13 +270,17 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
       if (!space?.id) return false;
       const snapshot = liveStateRef.current;
-      const entry = makeOptimisticEntry(space.id, moduleIndex, kind, data);
+      const entry = makeOptimisticEntry(space.id, moduleIndex, kind, data, {
+        kind: user ? "user" : "anon",
+        id: user?.id ?? getSelfId(),
+        displayName: user?.username ?? user?.fullName ?? undefined,
+      });
       setLiveState((prev) => applyActionLocally(prev, entry));
       const ok = await postState(space.id, moduleIndex, kind, data);
       if (!ok) setLiveState(snapshot); // targeted rollback — no refetch
       return ok;
     },
-    [space?.id],
+    [space?.id, user],
   );
 
   // ── Visual style ────────────────────────────────────────────────
@@ -198,6 +308,12 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     () => styleVars(effectiveStyle, fontStack(findFont(effectiveStyle.font))),
     [effectiveStyle],
   );
+
+  useEffect(() => {
+    if (!space) return;
+    document.title = space.title?.trim() || "MAGYC";
+    document.documentElement.lang = (space.language || "en").split("-")[0];
+  }, [space?.language, space?.title]);
 
   // Which version is shown. The space query no longer ships every
   // version's modules, so an OLD version's snapshot is fetched on demand.
@@ -289,6 +405,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         ownerToken,
         refresh,
         patchModule,
+        saveModule,
         act,
       }}
     >
@@ -297,7 +414,10 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         style={{ ...rootStyleVars, background: "var(--v-page, var(--v-bg))" }}
       >
         {/* Floating top-right controls */}
-        <div className="fixed top-4 right-4 z-30 flex items-center gap-2">
+        <div
+          className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 px-1.5 py-1 rounded-full"
+          style={{ background: "color-mix(in srgb, var(--v-bg) 88%, transparent)", border: "1px solid var(--v-rule)", backdropFilter: "blur(10px)" }}
+        >
           {isHistorical && (
             <button
               onClick={() => setViewVersion(null)}
@@ -318,6 +438,38 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           )}
           <PublishButton space={space} onChanged={refresh} />
         </div>
+
+        {notice && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-40">
+            <div
+              className="flex items-center gap-3 px-3 py-2 rounded-full shadow-sm"
+              style={{
+                background: "color-mix(in srgb, var(--v-bg) 94%, transparent)",
+                border: "1px solid var(--v-rule)",
+                color: notice.tone === "error" ? "var(--v-fg)" : "var(--v-muted)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <span className="mono text-[10px] tracking-widest">
+                {notice.tone === "saving" ? "…" : notice.tone === "error" ? "!" : "✓"} {notice.message}
+              </span>
+              {notice.actionLabel && notice.onAction && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const action = notice.onAction;
+                    setNotice(null);
+                    action?.();
+                  }}
+                  className="mono text-[10px] tracking-widest underline underline-offset-2"
+                  style={{ color: "var(--v-fg)" }}
+                >
+                  {notice.actionLabel}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* HEADER ZONE — heading + rich_text, not in grid. */}
         <header className="w-full">
@@ -366,7 +518,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         {isHistorical && (
           <div className="max-w-5xl mx-auto px-4 sm:px-10 -mt-4">
             <div
-              className="mono text-[10px] tracking-widest px-3 py-2 rounded-md inline-block"
+              className="mono text-[10px] tracking-widest px-3 py-2 rounded-[var(--v-radius)] inline-block"
               style={{ background: "var(--v-rule)", color: "var(--v-fg)" }}
             >
               {label(space.labels, "viewingVersionPrefix")} {currentVersionNumber} · {new Date(space.versions[currentVersionNumber - 1].createdAt).toLocaleString()}

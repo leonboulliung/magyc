@@ -24,12 +24,7 @@ export function AppointmentRenderer({
     setEditing(false);
     if (!next || next === m.datetime) return;
     const updated = { ...m, datetime: new Date(next).toISOString() };
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ widget: updated, anonOwnerToken: ctx.ownerToken }),
-    });
-    ctx.patchModule(index, updated);
+    await ctx.saveModule(index, updated);
   }
 
   const parts = formatDateTime(m.datetime, ctx.language);
@@ -50,7 +45,7 @@ export function AppointmentRenderer({
                 else if (e.key === "Escape") setEditing(false);
               }}
               className="bg-transparent outline-none mono text-[12px]"
-              style={{ color: "var(--v-fg)", border: "1px solid var(--v-rule)", borderRadius: 6, padding: "6px 10px" }}
+              style={{ color: "var(--v-fg)", border: "1px solid var(--v-rule)", borderRadius: "var(--v-radius)", padding: "6px 10px" }}
             />
           ) : (
             <button

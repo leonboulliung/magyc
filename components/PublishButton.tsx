@@ -66,7 +66,7 @@ export function PublishButton({
       </button>
 
       <Dialog open={open} onOpenChange={setOpen} maxWidth={448} title={label(L, "publishTitle")}>
-        <div className="w-full bg-white text-black p-6 rounded-lg space-y-5">
+        <div className="w-full bg-white text-black p-6 rounded-[var(--v-radius)] space-y-5">
             <div className="space-y-1.5">
               <h2 className="font-black text-[22px] leading-snug">
                 {label(L, "publishTitle")}

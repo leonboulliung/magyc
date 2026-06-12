@@ -49,15 +49,7 @@ export function HeadingRenderer({
     const next = draft.trim();
     setEditing(false);
     if (next === m.text) return;
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, text: next },
-        anonOwnerToken: ctx.ownerToken,
-      }),
-    });
-    ctx.patchModule(index, { ...m, text: next });
+    await ctx.saveModule(index, { ...m, text: next });
   }
 
   function cancel() {

@@ -72,7 +72,7 @@ body {
   --v-muted: #6a6a6a;
   --v-rule: #e6e6e1;
   --v-accent: #0d0d0d;
-  --v-radius: 12px;
+  --v-radius: 20px;
   --v-font: Inter, ui-sans-serif, system-ui, sans-serif;
   --v-heading: Inter, ui-sans-serif, system-ui, sans-serif;
 }

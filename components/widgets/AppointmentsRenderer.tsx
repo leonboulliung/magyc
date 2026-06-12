@@ -24,12 +24,7 @@ export function AppointmentsRenderer({
   const ctx = useWidgetContext();
 
   async function save(next: AppointmentsWidget) {
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ widget: next, anonOwnerToken: ctx.ownerToken }),
-    });
-    ctx.patchModule(index, next);
+    await ctx.saveModule(index, next);
   }
 
   const sortedEntries = [...m.entries]
@@ -149,7 +144,7 @@ function EntryRow({
             else if (e.key === "Escape") setEditingTime(false);
           }}
           className="bg-transparent outline-none mono text-[11px]"
-          style={{ color: "var(--v-fg)", border: "1px solid var(--v-rule)", borderRadius: 4, padding: "3px 6px" }}
+              style={{ color: "var(--v-fg)", border: "1px solid var(--v-rule)", borderRadius: "var(--v-radius)", padding: "3px 6px" }}
         />
       ) : (
         <button
@@ -187,7 +182,7 @@ function EntryRow({
             }}
             placeholder="…"
             maxLength={120}
-            className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-md"
+            className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
             style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
           />
         ) : (

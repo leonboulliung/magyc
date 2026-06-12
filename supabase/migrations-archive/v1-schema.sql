@@ -1,5 +1,5 @@
 -- ============================================================
--- Creator.Paris — Supabase schema
+-- MAGYC — Supabase schema
 -- Run this once in the Supabase SQL Editor.
 -- ============================================================
 
@@ -32,7 +32,7 @@ create index if not exists cards_owner_idx   on cards(owner_id);
 create index if not exists cards_active_idx  on cards(archived, expires_at) where archived = false;
 create index if not exists cards_created_idx on cards(created_at desc);
 
--- Joiners: who joined + creator-assigned role + when
+-- Joiners: who joined + owner-assigned role + when
 create table if not exists joiners (
   card_id   text not null references cards(id) on delete cascade,
   user_id   text not null references profiles(id) on delete cascade,

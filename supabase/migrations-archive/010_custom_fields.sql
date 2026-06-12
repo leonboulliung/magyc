@@ -1,8 +1,8 @@
 -- Custom fields: a card-specific key/value sidebar of details that suit
 -- the particular kind of thing — a shoot's "looks", a hackathon's "stack",
 -- a dinner's "bring". The keys are AI-suggested (strictly abstracted from
--- the creator's own intent, never invented), the values come from the
--- creator. Stored as a JSONB object so we don't have to migrate per-field
+-- the owner's own intent, never invented), the values come from the
+-- owner. Stored as a JSONB object so we don't have to migrate per-field
 -- and so order is preserved by the client.
 --
 -- Read by anyone (just a public detail). Writes only via the API routes

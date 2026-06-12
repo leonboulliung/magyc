@@ -14,10 +14,9 @@ import { parseBody } from "@/lib/api/validate";
  *
  * Replace the widget at the given index with a new config. Authorisation:
  *   - Drafts (visibility === null): require the matching anon_owner_token.
- *   - Published spaces: require either the Clerk owner OR a Clerk-
- *     authenticated visitor (collaborative edit; published spaces are
- *     open for now). The published path also writes a new version
- *     snapshot.
+ *   - Published spaces: require the Clerk-bound owner. Collaborative
+ *     interaction still flows through /state; structural widget edits
+ *     stay owner-only.
  *
  * The widget shape is sanitised before storage; a mismatch (different
  * type than what's currently at the index) is allowed — that's a
@@ -66,8 +65,8 @@ export async function PUT(
       return NextResponse.json({ error: "owner_token_mismatch" }, { status: 403 });
     }
   } else {
-    // Published: Clerk session required.
-    if (!userId) {
+    // Published: owner account required.
+    if (!userId || !space.owner_id || userId !== space.owner_id) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
   }
@@ -138,5 +137,5 @@ export async function PUT(
     }
   }
 
-  return NextResponse.json({ ok: true, version: newVersion });
+  return NextResponse.json({ ok: true, version: newVersion, widget });
 }

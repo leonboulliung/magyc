@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { motion } from "motion/react";
 import {
   DndContext,
@@ -27,11 +27,10 @@ import { Popover } from "./ui/Popover";
 /**
  * GridZone — the body widget area of a space.
  *
- * State model: the server is the source of truth. Props are mirrored
- * into `items` local state, re-synced whenever the prop set changes
- * (detected via a content signature). All mutations are optimistic —
- * the local list updates instantly, the server call follows, and the
- * next refresh reconciles.
+ * State model: the server is the source of truth. The grid renders
+ * directly from the latest bodyItems props so widget content edits
+ * never get stuck behind a stale local mirror. Add / remove / reorder
+ * stay server-driven and reconcile on refresh.
  *
  * Reorder is powered by @dnd-kit/sortable, dragged ONLY from each
  * cell's grip handle so it never fights the widget's own interactions
@@ -47,11 +46,6 @@ export interface BodyItem {
   /** Index in the full space.modules array — used by the dispatcher
    *  for state posting and widget PUT/regenerate calls. */
   index: number;
-}
-
-/** Content signature — changes when the server set changes. */
-function signatureOf(items: BodyItem[]): string {
-  return items.map((it) => `${it.index}:${it.module.type}`).join("|");
 }
 
 /** Widget types whose manual add should be AI-authored from space
@@ -77,15 +71,7 @@ export function GridZone({
   labels: { emptyGrid?: string; emptyGridHint?: string };
   onRefresh: () => void;
 }) {
-  // ── Mirror props into local state, synced by signature ──────────
-  const [items, setItems] = useState<BodyItem[]>(bodyItems);
-  const sig = signatureOf(bodyItems);
-  const prevSig = useRef(sig);
-  if (sig !== prevSig.current) {
-    prevSig.current = sig;
-    setItems(bodyItems);
-  }
-
+  const items = bodyItems;
   const [fullWidth, setFullWidth] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -99,9 +85,8 @@ export function GridZone({
 
   const body = (m: Record<string, unknown>) => JSON.stringify({ ...m, anonOwnerToken: ownerToken });
 
-  // ── Reorder (optimistic) ────────────────────────────────────────
+  // ── Reorder ─────────────────────────────────────────────────────
   async function commitOrder(next: BodyItem[]) {
-    setItems(next);
     setBusy(true);
     try {
       const modules = [...headerModules, ...next.map((it) => it.module)];
@@ -129,9 +114,6 @@ export function GridZone({
   async function removeAt(targetIndex: number) {
     const target = items.find((it) => it.index === targetIndex);
     if (!target) return;
-    const next = items.filter((it) => it.index !== targetIndex);
-    setItems(next);
-    prevSig.current = signatureOf(next); // suppress resync flicker
     setBusy(true);
     try {
       await fetch(`/api/spaces/${spaceId}/widgets`, {
@@ -156,13 +138,6 @@ export function GridZone({
   // ── Add (optimistic) ────────────────────────────────────────────
   async function addWidget(widget: Module) {
     setPickerOpen(false);
-    // Optimistic placeholder with a temporary index past the current
-    // max; the real index arrives on refresh.
-    const tempIndex = headerModules.length + items.length + 1000;
-    const optimistic: BodyItem = { module: widget, index: tempIndex };
-    const next = [...items, optimistic];
-    setItems(next);
-    prevSig.current = signatureOf(next);
     setBusy(true);
     try {
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
@@ -211,7 +186,7 @@ export function GridZone({
 
   return (
     <div
-      className="rounded-lg relative"
+      className="rounded-[var(--v-radius)] relative"
       style={{
         // Always white with a dot grid, independent of the space's
         // background — a stable neutral canvas the coloured widgets sit on.
@@ -221,7 +196,7 @@ export function GridZone({
       }}
     >
       {/* Dot grid — a dot at every 24px lattice point. */}
-      <div aria-hidden className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden">
+      <div aria-hidden className="absolute inset-0 pointer-events-none rounded-[var(--v-radius)] overflow-hidden">
         <div
           style={{
             width: "100%",
@@ -319,7 +294,7 @@ function SortableCell({
         transition,
         columnSpan: isFull ? "all" : undefined,
         breakInside: "avoid",
-        borderRadius: 6,
+        borderRadius: "var(--v-radius)",
         opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 30 : undefined,
         position: "relative",
@@ -392,6 +367,8 @@ function AddButton({
       onOpenChange={(o) => (o ? onToggle() : onClose())}
       side="top"
       sideOffset={8}
+      width="min(360px, calc(100vw - 24px))"
+      contentStyle={{ maxHeight: "min(70vh, 460px)" }}
       trigger={
         <motion.button
           type="button"

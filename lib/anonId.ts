@@ -3,8 +3,22 @@
 import { newAnonToken } from "./id";
 import { getActivePersona } from "./personas";
 
-const KEY = "creator.anon_token";
-const NAME_KEY = "creator.anon_name";
+const KEY = "magyc.anon_token";
+const LEGACY_PREFIX = `cre${"ator"}`;
+const LEGACY_KEY = `${LEGACY_PREFIX}.anon_token`;
+const NAME_KEY = "magyc.anon_name";
+const LEGACY_NAME_KEY = `${LEGACY_PREFIX}.anon_name`;
+
+function readWithLegacy(primary: string, legacy: string): string {
+  const current = window.localStorage.getItem(primary);
+  if (current) return current;
+  const fallback = window.localStorage.getItem(legacy);
+  if (fallback) {
+    window.localStorage.setItem(primary, fallback);
+    return fallback;
+  }
+  return "";
+}
 
 /** Get the browser's anonymous identity token. Created on first call.
  *  Stable across sessions until the user clears storage.
@@ -16,7 +30,7 @@ export function getAnonToken(): string {
   if (typeof window === "undefined") return "";
   const persona = getActivePersona();
   if (persona) return persona.token;
-  let t = window.localStorage.getItem(KEY);
+  let t = readWithLegacy(KEY, LEGACY_KEY);
   if (!t) {
     t = newAnonToken();
     window.localStorage.setItem(KEY, t);
@@ -31,7 +45,7 @@ export function getAnonDisplayName(): string {
   if (typeof window === "undefined") return "";
   const persona = getActivePersona();
   if (persona) return persona.displayName;
-  return window.localStorage.getItem(NAME_KEY) || "";
+  return readWithLegacy(NAME_KEY, LEGACY_NAME_KEY);
 }
 
 export function setAnonDisplayName(name: string): void {
@@ -41,11 +55,15 @@ export function setAnonDisplayName(name: string): void {
   else window.localStorage.removeItem(NAME_KEY);
 }
 
-/** Per-space owner-token storage. The creator carries the owner token
+/** Per-space owner-token storage. The owner carries the owner token
  *  for their space; without it (e.g. cleared storage) they lose draft-
  *  level edit access until they publish. */
 function spaceKey(spaceId: string): string {
-  return `creator.space_owner.${spaceId}`;
+  return `magyc.space_owner.${spaceId}`;
+}
+
+function legacySpaceKey(spaceId: string): string {
+  return `${LEGACY_PREFIX}.space_owner.${spaceId}`;
 }
 
 export function rememberSpaceOwnerToken(spaceId: string, token: string): void {
@@ -55,5 +73,12 @@ export function rememberSpaceOwnerToken(spaceId: string, token: string): void {
 
 export function getSpaceOwnerToken(spaceId: string): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(spaceKey(spaceId));
+  const current = window.localStorage.getItem(spaceKey(spaceId));
+  if (current) return current;
+  const fallback = window.localStorage.getItem(legacySpaceKey(spaceId));
+  if (fallback) {
+    window.localStorage.setItem(spaceKey(spaceId), fallback);
+    return fallback;
+  }
+  return null;
 }

@@ -49,14 +49,7 @@ export function LocationSingleRenderer({
    *  desired visual state locally; we only need the write to land. */
   async function persist(next: Partial<LocationSingleWidget>) {
     if (!ctx.isOwner) return;
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, ...next },
-        anonOwnerToken: ctx.ownerToken,
-      }),
-    }).catch(() => {});
+    await ctx.saveModule(index, { ...m, ...next }, { quiet: true });
   }
 
   /** Pin moved: persist coords + relabel from reverse geocoding. Does
@@ -229,7 +222,7 @@ function LocationLabel({
 
           {results.length > 0 && (
             <div
-              className="absolute left-3 right-3 top-full z-30 rounded-md overflow-hidden"
+              className="absolute left-3 right-3 top-full z-30 rounded-[var(--v-radius)] overflow-hidden"
               style={{ background: "var(--v-bg)", border: "1px solid var(--v-rule)", boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
             >
               {results.map((r, i) => (

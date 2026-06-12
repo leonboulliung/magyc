@@ -72,7 +72,7 @@ export function SpacePrivacy({ space }: { space: Space }) {
             className="flex items-center gap-2"
           >
             <code
-              className="mono text-[10px] tracking-widest px-2 py-1 rounded-md"
+              className="mono text-[10px] tracking-widest px-2 py-1 rounded-[var(--v-radius)]"
               style={{ background: "var(--v-rule)", color: "var(--v-fg)" }}
             >
               {password}

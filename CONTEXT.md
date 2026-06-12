@@ -34,7 +34,7 @@ Tonalität: editorial Schwarz-Weiß-Minimal (Inter + JetBrains Mono), Polymarket
 |---|---|
 | `profiles` | id (= Clerk user id), display_name, avatar_url, bio, socials JSONB `{instagram, telegram, whatsapp, site}`, interests text[], username_changed_at, updated_at |
 | `cards` | id, owner_id → profiles, **kind `idea\|thing`** (default thing), title, description, tags text[], color, location JSONB nullable, spots int nullable, permission nullable, expires_at (=start) nullable, ends_at, external_url, archived bool, created_at |
-| `joiners` | card_id, user_id, role, joined_at — Owner ist auto-joiner mit `role="creator"` |
+| `joiners` | card_id, user_id, role, joined_at — Owner ist auto-joiner mit `role="owner"` |
 | `join_requests` | card_id, user_id, requested_at |
 | `signals` | card_id, user_id, created_at — Resonanz auf eine **Idee** (leichter als joiners) |
 | `follows` | follower_id, following_id, created_at — Folgen; speist die „FOLLOWING"-Sektion im Feld |
@@ -44,7 +44,7 @@ Tonalität: editorial Schwarz-Weiß-Minimal (Inter + JetBrains Mono), Polymarket
 - Genau 1 *Sache* aktiv pro User. Beim POST wird die vorherige auto-archived. Ideen dürfen viele gleichzeitig schweben.
 - "Aktiv" = `!archived AND expires_at > now AND joiners.length < spots`
 - `starts_at` muss in `[now+5min, now+30d]` liegen
-- Andere Joiner-Rollen sind vom Creator custom-benennbar
+- Andere Joiner-Rollen sind vom Owner frei benennbar
 - RLS auf allen Tabellen; Schreibzugriff nur über `supabaseAdmin()` in API-Routes mit Clerk-`auth()`-Validierung
 
 ---
@@ -138,7 +138,7 @@ lib/
 - Carnet-Poster mit PNG-Export
 - Profile-Editor (username, socials, interests)
 - Öffentliches Profil `/u/[id]`
-- Custom-Roles für Joiner durch Creator
+- Custom-Roles für Joiner durch Owner
 - Public-Join vs. Request-Permission
 - Auto-Archive der vorherigen Card
 - Astronomische TOD-Tints auf der Karte

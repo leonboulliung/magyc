@@ -45,13 +45,13 @@ export function RangeRenderer({
           </span>
           <RangeField
             value={m.from}
-            onSave={async (next) => save(ctx.spaceId, index, m, { from: next }, ctx)}
+            onSave={async (next) => save(index, m, { from: next }, ctx)}
             isOwner={ctx.isOwner}
           />
           <span className="opacity-40 mono text-[12px]">→</span>
           <RangeField
             value={m.to}
-            onSave={async (next) => save(ctx.spaceId, index, m, { to: next }, ctx)}
+            onSave={async (next) => save(index, m, { to: next }, ctx)}
             isOwner={ctx.isOwner}
           />
         </div>
@@ -115,21 +115,12 @@ function RangeField({
 }
 
 async function save(
-  spaceId: string,
   index: number,
   m: RangeWidget,
   patch: Partial<RangeWidget>,
   ctx: ReturnType<typeof useWidgetContext>,
 ) {
-  await fetch(`/api/spaces/${spaceId}/widgets/${index}`, {
-    method: "PUT",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      widget: { ...m, ...patch },
-      anonOwnerToken: ctx.ownerToken,
-    }),
-  });
-  ctx.patchModule(index, { ...m, ...patch });
+  await ctx.saveModule(index, { ...m, ...patch });
 }
 
 const ICON_FOR_UNIT: Record<RangeWidget["unit"], string> = {

@@ -53,10 +53,10 @@ export function UploadZone({
         if (res.ok && json.url) {
           results.push({ url: json.url, name: json.name || file.name, size: json.size || file.size, mimeType: json.mimeType || file.type });
         } else {
-          setError("✕");
+          setError(typeof json.error === "string" ? json.error : "upload_failed");
         }
       } catch {
-        setError("✕");
+        setError("upload_failed");
       }
     }
     setBusy(false);
@@ -91,7 +91,7 @@ export function UploadZone({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        className="w-full rounded-md transition-colors flex flex-col items-center justify-center gap-2 py-5"
+        className="w-full rounded-[var(--v-radius)] transition-colors flex flex-col items-center justify-center gap-2 py-5"
         style={{
           border: `1px dashed ${dragging ? "var(--v-fg)" : "var(--v-rule)"}`,
           background: dragging ? "rgba(0,0,0,0.02)" : "transparent",

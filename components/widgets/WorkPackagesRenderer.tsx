@@ -92,7 +92,7 @@ export function WorkPackagesRenderer({
                   transition={{ duration: 0.18 }}
                   onMouseEnter={() => setHover(pkg.label)}
                   onMouseLeave={() => setHover(null)}
-                  className="rounded-md p-3 relative"
+                  className="rounded-[var(--v-radius)] p-3 relative"
                   style={{
                     background: "var(--v-bg)",
                     border: `1px solid ${mine ? "var(--v-fg)" : "var(--v-rule)"}`,

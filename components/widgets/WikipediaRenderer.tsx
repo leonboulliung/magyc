@@ -63,12 +63,11 @@ export function WikipediaRenderer({
   }, [unconfigured, ctx.isOwner, ctx.spaceId, ctx.ownerToken, index]);
 
   async function choose(s: WikipediaWidget) {
-    ctx.patchModule(index, s); // instant
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ widget: s, anonOwnerToken: ctx.ownerToken, resolveExternal: true }),
-    }).catch(() => {});
+    await ctx.saveModule(index, s, {
+      resolveExternal: true,
+      successMessage: "updated",
+      undoModule: m,
+    });
   }
 
   async function applyPasted() {
@@ -77,20 +76,21 @@ export function WikipediaRenderer({
     setBusy(true);
     setError("");
     try {
-      const res = await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          widget: { ...m, topic: extractTitleFromUrl(url) || m.topic, url, extract: undefined, thumbnailUrl: undefined },
-          anonOwnerToken: ctx.ownerToken,
-          resolveExternal: true,
-        }),
+      const ok = await ctx.saveModule(index, {
+        ...m,
+        topic: extractTitleFromUrl(url) || m.topic,
+        url,
+        extract: undefined,
+        thumbnailUrl: undefined,
+      }, {
+        resolveExternal: true,
+        successMessage: "updated",
+        undoModule: m,
       });
-      if (!res.ok) setError("✕");
+      if (!ok) setError("not applied");
       else { setPaste(""); setPasting(false); }
     } finally {
       setBusy(false);
-      ctx.refresh();
     }
   }
 
@@ -130,7 +130,7 @@ export function WikipediaRenderer({
                 key={i}
                 type="button"
                 onClick={() => choose(s)}
-                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-black/[0.04] transition-colors"
+                className="w-full text-left px-2 py-1.5 rounded-[var(--v-radius)] hover:bg-black/[0.04] transition-colors"
               >
                 <div className="text-[13px] font-medium" style={{ color: "var(--v-fg)" }}>{s.topic}</div>
                 {s.extract && (
@@ -208,7 +208,7 @@ export function WikipediaRenderer({
                   onChange={(e) => setPaste(e.target.value)}
                   placeholder="https://…wikipedia.org/wiki/…"
                   maxLength={500}
-                  className="flex-1 mono text-[11px] bg-transparent outline-none px-2 py-1 rounded-md"
+                  className="flex-1 mono text-[11px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
                   style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") { e.preventDefault(); applyPasted(); }

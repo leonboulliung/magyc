@@ -82,7 +82,7 @@ export function PollRenderer({
                 <button
                   type="button"
                   onClick={() => vote(opt)}
-                  className="w-full text-left relative overflow-hidden rounded-md transition-colors"
+                  className="w-full text-left relative overflow-hidden rounded-[var(--v-radius)] transition-colors"
                   style={{
                     border: `1px solid ${selected ? "var(--v-fg)" : "var(--v-rule)"}`,
                     background: "transparent",

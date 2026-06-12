@@ -42,7 +42,7 @@ export function IconRenderer({
       {/* Compact square — small fixed tile the icon nearly fills, so
           the widget hugs its content instead of padding a big card. */}
       <div
-        className="inline-flex items-center justify-center rounded-md"
+        className="inline-flex items-center justify-center rounded-[var(--v-radius)]"
         style={{
           width: 84,
           height: 84,

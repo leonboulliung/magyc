@@ -1,7 +1,7 @@
 -- Roadmap: an ordered list of short labels for a thing — the abstract
--- shape of the steps the creator needs to make it happen. Like custom
--- fields, the AI proposes labels by abstracting what the creator already
--- wrote; the creator owns the order, the wording, and (later) the state.
+-- shape of the steps the owner needs to make it happen. Like custom
+-- fields, the AI proposes labels by abstracting what the owner already
+-- wrote; the owner owns the order, the wording, and (later) the state.
 --
 -- Stored as a JSONB array of strings so we don't have to migrate per-row
 -- and so the order the client sets is preserved.

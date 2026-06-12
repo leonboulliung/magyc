@@ -128,7 +128,7 @@ function LocationEditor({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="…"
-          className="w-full text-[16px] px-3 py-2.5 rounded-lg bg-transparent outline-none"
+          className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
           style={{ border: "1px solid rgba(0,0,0,0.15)" }}
         />
         {searching && (
@@ -142,7 +142,7 @@ function LocationEditor({
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden bg-white"
+              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-white"
               style={{ border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}
             >
               {results.map((r, i) => (
@@ -163,7 +163,7 @@ function LocationEditor({
 
       {/* Mini map with the picked pin (draggable) */}
       {selected && (
-        <div className="rounded-lg overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.12)" }}>
+        <div className="rounded-[var(--v-radius)] overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.12)" }}>
           <MapCanvas
             height={180}
             deps={[mapVersion]}
@@ -311,7 +311,7 @@ function MultiPointEditor({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="…"
-          className="w-full text-[16px] px-3 py-2.5 rounded-lg bg-transparent outline-none"
+          className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
           style={{ border: "1px solid rgba(0,0,0,0.15)" }}
         />
         {searching && (
@@ -323,7 +323,7 @@ function MultiPointEditor({
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden bg-white"
+              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-white"
               style={{ border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}
             >
               {results.map((r, i) => (
@@ -365,7 +365,7 @@ function MultiPointEditor({
 
       {/* Map with all pins (+ route line) */}
       {points.length > 0 && (
-        <div className="rounded-lg overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.12)" }}>
+        <div className="rounded-[var(--v-radius)] overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.12)" }}>
           <MapCanvas
             height={180}
             deps={[mapVersion]}
@@ -454,7 +454,7 @@ function PhasesEditor({
               onChange={(e) => setLabel(i, e.target.value)}
               placeholder="…"
               maxLength={80}
-              className="flex-1 text-[15px] px-3 py-2 rounded-lg bg-transparent outline-none"
+          className="flex-1 text-[15px] px-3 py-2 rounded-[var(--v-radius)] bg-transparent outline-none"
               style={{ border: "1px solid rgba(0,0,0,0.12)" }}
             />
             <div className="flex items-center gap-0.5 shrink-0">
@@ -506,7 +506,7 @@ function DateEditor({
         setDate(e.target.value);
         onChange(e.target.value ? { type: "date", date: e.target.value } : null);
       }}
-      className="text-[16px] px-3 py-2.5 rounded-lg bg-transparent outline-none"
+      className="text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
       style={{ border: "1px solid rgba(0,0,0,0.15)" }}
     />
   );

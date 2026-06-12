@@ -52,12 +52,7 @@ export function GifRenderer({
     setResults([]);
     setQuery("");
     const next = { ...m, gifUrl: r.gifUrl, thumbnailUrl: r.thumbnailUrl };
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ widget: next, anonOwnerToken: ctx.ownerToken }),
-    });
-    ctx.patchModule(index, next);
+    await ctx.saveModule(index, next, { successMessage: "updated", undoModule: m });
   }
 
   // A freshly-added GIF carries a placeholder loading.gif — treat that

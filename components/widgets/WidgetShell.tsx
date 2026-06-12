@@ -72,7 +72,7 @@ export function WidgetShell({
         body: JSON.stringify({ anonToken: ctx.ownerToken }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setError("✕"); return; }
+      if (!res.ok) { setError("not loaded"); return; }
       setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
     } finally {
       setBusy(false);
@@ -93,9 +93,9 @@ export function WidgetShell({
         body: JSON.stringify({ count: 1, basePrompt: guidance, anonToken: ctx.ownerToken }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setError("✕"); return; }
+      if (!res.ok) { setError("not applied"); return; }
       const next = Array.isArray(json.suggestions) ? json.suggestions[0] : null;
-      if (!next) { setError("✕"); return; }
+      if (!next) { setError("no result"); return; }
       await pick(next as Module);
       setBubbleOpen(false);
       setPrompt("");
@@ -109,14 +109,11 @@ export function WidgetShell({
     setSuggestions([]);
     if (onPick) {
       await onPick(s);
-      ctx.refresh();
     } else {
-      await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ widget: s, anonOwnerToken: ctx.ownerToken }),
+      await ctx.saveModule(index, s, {
+        successMessage: "updated",
+        undoModule: m,
       });
-      ctx.patchModule(index, s);
     }
   }
 
@@ -155,6 +152,7 @@ export function WidgetShell({
                   type="button"
                   disabled={busy}
                   aria-label="edit with prompt"
+                  title="Edit with prompt"
                   className="mono text-[11px] w-7 h-7 rounded-full flex items-center justify-center"
                   style={{ ...affordanceStyle(bubbleOpen), color: bubbleOpen ? "var(--v-bg)" : "var(--v-accent, var(--v-fg))" }}
                 >
@@ -178,6 +176,7 @@ export function WidgetShell({
                   onClick={submitPrompt}
                   disabled={busy || !prompt.trim()}
                   aria-label="apply"
+                  title="Apply"
                   className="mono text-[13px] opacity-60 hover:opacity-100 disabled:opacity-25"
                   style={{ color: "var(--v-fg)" }}
                 >
@@ -188,6 +187,7 @@ export function WidgetShell({
                 <button
                   type="button"
                   onClick={() => { setBubbleOpen(false); setPrompt(""); onManualEdit(); }}
+                  title="Edit manually"
                   className="w-full text-left px-3 py-2 mono text-[10px] tracking-widest opacity-50 hover:opacity-90 transition-opacity flex items-center gap-2"
                   style={{ borderTop: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                 >
@@ -210,6 +210,7 @@ export function WidgetShell({
                   type="button"
                   disabled={busy}
                   aria-label="alternatives"
+                  title="Alternatives"
                   className="mono text-[11px] w-7 h-7 rounded-full flex items-center justify-center"
                   style={affordanceStyle(altOpen)}
                 >
@@ -221,7 +222,7 @@ export function WidgetShell({
                 <div className="px-3 py-4 mono text-[11px] tracking-widest opacity-40 text-center">…</div>
               )}
               {!busy && suggestions.length === 0 && (
-                <div className="px-3 py-4 mono text-[11px] tracking-widest opacity-40 text-center">✕</div>
+                <div className="px-3 py-4 mono text-[11px] tracking-widest opacity-40 text-center">none</div>
               )}
               {suggestions.length > 0 && (
                 <>
@@ -252,6 +253,7 @@ export function WidgetShell({
                       onClick={fetchSuggestions}
                       disabled={busy}
                       aria-label="more"
+                      title="More alternatives"
                       className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100"
                     >
                       {busy ? "…" : "↻"}

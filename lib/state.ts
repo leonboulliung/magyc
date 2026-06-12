@@ -72,15 +72,21 @@ export function makeOptimisticEntry(
   moduleIndex: number,
   kind: ModuleStateKind,
   data: Record<string, unknown>,
+  actor?: { id: string; kind: "anon" | "user"; displayName?: string },
 ): ModuleStateEntry {
+  const currentActor = actor ?? {
+    kind: "anon" as const,
+    id: getSelfId(),
+    displayName: getAnonDisplayName() || undefined,
+  };
   return {
     id: `tmp_${Math.random().toString(36).slice(2, 10)}`,
     spaceId,
     moduleIndex,
     actor: {
-      kind: "anon",
-      id: getSelfId(),
-      displayName: getAnonDisplayName() || undefined,
+      kind: currentActor.kind,
+      id: currentActor.id,
+      displayName: currentActor.displayName,
       color: getMyColor(),
     },
     kind,
@@ -146,9 +152,10 @@ export function applyActionLocally(
 export function mergeRealtimeInsert(
   entries: ModuleStateEntry[],
   incoming: ModuleStateEntry,
+  selfActorId = getSelfId(),
 ): ModuleStateEntry[] {
   let next = entries;
-  if (incoming.actor.id === getSelfId()) {
+  if (incoming.actor.id === selfActorId) {
     const i = next.findIndex(
       (e) => e.id.startsWith("tmp_") &&
         e.moduleIndex === incoming.moduleIndex &&

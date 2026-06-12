@@ -7,7 +7,7 @@ import { motion } from "motion/react";
  * EnterKey — the commit button shaped like a real ISO/return key.
  *
  * Drawn as an SVG path so every corner — including the CONCAVE notch
- * corner (top-left) — is rounded to 6px, the same radius the Thing-page
+ * corner (top-left) — is rounded to the same radius the Thing-page
  * widget cards use. That concave corner is what lets the key dock
  * cleanly against the input card's bottom-right corner (the card's
  * convex corner nestles into the notch, with a little air). The label
@@ -18,7 +18,7 @@ const W = 104;
 const H = 88;
 const NX = 44; // notch width
 const NY = 42; // notch height
-const R = 6;   // corner radius — matches Thing-page widgets
+const R = 20;   // corner radius — matches Thing-page widgets
 
 // Rounded ISO-enter outline: notch top-left, every corner radiused R
 // (the notch's inner corner is concave → opposite arc sweep).

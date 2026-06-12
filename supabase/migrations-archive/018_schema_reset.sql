@@ -1,5 +1,5 @@
 -- ============================================================
--- 018 — Schema reset for the "Creator" rebuild.
+-- 018 — Schema reset for the MAGYC rebuild.
 --
 -- The idea/thing duality goes away. A card is a card. Whether it feels
 -- like an idea or a project to you depends on whether YOU joined it.

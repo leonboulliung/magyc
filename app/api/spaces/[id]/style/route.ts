@@ -10,8 +10,8 @@ import { parseBody } from "@/lib/api/validate";
  *   Body: { style: SpaceStyle, anonOwnerToken?: string }
  *
  * Replace the space's visual style. Owner-only (anon token on drafts,
- * Clerk session on published). The style does NOT create a version
- * snapshot — it's presentation, not content.
+ * Clerk owner account on published). The style does NOT create a
+ * version snapshot — it's presentation, not content.
  */
 export async function PUT(
   req: Request,
@@ -41,7 +41,7 @@ export async function PUT(
     if (tok.length < 16 || tok !== space.anon_owner_token) {
       return NextResponse.json({ error: "owner_token_mismatch" }, { status: 403 });
     }
-  } else if (!userId) {
+  } else if (!userId || !space.owner_id || userId !== space.owner_id) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -57,30 +57,14 @@ export function RichTextRenderer({
     const next = titleDraft.trim();
     setEditingTitle(false);
     if (next === (m.microTitle ?? "")) return;
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, microTitle: next || undefined },
-        anonOwnerToken: ctx.ownerToken,
-      }),
-    });
-    ctx.patchModule(index, { ...m, microTitle: next || undefined });
+    await ctx.saveModule(index, { ...m, microTitle: next || undefined });
   }
 
   async function saveBody() {
     const next = bodyDraft;
     setEditingBody(false);
     if (next === m.text) return;
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, text: next },
-        anonOwnerToken: ctx.ownerToken,
-      }),
-    });
-    ctx.patchModule(index, { ...m, text: next });
+    await ctx.saveModule(index, { ...m, text: next });
   }
 
   const emptyBody = !m.text.trim();

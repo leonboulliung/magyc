@@ -34,7 +34,7 @@ async function authorize(
     const tok = typeof body.anonOwnerToken === "string" ? body.anonOwnerToken.trim() : "";
     return tok.length >= 16 && tok === space.anon_owner_token;
   }
-  return !!userId;
+  return !!userId && !!space.owner_id && userId === space.owner_id;
 }
 
 export async function POST(

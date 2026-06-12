@@ -20,8 +20,8 @@ const clerkAppearance = {
 };
 
 export const metadata: Metadata = {
-  title: "Creator",
-  description: "",
+  title: "MAGYC",
+  description: "Turn early ideas into shareable, collaborative spaces.",
 };
 
 export const viewport: Viewport = {

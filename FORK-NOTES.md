@@ -1,6 +1,6 @@
 # Fork Notes — `fork/emergent-design`
 
-An exploratory fork of Creator.Paris that reshapes the core object model around
+An exploratory fork of an earlier MAGYC iteration that reshapes the core object model around
 the real vision: **collapse the gap between having an idea and it becoming real.**
 A thought becomes real by being shared. *Aus Mensch und Idee wird Gemeinschaft
 und Sache.*

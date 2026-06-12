@@ -62,10 +62,11 @@ export function Popover({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.97 }}
               transition={{ duration: 0.16 }}
-              className="rounded-md overflow-hidden"
+              className="rounded-[var(--v-radius)] overflow-hidden"
               style={{
                 zIndex: 50,
                 width,
+                maxWidth: "calc(100vw - 24px)",
                 background: "var(--v-bg)",
                 border: "1px solid var(--v-rule)",
                 boxShadow: "0 8px 32px rgba(0,0,0,0.12)",

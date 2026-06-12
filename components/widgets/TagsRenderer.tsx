@@ -34,15 +34,7 @@ export function TagsRenderer({
   }, [adding]);
 
   async function commit(next: string[]) {
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, tags: next },
-        anonOwnerToken: ctx.ownerToken,
-      }),
-    });
-    ctx.patchModule(index, { ...m, tags: next });
+    await ctx.saveModule(index, { ...m, tags: next });
   }
 
   async function add() {

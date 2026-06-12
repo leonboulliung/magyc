@@ -108,7 +108,7 @@ export function QaRenderer({
               rows={2}
               maxLength={600}
               placeholder="?"
-              className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-md"
+              className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
           ) : (
@@ -148,7 +148,7 @@ function QuestionBlock({
   }
 
   return (
-    <div className="rounded-md p-3" style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}>
+    <div className="rounded-[var(--v-radius)] p-3" style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}>
       <div className="flex items-start gap-2.5">
         <ActorDot
           color={typeof q.data.color === "string" ? (q.data.color as string) : undefined}
@@ -201,7 +201,7 @@ function QuestionBlock({
             rows={2}
             maxLength={600}
             placeholder="…"
-            className="w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-md"
+            className="w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           />
         ) : (

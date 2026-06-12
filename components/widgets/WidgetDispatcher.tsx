@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 import { useWidgetContext } from "@/lib/widgetContext";
 import { label } from "@/lib/labels";
@@ -24,30 +25,24 @@ import { DiscussionRenderer } from "./DiscussionRenderer";
 
 // Phase 3
 import { WikipediaRenderer } from "./WikipediaRenderer";
-import { IconRenderer } from "./IconRenderer";
 import { DateRenderer } from "./DateRenderer";
 import { AppointmentRenderer } from "./AppointmentRenderer";
 import { AppointmentsRenderer } from "./AppointmentsRenderer";
 
 // Phase 4
-import { LocationSingleRenderer } from "./LocationSingleRenderer";
-import { LocationsMultiRenderer } from "./LocationsMultiRenderer";
-import { LocationSuggestionsRenderer } from "./LocationSuggestionsRenderer";
-import { RouteRenderer } from "./RouteRenderer";
-
-// Phase 5
 import { PhasesRenderer } from "./PhasesRenderer";
 
 // Phase 6
-import { AttachmentsRenderer } from "./AttachmentsRenderer";
-import { ImagesRenderer } from "./ImagesRenderer";
-import { AudioRenderer } from "./AudioRenderer";
-
-// Phase 7
-import { GifRenderer } from "./GifRenderer";
-
-// Phase 8
-import { SketchRenderer } from "./SketchRenderer";
+const IconRenderer = dynamic(() => import("./IconRenderer").then((mod) => mod.IconRenderer), { loading: () => <LoadingPlaceholder type="icon" /> });
+const LocationSingleRenderer = dynamic(() => import("./LocationSingleRenderer").then((mod) => mod.LocationSingleRenderer), { loading: () => <LoadingPlaceholder type="location_single" /> });
+const LocationsMultiRenderer = dynamic(() => import("./LocationsMultiRenderer").then((mod) => mod.LocationsMultiRenderer), { loading: () => <LoadingPlaceholder type="locations_multi" /> });
+const LocationSuggestionsRenderer = dynamic(() => import("./LocationSuggestionsRenderer").then((mod) => mod.LocationSuggestionsRenderer), { loading: () => <LoadingPlaceholder type="location_suggestions" /> });
+const RouteRenderer = dynamic(() => import("./RouteRenderer").then((mod) => mod.RouteRenderer), { loading: () => <LoadingPlaceholder type="route" /> });
+const AttachmentsRenderer = dynamic(() => import("./AttachmentsRenderer").then((mod) => mod.AttachmentsRenderer), { loading: () => <LoadingPlaceholder type="attachments" /> });
+const ImagesRenderer = dynamic(() => import("./ImagesRenderer").then((mod) => mod.ImagesRenderer), { loading: () => <LoadingPlaceholder type="images" /> });
+const AudioRenderer = dynamic(() => import("./AudioRenderer").then((mod) => mod.AudioRenderer), { loading: () => <LoadingPlaceholder type="audio" /> });
+const GifRenderer = dynamic(() => import("./GifRenderer").then((mod) => mod.GifRenderer), { loading: () => <LoadingPlaceholder type="gif" /> });
+const SketchRenderer = dynamic(() => import("./SketchRenderer").then((mod) => mod.SketchRenderer), { loading: () => <LoadingPlaceholder type="sketch" /> });
 
 /**
  * Single entry point for rendering a widget. Each Phase adds renderers
@@ -156,7 +151,7 @@ function PendingPlaceholder({ type }: { type: string }) {
   const ctx = useWidgetContext();
   return (
     <div
-      className="rounded-md p-4 h-full min-h-[120px] flex flex-col gap-2"
+      className="rounded-[var(--v-radius)] p-4 h-full min-h-[120px] flex flex-col gap-2"
       style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}
     >
       <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-muted)" }}>
@@ -167,4 +162,8 @@ function PendingPlaceholder({ type }: { type: string }) {
       </div>
     </div>
   );
+}
+
+function LoadingPlaceholder({ type }: { type: string }) {
+  return <PendingPlaceholder type={type} />;
 }

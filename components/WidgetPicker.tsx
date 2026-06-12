@@ -232,10 +232,13 @@ export function WidgetPickerContent({
   const emergent = ctx.labels.widgetLabels;
 
   return (
-    <div style={{ width: 280, maxHeight: "min(60vh, 380px)", overflowY: "auto" }}>
+    <div style={{ width: "min(360px, calc(100vw - 24px))", maxHeight: "min(70vh, 460px)", overflowY: "auto" }}>
       {GROUPS.map((group, gi) => (
         <div key={gi} style={{ borderBottom: gi < GROUPS.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
-          <div className="grid grid-cols-2 gap-0.5 p-1.5">
+          <div
+            className="grid gap-0.5 p-1.5"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))" }}
+          >
             {group.entries.map((e) => (
               <motion.button
                 key={e.type}
@@ -244,7 +247,8 @@ export function WidgetPickerContent({
                   const w = defaultWidget(e.type);
                   if (w) onPick(w);
                 }}
-                className="flex items-center gap-2 px-2.5 py-2 rounded text-left"
+                title={labelFor(e.type, lang, emergent)}
+                className="flex items-center gap-2 px-2.5 py-2.5 rounded text-left min-h-[40px]"
                 whileHover={{ background: "rgba(0,0,0,0.04)" }}
                 transition={{ duration: 0.1 }}
               >
@@ -259,6 +263,12 @@ export function WidgetPickerContent({
           </div>
         </div>
       ))}
+      <div
+        className="px-3 py-2 mono text-[9px] tracking-widest opacity-45"
+        style={{ borderTop: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
+      >
+        26 body widgets · heading + text + tags stay fixed at the top
+      </div>
     </div>
   );
 }

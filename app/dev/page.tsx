@@ -130,6 +130,7 @@ export default function DevPage() {
         ownerToken: null,
         refresh: () => {},
         patchModule: () => {},
+        saveModule: async () => true,
         act,
       }}
     >

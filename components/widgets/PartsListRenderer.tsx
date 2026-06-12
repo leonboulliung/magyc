@@ -162,7 +162,7 @@ export function PartsListRenderer({
                 onChange={(e) => setPendingName(e.target.value)}
                 placeholder="…"
                 maxLength={120}
-                className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-md"
+                className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
                 style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
               />
               <div className="flex gap-1.5">
@@ -171,7 +171,7 @@ export function PartsListRenderer({
                   onChange={(e) => setPendingQty(e.target.value)}
                   placeholder="#"
                   maxLength={40}
-                  className="flex-1 mono text-[11px] bg-transparent outline-none px-2 py-1 rounded-md"
+                  className="flex-1 mono text-[11px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
                   style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                 />
                 <input
@@ -179,7 +179,7 @@ export function PartsListRenderer({
                   onChange={(e) => setPendingUrl(e.target.value)}
                   placeholder="https://…"
                   maxLength={500}
-                  className="flex-[2] mono text-[11px] bg-transparent outline-none px-2 py-1 rounded-md"
+                  className="flex-[2] mono text-[11px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
                   style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                 />
                 <button

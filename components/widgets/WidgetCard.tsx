@@ -23,7 +23,7 @@ export function WidgetCard({
 }) {
   return (
     <motion.div
-      className={`rounded-md ${bare ? "" : "p-4"}`}
+      className={`rounded-[var(--v-radius)] ${bare ? "" : "p-4"}`}
       style={{
         // Body widgets carry the space's secondary colour (color2):
         // a faint wash for the surface + a softened accent frame.

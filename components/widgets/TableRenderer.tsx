@@ -24,12 +24,7 @@ export function TableRenderer({
   const ctx = useWidgetContext();
 
   async function save(next: TableWidget) {
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ widget: next, anonOwnerToken: ctx.ownerToken }),
-    });
-    ctx.patchModule(index, next);
+    await ctx.saveModule(index, next);
   }
 
   function setCell(r: number, c: number, value: string) {

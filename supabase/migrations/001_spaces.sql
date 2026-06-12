@@ -4,11 +4,11 @@
 -- A "space" is the collaborative workspace that emerges from a single
 -- piece of text input. The AI classifies the input, picks 3–7 modules
 -- from a fixed registry (15 types), configures each, and stores the
--- result here. Visitors arrive via the URL; the creator publishes when
+-- result here. Visitors arrive via the URL; the owner publishes when
 -- they're ready, which is the first moment auth is required.
 --
 -- Three identity tiers:
---   1. Anonymous browser token   — local UUID, the creator carries it.
+--   1. Anonymous browser token   — local UUID, the owner carries it.
 --                                  Without it, edit access to one's own
 --                                  space is lost (acceptable for drafts).
 --   2. Anonymous contributor     — visitor with their own browser token
@@ -38,11 +38,11 @@ create table if not exists spaces (
   modules           jsonb not null default '[]'::jsonb,          -- typed module configs
 
   -- Anonymous owner identifier. Set at creation, stored in the
-  -- creator's browser localStorage. Until publish, this is the only
+  -- owner's browser localStorage. Until publish, this is the only
   -- way to edit a space.
   anon_owner_token  text not null,
 
-  -- Set when the creator publishes — binds the anon token to a
+  -- Set when the owner publishes — binds the anon token to a
   -- Clerk user. From that point on, ownership is by user_id.
   owner_id          text references profiles(id) on delete set null,
 

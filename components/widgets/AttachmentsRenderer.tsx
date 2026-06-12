@@ -89,7 +89,7 @@ export function AttachmentsRenderer({
           moduleIndex={index}
           accept="*/*"
           multiple
-          onDone={() => ctx.refresh()}
+          onDone={() => {}}
         >
           <span className="mono text-[10px] tracking-widest opacity-60">↑</span>
         </UploadZone>

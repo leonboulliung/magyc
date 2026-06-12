@@ -26,15 +26,7 @@ export function DateRenderer({
   async function save(next: string) {
     setEditing(false);
     if (next === m.date) return;
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, date: next },
-        anonOwnerToken: ctx.ownerToken,
-      }),
-    });
-    ctx.patchModule(index, { ...m, date: next });
+    await ctx.saveModule(index, { ...m, date: next });
   }
 
   const parts = formatDate(m.date, ctx.language);
@@ -54,7 +46,7 @@ export function DateRenderer({
                 else if (e.key === "Escape") { setEditing(false); }
               }}
               className="bg-transparent outline-none mono text-[13px] text-center"
-              style={{ color: "var(--v-fg)", border: "1px solid var(--v-rule)", borderRadius: 6, padding: "6px 10px" }}
+              style={{ color: "var(--v-fg)", border: "1px solid var(--v-rule)", borderRadius: "var(--v-radius)", padding: "6px 10px" }}
             />
           ) : (
             <button

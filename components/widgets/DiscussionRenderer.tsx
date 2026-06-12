@@ -109,7 +109,7 @@ export function DiscussionRenderer({
               rows={2}
               maxLength={1500}
               placeholder="…"
-              className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-md"
+              className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
           ) : (
@@ -117,7 +117,7 @@ export function DiscussionRenderer({
               type="button"
               onClick={() => setOpen(true)}
               aria-label="write a message"
-              className={`flex items-center gap-2 mono text-[11px] tracking-widest px-3 py-2 rounded-md opacity-70 hover:opacity-100 transition-opacity ${tops.length === 0 ? "w-full" : ""}`}
+              className={`flex items-center gap-2 mono text-[11px] tracking-widest px-3 py-2 rounded-[var(--v-radius)] opacity-70 hover:opacity-100 transition-opacity ${tops.length === 0 ? "w-full" : ""}`}
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
             >
               <span aria-hidden>↩</span>
@@ -196,7 +196,7 @@ function MessageNode({
               rows={2}
               maxLength={1000}
               placeholder="…"
-              className="mt-2 w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-md"
+              className="mt-2 w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
           )}

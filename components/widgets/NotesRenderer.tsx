@@ -72,21 +72,26 @@ export function NotesRenderer({
 
         <div className="mt-3">
           {adding ? (
-            <textarea
-              autoFocus
-              value={pending}
-              onChange={(e) => setPending(e.target.value)}
-              onBlur={add}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); add(); }
-                else if (e.key === "Escape") { setPending(""); setAdding(false); }
-              }}
-              maxLength={1000}
-              placeholder="…"
-              rows={2}
-              className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-md"
-              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
-            />
+            <div className="space-y-1.5">
+              <textarea
+                autoFocus
+                value={pending}
+                onChange={(e) => setPending(e.target.value)}
+                onBlur={add}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); add(); }
+                  else if (e.key === "Escape") { setPending(""); setAdding(false); }
+                }}
+                maxLength={1000}
+                placeholder="…"
+                rows={2}
+                className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
+                style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+              />
+              <p className="mono text-[9px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
+                Ctrl/⌘ + Enter saves
+              </p>
+            </div>
           ) : (
             <button
               type="button"
@@ -152,7 +157,7 @@ function NoteCard({
 
   return (
     <div
-      className="rounded-md p-3 transition-colors"
+      className="rounded-[var(--v-radius)] p-3 transition-colors"
       style={{
         background: "var(--v-bg)",
         border: "1px solid var(--v-rule)",
@@ -161,20 +166,25 @@ function NoteCard({
       <div className="flex items-start gap-2.5">
         <ActorDot color={note.authorColor} displayName={note.authorName} size={16} />
         {editing ? (
-          <textarea
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={save}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
-              else if (e.key === "Escape") { setDraft(note.text); setEditing(false); }
-            }}
-            rows={3}
-            maxLength={1000}
-            className="flex-1 text-[13px] leading-relaxed bg-transparent border-0 outline-none resize-none"
-            style={{ color: "var(--v-fg)" }}
-          />
+          <div className="flex-1 space-y-1.5">
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={save}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
+                else if (e.key === "Escape") { setDraft(note.text); setEditing(false); }
+              }}
+              rows={3}
+              maxLength={1000}
+              className="w-full text-[13px] leading-relaxed bg-transparent border-0 outline-none resize-none"
+              style={{ color: "var(--v-fg)" }}
+            />
+            <p className="mono text-[9px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
+              Ctrl/⌘ + Enter saves
+            </p>
+          </div>
         ) : (
           <div
             onClick={() => setEditing(true)}

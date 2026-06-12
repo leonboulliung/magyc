@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -17,6 +18,9 @@ interface Answer {
   questionText: string;
   choice: string;
 }
+
+const CLARIFY_TIMEOUT_MS = 25_000;
+const BUILD_TIMEOUT_MS = 45_000;
 
 /**
  * Read a human error string out of an API (or Vercel platform) error
@@ -36,6 +40,35 @@ function apiError(json: unknown, status: number): string {
     return null;
   };
   return pick(j.detail) || pick(j.error) || (status === 504 ? "timeout" : `error ${status}`);
+}
+
+async function fetchJsonWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    const json = await res.json().catch(() => ({}));
+    return { res, json };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("timeout");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+function formatFlowError(message: string, extra?: { retryInSeconds?: unknown }): string {
+  if (message === "timeout") return "This took too long. Please try again.";
+  if (message === "rate_limited" && typeof extra?.retryInSeconds === "number") {
+    return `Please wait ${extra.retryInSeconds}s and try again.`;
+  }
+  if (message === "input_too_short") return "Please add a little more detail.";
+  if (message === "ai_not_configured") return "The AI backend is not configured yet.";
+  if (message === "openai_rate_limited") return "The AI is busy right now. Please try again.";
+  if (message === "clarify_failed" || message === "classify_failed") return "The request did not complete. Please try again.";
+  return message;
 }
 
 /** Slide variants for the per-step transition. */
@@ -72,6 +105,7 @@ export default function HomePage() {
   const [customDraft, setCustomDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [statusText, setStatusText] = useState("");
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dotFieldRef = useRef<DotFieldHandle>(null);
   const enterKeyRef = useRef<HTMLButtonElement>(null);
@@ -104,18 +138,23 @@ export default function HomePage() {
     if (trimmed.length < 3) return;
     setBusy(true);
     setError("");
+    setStatusText("Thinking through the first questions…");
     try {
-      const res = await fetch("/api/spaces/clarify", {
+      const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ input: trimmed, anonToken: getAnonToken() }),
-      });
-      const json = await res.json().catch(() => ({}));
+      }, CLARIFY_TIMEOUT_MS);
       if (!res.ok) {
-        setError(apiError(json, res.status));
+        setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
         return;
       }
-      setSteps(Array.isArray(json.steps) ? json.steps : []);
+      const nextSteps = Array.isArray(json.steps) ? json.steps : [];
+      if (nextSteps.length === 0) {
+        setError("No clarification steps came back. Please try again.");
+        return;
+      }
+      setSteps(nextSteps);
       setLanguage(json.language || "en");
       setAnswers({});
       setConfigured({});
@@ -123,10 +162,12 @@ export default function HomePage() {
       setDirection(1);
       setCustomDraft("");
       setStage("clarify");
-    } catch {
-      setError("✕");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "clarify_failed";
+      setError(formatFlowError(message));
     } finally {
       setBusy(false);
+      setStatusText("");
       dotFieldRef.current?.setThinking(false);
     }
   }
@@ -180,6 +221,7 @@ export default function HomePage() {
     setBusy(true);
     setStage("building");
     setError("");
+    setStatusText("Building your space…");
     // Choice + text steps become Q&A pairs; module steps become
     // pre-configured Modules. The classifier consumes both unchanged.
     const payloadAnswers: Answer[] = steps
@@ -191,26 +233,28 @@ export default function HomePage() {
       .map((s) => configured[s.id])
       .filter(Boolean);
     try {
-      const res = await fetch("/api/spaces", {
+      const { res, json } = await fetchJsonWithTimeout("/api/spaces", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ input: text.trim(), answers: payloadAnswers, configuredModules, anonToken: getAnonToken() }),
-      });
-      const json = await res.json().catch(() => ({}));
+      }, BUILD_TIMEOUT_MS);
       if (!res.ok) {
-        setError(apiError(json, res.status));
+        setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
         setStage("clarify");
         setBusy(false);
+        setStatusText("");
         dotFieldRef.current?.setThinking(false);
         return;
       }
       if (json.anonOwnerToken) rememberSpaceOwnerToken(json.id, json.anonOwnerToken);
       // Keep pulsing — navigation unmounts the page on success.
       router.push(`/s/${json.id}`);
-    } catch {
-      setError("✕");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "classify_failed";
+      setError(formatFlowError(message));
       setStage("clarify");
       setBusy(false);
+      setStatusText("");
       dotFieldRef.current?.setThinking(false);
     }
   }
@@ -224,34 +268,37 @@ export default function HomePage() {
     !currentStep.options.some((o) => o.value === currentAnswer);
 
   return (
-    // fixed inset-0 locks the home to the viewport — no page scroll or
-    // rubber-band bounce on mobile. Other routes (the space view) keep
-    // their normal scrolling.
     <main
       className="fixed inset-0 text-black flex flex-col overflow-hidden"
-      style={{ background: "#fafafa", overscrollBehavior: "none" }}
+      style={{ background: "#f5f3ee", overscrollBehavior: "none" }}
     >
-      {/* Infinite dot field — the signature surface, behind everything. */}
       <div className="fixed inset-0 z-0">
         <DotField ref={dotFieldRef} />
       </div>
 
-      {/* Brand watermark — large, full-bleed, very low opacity. */}
-      <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo.png"
-          alt=""
-          aria-hidden
-          draggable={false}
-          className="select-none"
-          style={{ width: "min(1200px, 94vw)", maxWidth: "none", opacity: 0.08 }}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-        />
-      </div>
+      <div
+        className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-4 sm:px-10 pb-8 min-h-0"
+        style={{ paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
+      >
+        <div className="w-full max-w-3xl mx-auto flex flex-col gap-[clamp(24px,5vh,56px)] mt-[clamp(24px,5vh,56px)]">
+          <div
+            className="mx-auto w-fit px-4 py-3.5 sm:px-6 sm:py-4 rounded-[20px]"
+            style={{
+              background: "#ffffff",
+              border: "1px solid rgba(0,0,0,0.08)",
+              boxShadow: "0 18px 44px rgba(0,0,0,0.08)",
+            }}
+          >
+            <Image
+              src="/magyc-marble-2048x2048.png"
+              alt="MAGYC"
+              width={1128}
+              height={310}
+              priority
+              className="block h-[46px] sm:h-[50px] md:h-[56px] w-auto select-none"
+            />
+          </div>
 
-      <section className="relative z-10 flex-1 flex items-center justify-center px-6 py-8 min-h-0">
-        <div className="w-full max-w-2xl">
           <AnimatePresence mode="wait" initial={false}>
 
             {stage === "input" && (
@@ -264,7 +311,7 @@ export default function HomePage() {
                 className="flex flex-col gap-5"
               >
                 <div
-                  className="w-full rounded-3xl p-6 sm:p-8"
+                  className="w-full rounded-[20px] p-5 sm:p-8"
                   style={{
                     background: "#fff",
                     border: "1px solid rgba(0,0,0,0.06)",
@@ -293,16 +340,26 @@ export default function HomePage() {
                       {text.length > 0 ? `${text.length}/1200` : ""}
                     </span>
                   </div>
+                  {!busy && (
+                    <p className="mt-2 text-[13px] opacity-45 leading-relaxed">
+                      Start with a rough idea, a plan, or a prompt.
+                    </p>
+                  )}
                 </div>
 
                 {/* Enter key — simply bottom-right, below the card. */}
-                <div className="flex justify-end">
+                <div className="flex flex-col items-end gap-3">
                   <EnterKey
                     ref={enterKeyRef}
                     onPress={submitInput}
                     disabled={busy || text.trim().length < 3}
                     busy={busy}
                   />
+                  {statusText && (
+                    <p className="mono text-[10px] tracking-widest opacity-45 text-right">
+                      {statusText}
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -314,7 +371,7 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="rounded-3xl p-6 sm:p-9"
+                className="rounded-[20px] p-5 sm:p-9"
                 style={{
                   background: "#fff",
                   border: "1px solid rgba(0,0,0,0.06)",
@@ -400,7 +457,7 @@ export default function HomePage() {
                             rows={3}
                             maxLength={currentStep.maxLength ?? 240}
                             placeholder={currentStep.placeholder ?? "…"}
-                            className="w-full text-[16px] leading-relaxed p-3 rounded-lg bg-transparent outline-none resize-none placeholder:text-black/25"
+                            className="w-full text-[16px] leading-relaxed p-3 rounded-[20px] bg-transparent outline-none resize-none placeholder:text-black/25"
                             style={{ border: "1px solid rgba(0,0,0,0.15)" }}
                           />
                         </>
@@ -508,14 +565,14 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="rounded-3xl py-20"
+                className="rounded-[20px] py-20"
                 style={{
                   background: "#fff",
                   border: "1px solid rgba(0,0,0,0.06)",
                   boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
                 }}
               >
-                <BuildingScreen inputText={text} />
+                <BuildingScreen inputText={text} statusText={statusText} />
               </motion.div>
             )}
 
@@ -531,11 +588,7 @@ export default function HomePage() {
             </motion.p>
           )}
         </div>
-      </section>
-
-      <footer className="relative z-10 px-6 py-3 mono text-[9px] tracking-widest text-center opacity-30">
-        <span>magyc.site</span>
-      </footer>
+      </div>
     </main>
   );
 }
@@ -545,7 +598,7 @@ export default function HomePage() {
  * Extracts key words from the input and cycles them with a fade animation
  * so the loading state feels specific to this particular space.
  */
-function BuildingScreen({ inputText }: { inputText: string }) {
+function BuildingScreen({ inputText, statusText }: { inputText: string; statusText?: string }) {
   const words = inputText
     .trim()
     .split(/\s+/)
@@ -554,6 +607,7 @@ function BuildingScreen({ inputText }: { inputText: string }) {
 
   const displayWords = words.length > 0 ? words : ["…"];
   const [idx, setIdx] = useState(0);
+  const [showSlowHint, setShowSlowHint] = useState(false);
 
   useEffect(() => {
     if (displayWords.length <= 1) return;
@@ -561,8 +615,14 @@ function BuildingScreen({ inputText }: { inputText: string }) {
     return () => clearInterval(id);
   }, [displayWords.length]);
 
+  useEffect(() => {
+    setShowSlowHint(false);
+    const id = window.setTimeout(() => setShowSlowHint(true), 12000);
+    return () => window.clearTimeout(id);
+  }, []);
+
   return (
-    <div className="flex flex-col items-center gap-8">
+    <div className="flex flex-col items-center gap-5">
       {/* Three pulsing dots */}
       <div className="flex items-center gap-2">
         {[0, 1, 2].map((i) => (
@@ -591,6 +651,18 @@ function BuildingScreen({ inputText }: { inputText: string }) {
           </motion.span>
         </AnimatePresence>
       </div>
+
+      {statusText && (
+        <p className="mono text-[10px] tracking-widest opacity-45 text-center">
+          {statusText}
+        </p>
+      )}
+
+      {showSlowHint && (
+        <p className="text-[13px] opacity-45 text-center px-6 leading-relaxed">
+          Still working. Your space can take a little longer when the prompt is complex.
+        </p>
+      )}
     </div>
   );
 }

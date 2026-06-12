@@ -42,10 +42,8 @@ type SpaceRow = {
   modules: unknown[] | null;
   labels: Record<string, unknown> | null;
   style: Record<string, unknown> | null;
-  anon_owner_token: string;
   owner_id: string | null;
   visibility: string | null;
-  password_hash: string | null;
   created_at: string;
   published_at: string | null;
   owner: ProfileRow | null;
@@ -176,7 +174,7 @@ function mapSpace(row: SpaceRow): Space {
     modules,
     labels: mapLabels(row.labels ?? null),
     style: sanitizeStyle(row.style ?? null),
-    anonOwnerTokenHint: !!row.anon_owner_token,
+    anonOwnerTokenHint: row.visibility === null,
     owner: row.owner_id ? mapProfile(row.owner, row.owner_id) : null,
     visibility: mapVisibility(row.visibility),
     createdAt: new Date(row.created_at).getTime(),
@@ -188,7 +186,7 @@ function mapSpace(row: SpaceRow): Space {
 
 const SPACE_SELECT = `
   id, input_text, title, language, vibe, modules, labels, style,
-  anon_owner_token, owner_id, visibility, password_hash,
+  owner_id, visibility,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
   state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),

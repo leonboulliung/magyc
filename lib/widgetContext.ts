@@ -27,6 +27,23 @@ export interface WidgetContextValue {
    */
   patchModule: (index: number, module: Module) => void;
   /**
+   * Persist a widget config change with optimistic local apply,
+   * rollback on failure, and shared save feedback.
+   */
+  saveModule: (
+    index: number,
+    module: Module,
+    options?: {
+      note?: string;
+      resolveExternal?: boolean;
+      successMessage?: string;
+      errorMessage?: string;
+      undoModule?: Module | null;
+      allowUndo?: boolean;
+      quiet?: boolean;
+    },
+  ) => Promise<boolean>;
+  /**
    * Post a collaborative action with optimistic local apply. The UI
    * updates instantly; the server write follows; the realtime channel
    * reconciles. Replaces the old `postState(...) + refresh()` pattern,

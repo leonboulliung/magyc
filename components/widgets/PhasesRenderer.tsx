@@ -39,16 +39,8 @@ export function PhasesRenderer({
   async function setPhase(i: number) {
     if (!ctx.isOwner || saving || i === current) return;
     setSaving(true);
-    await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        widget: { ...m, currentPhase: i },
-        anonOwnerToken: ctx.ownerToken,
-      }),
-    });
+    await ctx.saveModule(index, { ...m, currentPhase: i });
     setSaving(false);
-    ctx.patchModule(index, { ...m, currentPhase: i });
   }
 
   // Progress: 0 → full at last phase.

@@ -8,12 +8,12 @@ Items deferred until launch. Each needs a decision or external account from Leon
 **Status:** parked. Doesn't touch a current principle; revisit deliberately.
 
 Guiding rule (Leon): **AI must NOT invent facts.** It should only make the
-creator's own input more understandable/accessible through *abstraction and
-structuring* — never add specifics the creator didn't say.
+the owner's own input more understandable/accessible through *abstraction and
+structuring* — never add specifics the owner didn't say.
 
 The shape of the idea: a small repertoire of opt-in "emergent functions" that
 the app can offer on a card when they genuinely fit, e.g.:
-- auto-generate a lightweight **roadmap / steps** from the creator's intent,
+- auto-generate a lightweight **roadmap / steps** from the owner's intent,
 - propose extra **custom fields** that suit this particular kind of thing
   (a shoot wants "looks/refs", a hackathon wants "stack", a dinner wants
   "bring"),
@@ -22,7 +22,7 @@ the app can offer on a card when they genuinely fit, e.g.:
 Open questions to resolve before building: which functions, how they're
 triggered (never auto-spam), how to keep them abstraction-not-invention, and
 whether they live on creation or on the detail page. Tie-in with the
-"single-player value at N=0" thesis (see chat): these are creator-facing
+"single-player value at N=0" thesis (see chat): these are owner-facing
 value, available before any network exists.
 
 ---
@@ -34,7 +34,7 @@ The idea: a weekly "Paris this week" digest to each user listing live Things
 matching their interest tags (and crew updates).
 
 Blocked on:
-- A sender email address / domain (e.g. `hello@creator.paris` or similar).
+- A sender email address / domain (e.g. `hello@magyc.site` or similar).
 - An email service. GDPR-friendly EU options to evaluate at launch:
   - **Resend** (simple API, good DX, EU region available)
   - **Postmark** (transactional, reliable)
