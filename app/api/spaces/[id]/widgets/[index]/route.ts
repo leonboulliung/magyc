@@ -1,9 +1,11 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModule } from "@/lib/modules";
 import { newId } from "@/lib/id";
 import { resolveWikipedia } from "@/lib/server/wikipedia";
+import { parseBody } from "@/lib/api/validate";
 
 /**
  * PUT /api/spaces/[id]/widgets/[index]
@@ -31,12 +33,14 @@ export async function PUT(
     return NextResponse.json({ error: "bad_widget_index" }, { status: 400 });
   }
 
-  let body: { widget?: unknown; anonOwnerToken?: unknown; note?: unknown; resolveExternal?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    widget: z.unknown(),
+    anonOwnerToken: z.string().optional(),
+    note: z.string().optional(),
+    resolveExternal: z.boolean().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   let widget = sanitizeModule(body.widget);
   if (!widget) {

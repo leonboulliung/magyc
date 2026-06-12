@@ -1,9 +1,11 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { regenerateWidget } from "@/lib/server/regenerate";
 import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { ALL_VIBES, type Module, type SpaceLabels, type Vibe } from "@/lib/types";
 import { sanitizeModule } from "@/lib/modules";
+import { parseBody } from "@/lib/api/validate";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 8_000;
@@ -30,12 +32,13 @@ export async function POST(
     return NextResponse.json({ error: "bad_widget_index" }, { status: 400 });
   }
 
-  let body: { count?: unknown; basePrompt?: unknown; anonToken?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    body = {};
-  }
+  const parsed = await parseBody(req, z.object({
+    count: z.number().optional(),
+    basePrompt: z.string().optional(),
+    anonToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const anonToken = typeof body.anonToken === "string" ? body.anonToken.slice(0, 64) : "";
   const rateKey = anonToken || `regen:${params.id}:${widgetIndex}`;

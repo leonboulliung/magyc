@@ -1,7 +1,9 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { newId } from "@/lib/id";
+import { parseBody } from "@/lib/api/validate";
 import type { ModuleStateKind } from "@/lib/types";
 
 /**
@@ -59,18 +61,15 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  let body: {
-    moduleIndex?: unknown;
-    kind?: unknown;
-    data?: Record<string, unknown>;
-    anonToken?: string;
-    anonName?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    moduleIndex: z.number().optional(),
+    kind: z.string().optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
+    anonToken: z.string().optional(),
+    anonName: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const moduleIndex = typeof body.moduleIndex === "number" ? Math.floor(body.moduleIndex) : -1;
   if (moduleIndex < 0 || moduleIndex > 64) {

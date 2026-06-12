@@ -1,8 +1,10 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModule, sanitizeModules } from "@/lib/modules";
 import { newId } from "@/lib/id";
+import { parseBody } from "@/lib/api/validate";
 
 /**
  * POST /api/spaces/[id]/widgets
@@ -39,10 +41,12 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  let body: { widget?: unknown; anonOwnerToken?: unknown };
-  try { body = await req.json(); } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    widget: z.unknown(),
+    anonOwnerToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const widget = sanitizeModule(body.widget);
   if (!widget) return NextResponse.json({ error: "widget_invalid" }, { status: 400 });
@@ -73,10 +77,12 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  let body: { modules?: unknown; anonOwnerToken?: unknown };
-  try { body = await req.json(); } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    modules: z.unknown(),
+    anonOwnerToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   if (!Array.isArray(body.modules)) {
     return NextResponse.json({ error: "modules_required" }, { status: 400 });
@@ -105,10 +111,12 @@ export async function DELETE(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  let body: { index?: unknown; anonOwnerToken?: unknown };
-  try { body = await req.json(); } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    index: z.number().optional(),
+    anonOwnerToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const idx = typeof body.index === "number" ? Math.floor(body.index) : -1;
   if (idx < 0 || idx > 64) return NextResponse.json({ error: "bad_index" }, { status: 400 });

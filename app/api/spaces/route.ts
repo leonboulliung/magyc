@@ -1,8 +1,10 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { sanitizeModules } from "@/lib/modules";
 import { newAnonToken, newId } from "@/lib/id";
+import { parseBody } from "@/lib/api/validate";
 
 // The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
 // author) plus a Wikipedia hydration pass. Give the function headroom
@@ -29,17 +31,14 @@ const MAX_ANSWERS = 6;
  * the space, returns its id + owner token.
  */
 export async function POST(req: Request) {
-  let body: {
-    input?: string;
-    answers?: unknown;
-    configuredModules?: unknown;
-    anonToken?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    input: z.string().optional(),
+    answers: z.unknown(),
+    configuredModules: z.unknown(),
+    anonToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const input = (body.input || "").trim();
   if (input.length < 3) return NextResponse.json({ error: "input_too_short" }, { status: 400 });

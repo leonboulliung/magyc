@@ -1,8 +1,10 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/server/profile";
 import { newId } from "@/lib/id";
+import { parseBody } from "@/lib/api/validate";
 
 /**
  * POST /api/spaces/[id]/publish — flip a draft space to published.
@@ -30,12 +32,11 @@ export async function POST(
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { anonOwnerToken?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    anonOwnerToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const anonToken = typeof body.anonOwnerToken === "string" ? body.anonOwnerToken.trim() : "";
   if (anonToken.length < 16) {
     return NextResponse.json({ error: "owner_token_required" }, { status: 401 });

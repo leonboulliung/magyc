@@ -1,7 +1,9 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeStyle } from "@/lib/style";
+import { parseBody } from "@/lib/api/validate";
 
 /**
  * PUT /api/spaces/[id]/style
@@ -15,12 +17,12 @@ export async function PUT(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  let body: { style?: unknown; anonOwnerToken?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    style: z.unknown(),
+    anonOwnerToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const style = sanitizeStyle(body.style);
   if (!style) return NextResponse.json({ error: "style_invalid" }, { status: 400 });

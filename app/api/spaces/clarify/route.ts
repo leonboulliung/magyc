@@ -1,5 +1,7 @@
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { clarifyInput } from "@/lib/server/clarify";
+import { parseBody } from "@/lib/api/validate";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 15_000;
@@ -18,12 +20,12 @@ const MAX_INPUT_CHARS = 1200;
  * memory until the user is ready to commit.
  */
 export async function POST(req: Request) {
-  let body: { input?: string; anonToken?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, z.object({
+    input: z.string().optional(),
+    anonToken: z.string().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const input = (body.input || "").trim();
   if (input.length < 3) return NextResponse.json({ error: "input_too_short" }, { status: 400 });
