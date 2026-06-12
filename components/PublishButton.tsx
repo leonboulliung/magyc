@@ -5,6 +5,7 @@ import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
 import type { Space } from "@/lib/types";
+import { Dialog } from "./ui/Dialog";
 
 /**
  * Publish — shown only to the draft owner. Every visible word reads
@@ -64,9 +65,8 @@ export function PublishButton({
         {label(L, "publishCta")}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="max-w-md w-full bg-white text-black p-6 rounded-lg space-y-5">
+      <Dialog open={open} onOpenChange={setOpen} maxWidth={448} title={label(L, "publishTitle")}>
+        <div className="w-full bg-white text-black p-6 rounded-lg space-y-5">
             <div className="space-y-1.5">
               <h2 className="font-black text-[22px] leading-snug">
                 {label(L, "publishTitle")}
@@ -125,9 +125,8 @@ export function PublishButton({
                 </SignInButton>
               </div>
             </SignedOut>
-          </div>
         </div>
-      )}
+      </Dialog>
     </>
   );
 }
