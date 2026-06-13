@@ -116,6 +116,11 @@ counter (e.g. max N rows/min) before insert.
   widgets in column 1. Replaced with `grid grid-cols-1 sm:grid-cols-2 items-start`;
   full-width cells now use `gridColumn:"1/-1"` instead of `columnSpan:"all"`.
   Verified on prod: 6 widgets correctly spread across 2 columns.
+- 2026-06-13 · **Widget test session 4** (interactive): Poll vote toggle ✓, Aufgaben
+  checklist check ✓, Von-Bis 08:00→18:00 saved ✓, Ort/Paris map ✓, KI-Einschätzung
+  microTitle fix verified (CSS uppercase hid html tags — stripTags now cleans on read
+  via db.ts sanitizeModules). Two unidentified small widgets in right column (likely
+  empty Fragen/QA + empty Orte) — visual only, no errors.
 - 2026-06-13 · **KI-Einschätzung microTitle HTML-tags stripped** (`c406776`):
   `sanitizeModule` `base()` now runs `stripTags()` on `microTitle` before
   storing — AI was returning `<SMALL LABEL IN DE> …</SMALL>` raw markup.
