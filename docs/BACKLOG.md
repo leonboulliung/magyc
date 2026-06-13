@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-13 (Claude)_
+_Last updated: 2026-06-13 (Claude, session 2)_
 
 ---
 
@@ -102,6 +102,14 @@ counter (e.g. max N rows/min) before insert.
 
 ## Done
 
+- 2026-06-13 · **Grid layout single-column bug fixed** (`0bfc02d`): CSS `columns-1
+  sm:columns-2` + `break-inside:avoid` caused the columns algorithm to stack all
+  widgets in column 1. Replaced with `grid grid-cols-1 sm:grid-cols-2 items-start`;
+  full-width cells now use `gridColumn:"1/-1"` instead of `columnSpan:"all"`.
+  Verified on prod: 6 widgets correctly spread across 2 columns.
+- 2026-06-13 · **Full module test on prod** (session 2): Checklist ✓, Work packages
+  ✓, Standort/Map (zoom, no Leaflet errors) ✓, Phasen 1→4 ✓, Team claim ✓, Tags
+  add ✓, Heading edit + reload persistence ✓, Style editor opens ✓.
 - 2026-06-13 · **Auto-deploy restored** (#11): `vercel git connect` re-linked
   the repo; pushes to `main` now build + promote automatically (verified).
 - 2026-06-13 · **Stale-SSR bug** (root cause of "title not persisting"):
