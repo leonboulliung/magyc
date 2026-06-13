@@ -224,7 +224,7 @@ export function GridZone({
           <>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={items.map((it) => String(it.index))} strategy={rectSortingStrategy}>
-                <div className="columns-1 sm:columns-2" style={{ columnGap: 12 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-start" style={{ gap: 12 }}>
                   {items.map((item) => (
                     <SortableCell
                       key={`${item.index}::${item.module.type}`}
@@ -292,8 +292,7 @@ function SortableCell({
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
-        columnSpan: isFull ? "all" : undefined,
-        breakInside: "avoid",
+        gridColumn: isFull ? "1 / -1" : undefined,
         borderRadius: "var(--v-radius)",
         opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 30 : undefined,
