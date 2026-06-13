@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-13 (Claude, session 2)_
+_Last updated: 2026-06-13 (Claude, session 3)_
 
 ---
 
@@ -65,6 +65,14 @@ space lost. **Plan:** gentle "secure your space" nudge on draft spaces
 
 ---
 
+### 15. GIF widget needs Tenor or Giphy API key
+`/api/gif` returns empty results because neither `TENOR_API_KEY` nor
+`GIPHY_API_KEY` is set in Vercel env. Widget degrades gracefully (no crash,
+search field shown, no results). **Fix:** add one of the keys in Vercel
+dashboard → Settings → Environment Variables.
+
+---
+
 ## P3 — infrastructure & hygiene
 
 ### 12. Local `.env.local` has stale/invalid Supabase keys
@@ -107,9 +115,16 @@ counter (e.g. max N rows/min) before insert.
   widgets in column 1. Replaced with `grid grid-cols-1 sm:grid-cols-2 items-start`;
   full-width cells now use `gridColumn:"1/-1"` instead of `columnSpan:"all"`.
   Verified on prod: 6 widgets correctly spread across 2 columns.
+- 2026-06-13 · **KI-Einschätzung add-from-picker bug fixed** (`f3c3362`):
+  `sanitizeModule` rejected `ai_summary` with empty text (required ≥ 5 chars),
+  but the picker default is `text: ""`. Fixed: allow empty text + added
+  `ai_summary` to `AI_FILL_ON_ADD` so it gets AI-authored immediately on add.
 - 2026-06-13 · **Full module test on prod** (session 2): Checklist ✓, Work packages
   ✓, Standort/Map (zoom, no Leaflet errors) ✓, Phasen 1→4 ✓, Team claim ✓, Tags
   add ✓, Heading edit + reload persistence ✓, Style editor opens ✓.
+- 2026-06-13 · **Widget test session 3** (partial): Notizen (note saved ✓),
+  Wikipedia (article swap via URL ✓, attribution ✓), GIF (search UI ✓, no
+  results due to missing API key — see #15), Symbol (AI fill = shopping cart ✓).
 - 2026-06-13 · **Auto-deploy restored** (#11): `vercel git connect` re-linked
   the repo; pushes to `main` now build + promote automatically (verified).
 - 2026-06-13 · **Stale-SSR bug** (root cause of "title not persisting"):
