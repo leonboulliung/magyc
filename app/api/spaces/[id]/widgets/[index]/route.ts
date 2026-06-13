@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModule } from "@/lib/modules";
 import { newId } from "@/lib/id";
 import { resolveWikipedia } from "@/lib/server/wikipedia";
 import { parseBody } from "@/lib/api/validate";
+import { isSpaceOwner, forbidden } from "@/lib/api/auth";
 
 /**
  * PUT /api/spaces/[id]/widgets/[index]
@@ -56,20 +56,8 @@ export async function PUT(
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  // Authorisation.
-  const { userId } = await auth();
-  if (space.visibility === null) {
-    // Draft: anon owner token must match.
-    const token = typeof body.anonOwnerToken === "string" ? body.anonOwnerToken.trim() : "";
-    if (token.length < 16 || token !== space.anon_owner_token) {
-      return NextResponse.json({ error: "owner_token_mismatch" }, { status: 403 });
-    }
-  } else {
-    // Published: owner account required.
-    if (!userId || !space.owner_id || userId !== space.owner_id) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  }
+  // Authorisation — owner-only (draft: anon token; published: Clerk owner).
+  if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
   const currentModules = Array.isArray(space.modules) ? (space.modules as unknown[]) : [];
   if (widgetIndex >= currentModules.length) {

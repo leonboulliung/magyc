@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { notFound } from "next/navigation";
 import { WidgetContext } from "@/lib/widgetContext";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { PersonaSwitcher } from "@/components/PersonaSwitcher";
@@ -105,6 +106,10 @@ function seed(): ModuleStateEntry[] {
 const DEMO_LABELS: SpaceLabels = { emptyGrid: "—", participants: "Beteiligte" };
 
 export default function DevPage() {
+  // Internal widget showroom — not for production. NODE_ENV is inlined
+  // at build time, so this whole component is the not-found page in prod.
+  if (process.env.NODE_ENV === "production") notFound();
+
   const [state, setState] = useState<ModuleStateEntry[]>(seed);
 
   const act = useCallback(async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {

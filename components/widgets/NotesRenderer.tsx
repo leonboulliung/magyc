@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { newLocalId } from "@/lib/id";
 import type { ModuleStateEntry, NotesWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -34,7 +35,7 @@ export function NotesRenderer({
     setPending("");
     setAdding(false);
     if (!v) return;
-    await ctx.act(index, "add", { id: newId(), text: v });
+    await ctx.act(index, "add", { id: newLocalId("n"), text: v });
   }
 
   async function editNote(id: string, text: string) {
@@ -197,8 +198,4 @@ function NoteCard({
       </div>
     </div>
   );
-}
-
-function newId(): string {
-  return `n_${Math.random().toString(36).slice(2, 10)}`;
 }

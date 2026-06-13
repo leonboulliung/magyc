@@ -19,6 +19,14 @@ export function newId(): string {
   return out;
 }
 
+/** Client-side id for an optimistic state entry, namespaced by a short
+ *  prefix (e.g. "q" question, "a" answer, "m" message, "n" note). Backed
+ *  by the crypto `newId()` — replaces the per-renderer `Math.random()`
+ *  one-offs. Collisions only need avoiding within one widget's list. */
+export function newLocalId(prefix: string): string {
+  return `${prefix}_${newId()}`;
+}
+
 /** Anonymous owner / contributor token. Same alphabet, longer (24
  *  chars) so collision is statistically impossible. The browser
  *  stores this in localStorage. */

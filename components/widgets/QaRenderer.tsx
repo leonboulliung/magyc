@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { newLocalId } from "@/lib/id";
 import type { ModuleStateEntry, QAWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -45,7 +46,7 @@ export function QaRenderer({
     setAskOpen(false);
     if (!v) return;
     await ctx.act(index, "voice", {
-      id: newId("q"),
+      id: newLocalId("q"),
       role: "question",
       text: v,
     });
@@ -55,7 +56,7 @@ export function QaRenderer({
     const v = text.trim();
     if (!v) return;
     await ctx.act(index, "voice", {
-      id: newId("a"),
+      id: newLocalId("a"),
       role: "answer",
       parentId: qid,
       text: v,
@@ -217,8 +218,4 @@ function QuestionBlock({
       </div>
     </div>
   );
-}
-
-function newId(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }

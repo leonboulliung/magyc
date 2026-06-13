@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeStyle } from "@/lib/style";
 import { parseBody } from "@/lib/api/validate";
+import { isSpaceOwner, forbidden } from "@/lib/api/auth";
 
 /**
  * PUT /api/spaces/[id]/style
@@ -35,15 +35,7 @@ export async function PUT(
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const { userId } = await auth();
-  if (space.visibility === null) {
-    const tok = typeof body.anonOwnerToken === "string" ? body.anonOwnerToken.trim() : "";
-    if (tok.length < 16 || tok !== space.anon_owner_token) {
-      return NextResponse.json({ error: "owner_token_mismatch" }, { status: 403 });
-    }
-  } else if (!userId || !space.owner_id || userId !== space.owner_id) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
   // The .select() is load-bearing: without it Supabase reports success
   // even when 0 rows matched (silent no-op writes).

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { newLocalId } from "@/lib/id";
 import type { DiscussionWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -57,7 +58,7 @@ export function DiscussionRenderer({
     const v = text.trim();
     if (!v) return;
     await ctx.act(index, "voice", {
-      id: newId(),
+      id: newLocalId("m"),
       text: v,
       parentId: parentId || undefined,
     });
@@ -222,8 +223,4 @@ function MessageNode({
       </div>
     </div>
   );
-}
-
-function newId(): string {
-  return `m_${Math.random().toString(36).slice(2, 10)}`;
 }

@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModule, sanitizeModules } from "@/lib/modules";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
+import { isSpaceOwner, forbidden } from "@/lib/api/auth";
 
 /**
  * POST /api/spaces/[id]/widgets
@@ -24,18 +24,6 @@ import { parseBody } from "@/lib/api/validate";
  *
  * All three require owner auth (anon token on drafts, Clerk on published).
  */
-
-async function authorize(
-  space: { anon_owner_token: string; owner_id: string | null; visibility: string | null },
-  body: { anonOwnerToken?: unknown },
-): Promise<boolean> {
-  const { userId } = await auth();
-  if (space.visibility === null) {
-    const tok = typeof body.anonOwnerToken === "string" ? body.anonOwnerToken.trim() : "";
-    return tok.length >= 16 && tok === space.anon_owner_token;
-  }
-  return !!userId && !!space.owner_id && userId === space.owner_id;
-}
 
 /** Write the modules array. The .select() is load-bearing: without it
  *  Supabase reports success even when 0 rows matched. Returns an error
@@ -78,7 +66,7 @@ export async function POST(
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (!await authorize(space, body)) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
+  if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
   const current = Array.isArray(space.modules) ? space.modules : [];
   const next = [...current, widget];
@@ -113,7 +101,7 @@ export async function PATCH(
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (!await authorize(space, body)) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
+  if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
   const failure = await persistModules(admin, params.id, modules);
   if (failure) return failure;
@@ -142,7 +130,7 @@ export async function DELETE(
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (!await authorize(space, body)) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
+  if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
   const current = Array.isArray(space.modules) ? space.modules : [];
   if (idx >= current.length) return NextResponse.json({ error: "out_of_range" }, { status: 400 });
