@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-13 (Claude, session 3)_
+_Last updated: 2026-06-13 (Claude, session 4)_
 
 ---
 
@@ -65,6 +65,7 @@ space lost. **Plan:** gentle "secure your space" nudge on draft spaces
 
 ---
 
+
 ### 15. GIF widget needs Tenor or Giphy API key
 `/api/gif` returns empty results because neither `TENOR_API_KEY` nor
 `GIPHY_API_KEY` is set in Vercel env. Widget degrades gracefully (no crash,
@@ -115,6 +116,9 @@ counter (e.g. max N rows/min) before insert.
   widgets in column 1. Replaced with `grid grid-cols-1 sm:grid-cols-2 items-start`;
   full-width cells now use `gridColumn:"1/-1"` instead of `columnSpan:"all"`.
   Verified on prod: 6 widgets correctly spread across 2 columns.
+- 2026-06-13 · **KI-Einschätzung microTitle HTML-tags stripped** (`c406776`):
+  `sanitizeModule` `base()` now runs `stripTags()` on `microTitle` before
+  storing — AI was returning `<SMALL LABEL IN DE> …</SMALL>` raw markup.
 - 2026-06-13 · **KI-Einschätzung add-from-picker bug fixed** (`f3c3362`):
   `sanitizeModule` rejected `ai_summary` with empty text (required ≥ 5 chars),
   but the picker default is `text: ""`. Fixed: allow empty text + added
