@@ -1,75 +1,45 @@
-# MAGYC — AI-Powered Spaces
+# MAGYC
 
-Transform text into structured, collaborative workspaces. Drop an idea, get a plan.
+**Drop an idea, get a living space.** MAGYC turns a few sentences of rough
+intent into a structured, collaborative workspace — composed by AI from 29
+widget types (maps, polls, checklists, timelines, crews, sketches, galleries,
+discussions, …), themed to the idea's mood, editable in realtime with anyone
+who has the link.
 
-**MAGYC** breaks down your input into organized **Spaces** with 29 widget types:
-maps, timelines, checklists, sketches, galleries, discussions, crew rosters,
-work packages, and more. Edit collaboratively in real-time with teammates.
+**Live:** https://magyc.site
 
-## Run
+## How it works
 
-```bash
-npm install
-npm run dev
-```
-
-Open <http://localhost:3000>. On first load the storage schema migration wipes
-any prior state to guarantee a clean slate.
-
-## What's in the box
-
-- **`/`** — email gate → live feed, with a `FEED / MAP` toggle in the header
-- **`/post/[id]`** — card detail: join / request / edit / delete / share
-- **`/carnet`** — your personal archive (list · map · export PNG + PDF)
-- **Floating + button** — post your one thing of the week
-- **Live Paris clock** + scrolling ticker in the header
-- **Leaflet + CartoDB Positron** (no labels, B&W) map · bounded to Paris + 1st ring
-- **Procedural vibe gradients** instead of image uploads
-  (`title × time-of-day × location` → sky + sun + accent + optional stars)
-- **Canvas share-as-image** (1080×1350 PNG) on every card and every Carnet row
-- **Cross-tab realtime** via `storage` event + in-window pub/sub
-- **Versioned storage** — bump `STORAGE_VERSION` in `lib/storage.ts` to wipe
+1. **Type an idea** on the home page — any language.
+2. **Clarify** — the AI asks 2-4 typed follow-ups (choices, a location pin,
+   phases, a date) only where they genuinely shape the result.
+3. **Build** — a two-stage classifier scores all widget types against the
+   input, the server deterministically selects, the AI authors content in the
+   input's language and assigns a visual style (font + palette).
+4. **Share the URL** — visitors vote, check, claim, write, and sketch without
+   an account. Publishing (Clerk sign-in) binds the space to its owner.
 
 ## Stack
 
-Next.js 14 (App Router) · React 18 · TypeScript · Tailwind · Leaflet ·
-Inter + JetBrains Mono.
+Next.js 14 (App Router) · React 18 · TypeScript · Tailwind · Supabase
+(Postgres + Realtime) · Clerk (email OTP) · OpenAI · Leaflet + CARTO ·
+motion/react · dnd-kit · Radix UI · zod · Vercel (fra1).
 
-## Files
+## Working on this repo
 
-```
-app/
-  layout.tsx        global shell + fonts
-  page.tsx          email gate → feed/map
-  post/[id]/page.tsx
-  carnet/page.tsx
-  globals.css       Tailwind + leaflet css + procedural noise/stars
-components/
-  Header.tsx        clock + ticker + FEED/MAP + avatar
-  Ticker.tsx
-  EmailGate.tsx     email → avatar two-step
-  Feed.tsx          list/map switch
-  CardItem.tsx
-  CardCreate.tsx    title/when/spots/permission + map-pin / autocomplete
-  ParisMap.tsx      Leaflet with custom pins + 10s fresh pulse
-  VibeBackground.tsx
-lib/
-  storage.ts        versioned localStorage + pub/sub + cross-tab
-  types.ts
-  vibe.ts           activity × time × location → CSS gradient
-  quartiers.ts      ~90 Paris neighborhoods + landmarks with lat/lng
-  share.ts          Canvas → PNG + navigator.share + Carnet poster + PDF
-  time.ts           Paris clock + time-ago
-```
+**Agents and humans both: start with [AGENTS.md](AGENTS.md)** — the canonical
+briefing (architecture, state model, workflows, conventions). The issue queue
+lives in [docs/BACKLOG.md](docs/BACKLOG.md); the frozen data shapes in
+[docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md).
 
-## Reset
+Key facts up front:
 
-Bump `STORAGE_VERSION` in `lib/storage.ts` and reload — every `cp:*` key is
-wiped on next page load.
+- **No localhost flow.** Test against the Vercel deployment.
+- **Manual deploys:** `vercel --prod --yes` (the GitHub webhook is broken).
+- **Typecheck gate:** `npx tsc --noEmit` must be clean before every commit.
+- `/dev` is a showroom rendering all 29 widgets with fixtures.
 
-## Notes / philosophy
+## History
 
-This isn't a tool, a feed, or a SaaS. It's a pulse — a way for the people who
-shape Paris's culture to make their week visible to the people who'd want in.
-Curation and taste are first-class contributions, equal to "doing". Every
-archived card is a piece of someone's cultural footprint in this city.
+This codebase evolved out of an earlier Paris-only "one card per week" app;
+its docs are preserved in `docs/archive/` for context only.
