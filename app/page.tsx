@@ -109,6 +109,16 @@ export default function HomePage() {
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dotFieldRef = useRef<DotFieldHandle>(null);
   const enterKeyRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // The prompt box grows with its content instead of being a fixed,
+  // mostly-empty block.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text, stage]);
 
   /** Viewport centre of an element (or screen centre as fallback). */
   function originOf(el: HTMLElement | null): { x: number; y: number } {
@@ -282,11 +292,11 @@ export default function HomePage() {
       >
         <div className="w-full max-w-3xl mx-auto flex flex-col gap-[clamp(24px,5vh,56px)] mt-[clamp(24px,5vh,56px)]">
           <div
-            className="mx-auto w-fit px-4 py-3.5 sm:px-6 sm:py-4 rounded-[20px]"
+            className="mx-auto w-fit px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[14px]"
             style={{
               background: "#ffffff",
               border: "1px solid rgba(0,0,0,0.08)",
-              boxShadow: "0 18px 44px rgba(0,0,0,0.08)",
+              boxShadow: "0 12px 30px rgba(0,0,0,0.07)",
             }}
           >
             <Image
@@ -295,7 +305,7 @@ export default function HomePage() {
               width={1128}
               height={310}
               priority
-              className="block h-[46px] sm:h-[50px] md:h-[56px] w-auto select-none"
+              className="block h-[26px] sm:h-[30px] w-auto select-none"
             />
           </div>
 
@@ -319,13 +329,14 @@ export default function HomePage() {
                   }}
                 >
                   <textarea
+                    ref={inputRef}
                     autoFocus
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    rows={4}
+                    rows={2}
                     maxLength={1200}
                     placeholder=""
-                    className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none"
+                    className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none overflow-hidden"
                     disabled={busy}
                     onKeyDown={(e) => {
                       // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.

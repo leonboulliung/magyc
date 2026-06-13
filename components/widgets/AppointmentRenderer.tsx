@@ -68,7 +68,7 @@ export function AppointmentRenderer({
               </div>
               <div className="leading-tight">
                 <div className="mono text-[10px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>
-                  ⏱
+                  ◷
                 </div>
                 <div className="text-[18px] mt-0.5" style={{ color: "var(--v-fg)" }}>
                   {parts.time}

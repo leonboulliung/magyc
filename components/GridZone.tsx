@@ -226,7 +226,7 @@ export function GridZone({
           <>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={items.map((it) => String(it.index))} strategy={rectSortingStrategy}>
-                <div className="columns-1 sm:columns-2" style={{ columnGap: 12 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                   {items.map((item) => (
                     <SortableCell
                       key={`${item.index}::${item.module.type}`}
@@ -290,11 +290,11 @@ function SortableCell({
   return (
     <div
       ref={setNodeRef}
-      className="relative group/cell mb-3"
+      className="relative group/cell"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
-        columnSpan: isFull ? "all" : undefined,
+        gridColumn: isFull ? "1 / -1" : undefined,
         borderRadius: "var(--v-radius)",
         opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 30 : undefined,
@@ -303,43 +303,51 @@ function SortableCell({
     >
       <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
 
+      {/* Owner chrome — one tidy pill tucked inside the top-right corner,
+          revealed on hover (always visible while keyboard-focused). */}
       {isOwner && (
-        <>
+        <div
+          className="absolute top-2 right-2 z-20 flex items-center opacity-0 group-hover/cell:opacity-100 focus-within:opacity-100 transition-opacity overflow-hidden"
+          style={{
+            background: "color-mix(in srgb, var(--v-bg) 92%, transparent)",
+            border: "1px solid var(--v-rule)",
+            borderRadius: 999,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.10)",
+            backdropFilter: "blur(6px)",
+          }}
+        >
           <button
             type="button"
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
             aria-label="reorder"
-            className="absolute -top-0.5 -left-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity select-none"
-            style={{ cursor: "grab", touchAction: "none", color: "var(--v-muted)", background: "transparent", border: "none", padding: 0 }}
+            title="drag to reorder"
+            className="w-7 h-7 flex items-center justify-center text-[13px] hover:bg-black/[0.06] transition-colors select-none"
+            style={{ cursor: "grab", touchAction: "none", color: "var(--v-muted)" }}
           >
-            <span className="mono text-[12px] inline-block px-1 py-0.5 rounded-br" style={{ background: "var(--v-rule)", lineHeight: 1 }}>
-              ⠿
-            </span>
+            ⠿
           </button>
-          <div className="absolute -top-0.5 -right-0.5 z-20 opacity-0 group-hover/cell:opacity-100 transition-opacity flex items-center gap-0.5">
-            <button
-              type="button"
-              title={isFull ? "half width" : "full width"}
-              onClick={onToggleFull}
-              className="mono text-[11px] px-1.5 py-0.5 rounded-bl"
-              style={{ background: "var(--v-rule)", color: "var(--v-muted)", lineHeight: 1 }}
-            >
-              {isFull ? "⇒" : "⇔"}
-            </button>
-            <button
-              type="button"
-              title="remove"
-              onClick={onRemove}
-              disabled={busy}
-              className="mono text-[11px] px-1.5 py-0.5 rounded-bl disabled:opacity-30"
-              style={{ background: "var(--v-rule)", color: "var(--v-muted)", lineHeight: 1 }}
-            >
-              ×
-            </button>
-          </div>
-        </>
+          <button
+            type="button"
+            title={isFull ? "half width" : "full width"}
+            onClick={onToggleFull}
+            className="w-7 h-7 hidden sm:flex items-center justify-center text-[13px] hover:bg-black/[0.06] transition-colors"
+            style={{ color: "var(--v-muted)" }}
+          >
+            {isFull ? "⇥" : "⇔"}
+          </button>
+          <button
+            type="button"
+            title="remove"
+            onClick={onRemove}
+            disabled={busy}
+            className="w-7 h-7 flex items-center justify-center text-[15px] hover:bg-black/[0.06] transition-colors disabled:opacity-30"
+            style={{ color: "var(--v-muted)" }}
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );

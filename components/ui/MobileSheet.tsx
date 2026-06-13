@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useDragControls } from "motion/react";
 
 /**
  * MobileSheet — a bottom sheet for phone-width surfaces (style editor,
@@ -39,6 +39,11 @@ export function MobileSheet({
     setTarget(document.querySelector(".vibe-root") ?? document.body);
   }, []);
 
+  // Drag-to-dismiss. Drag is started only from the grab handle (via
+  // dragControls + dragListener={false}) so a scroll gesture inside the
+  // sheet body never gets hijacked.
+  const dragControls = useDragControls();
+
   // Escape to dismiss + lock the page behind the sheet so a scroll
   // gesture doesn't move the content underneath on iOS.
   useEffect(() => {
@@ -73,6 +78,14 @@ export function MobileSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 38 }}
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 110 || info.velocity.y > 700) onClose();
+            }}
             role="dialog"
             aria-modal="true"
             className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[var(--v-radius)]"
@@ -84,14 +97,16 @@ export function MobileSheet({
               paddingBottom: "env(safe-area-inset-bottom)",
             }}
           >
-            {/* Grab handle — tap to dismiss. */}
+            {/* Grab handle — drag down or tap to dismiss. */}
             <button
               type="button"
               onClick={onClose}
+              onPointerDown={(e) => dragControls.start(e)}
               aria-label="close"
-              className="shrink-0 flex items-center justify-center pt-2.5 pb-1.5"
+              className="shrink-0 flex items-center justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+              style={{ touchAction: "none" }}
             >
-              <span className="block rounded-full" style={{ width: 36, height: 4, background: "var(--v-rule)" }} />
+              <span className="block rounded-full" style={{ width: 40, height: 5, background: "var(--v-rule)" }} />
             </button>
             {title && (
               <div

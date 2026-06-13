@@ -124,7 +124,7 @@ async function save(
 }
 
 const ICON_FOR_UNIT: Record<RangeWidget["unit"], string> = {
-  time:    "⏱",
+  time:    "◷",
   weekday: "◔",
   month:   "▤",
   year:    "▦",
