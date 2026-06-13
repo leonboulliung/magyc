@@ -130,6 +130,21 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **UI polish round 2** (`93e4083`): from Leon's feedback. (1) Grid
+  clipping — CSS multi-column masonry split tall widgets across the column
+  boundary; switched to CSS grid (`grid-cols-1 sm:grid-cols-2`, `items-start`,
+  full-width via `gridColumn:1/-1`). (2) Owner chrome redesigned — the
+  drag/resize/remove tabs sat at negative offsets poking square backgrounds out
+  of the rounded corners and were tiny; now one rounded pill tucked inside the
+  top-right corner, 28px buttons, blur+shadow; resize hidden on mobile. (3) Home
+  — logo ~halved (h-26/30), prompt box auto-grows with content. (4) Clock emoji
+  ⏱ → monochrome ◷ (appointment widget, range time unit, picker). (5) MobileSheet
+  drag-to-dismiss via the grab handle (`useDragControls`, handle-only so body
+  scroll isn't hijacked). Verified on prod desktop: grid no-clip, owner pill,
+  logo+growing input, ◷ present / ⏱ gone. **Pending:** the sheet drag-down
+  GESTURE couldn't be exercised via Chrome automation (forced 1280px viewport,
+  no real touch) — tap/backdrop close were verified earlier; drag needs a
+  real-device check.
 - 2026-06-13 · **Code-health review fixes** (`2fe97e0`, `121e43c`): #17 owner-auth
   centralized in `lib/api/auth.ts` (`isSpaceOwner` + `forbidden`), adopted by the
   widgets / widgets[index] / style routes — verified on prod (wrong token → 403,
