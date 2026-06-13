@@ -35,7 +35,7 @@ lives in [docs/BACKLOG.md](docs/BACKLOG.md); the frozen data shapes in
 Key facts up front:
 
 - **No localhost flow.** Test against the Vercel deployment.
-- **Manual deploys:** `vercel --prod --yes` (the GitHub webhook is broken).
+- **Push = deploy.** Every push to `main` auto-deploys to production.
 - **Typecheck gate:** `npx tsc --noEmit` must be clean before every commit.
 - `/dev` is a showroom rendering all 29 widgets with fixtures.
 

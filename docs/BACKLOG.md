@@ -67,10 +67,6 @@ space lost. **Plan:** gentle "secure your space" nudge on draft spaces
 
 ## P3 — infrastructure & hygiene
 
-### 11. GitHub→Vercel webhook broken (no auto-deploy)
-Deploys are manual (`vercel --prod --yes`). Try `vercel git connect` or
-re-link the repo in the Vercel dashboard.
-
 ### 12. Local `.env.local` has stale/invalid Supabase keys
 Verified 2026-06-13: both the anon and service_role keys in `.env.local`
 are rejected by Supabase ("Invalid API key") while prod (Vercel env) works
@@ -106,6 +102,8 @@ counter (e.g. max N rows/min) before insert.
 
 ## Done
 
+- 2026-06-13 · **Auto-deploy restored** (#11): `vercel git connect` re-linked
+  the repo; pushes to `main` now build + promote automatically (verified).
 - 2026-06-13 · **Stale-SSR bug** (root cause of "title not persisting"):
   `force-dynamic` on the space page was NOT enough — Vercel's Data Cache
   kept serving the supabase REST GETs; the actual fix is an explicit

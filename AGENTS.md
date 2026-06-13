@@ -18,13 +18,16 @@ same commit.
    (magyc.site). Don't start dev servers to "verify" — deploy and check prod.
 2. **Commit and push after every change**, without asking. Never leave work
    uncommitted at the end of a session.
-3. **Deploy manually.** The GitHub→Vercel webhook is broken; pushing does NOT
-   deploy. Full loop:
+3. **Push = deploy.** GitHub→Vercel auto-deploy works (re-linked via
+   `vercel git connect`, 13 Jun 2026): every push to `main` builds and
+   promotes to production (~1 min). Full loop:
    ```bash
    npx tsc --noEmit                 # must be clean
    git add -A && git commit -m "…" && git push
-   vercel --prod --yes              # ~1-2 min; region pinned to fra1
+   # wait ~1 min, verify on https://www.magyc.site
    ```
+   Fallback if the webhook breaks again: `vercel --prod --yes` deploys the
+   local working tree directly.
 4. **AI must not invent facts** (Leon's product rule). The AI layer may
    abstract and structure the user's own input — never add specifics the user
    didn't say (no fake dates, places, numbers).
