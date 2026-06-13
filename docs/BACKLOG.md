@@ -89,6 +89,54 @@ counter (e.g. max N rows/min) before insert.
 
 ---
 
+## Code-health review (session 4, 2026-06-13)
+
+Full read-through for leanness / architecture / inconsistencies. Findings
+ordered by value; none are bugs, all are debt.
+
+### 17. Owner-auth logic duplicated across 5 API routes *(security-relevant)*
+The "draft → anon token (≥16 chars) matches `anon_owner_token`; published →
+Clerk `userId === owner_id`" check is hand-rolled in `widgets/route.ts`
+(`authorize()`), `widgets/[index]/route.ts`, `style/route.ts`,
+`upload/route.ts`, and a *different-shaped* variant in `publish/route.ts`
+(`!owner_id && anon_owner_token !== token`). Five copies = five chances to
+get an auth check subtly wrong. **Fix:** one `authorizeOwner(space, body)`
+in `lib/api/auth.ts`; every route calls it. Highest-priority item — auth
+should live in exactly one place.
+
+### 18. Inline-edit pattern duplicated across ~15 renderers *(biggest leanness win)*
+`autoResize()` is copy-pasted in HeadingRenderer, AiSummaryRenderer,
+RichTextRenderer. The full "draft state + focus/select on edit +
+Enter-saves / Escape-cancels / blur-saves + autoResize" pattern recurs in
+~15 renderers. `EditControls` exists but is used in only 4. **Fix:** a
+`useInlineEdit` hook (or `<InlineEditText>` / `<InlineEditArea>`) — removes
+a few hundred lines and makes edit behaviour uniform.
+
+### 19. Three local `newId()` reimplementations
+QaRenderer, DiscussionRenderer, NotesRenderer each define a private
+`newId()` using `Math.random().toString(36)`, while `lib/id.ts` already
+exports a crypto-based `newId()`. **Fix:** export `newLocalId(prefix)` from
+`lib/id.ts`, delete the three copies.
+
+### 20. `applyActionLocally` mirrors server state semantics
+`lib/state.ts` re-implements the vote/check/claim dedup rules that
+`state/route.ts` enforces server-side. AGENTS.md already warns "change one,
+change the other" — a structural coupling hazard. **Fix (low-cost):**
+co-locate the dedup keys / a shared spec so the two can't drift silently.
+
+### 21. `/dev` showroom has no production guard
+`app/dev/page.tsx` is reachable at magyc.site/dev in prod (no
+`NODE_ENV`/notFound gate). Harmless but exposes the internal widget
+showroom. **Fix:** `notFound()` when `process.env.NODE_ENV === "production"`
+(or gate behind the existing dev flag).
+
+### 22. `app/page.tsx` is 668 lines (whole clarify flow inline)
+The home component holds input + clarify steps + build orchestration in one
+client file. **Fix (optional):** extract a `ClarifyFlow` component and the
+step renderers; lowers cognitive load, no behaviour change.
+
+---
+
 ## Deferred (needs Leon)
 
 - **answerType clarify rebuild** — discriminated union for clarify answers.
@@ -103,6 +151,12 @@ counter (e.g. max N rows/min) before insert.
 
 ## Done
 
+- 2026-06-13 · **Mobile UX pass** (`60d6792`): new `MobileSheet` (full-width
+  bottom sheet) for the StyleEditor and the add-widget picker on phones;
+  floating top controls get more h1 clearance (pt-20) and slide away on
+  downward scroll; new `useIsMobile` hook; picker tap targets enlarged.
+  Visual prod verification at phone width still pending (Chrome MCP was
+  disconnected at session end).
 - 2026-06-13 · **Grid layout single-column bug fixed** (`0bfc02d`): CSS `columns-1
   sm:columns-2` + `break-inside:avoid` caused the columns algorithm to stack all
   widgets in column 1. Replaced with `grid grid-cols-1 sm:grid-cols-2 items-start`;
