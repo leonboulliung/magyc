@@ -232,7 +232,10 @@ export function WidgetPickerContent({
   const emergent = ctx.labels.widgetLabels;
 
   return (
-    <div style={{ width: "min(360px, calc(100vw - 24px))", maxHeight: "min(70vh, 460px)", overflowY: "auto" }}>
+    // Width is owned by the container (desktop popover / mobile sheet);
+    // the inner scroll keeps the long list usable inside the popover,
+    // whose wrapper is overflow-hidden.
+    <div style={{ width: "100%", maxHeight: "min(70vh, 460px)", overflowY: "auto" }}>
       {GROUPS.map((group, gi) => (
         <div key={gi} style={{ borderBottom: gi < GROUPS.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
           <div
@@ -248,14 +251,14 @@ export function WidgetPickerContent({
                   if (w) onPick(w);
                 }}
                 title={labelFor(e.type, lang, emergent)}
-                className="flex items-center gap-2 px-2.5 py-2.5 rounded text-left min-h-[40px]"
+                className="flex items-center gap-2.5 px-3 py-3 rounded text-left min-h-[44px]"
                 whileHover={{ background: "rgba(0,0,0,0.04)" }}
                 transition={{ duration: 0.1 }}
               >
-                <span className="mono text-[11px] shrink-0 w-4 text-center" style={{ color: "var(--v-muted)" }}>
+                <span className="mono text-[12px] shrink-0 w-4 text-center" style={{ color: "var(--v-muted)" }}>
                   {e.symbol}
                 </span>
-                <span className="text-[11px] truncate" style={{ color: "var(--v-fg)" }}>
+                <span className="text-[12px] truncate" style={{ color: "var(--v-fg)" }}>
                   {labelFor(e.type, lang, emergent)}
                 </span>
               </motion.button>

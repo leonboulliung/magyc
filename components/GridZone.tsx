@@ -20,9 +20,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Module, ModuleStateEntry } from "@/lib/types";
+import { useIsMobile } from "@/lib/hooks";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
 import { WidgetPickerContent } from "./WidgetPicker";
 import { Popover } from "./ui/Popover";
+import { MobileSheet } from "./ui/MobileSheet";
 
 /**
  * GridZone — the body widget area of a space.
@@ -360,6 +362,34 @@ function AddButton({
   onClose: () => void;
   onPick: (w: Module) => void;
 }) {
+  const isMobile = useIsMobile();
+
+  // On phones the picker is a full-width bottom sheet (big tap targets,
+  // dismiss on backdrop) instead of a popover anchored to a centered
+  // button at the bottom of a long grid, which was awkward to reach.
+  if (isMobile) {
+    return (
+      <>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onToggle}
+          className="mono text-[11px] tracking-widest px-6 py-2.5 rounded-full disabled:opacity-30"
+          style={{
+            border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
+            color: "var(--v-fg)",
+            background: "var(--v-bg)",
+          }}
+        >
+          {busy ? "…" : "+"}
+        </button>
+        <MobileSheet open={open} onClose={onClose} title="add widget">
+          <WidgetPickerContent onPick={(w) => { onPick(w); onClose(); }} />
+        </MobileSheet>
+      </>
+    );
+  }
+
   return (
     <Popover
       open={open}

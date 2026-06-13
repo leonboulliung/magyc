@@ -40,3 +40,22 @@ export function useIsOwner(space: Space | null): boolean {
   // Published: Clerk owner.
   return !!user && !!space.owner && space.owner.id === user.id;
 }
+
+/**
+ * True when the viewport is at or below the given breakpoint (defaults
+ * to Tailwind's `sm`, 640px) — i.e. phone width. SSR-safe: returns false
+ * on the server and first paint, then syncs after mount. Use to switch
+ * desktop popovers for mobile bottom sheets.
+ */
+export function useIsMobile(query = "(max-width: 640px)"): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia(query);
+    const sync = () => setIsMobile(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, [query]);
+  return isMobile;
+}

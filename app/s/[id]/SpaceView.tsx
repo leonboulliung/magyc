@@ -15,7 +15,7 @@ import {
 import { bodyContainer, heroIn } from "@/lib/anim";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
-import { useIsOwner } from "@/lib/hooks";
+import { useIsOwner, useIsMobile } from "@/lib/hooks";
 import { useDevMode } from "@/lib/devFlag";
 import { WidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleStateEntry, ModuleStateKind, Space, SpaceStyle } from "@/lib/types";
@@ -86,6 +86,24 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
 
   const isOwner = useIsOwner(space);
   const devMode = useDevMode();
+  const isMobile = useIsMobile();
+
+  // On phones the floating top-right controls (style / publish) would
+  // otherwise hover over content while scrolling. Slide them away on a
+  // downward scroll and bring them back on scroll-up or near the top.
+  const [controlsHidden, setControlsHidden] = useState(false);
+  useEffect(() => {
+    if (!isMobile) { setControlsHidden(false); return; }
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - lastY) < 8) return;
+      setControlsHidden(y > lastY && y > 120);
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isMobile]);
 
   const ownerToken = useMemo(() => {
     if (!space || !isOwner) return null;
@@ -456,7 +474,14 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         {/* Floating top-right controls */}
         <div
           className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 px-1.5 py-1 rounded-full"
-          style={{ background: "color-mix(in srgb, var(--v-bg) 88%, transparent)", border: "1px solid var(--v-rule)", backdropFilter: "blur(10px)" }}
+          style={{
+            background: "color-mix(in srgb, var(--v-bg) 88%, transparent)",
+            border: "1px solid var(--v-rule)",
+            backdropFilter: "blur(10px)",
+            transform: controlsHidden ? "translateY(-160%)" : "translateY(0)",
+            transition: "transform 0.28s ease",
+            willChange: "transform",
+          }}
         >
           {isHistorical && (
             <button
@@ -513,7 +538,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
 
         {/* HEADER ZONE — heading + rich_text, not in grid. */}
         <header className="w-full">
-          <div className="max-w-5xl mx-auto px-4 sm:px-10 pt-14 sm:pt-20 pb-8 sm:pb-12 space-y-6">
+          <div className="max-w-5xl mx-auto px-4 sm:px-10 pt-20 sm:pt-20 pb-8 sm:pb-12 space-y-6">
             <motion.div initial="hidden" animate="show" variants={heroIn} className="space-y-6">
               {hero.map(({ module: m, index: i }) => (
                 <WidgetDispatcher

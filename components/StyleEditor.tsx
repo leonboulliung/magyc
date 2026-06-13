@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { SpaceStyle } from "@/lib/types";
 import { FONT_CATALOG } from "@/lib/fonts";
+import { useIsMobile } from "@/lib/hooks";
+import { MobileSheet } from "./ui/MobileSheet";
 
 /**
  * StyleEditor — owner-only popover to edit a space's visual style:
@@ -36,7 +38,7 @@ export function StyleEditor({
   const draftRef = useRef<SpaceStyle>(style);
   const lastSavedRef = useRef<SpaceStyle>(style);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setDraft(style);
@@ -44,15 +46,6 @@ export function StyleEditor({
     lastSavedRef.current = style;
     setStatus("idle");
   }, [style]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const media = window.matchMedia("(max-width: 640px)");
-    const sync = () => setIsMobile(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
 
   const persist = useCallback(async (next: SpaceStyle, immediate = false) => {
     setStatus("saving");
@@ -113,6 +106,46 @@ export function StyleEditor({
     return acc;
   }, {});
 
+  const close = () => { flushPending(true); setOpen(false); };
+
+  // Shared panel body — rendered inside a bottom sheet on phones and an
+  // anchored popover on desktop.
+  const panel = (
+    <div className="p-4 space-y-4">
+      {/* Font */}
+      <div className="space-y-1.5">
+        <div className="mono text-[9px] tracking-widest uppercase" style={{ color: "var(--v-muted)" }}>
+          font
+        </div>
+        <select
+          value={draft.font}
+          onChange={(e) => update({ font: e.target.value })}
+          className="w-full text-[13px] px-2.5 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
+          style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+        >
+          {Object.entries(grouped).map(([cat, fonts]) => (
+            <optgroup key={cat} label={CATEGORY_LABEL[cat] ?? cat}>
+              {fonts.map((f) => (
+                <option key={f.name} value={f.name}>{f.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+
+      {/* Colors */}
+      <div className="space-y-3">
+        <ColorRow label="ink" hint="text · borders · pins" value={draft.color1} onChange={(c) => update({ color1: c })} />
+        <ColorRow label="accent" hint="widgets · maps" value={draft.color2} onChange={(c) => update({ color2: c })} />
+        <ColorRow label="canvas" hint="page background" value={draft.background} onChange={(c) => update({ background: c })} />
+      </div>
+
+      <div className="mono text-[9px] tracking-widest opacity-55" style={{ color: "var(--v-muted)" }}>
+        {status === "saving" ? "saving…" : status === "saved" ? "saved" : status === "error" ? "not saved" : ""}
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative">
       <button
@@ -133,60 +166,36 @@ export function StyleEditor({
         ◐
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => { flushPending(true); setOpen(false); }} />
-            <motion.div
-              initial={{ opacity: 0, y: -4, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.97 }}
-              transition={{ duration: 0.16 }}
-              className="fixed left-3 right-3 top-4 z-50 rounded-[var(--v-radius)] p-4 space-y-4 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2"
-              style={{
-                width: isMobile ? undefined : 260,
-                maxHeight: "calc(100vh - 2rem)",
-                overflowY: "auto",
-                background: "var(--v-bg)",
-                border: "1px solid var(--v-rule)",
-                boxShadow: "0 12px 32px rgba(0,0,0,0.14)",
-              }}
-            >
-              {/* Font */}
-              <div className="space-y-1.5">
-                <div className="mono text-[9px] tracking-widest uppercase" style={{ color: "var(--v-muted)" }}>
-                  font
-                </div>
-                <select
-                  value={draft.font}
-                  onChange={(e) => update({ font: e.target.value })}
-                  className="w-full text-[12px] px-2 py-1.5 rounded-[var(--v-radius)] bg-transparent outline-none"
-                  style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
-                >
-                  {Object.entries(grouped).map(([cat, fonts]) => (
-                    <optgroup key={cat} label={CATEGORY_LABEL[cat] ?? cat}>
-                      {fonts.map((f) => (
-                        <option key={f.name} value={f.name}>{f.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-
-              {/* Colors */}
-              <div className="space-y-2.5">
-                <ColorRow label="ink" hint="text · borders · pins" value={draft.color1} onChange={(c) => update({ color1: c })} />
-                <ColorRow label="accent" hint="widgets · maps" value={draft.color2} onChange={(c) => update({ color2: c })} />
-                <ColorRow label="canvas" hint="page background" value={draft.background} onChange={(c) => update({ background: c })} />
-              </div>
-
-              <div className="mono text-[9px] tracking-widest opacity-55" style={{ color: "var(--v-muted)" }}>
-                {status === "saving" ? "saving…" : status === "saved" ? "saved" : status === "error" ? "not saved" : ""}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {isMobile ? (
+        <MobileSheet open={open} onClose={close} title="style">
+          {panel}
+        </MobileSheet>
+      ) : (
+        <AnimatePresence>
+          {open && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={close} />
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                transition={{ duration: 0.16 }}
+                className="absolute right-0 top-full mt-2 z-50 rounded-[var(--v-radius)]"
+                style={{
+                  width: 260,
+                  maxHeight: "calc(100vh - 2rem)",
+                  overflowY: "auto",
+                  background: "var(--v-bg)",
+                  border: "1px solid var(--v-rule)",
+                  boxShadow: "0 12px 32px rgba(0,0,0,0.14)",
+                }}
+              >
+                {panel}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }
