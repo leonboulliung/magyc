@@ -50,7 +50,7 @@ export interface BodyItem {
 
 /** Widget types whose manual add should be AI-authored from space
  *  context instead of keeping a generic placeholder (icon = star). */
-const AI_FILL_ON_ADD: ReadonlySet<string> = new Set(["icon"]);
+const AI_FILL_ON_ADD: ReadonlySet<string> = new Set(["icon", "ai_summary"]);
 
 export function GridZone({
   bodyItems,

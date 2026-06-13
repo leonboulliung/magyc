@@ -115,7 +115,7 @@ export function sanitizeModule(raw: unknown): Module | null {
     }
     case "ai_summary": {
       const text = typeof r.text === "string" ? r.text.trim().slice(0, 1200) : "";
-      if (text.length < 5) return null;
+      // Allow empty text for freshly-added widgets (AI_FILL_ON_ADD will author it)
       return { type, ...b, text };
     }
     case "icon": {
