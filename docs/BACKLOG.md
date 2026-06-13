@@ -66,14 +66,6 @@ space lost. **Plan:** gentle "secure your space" nudge on draft spaces
 ---
 
 
-### 15. GIF widget needs Tenor or Giphy API key
-`/api/gif` returns empty results because neither `TENOR_API_KEY` nor
-`GIPHY_API_KEY` is set in Vercel env. Widget degrades gracefully (no crash,
-search field shown, no results). **Fix:** add one of the keys in Vercel
-dashboard → Settings → Environment Variables.
-
----
-
 ## P3 — infrastructure & hygiene
 
 ### 12. Local `.env.local` has stale/invalid Supabase keys
@@ -116,6 +108,9 @@ counter (e.g. max N rows/min) before insert.
   widgets in column 1. Replaced with `grid grid-cols-1 sm:grid-cols-2 items-start`;
   full-width cells now use `gridColumn:"1/-1"` instead of `columnSpan:"all"`.
   Verified on prod: 6 widgets correctly spread across 2 columns.
+- 2026-06-13 · **GIF widget live** (#15): `GIPHY_API_KEY` added to Vercel env
+  by Leon; redeploy (`5d5d848`) picked it up (edge runtime needs a fresh build).
+  Verified: `/api/gif?q=party` returns real Giphy results.
 - 2026-06-13 · **Widget test session 4** — all 29 types now on prod space
   9Pyr3MMAcZ, no crashes. Interactive: Poll vote toggle ✓, Aufgaben checklist
   check ✓, Von-Bis 08:00→18:00 saved ✓. New batch (session 4): Diskussion,
