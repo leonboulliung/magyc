@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 
 /**
@@ -9,9 +10,16 @@ import { AnimatePresence, motion } from "motion/react";
  * behind it, and dismisses on backdrop tap, Escape, or the grab handle.
  *
  * Desktop uses anchored popovers instead; callers mount this only below
- * the `sm` breakpoint (see `useIsMobile`). Rendered inline (no portal)
- * so the space's CSS-variable theme — scoped to `.vibe-root` — still
- * applies, matching the Popover wrapper's deliberate no-portal choice.
+ * the `sm` breakpoint (see `useIsMobile`).
+ *
+ * Portaled into `.vibe-root` rather than rendered inline: `position:
+ * fixed` resolves against the nearest ancestor that has a `transform`
+ * (or `will-change: transform`), and the sheet's callers sit inside
+ * transformed ancestors — the scroll-hiding top toolbar, the motion /
+ * dnd-kit wrappers in the grid — which would otherwise anchor the
+ * "fixed" sheet to that small box instead of the viewport. `.vibe-root`
+ * is the un-transformed themed root, so the portal both escapes those
+ * containing blocks and keeps the space's CSS-variable theme.
  */
 export function MobileSheet({
   open,
@@ -24,6 +32,13 @@ export function MobileSheet({
   title?: string;
   children: React.ReactNode;
 }) {
+  // Resolve the portal target on the client (the themed, un-transformed
+  // root). Falls back to <body> if the root isn't found (e.g. showroom).
+  const [target, setTarget] = useState<Element | null>(null);
+  useEffect(() => {
+    setTarget(document.querySelector(".vibe-root") ?? document.body);
+  }, []);
+
   // Escape to dismiss + lock the page behind the sheet so a scroll
   // gesture doesn't move the content underneath on iOS.
   useEffect(() => {
@@ -38,7 +53,9 @@ export function MobileSheet({
     };
   }, [open, onClose]);
 
-  return (
+  if (!target) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -88,6 +105,7 @@ export function MobileSheet({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    target,
   );
 }
