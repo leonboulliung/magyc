@@ -33,7 +33,7 @@ export async function PUT(
   }
 
   const parsed = await parseBody(req, z.object({
-    widget: z.unknown(),
+    widget: z.unknown().optional(),
     anonOwnerToken: z.string().optional(),
     note: z.string().optional(),
     resolveExternal: z.boolean().optional(),

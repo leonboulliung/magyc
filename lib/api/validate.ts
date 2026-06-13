@@ -6,11 +6,15 @@ import { z } from "zod";
  *
  * Scope discipline: these schemas validate STRUCTURE and apply pure
  * cleaning (trim / slice / clamp) on scalars only. Rich objects
- * (`widget`, `modules`, `style`, `answers`, …) stay `z.unknown()` and
- * flow UNCHANGED into the existing sanitizers (sanitizeModule, …) which
- * remain the single authority on those shapes. Authorization (token
- * matching, Clerk session) stays in each route — a short/empty token is
- * an auth failure (403/401), never a body-validation error.
+ * (`widget`, `modules`, `style`, `answers`, …) stay
+ * `z.unknown().optional()` and flow UNCHANGED into the existing
+ * sanitizers (sanitizeModule, …) which remain the single authority on
+ * those shapes. Zod v4 gotcha: a bare `z.unknown()` object field is
+ * REQUIRED — a missing key fails the whole parse with a generic
+ * "Invalid input"; always add `.optional()` and let the route's own
+ * check produce the specific error. Authorization (token matching,
+ * Clerk session) stays in each route — a short/empty token is an auth
+ * failure (403/401), never a body-validation error.
  *
  * `parseBody` tolerates a missing/empty body (→ {}), so routes whose
  * fields are all optional keep working when called with no payload.

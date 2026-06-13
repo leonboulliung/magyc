@@ -33,8 +33,8 @@ const MAX_ANSWERS = 6;
 export async function POST(req: Request) {
   const parsed = await parseBody(req, z.object({
     input: z.string().optional(),
-    answers: z.unknown(),
-    configuredModules: z.unknown(),
+    answers: z.unknown().optional(),
+    configuredModules: z.unknown().optional(),
     anonToken: z.string().optional(),
   }));
   if (!parsed.ok) return parsed.response;

@@ -62,7 +62,7 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   const parsed = await parseBody(req, z.object({
-    widget: z.unknown(),
+    widget: z.unknown().optional(),
     anonOwnerToken: z.string().optional(),
   }));
   if (!parsed.ok) return parsed.response;
@@ -95,7 +95,7 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   const parsed = await parseBody(req, z.object({
-    modules: z.unknown(),
+    modules: z.unknown().optional(),
     anonOwnerToken: z.string().optional(),
   }));
   if (!parsed.ok) return parsed.response;
