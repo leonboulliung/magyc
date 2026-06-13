@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { HeadingWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { EditControls } from "./EditControls";
+import { useInlineEdit } from "./useInlineEdit";
 
 /**
  * Heading widget renderer.
@@ -27,35 +27,12 @@ export function HeadingRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(m.text);
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    setDraft(m.text);
-  }, [m.text]);
-
-  useEffect(() => {
-    if (editing && ref.current) {
-      ref.current.focus();
-      // Place caret at the end.
-      const len = ref.current.value.length;
-      ref.current.setSelectionRange(len, len);
-      autoResize(ref.current);
-    }
-  }, [editing]);
-
-  async function save() {
-    const next = draft.trim();
-    setEditing(false);
-    if (next === m.text) return;
-    await ctx.saveModule(index, { ...m, text: next });
-  }
-
-  function cancel() {
-    setDraft(m.text);
-    setEditing(false);
-  }
+  const { editing, setEditing, cancel, commit, editProps } = useInlineEdit<HTMLTextAreaElement>({
+    value: m.text,
+    onSave: (text) => ctx.saveModule(index, { ...m, text }),
+    submitOn: "enter",
+    autoGrow: true,
+  });
 
   const sizeClass = SIZE_BY_LEVEL[m.level];
   const empty = !m.text.trim();
@@ -76,29 +53,14 @@ export function HeadingRenderer({
       {editing ? (
         <div className="relative">
           <textarea
-            ref={ref}
-            value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              autoResize(e.currentTarget);
-            }}
-            onBlur={save}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                save();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                cancel();
-              }
-            }}
+            {...editProps}
             placeholder={m.placeholder ?? ""}
             maxLength={200}
             rows={1}
             className={`vibe-heading font-black ${sizeClass} leading-[0.95] w-full bg-transparent border-0 outline-none resize-none overflow-hidden`}
             style={{ color: "var(--v-fg)" }}
           />
-          <EditControls onSave={save} onCancel={cancel} />
+          <EditControls onSave={commit} onCancel={cancel} />
         </div>
       ) : (
         <h1
@@ -121,8 +83,3 @@ const SIZE_BY_LEVEL: Record<1 | 2 | 3 | 4 | 5 | 6, string> = {
   5: "text-[18px] sm:text-[22px]",
   6: "text-[16px] sm:text-[18px]",
 };
-
-function autoResize(el: HTMLTextAreaElement) {
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
-}

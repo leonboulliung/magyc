@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { RichTextWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { EditControls } from "./EditControls";
+import { useInlineEdit } from "./useInlineEdit";
 
 /**
  * Rich-text widget renderer.
@@ -26,46 +26,18 @@ export function RichTextRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [editingBody, setEditingBody] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(m.microTitle ?? "");
-  const [bodyDraft, setBodyDraft] = useState(m.text);
-
-  const titleRef = useRef<HTMLInputElement>(null);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => { setTitleDraft(m.microTitle ?? ""); }, [m.microTitle]);
-  useEffect(() => { setBodyDraft(m.text); }, [m.text]);
-
-  useEffect(() => {
-    if (editingTitle && titleRef.current) {
-      titleRef.current.focus();
-      titleRef.current.select();
-    }
-  }, [editingTitle]);
-
-  useEffect(() => {
-    if (editingBody && bodyRef.current) {
-      bodyRef.current.focus();
-      const len = bodyRef.current.value.length;
-      bodyRef.current.setSelectionRange(len, len);
-      autoResize(bodyRef.current);
-    }
-  }, [editingBody]);
-
-  async function saveTitle() {
-    const next = titleDraft.trim();
-    setEditingTitle(false);
-    if (next === (m.microTitle ?? "")) return;
-    await ctx.saveModule(index, { ...m, microTitle: next || undefined });
-  }
-
-  async function saveBody() {
-    const next = bodyDraft;
-    setEditingBody(false);
-    if (next === m.text) return;
-    await ctx.saveModule(index, { ...m, text: next });
-  }
+  const title = useInlineEdit<HTMLInputElement>({
+    value: m.microTitle ?? "",
+    onSave: (v) => ctx.saveModule(index, { ...m, microTitle: v || undefined }),
+    submitOn: "enter",
+    focusMode: "all",
+  });
+  const body = useInlineEdit<HTMLTextAreaElement>({
+    value: m.text,
+    onSave: (text) => ctx.saveModule(index, { ...m, text }),
+    trim: false,
+    autoGrow: true,
+  });
 
   const emptyBody = !m.text.trim();
 
@@ -75,7 +47,7 @@ export function RichTextRenderer({
       index={index}
       canRegenerate={false}
       promptEditable
-      onManualEdit={() => setEditingBody(true)}
+      onManualEdit={() => body.setEditing(true)}
       renderSuggestion={(s) =>
         s.type === "rich_text" ? (
           <div className="space-y-0.5">
@@ -91,16 +63,9 @@ export function RichTextRenderer({
     >
       <div className="space-y-2">
         {/* Micro-title row */}
-        {editingTitle ? (
+        {title.editing ? (
           <input
-            ref={titleRef}
-            value={titleDraft}
-            onChange={(e) => setTitleDraft(e.target.value)}
-            onBlur={saveTitle}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); saveTitle(); }
-              else if (e.key === "Escape") { e.preventDefault(); setTitleDraft(m.microTitle ?? ""); setEditingTitle(false); }
-            }}
+            {...title.editProps}
             placeholder="…"
             maxLength={60}
             className="mono text-[10px] tracking-widest uppercase bg-transparent border-0 outline-none px-0 py-0"
@@ -109,7 +74,7 @@ export function RichTextRenderer({
         ) : (
           <button
             type="button"
-            onClick={() => { if (ctx.isOwner) setEditingTitle(true); }}
+            onClick={() => { if (ctx.isOwner) title.setEditing(true); }}
             disabled={!ctx.isOwner}
             className={`mono text-[10px] tracking-widest uppercase block ${ctx.isOwner ? "cursor-text" : "cursor-default"}`}
             style={{
@@ -125,40 +90,21 @@ export function RichTextRenderer({
         )}
 
         {/* Body */}
-        {editingBody ? (
+        {body.editing ? (
           <div className="max-w-2xl">
             <textarea
-              ref={bodyRef}
-              value={bodyDraft}
-              onChange={(e) => {
-                setBodyDraft(e.target.value);
-                autoResize(e.currentTarget);
-              }}
-              onBlur={saveBody}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  saveBody();
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  setBodyDraft(m.text);
-                  setEditingBody(false);
-                }
-              }}
+              {...body.editProps}
               placeholder={m.placeholder ?? ""}
               maxLength={4000}
               rows={3}
               className="vibe-heading text-[17px] sm:text-[19px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
               style={{ color: "var(--v-fg)" }}
             />
-            <EditControls
-              onSave={saveBody}
-              onCancel={() => { setBodyDraft(m.text); setEditingBody(false); }}
-            />
+            <EditControls onSave={body.commit} onCancel={body.cancel} />
           </div>
         ) : (
           <p
-            onClick={() => { if (ctx.isOwner) setEditingBody(true); }}
+            onClick={() => { if (ctx.isOwner) body.setEditing(true); }}
             className={`vibe-heading text-[17px] sm:text-[19px] leading-relaxed max-w-2xl whitespace-pre-wrap ${ctx.isOwner ? "cursor-text" : ""}`}
             style={{ color: emptyBody ? "var(--v-muted)" : "var(--v-fg)" }}
           >
@@ -168,9 +114,4 @@ export function RichTextRenderer({
       </div>
     </WidgetShell>
   );
-}
-
-function autoResize(el: HTMLTextAreaElement) {
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
 }

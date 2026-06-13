@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { AISummaryWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
 import { EditControls } from "./EditControls";
+import { useInlineEdit } from "./useInlineEdit";
 
 /**
  * Ki-Einordnung — short AI take. Renders the text with a small ✦
@@ -24,26 +24,11 @@ export function AiSummaryRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(m.text);
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => { setDraft(m.text); }, [m.text]);
-  useEffect(() => {
-    if (editing && ref.current) {
-      ref.current.focus();
-      const len = ref.current.value.length;
-      ref.current.setSelectionRange(len, len);
-      autoResize(ref.current);
-    }
-  }, [editing]);
-
-  async function save() {
-    const next = draft.trim();
-    setEditing(false);
-    if (next === m.text) return;
-    await ctx.saveModule(index, { ...m, text: next });
-  }
+  const { editing, setEditing, cancel, commit, editProps } = useInlineEdit<HTMLTextAreaElement>({
+    value: m.text,
+    onSave: (text) => ctx.saveModule(index, { ...m, text }),
+    autoGrow: true,
+  });
 
   return (
     <WidgetShell
@@ -77,23 +62,13 @@ export function AiSummaryRenderer({
         {editing ? (
           <div>
             <textarea
-              ref={ref}
-              value={draft}
-              onChange={(e) => { setDraft(e.target.value); autoResize(e.currentTarget); }}
-              onBlur={save}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
-                else if (e.key === "Escape") { e.preventDefault(); setDraft(m.text); setEditing(false); }
-              }}
+              {...editProps}
               maxLength={1200}
               rows={3}
               className="text-[15px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
               style={{ color: "var(--v-fg)" }}
             />
-            <EditControls
-              onSave={save}
-              onCancel={() => { setDraft(m.text); setEditing(false); }}
-            />
+            <EditControls onSave={commit} onCancel={cancel} />
           </div>
         ) : (
           <p
@@ -107,9 +82,4 @@ export function AiSummaryRenderer({
       </WidgetCard>
     </WidgetShell>
   );
-}
-
-function autoResize(el: HTMLTextAreaElement) {
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
 }
