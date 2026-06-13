@@ -91,44 +91,23 @@ counter (e.g. max N rows/min) before insert.
 
 ## Code-health review (session 4, 2026-06-13)
 
-Full read-through for leanness / architecture / inconsistencies. Findings
-ordered by value; none are bugs, all are debt.
+Full read-through for leanness / architecture / inconsistencies. #17, #19,
+#21 fixed + verified on prod; #18 partially done. Remaining below.
 
-### 17. Owner-auth logic duplicated across 5 API routes *(security-relevant)*
-The "draft → anon token (≥16 chars) matches `anon_owner_token`; published →
-Clerk `userId === owner_id`" check is hand-rolled in `widgets/route.ts`
-(`authorize()`), `widgets/[index]/route.ts`, `style/route.ts`,
-`upload/route.ts`, and a *different-shaped* variant in `publish/route.ts`
-(`!owner_id && anon_owner_token !== token`). Five copies = five chances to
-get an auth check subtly wrong. **Fix:** one `authorizeOwner(space, body)`
-in `lib/api/auth.ts`; every route calls it. Highest-priority item — auth
-should live in exactly one place.
-
-### 18. Inline-edit pattern duplicated across ~15 renderers *(biggest leanness win)*
-`autoResize()` is copy-pasted in HeadingRenderer, AiSummaryRenderer,
-RichTextRenderer. The full "draft state + focus/select on edit +
-Enter-saves / Escape-cancels / blur-saves + autoResize" pattern recurs in
-~15 renderers. `EditControls` exists but is used in only 4. **Fix:** a
-`useInlineEdit` hook (or `<InlineEditText>` / `<InlineEditArea>`) — removes
-a few hundred lines and makes edit behaviour uniform.
-
-### 19. Three local `newId()` reimplementations
-QaRenderer, DiscussionRenderer, NotesRenderer each define a private
-`newId()` using `Math.random().toString(36)`, while `lib/id.ts` already
-exports a crypto-based `newId()`. **Fix:** export `newLocalId(prefix)` from
-`lib/id.ts`, delete the three copies.
+### 18. Inline-edit hook adoption — finish the single-line editors
+The `useInlineEdit` hook shipped (`components/widgets/useInlineEdit.ts`) and
+Heading / AiSummary / RichText now use it (three `autoResize` copies gone).
+**Remaining:** the single-line `<input>` editors that still hand-roll the
+same draft/Enter/Escape/blur wiring — RangeRenderer, DateRenderer,
+TableRenderer (cells), TagsRenderer, AppointmentRenderer/AppointmentsRenderer,
+QaRenderer (ask/answer fields). Adopt the hook incrementally (mostly
+`submitOn:"enter"`, no autoGrow); verify each widget edits after conversion.
 
 ### 20. `applyActionLocally` mirrors server state semantics
 `lib/state.ts` re-implements the vote/check/claim dedup rules that
 `state/route.ts` enforces server-side. AGENTS.md already warns "change one,
 change the other" — a structural coupling hazard. **Fix (low-cost):**
 co-locate the dedup keys / a shared spec so the two can't drift silently.
-
-### 21. `/dev` showroom has no production guard
-`app/dev/page.tsx` is reachable at magyc.site/dev in prod (no
-`NODE_ENV`/notFound gate). Harmless but exposes the internal widget
-showroom. **Fix:** `notFound()` when `process.env.NODE_ENV === "production"`
-(or gate behind the existing dev flag).
 
 ### 22. `app/page.tsx` is 668 lines (whole clarify flow inline)
 The home component holds input + clarify steps + build orchestration in one
@@ -151,6 +130,18 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **Code-health review fixes** (`2fe97e0`, `121e43c`): #17 owner-auth
+  centralized in `lib/api/auth.ts` (`isSpaceOwner` + `forbidden`), adopted by the
+  widgets / widgets[index] / style routes — verified on prod (wrong token → 403,
+  owner token → 200 add+delete). #21 `/dev` now `notFound()` in production. #19
+  `newLocalId(prefix)` in `lib/id.ts` replaces 3 `Math.random()` copies. #18 shared
+  `useInlineEdit` hook (Heading, AiSummary, RichText) — 3 `autoResize` copies + ~120
+  lines of edit wiring removed; remaining single-line editors tracked in #18.
+- 2026-06-13 · **MobileSheet portal fix** (`4cc4075`): the bottom sheet is spawned
+  from inside transformed ancestors (scroll-hiding toolbar, motion/dnd-kit grid
+  wrappers), which become the containing block for `position:fixed` and anchored
+  the sheet top-right. Portaled into `.vibe-root` (themed, un-transformed). Verified
+  on prod at 606px: style + picker sheets sit at the bottom, full-width.
 - 2026-06-13 · **Mobile UX pass** (`60d6792`): new `MobileSheet` (full-width
   bottom sheet) for the StyleEditor and the add-widget picker on phones;
   floating top controls get more h1 clearance (pt-20) and slide away on
