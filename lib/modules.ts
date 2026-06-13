@@ -42,6 +42,10 @@ function stringArray(raw: unknown, maxItems: number, maxLen: number): string[] {
   return out;
 }
 
+function stripTags(s: string): string {
+  return s.replace(/<[^>]*>/g, "").trim();
+}
+
 function attribution(raw: unknown): Module["attribution"] {
   if (!raw || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
@@ -57,7 +61,7 @@ function base(raw: Record<string, unknown>): {
   description?: string;
   attribution?: Module["attribution"];
 } {
-  const microTitle = clean(raw.microTitle, 80) || undefined;
+  const microTitle = (clean(raw.microTitle, 80) ? stripTags(clean(raw.microTitle, 80)) : undefined) || undefined;
   const description = clean(raw.description, 200) || undefined;
   return {
     microTitle,
