@@ -5,6 +5,13 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const supabaseConfigured = Boolean(url && anonKey);
 
+/** Always-fresh fetch for supabase-js. On the server, Next 14 patches
+ *  global fetch and may serve REST reads from its persistent Data Cache
+ *  (observed in prod: edits invisible to SSR even under force-dynamic).
+ *  An explicit no-store wins over every default. Harmless in browsers. */
+const freshFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, cache: "no-store" });
+
 // Build a client even when env vars are missing — but guard against crashes.
 // The Supabase JS v2 client validates the URL string at construction in
 // some builds; using a syntactically valid placeholder avoids that path.
@@ -16,6 +23,7 @@ function safeCreate(): SupabaseClient {
       {
         auth: { persistSession: false, autoRefreshToken: false },
         realtime: { params: { eventsPerSecond: 10 } },
+        global: { fetch: freshFetch },
       },
     );
   } catch (e) {
@@ -49,5 +57,6 @@ export function supabaseAdmin(): SupabaseClient {
   }
   return createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: freshFetch },
   });
 }
