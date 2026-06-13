@@ -53,6 +53,11 @@ No favicon, no OG image — bare links. **Plan:** `@vercel/og` route rendering
 title + space colors; favicon from `public/logo.png` /
 `public/magyc-marble-2048x2048.png`.
 
+### 9b. Editing the h1 doesn't update `spaces.title`
+The heading widget edit only rewrites `modules[0]`; the `title` column
+(browser tab, OG metadata, dashboards) keeps the AI's original. When a
+heading at index 0 is saved, the widgets PUT should also set `title`.
+
 ### 10. Draft-loss protection
 Owner token lives only in localStorage; cleared storage or another browser =
 space lost. **Plan:** gentle "secure your space" nudge on draft spaces
@@ -66,9 +71,15 @@ space lost. **Plan:** gentle "secure your space" nudge on draft spaces
 Deploys are manual (`vercel --prod --yes`). Try `vercel git connect` or
 re-link the repo in the Vercel dashboard.
 
-### 12. Rotate the Supabase service_role key
-Flagged during an earlier session (key may have appeared in logs/context).
-Rotate in Supabase dashboard → update Vercel env + `.env.local` → redeploy.
+### 12. Local `.env.local` has stale/invalid Supabase keys
+Verified 2026-06-13: both the anon and service_role keys in `.env.local`
+are rejected by Supabase ("Invalid API key") while prod (Vercel env) works
+— the keys were likely rotated and only Vercel updated. `vercel env pull`
+returns empty values for sensitive vars, so Leon must copy the current
+keys from the Supabase dashboard into `.env.local`. Until then, agents
+cannot query the DB directly (prod API still works fine). The original
+rotation concern (key may have appeared in logs/context) may thereby
+already be resolved — confirm with Leon.
 
 ### 13. `module_state` unbounded growth
 `SPACE_SELECT` loads ALL state rows; sketch strokes are up to 44 KB each.
@@ -96,12 +107,19 @@ counter (e.g. max N rows/min) before insert.
 ## Done
 
 - 2026-06-13 · **Stale-SSR bug** (root cause of "title not persisting"):
-  `force-dynamic` on the space page. **Silent zero-row updates**:
-  `.select("id")` guards on all spaces updates (widgets PUT/POST/PATCH/
-  DELETE, style PUT). **Leaflet re-init crash**: run-token guard +
-  container-stamp clear in MapCanvas. **Classifier first pass** (#6) and
-  **AI duplicate widgets** (de-dupe in classify assembly). **Config
-  broadcast sync** (#8). — see commits following `3c8f437`.
+  `force-dynamic` on the space page was NOT enough — Vercel's Data Cache
+  kept serving the supabase REST GETs; the actual fix is an explicit
+  `cache:"no-store"` fetch on both supabase clients (`a28ccf6`).
+  Verified end-to-end on prod: PUT title → 3 fresh reloads all show it.
+  **Silent zero-row updates**: `.select("id")` guards on all spaces
+  updates. **zod v4 API bug**: bare `z.unknown()` fields are required —
+  any request omitting answers/style/widget got a 400 invalid_body; all
+  rich-object fields now `.optional()` (`56771e0`). **Leaflet re-init
+  crash**: run-token guard + container-stamp clear in MapCanvas.
+  **Classifier first pass** (#6: MIN_SCORE 4, MIN_BODY 3, score logging
+  — test prompt now yields 3 body widgets instead of 2) and **AI
+  duplicate widgets** (de-dupe in assembly). **Config broadcast sync**
+  (#8). — commits `25fc189`…`a28ccf6`.
 - 2026-06-12 · Widget-state regression fixed (GridZone stale mirror) —
   `808bd22`. Security: owner tokens/password hashes no longer shipped to
   clients; published edits owner-only — `3e694f3`.
