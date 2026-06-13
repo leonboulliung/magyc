@@ -43,9 +43,17 @@ export function MapCanvas({
   const setupRef = useRef(setup);
   setupRef.current = setup;
 
+  // Guards against overlapping async inits ("Map container is already
+  // initialized"): init() awaits between the teardown check and the
+  // setup call, so a re-render (StrictMode double-invoke, fast dep
+  // change) can start a second init before the first finishes. Each run
+  // takes a token; stale runs bail after every await.
+  const runRef = useRef(0);
+
   const init = useCallback(async () => {
     const el = containerRef.current;
     if (!el) return;
+    const run = ++runRef.current;
 
     // Tear down previous map instance if deps changed.
     if (teardownRef.current) {
@@ -53,9 +61,11 @@ export function MapCanvas({
       teardownRef.current = null;
       // Give Leaflet a tick to finish cleanup.
       await new Promise<void>((r) => setTimeout(r, 0));
+      if (run !== runRef.current) return;
     }
 
     const L = await import("leaflet");
+    if (run !== runRef.current || !containerRef.current) return;
 
     // Leaflet CSS — inject once into the document head.
     if (!document.getElementById("leaflet-css")) {
@@ -66,6 +76,12 @@ export function MapCanvas({
       document.head.appendChild(link);
     }
 
+    // Last-resort: if a previous instance's teardown was lost, the
+    // container still carries Leaflet's id stamp and L.map() would
+    // throw. Clearing the stamp lets the new map take over the node.
+    const stamped = el as HTMLDivElement & { _leaflet_id?: number };
+    if (stamped._leaflet_id) delete stamped._leaflet_id;
+
     // Let the caller drive the rest.
     teardownRef.current = setupRef.current(L, el);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,6 +90,9 @@ export function MapCanvas({
   useEffect(() => {
     init();
     return () => {
+      // Invalidate any in-flight init so it can't set up a map on an
+      // unmounted (or about-to-be-reused) container.
+      runRef.current++;
       if (teardownRef.current) {
         teardownRef.current();
         teardownRef.current = null;

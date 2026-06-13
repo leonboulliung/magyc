@@ -37,6 +37,26 @@ async function authorize(
   return !!userId && !!space.owner_id && userId === space.owner_id;
 }
 
+/** Write the modules array. The .select() is load-bearing: without it
+ *  Supabase reports success even when 0 rows matched. Returns an error
+ *  response, or null on success. */
+async function persistModules(
+  admin: ReturnType<typeof supabaseAdmin>,
+  spaceId: string,
+  modules: unknown[],
+): Promise<NextResponse | null> {
+  const { data, error } = await admin
+    .from("spaces")
+    .update({ modules })
+    .eq("id", spaceId)
+    .select("id");
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: "update_no_match" }, { status: 500 });
+  }
+  return null;
+}
+
 export async function POST(
   req: Request,
   { params }: { params: { id: string } },
@@ -64,11 +84,8 @@ export async function POST(
   const next = [...current, widget];
   const newIndex = current.length;
 
-  const { error } = await admin
-    .from("spaces")
-    .update({ modules: next })
-    .eq("id", params.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const failure = await persistModules(admin, params.id, next);
+  if (failure) return failure;
 
   return NextResponse.json({ ok: true, index: newIndex });
 }
@@ -98,11 +115,8 @@ export async function PATCH(
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!await authorize(space, body)) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
 
-  const { error } = await admin
-    .from("spaces")
-    .update({ modules })
-    .eq("id", params.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const failure = await persistModules(admin, params.id, modules);
+  if (failure) return failure;
 
   return NextResponse.json({ ok: true });
 }
@@ -134,11 +148,8 @@ export async function DELETE(
   if (idx >= current.length) return NextResponse.json({ error: "out_of_range" }, { status: 400 });
 
   const next = current.filter((_, i) => i !== idx);
-  const { error } = await admin
-    .from("spaces")
-    .update({ modules: next })
-    .eq("id", params.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const failure = await persistModules(admin, params.id, next);
+  if (failure) return failure;
 
   return NextResponse.json({ ok: true });
 }

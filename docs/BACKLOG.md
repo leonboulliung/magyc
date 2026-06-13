@@ -11,20 +11,6 @@ _Last updated: 2026-06-13 (Claude)_
 
 ## P1 — correctness
 
-### 1. Stale SSR: space page serves cached data after edits
-**Symptom (verified on prod):** edit the title → PUT 200, DB updated → reload
-→ old title. **Root cause:** `app/s/[id]/page.tsx` fetches via supabase-js,
-which uses `fetch` internally; Next 14 caches server `fetch` in the Data
-Cache by default, and the project sets no `dynamic`/`revalidate` anywhere.
-**Fix:** `export const dynamic = "force-dynamic"` in `app/s/[id]/page.tsx`.
-
-### 2. Silent zero-row Supabase updates
-`.update()` without `.select()` returns `{error: null}` even when 0 rows
-matched — this masked bug #1 for days. **Fix:** chain `.select("id")` on the
-updates in `app/api/spaces/[id]/widgets/[index]/route.ts`,
-`…/widgets/route.ts` (PATCH/DELETE paths), `…/style/route.ts`; return 500
-`update_no_match` on empty result.
-
 ### 3. Lost-update races on module config
 Widget PUT does read-modify-write of the whole `modules` array with no
 version check; reorder-PATCH ships the entire array from the client. Two
@@ -38,20 +24,15 @@ both win. **Fix:** partial unique index:
 `CREATE UNIQUE INDEX ON module_state (space_id, module_index, (data->>'slotLabel')) WHERE kind = 'claim';`
 then treat insert conflict as 409. (Manual SQL in Supabase editor.)
 
-### 5. Leaflet "Map container is already initialized"
-Console error when a map widget re-mounts. **Fix:** init guard in
-`components/widgets/MapCanvas.tsx` — destroy the existing map instance (or
-bail) before re-init.
-
 ---
 
 ## P2 — product levers
 
-### 6. Spaces too sparse ("only 2 widgets" problem)
-Travel prompt yielded 2 body widgets. Stage-A scorer is told to be strict;
-`MIN_SCORE = 5` + `MIN_BODY = 2` (lib/server/classify.ts) then produces bare
-pages. **Plan:** log scores per request (one line), lower `MIN_SCORE` → 4,
-raise `MIN_BODY` → 3, observe. Also consider a stronger model for Stage A —
+### 6. Sparse spaces — observe the new tuning
+First pass shipped 2026-06-13: `MIN_SCORE` 5→4, `MIN_BODY` 2→3, per-request
+score logging (`[classify]` lines in Vercel function logs), and a body
+de-dupe (one widget per type). **Next:** watch the logs against real
+prompts; if pages are still bare, consider a stronger Stage-A model —
 scoring quality is the foundation of the page.
 
 ### 7. Streamed space creation (biggest perceived-speed win)
@@ -60,12 +41,12 @@ Today: 2 sequential OpenAI calls finish before redirect (~10-15 s wait).
 placeholders and redirect immediately; Stage B authors content and fills
 widgets in, visible live. Turns the wait into a "magic build-up" moment.
 
-### 8. Realtime sync for config changes
-Config edits (title, poll options, style) reach other viewers only on manual
-refresh — only `module_state` has a realtime channel. **Fix:** second
-`postgres_changes` listener on `spaces` UPDATE in SpaceView; requires the
-`spaces` table in the `supabase_realtime` publication (check Supabase
-dashboard → Database → Replication).
+### 8. Realtime sync for config changes — broadcast shipped, pg_changes open
+Shipped 2026-06-13: the saving client broadcasts `config` on the shared
+channel; receivers refetch (debounced). Covers all UI-driven edits without
+DB setup. **Open upgrade:** `postgres_changes` on `spaces` UPDATE would also
+catch non-UI writes — needs `alter publication supabase_realtime add table
+spaces;` run manually in the Supabase SQL editor (no migration runner).
 
 ### 9. Share loop: OG images + favicon
 No favicon, no OG image — bare links. **Plan:** `@vercel/og` route rendering
@@ -98,10 +79,6 @@ lazy-load older rows; consider pruning superseded `edit` rows.
 An anon token can insert unlimited rows. Add a cheap per-actor-per-space
 counter (e.g. max N rows/min) before insert.
 
-### 15. AI duplicate widgets
-Classifier occasionally emits duplicate widget types in one space. Server
-selection should de-dupe types outside the existing date/place groups.
-
 ---
 
 ## Deferred (needs Leon)
@@ -118,8 +95,13 @@ selection should de-dupe types outside the existing date/place groups.
 
 ## Done
 
-- 2026-06-13 · P1 #1, #2, #5 fixed; classifier tuning (#6 first pass);
-  realtime config sync (#8) — see commits following `3e694f3`.
+- 2026-06-13 · **Stale-SSR bug** (root cause of "title not persisting"):
+  `force-dynamic` on the space page. **Silent zero-row updates**:
+  `.select("id")` guards on all spaces updates (widgets PUT/POST/PATCH/
+  DELETE, style PUT). **Leaflet re-init crash**: run-token guard +
+  container-stamp clear in MapCanvas. **Classifier first pass** (#6) and
+  **AI duplicate widgets** (de-dupe in classify assembly). **Config
+  broadcast sync** (#8). — see commits following `3c8f437`.
 - 2026-06-12 · Widget-state regression fixed (GridZone stale mirror) —
   `808bd22`. Security: owner tokens/password hashes no longer shipped to
   clients; published edits owner-only — `3e694f3`.

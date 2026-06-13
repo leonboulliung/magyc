@@ -91,12 +91,17 @@ export async function PUT(
   const nextModules: unknown[] = [...currentModules];
   nextModules[widgetIndex] = widget;
 
-  // Persist.
-  const { error: upErr } = await admin
+  // Persist. The .select() is load-bearing: without it Supabase reports
+  // success even when 0 rows matched (silent no-op writes).
+  const { data: updated, error: upErr } = await admin
     .from("spaces")
     .update({ modules: nextModules })
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .select("id");
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: "update_no_match" }, { status: 500 });
+  }
 
   // If published: snapshot a version — but COALESCE rapid edits. A pin
   // drag or a flurry of inline edits should not each become a version.

@@ -65,10 +65,12 @@ const PLACE_GROUP: ReadonlySet<ModuleType> = new Set([
   "location_single", "locations_multi", "location_suggestions", "route",
 ]);
 
-// Selection tuning.
-const MIN_SCORE = 5;     // a module must score at least this to be considered
+// Selection tuning. The scorer is prompted to be strict, so the
+// threshold must not be: MIN_SCORE 5 + MIN_BODY 2 produced bare
+// 2-widget pages for rich inputs (see docs/BACKLOG.md #6).
+const MIN_SCORE = 4;     // a module must score at least this to be considered
 const MAX_BODY = 6;      // never more than this many body widgets
-const MIN_BODY = 2;      // try to land at least this many so a page isn't bare
+const MIN_BODY = 3;      // try to land at least this many so a page isn't bare
 
 // ── Stage A: analyze + score ──────────────────────────────────────────
 
@@ -489,6 +491,17 @@ export async function classifyInput(
   // Server-side deterministic selection.
   let chosen = selectModuleTypes(a.scores);
 
+  // One observability line per request (Vercel function logs) — the
+  // basis for tuning MIN_SCORE/MIN_BODY against real inputs.
+  console.log(
+    `[classify] lang=${a.language} chosen=[${chosen.join(",")}] scores=` +
+    Object.entries(a.scores)
+      .filter(([, v]) => v > 0)
+      .sort(([, x], [, y]) => y - x)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(" "),
+  );
+
   // Honour pre-configured modules: drop their type AND any type in the
   // same redundancy group from what the author will produce, so we never
   // get a second place/date widget competing with the user's choice.
@@ -508,12 +521,20 @@ export async function classifyInput(
   const configuredBody = configuredModules.filter(
     (m) => m.type !== "heading" && m.type !== "rich_text" && m.type !== "tags",
   );
+  // De-dupe: the author occasionally emits a type twice, or re-emits a
+  // type the user already configured. One widget per type per space.
+  const usedTypes = new Set<string>(configuredBody.map((m) => m.type));
+  const authoredBody = authored.body.filter((m) => {
+    if (usedTypes.has(m.type)) return false;
+    usedTypes.add(m.type);
+    return true;
+  });
   const ordered: Module[] = [];
   ordered.push({ type: "heading", text: a.title || input.slice(0, 60), level: 1 });
   if (authored.richText) ordered.push(authored.richText);
   if (authored.tags) ordered.push(authored.tags);
   ordered.push(...configuredBody);
-  ordered.push(...authored.body);
+  ordered.push(...authoredBody);
 
   return {
     title: a.title,

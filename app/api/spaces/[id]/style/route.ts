@@ -45,8 +45,17 @@ export async function PUT(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { error } = await admin.from("spaces").update({ style }).eq("id", params.id);
+  // The .select() is load-bearing: without it Supabase reports success
+  // even when 0 rows matched (silent no-op writes).
+  const { data: updated, error } = await admin
+    .from("spaces")
+    .update({ style })
+    .eq("id", params.id)
+    .select("id");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: "update_no_match" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

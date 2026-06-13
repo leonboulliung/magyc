@@ -127,6 +127,22 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
   }, []);
 
+  // Config-change fan-out. The spaces table is not in the realtime
+  // publication, so config edits (title, widget swaps, style, publish)
+  // are announced by the SAVING client as a broadcast on the shared
+  // channel; receivers refetch. Cheap, no DB setup, covers every edit
+  // made through the UI. (Channel is created in the realtime effect
+  // below.)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const configRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const broadcastConfigChange = useCallback(() => {
+    channelRef.current?.send({
+      type: "broadcast",
+      event: "config",
+      payload: { from: user?.id ?? getSelfId() },
+    });
+  }, [user?.id]);
+
   const saveModule = useCallback(
     async (
       index: number,
@@ -162,6 +178,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           ? (json as { widget?: Module }).widget
           : null;
         if (persisted) patchModule(index, persisted);
+        broadcastConfigChange();
         const canUndo = options?.allowUndo !== false && options?.undoModule;
         if (!options?.quiet) {
           announce({
@@ -191,7 +208,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         return false;
       }
     },
-    [announce, ownerToken, patchModule, space?.id],
+    [announce, broadcastConfigChange, ownerToken, patchModule, space?.id],
   );
 
   // Lazy external-reference hydration. Creation stores Wikipedia widgets
@@ -247,14 +264,37 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           if (oldId) setLiveState((prev) => prev.filter((e) => e.id !== oldId));
         },
       )
+      .on(
+        "broadcast",
+        { event: "config" },
+        (msg) => {
+          const from = (msg.payload as { from?: string } | null)?.from;
+          if (from && from === selfActorId) return;
+          // Trailing debounce — a drag-reorder or edit flurry collapses
+          // into one refetch.
+          if (configRefreshTimer.current) clearTimeout(configRefreshTimer.current);
+          configRefreshTimer.current = setTimeout(() => refresh(), 350);
+        },
+      )
       .subscribe((status) => {
         realtimeUp.current = status === "SUBSCRIBED";
       });
+    channelRef.current = channel;
     return () => {
       realtimeUp.current = false;
+      channelRef.current = null;
+      if (configRefreshTimer.current) clearTimeout(configRefreshTimer.current);
       supabase.removeChannel(channel);
     };
-  }, [space?.id, user?.id]);
+  }, [space?.id, user?.id, refresh]);
+
+  /** Refresh + tell other open clients to do the same — for structural
+   *  changes that already go through a refresh (add/remove/reorder,
+   *  style save, publish). */
+  const refreshEverywhere = useCallback(() => {
+    refresh();
+    broadcastConfigChange();
+  }, [refresh, broadcastConfigChange]);
 
   /** Optimistic collaborative action: apply locally with the server's
    *  semantics, fire the write, and leave the optimistic entry in place.
@@ -403,7 +443,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         labels: space.labels,
         isOwner,
         ownerToken,
-        refresh,
+        refresh: refreshEverywhere,
         patchModule,
         saveModule,
         act,
@@ -433,10 +473,10 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
               spaceId={space.id}
               ownerToken={ownerToken}
               onPreview={setStyleOverride}
-              onSaved={refresh}
+              onSaved={refreshEverywhere}
             />
           )}
-          <PublishButton space={space} onChanged={refresh} />
+          <PublishButton space={space} onChanged={refreshEverywhere} />
         </div>
 
         {notice && (
@@ -542,7 +582,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
                   ownerToken={ownerToken}
                   isOwner={isOwner}
                   labels={{ emptyGrid: space.labels.emptyGrid, emptyGridHint: space.labels.emptyGridHint }}
-                  onRefresh={refresh}
+                  onRefresh={refreshEverywhere}
                 />
               </motion.div>
             </div>

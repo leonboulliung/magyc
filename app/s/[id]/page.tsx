@@ -3,6 +3,11 @@ import type { Metadata } from "next";
 import { fetchSpaceById } from "@/lib/db";
 import { SpaceView } from "./SpaceView";
 
+// Spaces are mutable: without this, Next 14 serves the supabase fetch from
+// its Data Cache and edits look lost after a reload (PUT 200, DB updated,
+// stale page). Always render from live data.
+export const dynamic = "force-dynamic";
+
 /**
  * Request-level dedupe: generateMetadata and the page both need the
  * space, but it should only be fetched ONCE per request. React's cache()
