@@ -130,6 +130,19 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **UI polish round 3** (`d2b15b1`, `0297b9b`): from Leon's feedback.
+  (1) Drag distortion — SortableCell used `CSS.Transform`, whose sortable value
+  carries scaleX/scaleY to morph the dragged card into the target slot's size,
+  squashing variable-height widgets. Switched to `CSS.Translate` (translation
+  only) + `MeasuringStrategy.Always`. Verified: mid-drag transform is
+  `matrix(1,0,0,1,0,240)` — pure translate, no scale. (2) Bare-widget titles —
+  media widgets (map, sketch, images, gif, route, locations) use WidgetCard
+  `bare` (no padding), so microTitles sat flush in the rounded corner; in bare
+  mode title/footer now get their own px-4 inset. Verified: map titles now
+  paddingLeft/Top 16px. (3) Build message — clarify returns an AI-authored,
+  language-matched `comingToLife` line; the building screen shows it as a
+  specific sentence ("Dein Spieleabend mit Freunden wird …") instead of cycling
+  raw keywords (kept as fallback). Verified via clarify API.
 - 2026-06-13 · **Ambient DotField + prompt overflow fix** (`212a7af`): from Leon's
   feedback. DotField no longer races a wavefront from one point — the whole
   lattice breathes via interfering drifting sine layers (soft regions emerge /
