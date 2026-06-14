@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useWidgetContext } from "@/lib/widgetContext";
 import { getMyColor, getSelfId } from "@/lib/state";
@@ -87,6 +87,7 @@ function SketchCanvas({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const gridId = `sketch-grid-${useId()}`;
   const svgRef = useRef<SVGSVGElement>(null);
   const liveRef = useRef<SVGElement | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -221,11 +222,11 @@ function SketchCanvas({
         onPointerLeave={up}
       >
         <defs>
-          <pattern id="sketch-dotgrid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+          <pattern id={gridId} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
             <circle cx="10" cy="10" r="1.2" fill="#888" opacity="0.18" />
           </pattern>
         </defs>
-        <rect width={VIEW_W} height={VIEW_H} fill="url(#sketch-dotgrid)" />
+        <rect width={VIEW_W} height={VIEW_H} fill={`url(#${gridId})`} />
         {strokes.map((s) => <StrokeEl key={s.id} data={s.data} />)}
       </svg>
 
