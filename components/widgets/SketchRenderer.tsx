@@ -114,7 +114,9 @@ function SketchCanvas({
       setTextVal("");
       return;
     }
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+    // Capture so the stroke keeps tracking outside the svg; never let a
+    // capture failure abort the draw.
+    try { (e.target as Element).setPointerCapture?.(e.pointerId); } catch { /* ignore */ }
     start.current = { x: p.x, y: p.y };
     setDrawing(true);
     const svg = svgRef.current!;
@@ -176,7 +178,7 @@ function SketchCanvas({
     liveRef.current?.remove();
     liveRef.current = null;
     if (!s) return;
-    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch { /* ignore */ }
     const p = toView(e);
 
     if (tool === "pen" || tool === "eraser") {
