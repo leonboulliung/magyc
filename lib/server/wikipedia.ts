@@ -31,6 +31,20 @@ function wikiHost(language: string): string {
   return SUPPORTED_WIKIS.has(l) ? `${l}.wikipedia.org` : "en.wikipedia.org";
 }
 
+/**
+ * Whether a topic is a real article title worth resolving — NOT the
+ * widget's placeholder. A freshly-added Wikipedia widget carries topic
+ * "…", and resolving that literally lands on the "Ellipsis" article.
+ * Such widgets must stay unconfigured so the renderer shows its picker.
+ */
+export function isResolvableTopic(topic: string | undefined | null): boolean {
+  if (!topic) return false;
+  const t = topic.trim();
+  if (t.length < 2) return false;
+  if (/^[…．。.\s]+$/.test(t)) return false; // only ellipsis / dots / spaces
+  return /[\p{L}\p{N}]/u.test(t);            // has at least one letter or digit
+}
+
 function titleFromUrl(url: string): string | null {
   const m = url.match(/^https?:\/\/[a-z-]+\.wikipedia\.org\/wiki\/([^?#]+)/i);
   if (!m) return null;
@@ -103,7 +117,10 @@ export async function resolveWikipedia(
   language: string,
 ): Promise<WikipediaWidget> {
   const host = wikiHost(language);
-  const inputTitle = m.url ? (titleFromUrl(m.url) || m.topic) : m.topic;
+  // With a URL, resolve from it. Without one, only resolve a REAL topic —
+  // never the "…" placeholder (which would land on the Ellipsis article).
+  const fromUrl = m.url ? titleFromUrl(m.url) : null;
+  const inputTitle = fromUrl || (isResolvableTopic(m.topic) ? m.topic : null);
   if (!inputTitle) return m;
 
   let summary = await fetchSummary(host, inputTitle);
@@ -149,9 +166,10 @@ export async function resolveExternalRefs(
   const tasks: Promise<{ i: number; m: WikipediaWidget }>[] = [];
   modules.forEach((mod, i) => {
     if (mod && typeof mod === "object" && (mod as { type?: string }).type === "wikipedia") {
-      tasks.push(
-        resolveWikipedia(mod as WikipediaWidget, language).then((m) => ({ i, m })),
-      );
+      const w = mod as WikipediaWidget;
+      // Leave placeholder widgets untouched — they belong to the picker.
+      if (!w.url && !isResolvableTopic(w.topic)) return;
+      tasks.push(resolveWikipedia(w, language).then((m) => ({ i, m })));
     }
   });
   if (tasks.length === 0) return modules;

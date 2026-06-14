@@ -10,6 +10,9 @@ import type { Module, ModuleStateKind, SpaceLabels } from "./types";
  */
 export interface WidgetContextValue {
   spaceId: string;
+  /** The space's heading/title — a topic hint for widgets that want to
+   *  seed themselves from context (e.g. GIF suggestions). */
+  title: string;
   language: string;
   labels: SpaceLabels;
   isOwner: boolean;

@@ -439,6 +439,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     <WidgetContext.Provider
       value={{
         spaceId: space.id,
+        title: space.title || "",
         language: space.language,
         labels: space.labels,
         isOwner,

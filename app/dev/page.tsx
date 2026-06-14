@@ -129,6 +129,7 @@ export default function DevPage() {
     <WidgetContext.Provider
       value={{
         spaceId: "dev",
+        title: "Dev Showroom",
         language: "de",
         labels: DEMO_LABELS,
         isOwner: true,

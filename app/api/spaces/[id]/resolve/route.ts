@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { resolveExternalRefs } from "@/lib/server/wikipedia";
+import { resolveExternalRefs, isResolvableTopic } from "@/lib/server/wikipedia";
 
 /**
  * POST /api/spaces/[id]/resolve
@@ -32,13 +32,13 @@ export async function POST(
 
   const modules = Array.isArray(space.modules) ? (space.modules as unknown[]) : [];
 
-  // Anything to do? Only Wikipedia widgets without a resolved url.
-  const needs = modules.some(
-    (m) =>
-      m && typeof m === "object" &&
-      (m as { type?: string }).type === "wikipedia" &&
-      !(m as { url?: string }).url,
-  );
+  // Anything to do? Only Wikipedia widgets that have a real topic (or a
+  // URL) but no resolved url yet. Placeholder "…" widgets are left alone.
+  const needs = modules.some((m) => {
+    if (!m || typeof m !== "object") return false;
+    const w = m as { type?: string; url?: string; topic?: string };
+    return w.type === "wikipedia" && !w.url && isResolvableTopic(w.topic);
+  });
   if (!needs) return NextResponse.json({ ok: true, resolved: false });
 
   let resolved: unknown[];

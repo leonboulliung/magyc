@@ -49,7 +49,7 @@ export function WikipediaRenderer({
     fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}/regenerate`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ count: 5, anonToken: ctx.ownerToken }),
+      body: JSON.stringify({ count: 3, anonToken: ctx.ownerToken }),
     })
       .then((r) => r.json())
       .then((j) => {
