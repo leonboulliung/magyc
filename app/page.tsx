@@ -113,6 +113,28 @@ export default function HomePage() {
   const enterKeyRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // The landing page is a fixed, full-screen surface — there is nothing
+  // to scroll. Lock the document while it's mounted so mobile browsers
+  // don't show a phantom scrollbar or rubber-band overscroll (which also
+  // resized the canvas and made the dot grid jump). Restored on navigate.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      overscroll: body.style.overscrollBehavior,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    return () => {
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.overscrollBehavior = prev.overscroll;
+    };
+  }, []);
+
   // The prompt box grows with its content instead of being a fixed,
   // mostly-empty block — but only up to ~40% of the viewport, after which
   // it scrolls internally. Without the cap, long text on the fixed,
@@ -301,7 +323,7 @@ export default function HomePage() {
       </div>
 
       <div
-        className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-4 sm:px-10 pb-8 min-h-0"
+        className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-4 sm:px-10 pb-8 min-h-0 overflow-y-auto overscroll-contain"
         style={{ paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
       >
         <div className="w-full max-w-3xl mx-auto flex flex-col gap-[clamp(24px,5vh,56px)] mt-[clamp(24px,5vh,56px)]">
