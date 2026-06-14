@@ -23,6 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 import { useIsMobile } from "@/lib/hooks";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
+import { CellChromeContext } from "./widgets/cellChrome";
 import { WidgetPickerContent } from "./WidgetPicker";
 import { Popover } from "./ui/Popover";
 import { MobileSheet } from "./ui/MobileSheet";
@@ -53,7 +54,7 @@ export interface BodyItem {
 
 /** Widget types whose manual add should be AI-authored from space
  *  context instead of keeping a generic placeholder (icon = star). */
-const AI_FILL_ON_ADD: ReadonlySet<string> = new Set(["icon", "ai_summary"]);
+const AI_FILL_ON_ADD: ReadonlySet<string> = new Set(["ai_summary"]);
 
 export function GridZone({
   bodyItems,
@@ -325,53 +326,17 @@ function SortableCell({
         position: "relative",
       }}
     >
-      <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
-
-      {/* Owner chrome — one tidy pill tucked inside the top-right corner,
-          revealed on hover (always visible while keyboard-focused). */}
-      {isOwner && (
-        <div
-          className="absolute top-2 right-2 z-20 flex items-center opacity-0 group-hover/cell:opacity-100 focus-within:opacity-100 transition-opacity overflow-hidden"
-          style={{
-            background: "color-mix(in srgb, var(--v-bg) 92%, transparent)",
-            border: "1px solid var(--v-rule)",
-            borderRadius: 999,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.10)",
-            backdropFilter: "blur(6px)",
-          }}
+      {/* Reorder / resize / remove are handed to WidgetShell via context
+          so the widget renders ONE toolbar (cell chrome + its own
+          regenerate/prompt affordances), not two floating clusters. */}
+      {isOwner ? (
+        <CellChromeContext.Provider
+          value={{ attributes, listeners, setActivatorNodeRef, onRemove, onToggleFull, isFull, busy }}
         >
-          <button
-            type="button"
-            ref={setActivatorNodeRef}
-            {...attributes}
-            {...listeners}
-            aria-label="reorder"
-            title="drag to reorder"
-            className="w-7 h-7 flex items-center justify-center text-[13px] hover:bg-black/[0.06] transition-colors select-none"
-            style={{ cursor: "grab", touchAction: "none", color: "var(--v-muted)" }}
-          >
-            ⠿
-          </button>
-          <button
-            type="button"
-            title={isFull ? "half width" : "full width"}
-            onClick={onToggleFull}
-            className="w-7 h-7 hidden sm:flex items-center justify-center text-[13px] hover:bg-black/[0.06] transition-colors"
-            style={{ color: "var(--v-muted)" }}
-          >
-            {isFull ? "⇥" : "⇔"}
-          </button>
-          <button
-            type="button"
-            title="remove"
-            onClick={onRemove}
-            disabled={busy}
-            className="w-7 h-7 flex items-center justify-center text-[15px] hover:bg-black/[0.06] transition-colors disabled:opacity-30"
-            style={{ color: "var(--v-muted)" }}
-          >
-            ×
-          </button>
-        </div>
+          <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
+        </CellChromeContext.Provider>
+      ) : (
+        <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
       )}
     </div>
   );

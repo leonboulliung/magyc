@@ -50,35 +50,37 @@ export function AiSummaryRenderer({
         ) : null
       }
     >
-      <WidgetCard
-        microTitle={
-          <span className="inline-flex items-center gap-1.5">
-            <span aria-hidden style={{ color: "var(--v-accent)" }}>✦</span>
-            <span>{m.microTitle ?? ""}</span>
-          </span>
-        }
-        description={m.description}
-      >
-        {editing ? (
-          <div>
-            <textarea
-              {...editProps}
-              maxLength={1200}
-              rows={3}
-              className="text-[15px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
+      <WidgetCard microTitle={m.microTitle || undefined} description={m.description}>
+        <div className="relative">
+          {editing ? (
+            <div>
+              <textarea
+                {...editProps}
+                maxLength={1200}
+                rows={3}
+                className="text-[17px] sm:text-[18px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden pr-7"
+                style={{ color: "var(--v-fg)" }}
+              />
+              <EditControls onSave={commit} onCancel={cancel} />
+            </div>
+          ) : (
+            <p
+              onClick={() => { if (ctx.isOwner) setEditing(true); }}
+              className={`text-[17px] sm:text-[18px] leading-relaxed whitespace-pre-wrap pr-7 ${ctx.isOwner ? "cursor-text" : ""}`}
               style={{ color: "var(--v-fg)" }}
-            />
-            <EditControls onSave={commit} onCancel={cancel} />
-          </div>
-        ) : (
-          <p
-            onClick={() => { if (ctx.isOwner) setEditing(true); }}
-            className={`text-[15px] leading-relaxed whitespace-pre-wrap ${ctx.isOwner ? "cursor-text" : ""}`}
-            style={{ color: "var(--v-fg)" }}
+            >
+              {m.text}
+            </p>
+          )}
+          {/* The AI mark — prominent, tucked bottom-right. */}
+          <span
+            aria-hidden
+            className="absolute bottom-0 right-0 text-[20px] leading-none pointer-events-none select-none"
+            style={{ color: "var(--v-accent)" }}
           >
-            {m.text}
-          </p>
-        )}
+            ✦
+          </span>
+        </div>
       </WidgetCard>
     </WidgetShell>
   );

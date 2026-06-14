@@ -125,7 +125,6 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
     symbol: "✦",
     entries: [
       { type: "ai_summary", symbol: "✦" },
-      { type: "icon",       symbol: "◈" },
       { type: "wikipedia",  symbol: "W" },
       { type: "gif",        symbol: "▷" },
     ],
@@ -270,7 +269,7 @@ export function WidgetPickerContent({
         className="px-3 py-2 mono text-[9px] tracking-widest opacity-45"
         style={{ borderTop: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
       >
-        26 body widgets · heading + text + tags stay fixed at the top
+        heading + text + tags stay fixed at the top
       </div>
     </div>
   );

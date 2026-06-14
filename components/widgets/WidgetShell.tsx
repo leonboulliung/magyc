@@ -4,6 +4,22 @@ import { useState } from "react";
 import type { Module } from "@/lib/types";
 import { useWidgetContext } from "@/lib/widgetContext";
 import { Popover } from "@/components/ui/Popover";
+import { useCellChrome } from "./cellChrome";
+
+/** A clear prompt placeholder in the space's language, so it's obvious
+ *  the box rewrites this widget from a plain-language instruction. */
+const PROMPT_PLACEHOLDER: Record<string, string> = {
+  en: "Describe how to change this…",
+  de: "Wie soll das geändert werden?",
+  fr: "Comment modifier ceci ?",
+  es: "¿Cómo cambiar esto?",
+  it: "Come modificare questo?",
+  pt: "Como alterar isto?",
+  nl: "Hoe dit aanpassen?",
+};
+function promptPlaceholder(lang: string): string {
+  return PROMPT_PLACEHOLDER[(lang || "en").toLowerCase().split("-")[0]] ?? PROMPT_PLACEHOLDER.en!;
+}
 
 /**
  * Shared widget shell — invisible by default, contributes the owner
@@ -53,6 +69,7 @@ export function WidgetShell({
   onPick?: (s: Module) => Promise<void> | void;
 }) {
   const ctx = useWidgetContext();
+  const cell = useCellChrome();
   const [hover, setHover] = useState(false);
   const [altOpen, setAltOpen] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
@@ -117,15 +134,13 @@ export function WidgetShell({
     }
   }
 
-  const showAffordances = ctx.isOwner && (canRegenerate || promptEditable);
+  // One toolbar for the whole element: cell chrome (reorder / resize /
+  // remove, if this widget sits in a grid cell) + its own affordances
+  // (prompt-edit, alternatives).
+  const showBar = ctx.isOwner && (!!cell || canRegenerate || promptEditable);
   const clusterVisible = hover || busy || altOpen || bubbleOpen;
 
-  const affordanceStyle = (active: boolean): React.CSSProperties => ({
-    background: active ? "var(--v-fg)" : "var(--v-bg)",
-    color: active ? "var(--v-bg)" : "var(--v-fg)",
-    border: "1px solid var(--v-rule)",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-  });
+  const barBtn = "w-7 h-7 flex items-center justify-center hover:bg-black/[0.06] transition-colors disabled:opacity-30";
 
   return (
     <div
@@ -135,11 +150,57 @@ export function WidgetShell({
     >
       {children}
 
-      {showAffordances && (
+      {showBar && (
         <div
-          className="absolute -top-2 -right-2 z-20 flex items-center gap-1 transition-opacity duration-150"
-          style={{ opacity: clusterVisible ? 1 : 0, pointerEvents: clusterVisible ? "auto" : "none" }}
+          className="absolute top-2 right-2 z-20 flex items-center overflow-hidden transition-opacity duration-150"
+          style={{
+            opacity: clusterVisible ? 1 : 0,
+            pointerEvents: clusterVisible ? "auto" : "none",
+            background: "color-mix(in srgb, var(--v-bg) 92%, transparent)",
+            border: "1px solid var(--v-rule)",
+            borderRadius: 999,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.10)",
+            backdropFilter: "blur(6px)",
+          }}
         >
+          {cell && (
+            <>
+              <button
+                type="button"
+                ref={cell.setActivatorNodeRef}
+                {...cell.attributes}
+                {...cell.listeners}
+                aria-label="reorder"
+                title="drag to reorder"
+                className={`${barBtn} text-[13px] select-none`}
+                style={{ cursor: "grab", touchAction: "none", color: "var(--v-muted)" }}
+              >
+                ⠿
+              </button>
+              <button
+                type="button"
+                onClick={cell.onToggleFull}
+                title={cell.isFull ? "half width" : "full width"}
+                className={`${barBtn} text-[13px] hidden sm:flex`}
+                style={{ color: "var(--v-muted)" }}
+              >
+                {cell.isFull ? "⇥" : "⇔"}
+              </button>
+              <button
+                type="button"
+                onClick={cell.onRemove}
+                disabled={cell.busy}
+                title="remove"
+                className={`${barBtn} text-[15px]`}
+                style={{ color: "var(--v-muted)" }}
+              >
+                ×
+              </button>
+            </>
+          )}
+          {cell && (promptEditable || canRegenerate) && (
+            <span aria-hidden className="self-stretch w-px my-1.5 mx-0.5" style={{ background: "var(--v-rule)" }} />
+          )}
           {promptEditable && (
             <Popover
               open={bubbleOpen}
@@ -153,8 +214,8 @@ export function WidgetShell({
                   disabled={busy}
                   aria-label="edit with prompt"
                   title="Edit with prompt"
-                  className="mono text-[11px] w-7 h-7 rounded-full flex items-center justify-center"
-                  style={{ ...affordanceStyle(bubbleOpen), color: bubbleOpen ? "var(--v-bg)" : "var(--v-accent, var(--v-fg))" }}
+                  className={`${barBtn} text-[13px]`}
+                  style={{ background: bubbleOpen ? "var(--v-fg)" : "transparent", color: bubbleOpen ? "var(--v-bg)" : "var(--v-accent, var(--v-fg))" }}
                 >
                   ✦
                 </button>
@@ -166,7 +227,7 @@ export function WidgetShell({
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitPrompt(); } }}
-                  placeholder="…"
+                  placeholder={promptPlaceholder(ctx.language)}
                   maxLength={400}
                   className="flex-1 text-[14px] bg-transparent outline-none"
                   style={{ color: "var(--v-fg)" }}
@@ -211,8 +272,8 @@ export function WidgetShell({
                   disabled={busy}
                   aria-label="alternatives"
                   title="Alternatives"
-                  className="mono text-[11px] w-7 h-7 rounded-full flex items-center justify-center"
-                  style={affordanceStyle(altOpen)}
+                  className={`${barBtn} text-[13px]`}
+                  style={{ background: altOpen ? "var(--v-fg)" : "transparent", color: altOpen ? "var(--v-bg)" : "var(--v-muted)" }}
                 >
                   {busy ? "…" : regenerateGlyph}
                 </button>

@@ -48,7 +48,7 @@ import { resolveGeocoding } from "@/lib/server/geocode";
 // Grouped by function for the scoring prompt so the model sees semantic
 // structure instead of a flat registry list.
 const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
-  { title: "REFERENCE & FRAMING", types: ["ai_summary", "wikipedia", "icon"] },
+  { title: "REFERENCE & FRAMING", types: ["ai_summary", "wikipedia"] },
   { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "range", "phases"] },
   { title: "PLACE", types: ["location_single", "locations_multi", "location_suggestions", "route"] },
   { title: "PEOPLE & WORK", types: ["crew", "work_packages", "checklist"] },
@@ -245,7 +245,6 @@ export function selectModuleTypes(scores: Record<string, number>): ModuleType[] 
 const SHAPE: Partial<Record<ModuleType, string>> = {
   ai_summary: `{"type":"ai_summary","microTitle":"<short label>","text":"<2-4 sentence abstract take>"}`,
   wikipedia: `{"type":"wikipedia","microTitle":"<short label>","topic":"<EXACT real Wikipedia article title — must be a genuinely existing article>"}`,
-  icon: `{"type":"icon","iconify":"<iconify id, e.g. lucide:video, lucide:camera, phosphor:book>"}`,
   location_single: `{"type":"location_single","microTitle":"<short label>","query":"<a REAL, specific, geocodable place — full name incl. city/country, e.g. 'Parc des Buttes-Chaumont, Paris'>","label":"<short display name>"}`,
   locations_multi: `{"type":"locations_multi","microTitle":"<short label>","queries":[{"query":"<real geocodable place incl. city>","label":"<short>"}]}`,
   route: `{"type":"route","microTitle":"<short label>","stops":[{"query":"<real geocodable place incl. city>","label":"<short>"}]}`,
