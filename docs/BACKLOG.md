@@ -130,6 +130,17 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **Mobile scroll fixes** (`1932bfa`): home page — the fixed
+  full-screen landing still let mobile browsers rubber-band overscroll (phantom
+  scrollbar; the canvas resized so the dot grid jumped). Lock html/body scroll
+  while the page is mounted (restored on navigate), content column scrolls
+  internally only if it overflows. Verified: html/body overflow hidden,
+  document not scrollable, clean screenshot (no scrollbar). Space page — the
+  style/publish controls auto-hid on scroll (earlier behaviour); per feedback
+  they now simply stay fixed (verified: rect top constant across an 800px
+  scroll, transform none). Side note: Chrome's CDP screenshot recovered in a
+  fresh tab — the earlier timeouts were degraded tab state from many synthetic
+  pointer events, not a page bug.
 - 2026-06-13 · **Sketch tools + reorder snap-back fix** (`cb46c32`, `715ab5d`,
   `442258c`). (1) Reorder: the grid rendered straight from props so a dropped
   widget snapped back then the new order appeared abruptly after the round-trip;
