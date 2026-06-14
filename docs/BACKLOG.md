@@ -130,6 +130,17 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **Ambient DotField + prompt overflow fix** (`212a7af`): from Leon's
+  feedback. DotField no longer races a wavefront from one point — the whole
+  lattice breathes via interfering drifting sine layers (soft regions emerge /
+  merge / equalise, no origin); ripple() = brief energy surge, setThinking() =
+  sustained livelier field. Reduced-motion → one static frame; pauses on hidden
+  tab. Prompt box: the auto-grow textarea pushed its own bottom (+ Enter key) off
+  the fixed, overflow-hidden page — long text became unreachable on mobile. Now
+  caps at ~40vh then scrolls internally (verified: 30-line input → 281px box,
+  overflowY auto, scrollable). **Note:** could not exercise a true mobile
+  viewport via Chrome automation (forced ~1280px); fix verified functionally +
+  on desktop.
 - 2026-06-13 · **UI polish round 2** (`93e4083`): from Leon's feedback. (1) Grid
   clipping — CSS multi-column masonry split tall widgets across the column
   boundary; switched to CSS grid (`grid-cols-1 sm:grid-cols-2`, `items-start`,
