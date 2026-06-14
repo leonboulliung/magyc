@@ -112,12 +112,23 @@ export default function HomePage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // The prompt box grows with its content instead of being a fixed,
-  // mostly-empty block.
+  // mostly-empty block — but only up to ~40% of the viewport, after which
+  // it scrolls internally. Without the cap, long text on the fixed,
+  // overflow-hidden page pushes its own bottom (and the Enter key) off
+  // screen with no way to scroll to it.
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const fit = () => {
+      el.style.height = "auto";
+      const max = Math.max(120, Math.round(window.innerHeight * 0.4));
+      const next = Math.min(el.scrollHeight, max);
+      el.style.height = `${next}px`;
+      el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
   }, [text, stage]);
 
   /** Viewport centre of an element (or screen centre as fallback). */
@@ -336,7 +347,7 @@ export default function HomePage() {
                     rows={2}
                     maxLength={1200}
                     placeholder=""
-                    className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none overflow-hidden"
+                    className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none"
                     disabled={busy}
                     onKeyDown={(e) => {
                       // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.

@@ -3,46 +3,45 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 /**
- * DotField — an infinite dot lattice on a <canvas>, with a signature
- * RIPPLE: call `ripple(x, y)` and a wavefront expands from that point,
- * each dot swelling + brightening as the front passes, then settling.
+ * DotField — an infinite dot lattice on a <canvas> that breathes.
  *
- * This is the app's motion through-line. The landing page is the field;
- * submitting an idea sends the wave outward. The same gesture can be
- * reused anywhere the grid should "respond".
+ * Instead of a single wavefront racing out from one point, the whole
+ * field shimmers ambiently: a few slow, drifting sine layers interfere
+ * into soft regions of brighter/larger dots that emerge, merge and
+ * equalise — no centre, no origin. It is calm and continuous, like
+ * weather over the grid.
  *
- * Calm by default (a single static draw, no idle animation) so the
- * surface stays quiet and legible until something happens. Honours
- * prefers-reduced-motion (ripple becomes a no-op).
+ * `ripple()` injects a brief surge of energy (the field momentarily
+ * intensifies, then settles); `setThinking(true)` holds it at an
+ * elevated, more active level for the duration of an async wait. Both
+ * keep the no-origin character — they change how hard the field
+ * breathes, not where from.
+ *
+ * Honours prefers-reduced-motion (renders one static frame, no loop)
+ * and pauses while the tab is hidden.
  */
 
 export interface DotFieldHandle {
-  /** Emit a single wave from a viewport coordinate. */
-  ripple: (x: number, y: number) => void;
-  /**
-   * Sustained mode: while `on`, waves keep emanating from the origin
-   * (concentric "thinking" pulses) so the surface never goes dead
-   * during an async wait. Turning it off lets the current wave finish.
-   */
+  /** Inject a short surge of energy into the field. */
+  ripple: (x?: number, y?: number) => void;
+  /** Hold the field at an elevated, more active level while `on`. */
   setThinking: (on: boolean, x?: number, y?: number) => void;
 }
 
-const SPACING = 28;      // lattice pitch (px)
-const DOT_R = 1.15;      // base dot radius (px)
-const BASE_ALPHA = 0.13; // resting dot opacity
-const WAVE_SPEED = 0.95; // wavefront px per ms
-const WAVE_WIDTH = 110;  // band thickness the wave influences (px)
-const WAVE_AMP = 2.4;    // peak added scale at the wavefront
-const WAVE_ALPHA = 0.55; // peak added opacity at the wavefront
+const SPACING = 28;       // lattice pitch (px)
+const DOT_R = 1.15;       // base dot radius (px)
+const BASE_ALPHA = 0.10;  // resting dot opacity (trough of the breath)
+const ALPHA_RANGE = 0.26; // added opacity at a field crest
+const SCALE_RANGE = 0.9;  // added radius scale at a field crest
 
 export const DotField = forwardRef<DotFieldHandle, { color?: string; className?: string }>(
   function DotField({ color = "17,17,17", className }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const triggerRef = useRef<(x: number, y: number) => void>(() => {});
+    const rippleRef = useRef<(x?: number, y?: number) => void>(() => {});
     const thinkRef = useRef<(on: boolean, x?: number, y?: number) => void>(() => {});
 
     useImperativeHandle(ref, () => ({
-      ripple: (x, y) => triggerRef.current(x, y),
+      ripple: (x, y) => rippleRef.current(x, y),
       setThinking: (on, x, y) => thinkRef.current(on, x, y),
     }), []);
 
@@ -60,61 +59,73 @@ export const DotField = forwardRef<DotFieldHandle, { color?: string; className?:
       let w = 0;
       let h = 0;
       let raf: number | null = null;
-      let wave: { x: number; y: number; start: number } | null = null;
-      let thinking = false;
-      let thinkOrigin = { x: 0, y: 0 };
 
-      function drawStatic() {
-        if (!ctx) return;
-        ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = `rgba(${color},${BASE_ALPHA})`;
-        for (let y = SPACING / 2; y < h; y += SPACING) {
-          for (let x = SPACING / 2; x < w; x += SPACING) {
-            ctx.beginPath();
-            ctx.arc(x, y, DOT_R, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
+      // Energy drives how hard the field breathes (contrast + drift
+      // speed). 1 = calm idle; thinking sustains it higher; a ripple is a
+      // decaying spike on top. All eased so transitions feel organic.
+      let energy = 1;
+      let pulse = 0;
+      let thinking = false;
+
+      /**
+       * Field value at a point: a few drifting directional sine layers,
+       * summed and normalised to 0..1. Incommensurate frequencies so the
+       * pattern never visibly repeats; no radial/centre term so there is
+       * no single origin. `speed` scales the temporal drift with energy.
+       */
+      function fieldAt(x: number, y: number, t: number): number {
+        const v =
+          Math.sin(x * 0.0017 + t * 0.00022) +
+          Math.sin(y * 0.0021 - t * 0.00018) +
+          Math.sin((x * 0.0009 + y * 0.0013) + t * 0.00026) +
+          Math.sin((x * 0.0014 - y * 0.0008) - t * 0.00020);
+        return (v / 4) * 0.5 + 0.5; // -> 0..1
       }
 
-      function frame(now: number) {
-        if (!ctx || !wave) { raf = null; return; }
-        const t = now - wave.start;
-        const radius = t * WAVE_SPEED;
-        const maxDist = Math.hypot(
-          Math.max(wave.x, w - wave.x),
-          Math.max(wave.y, h - wave.y),
-        );
+      function drawField(t: number) {
+        if (!ctx) return;
+        // Contrast widens with energy so "thinking" reads as a livelier
+        // field; alpha/scale stay clamped to sane ranges.
+        const contrast = Math.min(1.9, 0.85 + (energy - 1) * 0.7);
         ctx.clearRect(0, 0, w, h);
         for (let y = SPACING / 2; y < h; y += SPACING) {
           for (let x = SPACING / 2; x < w; x += SPACING) {
-            const d = Math.hypot(x - wave.x, y - wave.y);
-            const off = Math.abs(d - radius);
-            // Smooth cosine falloff across the band; ahead of the front
-            // gets nothing.
-            const infl = off < WAVE_WIDTH ? Math.cos((off / WAVE_WIDTH) * (Math.PI / 2)) : 0;
-            const scale = 1 + infl * WAVE_AMP;
-            const alpha = BASE_ALPHA + infl * WAVE_ALPHA;
+            const f = fieldAt(x, y, t);
+            const m = Math.max(0, Math.min(1, (f - 0.5) * contrast + 0.5));
+            const alpha = BASE_ALPHA + m * ALPHA_RANGE;
+            const scale = 1 + m * SCALE_RANGE;
             ctx.fillStyle = `rgba(${color},${alpha})`;
             ctx.beginPath();
             ctx.arc(x, y, DOT_R * scale, 0, Math.PI * 2);
             ctx.fill();
           }
         }
-        if (radius > maxDist + WAVE_WIDTH) {
-          if (thinking) {
-            // Loop: a fresh wave from the thinking origin, so the
-            // surface keeps pulsing until the wait resolves.
-            wave = { x: thinkOrigin.x, y: thinkOrigin.y, start: now };
-            raf = requestAnimationFrame(frame);
-            return;
-          }
-          wave = null;
-          drawStatic();
-          raf = null;
-          return;
-        }
+      }
+
+      // Drift clock that runs faster while the field is energised, so the
+      // regions move more urgently during a wait without ever resetting.
+      let driftT = 0;
+      let lastNow = performance.now();
+
+      function frame(now: number) {
+        if (!ctx) { raf = null; return; }
+        const dt = Math.min(64, now - lastNow);
+        lastNow = now;
+
+        pulse *= 0.94; // decay the ripple surge
+        const target = (thinking ? 2.0 : 1.0) + pulse;
+        energy += (target - energy) * 0.05;
+
+        driftT += dt * (0.6 + energy * 0.55);
+        drawField(driftT);
+
+        // Keep looping while anything is happening; idle still breathes,
+        // so the loop only stops under reduced-motion.
         raf = requestAnimationFrame(frame);
+      }
+
+      function drawStaticOnce() {
+        drawField(0);
       }
 
       function resize() {
@@ -124,31 +135,42 @@ export const DotField = forwardRef<DotFieldHandle, { color?: string; className?:
         canvas!.width = Math.floor(w * dpr);
         canvas!.height = Math.floor(h * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        drawStatic();
+        if (reduced) drawStaticOnce();
       }
 
-      triggerRef.current = (x: number, y: number) => {
-        if (reduced) return;
-        wave = { x, y, start: performance.now() };
-        if (raf == null) raf = requestAnimationFrame(frame);
-      };
+      function start() {
+        if (reduced || raf != null) return;
+        lastNow = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
+      function stop() {
+        if (raf != null) { cancelAnimationFrame(raf); raf = null; }
+      }
 
-      thinkRef.current = (on: boolean, x?: number, y?: number) => {
+      rippleRef.current = () => {
+        if (reduced) return;
+        pulse = Math.max(pulse, 2.2);
+        start();
+      };
+      thinkRef.current = (on: boolean) => {
         if (reduced) return;
         thinking = on;
-        if (on) {
-          thinkOrigin = { x: x ?? w / 2, y: y ?? h / 2 };
-          if (!wave) wave = { x: thinkOrigin.x, y: thinkOrigin.y, start: performance.now() };
-          if (raf == null) raf = requestAnimationFrame(frame);
-        }
-        // off: the running wave finishes and frame() settles.
+        start();
+      };
+
+      const onVisibility = () => {
+        if (document.hidden) stop();
+        else if (!reduced) start();
       };
 
       resize();
+      start(); // idle breathing
       window.addEventListener("resize", resize);
+      document.addEventListener("visibilitychange", onVisibility);
       return () => {
         window.removeEventListener("resize", resize);
-        if (raf != null) cancelAnimationFrame(raf);
+        document.removeEventListener("visibilitychange", onVisibility);
+        stop();
       };
     }, [color]);
 
