@@ -130,6 +130,20 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **Wikipedia "…" resolution bug + GIF picker rework** (`7b593e9`,
+  `fc1b6d7`). Wikipedia (architectural, Leon-spotted): a freshly-added widget's
+  placeholder topic "…" was resolved literally → the "Ellipsis/Auslassungspunkte"
+  article. New `isResolvableTopic()` makes `resolveWikipedia`, `resolveExternalRefs`
+  and the /resolve route skip placeholder/empty/punctuation-only topics, so the
+  widget stays unconfigured and its picker (3 context suggestions + paste-URL →
+  AI summary → click-through) shows. Verified on prod: add "…" widget → /resolve
+  → `resolved:false`. GIF (Bild-4): roomy empty-state picker seeded with a short
+  topic keyword from the title (the full title returns 0 gifs; first word
+  "Flohmarkt" returns 12 — verified), clear language-matched placeholder, search
+  on top; configured gif clipped to the card corners (was overflowing) and
+  re-opens the picker on click (old change button collided with the unified
+  toolbar). New `title` on WidgetContext. GIF visual check pending (Chrome MCP
+  disconnected); seed term verified server-side.
 - 2026-06-13 · **Element iteration 1: unified toolbar, AI-context, icon removal**
   (`403e6e0`). One toolbar per element — a per-cell `CellChromeContext` hands the
   reorder/resize/remove actions to WidgetShell, which renders them in the SAME
