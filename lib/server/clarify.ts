@@ -138,7 +138,7 @@ Return STRICT JSON, no preamble:
 
   {
     "language": "<ISO 639-1 code matching input>",
-    "comingToLife": "<one short, warm sentence in the user's language that tells them their idea is being brought to life right now — name the essence of THEIR input concretely (not generic), present-continuous, <= 90 chars, no quotes, no trailing period needed>",
+    "comingToLife": "<one short, evocative sentence in the user's language that makes the user feel their idea is COMING TO LIFE / taking shape right now — name the essence of THEIR input concretely (not generic). Reach for a vivid verb of emergence (taking shape, coming alive, awakening, unfolding), NOT a flat one like 'planning' or 'creating'. Present-continuous, <= 90 chars, no quotes>",
     "steps": [
       {
         "id": "s1",
