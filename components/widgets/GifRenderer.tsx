@@ -23,6 +23,17 @@ function searchPlaceholder(lang: string): string {
   return SEARCH_PLACEHOLDER[(lang || "en").toLowerCase().split("-")[0]] ?? SEARCH_PLACEHOLDER.en!;
 }
 
+/** A short, searchable keyword from a phrase — gif APIs return nothing
+ *  for a long, specific title, but the first real word ("Flohmarkt")
+ *  matches. Picks the first ≥3-char alphanumeric token. */
+function topicSeed(s: string): string {
+  const word = s
+    .split(/[\s\-–—_/]+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
+    .find((w) => w.length > 2);
+  return word ?? "";
+}
+
 interface GifResult {
   id: string;
   gifUrl: string;
@@ -82,7 +93,7 @@ export function GifRenderer({
   useEffect(() => {
     if (!showSearch || seededRef.current) return;
     seededRef.current = true;
-    const seed = (m.microTitle || ctx.title || "").trim();
+    const seed = topicSeed(m.microTitle || "") || topicSeed(ctx.title || "");
     if (seed) { setQuery(seed); void search(seed); }
   }, [showSearch, m.microTitle, ctx.title, search]);
 
