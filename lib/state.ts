@@ -90,7 +90,9 @@ export function makeOptimisticEntry(
       color: getMyColor(),
     },
     kind,
-    data: { ...data, color: getMyColor() },
+    // Tint the contribution with the actor's colour — unless the caller
+    // set an explicit colour (the sketch tools pick their own).
+    data: { ...data, color: typeof data.color === "string" ? data.color : getMyColor() },
     createdAt: Date.now(),
   };
 }

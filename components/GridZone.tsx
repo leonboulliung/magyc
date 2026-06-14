@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
   DndContext,
@@ -74,7 +74,19 @@ export function GridZone({
   labels: { emptyGrid?: string; emptyGridHint?: string };
   onRefresh: () => void;
 }) {
-  const items = bodyItems;
+  // Optimistic reorder: on drop we render the new order immediately and
+  // only fall back to the server's order once the refetch confirms it.
+  // Without this the dropped item snapped back to its old slot (props
+  // hadn't changed yet) and the real order then appeared abruptly after
+  // the round-trip, with no transition.
+  const [optimisticItems, setOptimisticItems] = useState<BodyItem[] | null>(null);
+  const items = optimisticItems ?? bodyItems;
+  const serverOrderKey = bodyItems.map((it) => it.index).join(",");
+  useEffect(() => {
+    // Server order caught up (or changed underneath us) → drop the override.
+    setOptimisticItems(null);
+  }, [serverOrderKey]);
+
   const [fullWidth, setFullWidth] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -110,7 +122,9 @@ export function GridZone({
     const oldIndex = items.findIndex((it) => String(it.index) === active.id);
     const newIndex = items.findIndex((it) => String(it.index) === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
-    commitOrder(arrayMove(items, oldIndex, newIndex));
+    const next = arrayMove(items, oldIndex, newIndex);
+    setOptimisticItems(next); // show the new order instantly
+    commitOrder(next);
   }
 
   // ── Remove (optimistic) ─────────────────────────────────────────

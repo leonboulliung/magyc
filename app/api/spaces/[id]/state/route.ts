@@ -308,8 +308,16 @@ export async function POST(
 
   // ── stroke ────────────────────────────────────────────────────────────
   if (kind === "stroke") {
-    if (!data.path || typeof data.path !== "string") {
-      return NextResponse.json({ error: "stroke_path_required" }, { status: 400 });
+    // A mark is either a freehand path (pen/eraser) or a shape/text with
+    // its own geometry. Accept any of those; reject empty blobs.
+    const type = typeof data.type === "string" ? (data.type as string) : "path";
+    const validStroke =
+      (typeof data.path === "string" && (data.path as string).length > 0) ||
+      (type === "text" && typeof data.text === "string" && (data.text as string).trim().length > 0) ||
+      ((type === "line" || type === "rect" || type === "ellipse") &&
+        (typeof data.x === "number" || typeof data.x1 === "number"));
+    if (!validStroke) {
+      return NextResponse.json({ error: "stroke_invalid" }, { status: 400 });
     }
     const { error } = await admin.from("module_state").insert({
       id: newId(),
