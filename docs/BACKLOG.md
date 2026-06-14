@@ -130,6 +130,18 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **Element iteration 1: unified toolbar, AI-context, icon removal**
+  (`403e6e0`). One toolbar per element — a per-cell `CellChromeContext` hands the
+  reorder/resize/remove actions to WidgetShell, which renders them in the SAME
+  pill as ✦ prompt / ↻ alternatives (was two separate floating clusters).
+  Prompt box now has a clear, language-matched placeholder. AI-context: ✦ moved
+  to a prominent bottom-right badge, text enlarged. Icon widget pulled from the
+  picker + classifier (scoring + shape) + AI_FILL_ON_ADD (type/renderer kept for
+  back-compat). Verified on prod: ai_summary bar = `⠿ ⇔ × ✦` (one pill), zero old
+  `-top-2 -right-2` clusters, placeholder "Wie soll das geändert werden?", picker
+  down to 25 (no Symbol). **Remaining from this feedback round:** GIF rework
+  (bigger, topic suggestions, search field, fix re-select + corner overflow),
+  Wikipedia rework (3 found options / custom link → AI summary → click-through).
 - 2026-06-13 · **Mobile scroll fixes** (`1932bfa`): home page — the fixed
   full-screen landing still let mobile browsers rubber-band overscroll (phantom
   scrollbar; the canvas resized so the dot grid jumped). Lock html/body scroll
