@@ -34,9 +34,13 @@ export function WidgetCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
+      {/* In `bare` mode the children are full-bleed (maps, canvases,
+          images), so the card has no padding — but the title and footer
+          must still be inset, otherwise they sit flush in the rounded
+          corner and read as "outside" the card. */}
       {microTitle && (
         <div
-          className="mono text-[10px] tracking-widest uppercase mb-3"
+          className={`mono text-[10px] tracking-widest uppercase mb-3 ${bare ? "px-4 pt-4" : ""}`}
           style={{ color: "var(--v-muted)" }}
         >
           {microTitle}
@@ -44,12 +48,12 @@ export function WidgetCard({
       )}
       {children}
       {description && (
-        <p className="mono text-[10px] mt-3" style={{ color: "var(--v-muted)" }}>
+        <p className={`mono text-[10px] mt-3 ${bare ? "px-4" : ""}`} style={{ color: "var(--v-muted)" }}>
           {description}
         </p>
       )}
       {attribution && (
-        <p className="mono text-[9px] mt-2 opacity-60" style={{ color: "var(--v-muted)" }}>
+        <p className={`mono text-[9px] mt-2 opacity-60 ${bare ? "px-4 pb-3" : ""}`} style={{ color: "var(--v-muted)" }}>
           ↗ {attribution.name} ·{" "}
           <a href={attribution.url} target="_blank" rel="noreferrer noopener" className="underline">
             {attribution.license}

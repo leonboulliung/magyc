@@ -138,6 +138,7 @@ Return STRICT JSON, no preamble:
 
   {
     "language": "<ISO 639-1 code matching input>",
+    "comingToLife": "<one short, warm sentence in the user's language that tells them their idea is being brought to life right now — name the essence of THEIR input concretely (not generic), present-continuous, <= 90 chars, no quotes, no trailing period needed>",
     "steps": [
       {
         "id": "s1",
@@ -188,6 +189,9 @@ Output ONLY the JSON object.`;
 
 export interface ClarifyResult {
   language: string;
+  /** A short, AI-authored "we're bringing your idea to life" line in the
+   *  user's language, shown on the building screen. Empty if unusable. */
+  comingToLife: string;
   steps: ClarifyStep[];
 }
 
@@ -276,6 +280,10 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
     ? parsed.language.trim().slice(0, 8).toLowerCase()
     : "en";
 
+  const comingToLife = typeof parsed.comingToLife === "string"
+    ? parsed.comingToLife.replace(/\s+/g, " ").trim().slice(0, 120)
+    : "";
+
   // The model returns one ordered `steps` list. (Tolerate the legacy
   // shape — questions/prefills — by folding them in, so an occasional
   // stale completion still works.)
@@ -335,5 +343,5 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
 
   if (steps.length < 1) throw new Error("clarify_empty");
 
-  return { language, steps };
+  return { language, comingToLife, steps };
 }

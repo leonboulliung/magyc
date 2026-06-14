@@ -9,6 +9,7 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  MeasuringStrategy,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
@@ -224,7 +225,12 @@ export function GridZone({
           </div>
         ) : (
           <>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+            >
               <SortableContext items={items.map((it) => String(it.index))} strategy={rectSortingStrategy}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                   {items.map((item) => (
@@ -292,7 +298,11 @@ function SortableCell({
       ref={setNodeRef}
       className="relative group/cell"
       style={{
-        transform: CSS.Transform.toString(transform),
+        // Translate (not Transform): a sortable transform also carries
+        // scaleX/scaleY to morph the dragged item into the target slot's
+        // size — with variable-height widgets that squashes/stretches the
+        // card (the reported "Verzerrung"). Translate keeps natural size.
+        transform: CSS.Translate.toString(transform),
         transition,
         gridColumn: isFull ? "1 / -1" : undefined,
         borderRadius: "var(--v-radius)",

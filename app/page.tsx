@@ -94,6 +94,8 @@ export default function HomePage() {
   const [stage, setStage] = useState<Stage>("input");
   const [text, setText] = useState("");
   const [, setLanguage] = useState("en");
+  // AI-authored "bringing your idea to life" line for the build screen.
+  const [comingToLife, setComingToLife] = useState("");
   // One ordered list of typed clarify steps (choice | text | module).
   const [steps, setSteps] = useState<ClarifyStep[]>([]);
   // Answers to choice/text steps, keyed by step id.
@@ -177,6 +179,7 @@ export default function HomePage() {
       }
       setSteps(nextSteps);
       setLanguage(json.language || "en");
+      setComingToLife(typeof json.comingToLife === "string" ? json.comingToLife : "");
       setAnswers({});
       setConfigured({});
       setStepIndex(0);
@@ -594,7 +597,7 @@ export default function HomePage() {
                   boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
                 }}
               >
-                <BuildingScreen inputText={text} statusText={statusText} />
+                <BuildingScreen inputText={text} comingToLife={comingToLife} statusText={statusText} />
               </motion.div>
             )}
 
@@ -620,22 +623,33 @@ export default function HomePage() {
  * Extracts key words from the input and cycles them with a fade animation
  * so the loading state feels specific to this particular space.
  */
-function BuildingScreen({ inputText, statusText }: { inputText: string; statusText?: string }) {
+function BuildingScreen({
+  inputText,
+  comingToLife,
+  statusText,
+}: {
+  inputText: string;
+  comingToLife?: string;
+  statusText?: string;
+}) {
+  // Fallback when the AI line is unavailable: cycle the input's own key
+  // words so the wait still feels specific to this space.
   const words = inputText
     .trim()
     .split(/\s+/)
-    .filter((w) => w.length > 3) // skip short words
+    .filter((w) => w.length > 3)
     .slice(0, 12);
-
   const displayWords = words.length > 0 ? words : ["…"];
   const [idx, setIdx] = useState(0);
   const [showSlowHint, setShowSlowHint] = useState(false);
 
+  const line = (comingToLife || "").trim();
+
   useEffect(() => {
-    if (displayWords.length <= 1) return;
+    if (line || displayWords.length <= 1) return;
     const id = setInterval(() => setIdx((i) => (i + 1) % displayWords.length), 700);
     return () => clearInterval(id);
-  }, [displayWords.length]);
+  }, [line, displayWords.length]);
 
   useEffect(() => {
     setShowSlowHint(false);
@@ -658,21 +672,35 @@ function BuildingScreen({ inputText, statusText }: { inputText: string; statusTe
         ))}
       </div>
 
-      {/* Cycling word from the user's input */}
-      <div style={{ height: 28 }} className="flex items-center">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={idx}
-            className="mono text-[12px] tracking-widest text-center"
-            style={{ color: "rgba(0,0,0,0.28)" }}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }}
-            exit={{ opacity: 0, y: -6, transition: { duration: 0.2, ease: "easeIn" } }}
-          >
-            {displayWords[idx]}
-          </motion.span>
-        </AnimatePresence>
-      </div>
+      {line ? (
+        // The AI's "bringing your idea to life" line — specific to this
+        // space, in the user's language. Reads as the build narrating
+        // itself rather than a generic spinner.
+        <motion.p
+          className="text-[17px] sm:text-[19px] leading-relaxed text-center max-w-md px-6"
+          style={{ color: "rgba(0,0,0,0.78)" }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {line}
+        </motion.p>
+      ) : (
+        <div style={{ height: 28 }} className="flex items-center">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={idx}
+              className="mono text-[12px] tracking-widest text-center"
+              style={{ color: "rgba(0,0,0,0.28)" }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }}
+              exit={{ opacity: 0, y: -6, transition: { duration: 0.2, ease: "easeIn" } }}
+            >
+              {displayWords[idx]}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+      )}
 
       {statusText && (
         <p className="mono text-[10px] tracking-widest opacity-45 text-center">
