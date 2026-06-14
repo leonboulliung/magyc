@@ -130,6 +130,22 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-13 · **Sketch tools + reorder snap-back fix** (`cb46c32`, `715ab5d`,
+  `442258c`). (1) Reorder: the grid rendered straight from props so a dropped
+  widget snapped back then the new order appeared abruptly after the round-trip;
+  GridZone now holds an optimistic order on drop and reconciles on the refetch.
+  (2) Sketch rebuilt: pen, eraser, line, rect, ellipse, text + colour palette +
+  3 sizes + a full-screen editor (⤢). Marks are still `stroke` actions, data now
+  a tagged union (path|erase|line|rect|ellipse|text), back-compat. State route
+  accepts the new shapes; `makeOptimisticEntry` keeps an explicit colour. Fixed
+  a bug where `setPointerCapture` could throw and abort a draw (now try/catch),
+  and a duplicate dotgrid pattern id (now useId per canvas). Verified
+  functionally on prod: pen/eraser/rect/ellipse/text all commit + persist (no
+  rollback), expand opens the editor. NOTE: Chrome's CDP `captureScreenshot`
+  degraded mid-session (times out on every page incl. ones that worked earlier
+  with identical code) — verification done via DOM/network checks, no
+  screenshots. Test scribbles were left on space 9Pyr3MMAcZ's sketch (no
+  server-side stroke delete exists; clear is visual-only).
 - 2026-06-13 · **UI polish round 3** (`d2b15b1`, `0297b9b`): from Leon's feedback.
   (1) Drag distortion — SortableCell used `CSS.Transform`, whose sortable value
   carries scaleX/scaleY to morph the dragged card into the target slot's size,
