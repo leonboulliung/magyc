@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, photo-shoot authoring package)_
+_Last updated: 2026-06-15 (Codex, masonry gap fix)_
 
 ---
 
@@ -130,6 +130,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Masonry gap fix**: GridZone now uses a masonry-style CSS
+  grid instead of equal-height visual rows. Each widget cell measures its own
+  rendered height via `ResizeObserver` and spans the matching number of tiny
+  auto-rows; the parent grid runs with `gridAutoFlow: "row dense"`. This closes
+  the vertical dead space that appeared under shorter cards beside taller ones
+  while preserving the existing sortable grid flow. Verified locally with
+  `npx tsc --noEmit` and `npm run build`.
 - 2026-06-15 · **Photo-shoot authoring package**: selected `Photo shoot`
   now affects the actual build, not just the intake UI. Classifier scores get
   a deterministic shoot bias (shot list / references / prep / crew /

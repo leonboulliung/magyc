@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   DndContext,
@@ -55,6 +55,8 @@ export interface BodyItem {
 /** Widget types whose manual add should be AI-authored from space
  *  context instead of keeping a generic placeholder (icon = star). */
 const AI_FILL_ON_ADD: ReadonlySet<string> = new Set(["ai_summary"]);
+const MASONRY_ROW_PX = 8;
+const MASONRY_GAP_PX = 12;
 
 export function GridZone({
   bodyItems,
@@ -247,7 +249,13 @@ export function GridZone({
               measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
             >
               <SortableContext items={items.map((it) => String(it.index))} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start"
+                  style={{
+                    gridAutoRows: `${MASONRY_ROW_PX}px`,
+                    gridAutoFlow: "row dense",
+                  }}
+                >
                   {items.map((item) => (
                     <SortableCell
                       key={`${item.index}::${item.module.type}`}
@@ -280,6 +288,10 @@ export function GridZone({
  * A single draggable, removable, full/half-width widget cell. Drag is
  * initiated only from the grip handle (setActivatorNodeRef + listeners),
  * leaving the rest of the card free for the widget's own interactions.
+ *
+ * Each cell measures its own height and spans the corresponding number
+ * of tiny auto-rows in the parent grid. That gives us masonry-style
+ * packing while keeping grid placement and sortable behaviour intact.
  */
 function SortableCell({
   item,
@@ -307,10 +319,38 @@ function SortableCell({
     transition,
     isDragging,
   } = useSortable({ id: String(item.index), disabled: !isOwner });
+  const localRef = useRef<HTMLDivElement | null>(null);
+  const [rowSpan, setRowSpan] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = localRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const height = el.getBoundingClientRect().height;
+      const next = Math.max(
+        1,
+        Math.ceil((height + MASONRY_GAP_PX) / (MASONRY_ROW_PX + MASONRY_GAP_PX)),
+      );
+      setRowSpan((prev) => (prev === next ? prev : next));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isFull, item.index]);
+
+  function attachRefs(node: HTMLDivElement | null) {
+    localRef.current = node;
+    setNodeRef(node);
+  }
 
   return (
     <div
-      ref={setNodeRef}
+      ref={attachRefs}
       className="relative group/cell"
       style={{
         // Translate (not Transform): a sortable transform also carries
@@ -320,6 +360,7 @@ function SortableCell({
         transform: CSS.Translate.toString(transform),
         transition,
         gridColumn: isFull ? "1 / -1" : undefined,
+        gridRow: `span ${rowSpan}`,
         borderRadius: "var(--v-radius)",
         opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 30 : undefined,
