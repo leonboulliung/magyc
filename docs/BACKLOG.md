@@ -86,13 +86,12 @@ Possible additions Leon may want: Pricing/FAQ, newsletter capture, per-page
 SEO/OG. Brand palette + primitives live in `lib/site.ts` and
 `components/site/`.
 
-### 16. Home bundle after video restyle
-The black video/glass restyle intentionally adds `gsap`, video capture, and
-Clerk sign-in chrome to the public home route. Build shows `/` at ~42.6 kB
-route size / ~211 kB first-load JS. It is acceptable for the current visual
-direction, but before acquisition traffic starts, check real Core Web Vitals
-on mobile and consider lazy-loading Clerk sign-in or simplifying parallax if
-LCP/INP suffers.
+### 16. Public home performance before acquisition traffic
+The video/GSAP variant was removed after review; the public home now uses a
+lighter CSS emergent backdrop and the build shows `/` at ~15.9 kB route size /
+~190 kB first-load JS. Still check real Core Web Vitals on mobile before
+acquisition traffic starts, especially because Clerk sign-in chrome remains
+on the public nav.
 
 ---
 
@@ -167,6 +166,11 @@ step renderers; lowers cognitive load, no behaviour change.
   and a restyled first-screen prompt that preserves the existing create flow.
   Marketing palette moved to the same black/glass direction; `Sign in` opens
   Clerk instead of pointing normal users at `/admin`.
+- 2026-06-15 · **Restyle correction pass**:
+  removed the concrete plant/growth video and GSAP dependency, restored the
+  real MAGYC logo in nav + hero, brought the scrollable example landscape and
+  footer back below the prompt, and fixed the bottom CTA layer so it no longer
+  loses clicks to the content underneath.
 - 2026-06-15 · **Marketing-site scaffold (look & feel)** (`3c0b50c`):
   turned magyc.site into a full site without touching the create flow. New
   `app/(site)` route group with shared `SiteNav` + `SiteFooter` on a fixed

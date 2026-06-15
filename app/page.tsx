@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,7 +13,9 @@ import { DotField, type DotFieldHandle } from "@/components/DotField";
 import { EnterKey } from "@/components/EnterKey";
 import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
 import { SiteNav } from "@/components/site/SiteNav";
-import { VideoBoomerangBackground } from "@/components/site/VideoBoomerangBackground";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { AREAS } from "@/lib/site";
+import { EmergentBackdrop } from "@/components/site/EmergentBackdrop";
 
 type Stage = "input" | "clarify" | "building";
 
@@ -126,6 +129,7 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [statusText, setStatusText] = useState("");
+  const [promptNudge, setPromptNudge] = useState(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dotFieldRef = useRef<DotFieldHandle>(null);
   const enterKeyRef = useRef<HTMLButtonElement>(null);
@@ -201,8 +205,26 @@ export default function HomePage() {
     goClarify();
   }
 
+  function promptOrSubmit() {
+    if (text.trim().length < 3) {
+      nudgePrompt();
+      return;
+    }
+    submitInput();
+  }
+
+  function nudgePrompt() {
+    setPromptNudge(true);
+    window.setTimeout(() => setPromptNudge(false), 900);
+    focusPrompt();
+  }
+
   function focusPrompt() {
-    window.requestAnimationFrame(() => inputRef.current?.focus());
+    window.requestAnimationFrame(() => {
+      document.getElementById("start")?.scrollIntoView({ block: "center", behavior: "smooth" });
+      inputRef.current?.focus({ preventScroll: true });
+      window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 160);
+    });
   }
 
   function toggleProjectMode(id: ProjectModeId) {
@@ -375,7 +397,7 @@ export default function HomePage() {
       style={{ overscrollBehavior: "none" }}
     >
       {stage === "input" ? (
-        <VideoBoomerangBackground />
+        <EmergentBackdrop />
       ) : (
         <div className="fixed inset-0 z-0 bg-black">
           <DotField ref={dotFieldRef} />
@@ -390,16 +412,25 @@ export default function HomePage() {
           className={`fixed left-0 right-0 z-20 w-full px-4 transition-all duration-1000 ${
             mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
           }`}
-          style={{ top: "126px" }}
+          style={{ top: "112px" }}
         >
-          <h1 className="hero-title select-none">MAGYC</h1>
+          <div className="mx-auto grid w-fit place-items-center rounded-[28px] bg-white px-5 py-3 shadow-[0_18px_70px_rgba(255,255,255,0.12)] sm:px-7 sm:py-4">
+            <Image
+              src="/magyc-marble-2048x2048.png"
+              alt="MAGYC"
+              width={1130}
+              height={312}
+              priority
+              className="h-[54px] w-auto select-none sm:h-[74px] lg:h-[92px]"
+            />
+          </div>
         </div>
       )}
 
       <div
         className={
           stage === "input"
-            ? "relative z-30 flex min-h-0 w-full flex-1 items-center justify-center px-4 pb-28 pt-[270px] sm:px-8 sm:pt-[330px]"
+            ? "relative z-30 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-[250px] sm:px-8 sm:pt-[310px]"
             : "relative z-10 mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto overscroll-contain px-4 pb-8 sm:px-10"
         }
         style={stage === "input" ? undefined : { paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
@@ -427,7 +458,12 @@ export default function HomePage() {
               >
                 <div
                   id="start"
-                  className="liquid-glass-strong w-full scroll-mt-20 rounded-[34px] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:rounded-[42px] sm:p-7"
+                  className="liquid-glass-strong w-full scroll-mt-20 rounded-[34px] p-5 transition-shadow duration-300 sm:rounded-[42px] sm:p-7"
+                  style={{
+                    boxShadow: promptNudge
+                      ? "0 0 0 1px rgba(255,255,255,0.62), 0 18px 60px rgba(0,0,0,0.22), 0 0 38px rgba(255,255,255,0.13), inset 0 1px 1px rgba(255,255,255,0.15)"
+                      : "0 18px 60px rgba(0,0,0,0.22), inset 0 1px 1px rgba(255,255,255,0.15)",
+                  }}
                 >
                   <div className="mb-5 flex flex-col gap-3">
                     <div className="flex flex-wrap gap-2">
@@ -458,7 +494,10 @@ export default function HomePage() {
                     ref={inputRef}
                     autoFocus
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(e) => {
+                      setPromptNudge(false);
+                      setText(e.target.value);
+                    }}
                     rows={2}
                     maxLength={1200}
                     placeholder={selectedMode?.placeholder ?? "Describe a rough idea, project, or plan."}
@@ -762,11 +801,77 @@ export default function HomePage() {
             </motion.p>
           )}
         </div>
+
+        {stage === "input" && (
+          <div className="mx-auto mt-16 w-full max-w-5xl pb-20 sm:mt-24">
+            <section className="liquid-glass rounded-[34px] p-5 sm:p-8">
+              <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/55">For creative work</p>
+              <h2 className="mt-3 max-w-2xl font-heading text-[32px] italic leading-[1.02] tracking-[-0.01em] text-white sm:text-[52px]">
+                A page that starts as a prompt and becomes a shared project surface.
+              </h2>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {AREAS.map((area) => (
+                  <Link
+                    key={area.slug}
+                    href={`/for/${area.slug}`}
+                    className="liquid-glass rounded-[24px] p-4 transition-transform hover:-translate-y-1"
+                  >
+                    <span className="block text-sm font-medium text-white">{area.label}</span>
+                    <span className="mt-2 block text-sm leading-relaxed text-white/55">{area.tagline}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="liquid-glass rounded-[34px] p-5 sm:p-8">
+                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">Example landscape</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  {[
+                    ["01", "Intake", "A rough thought becomes structured questions."],
+                    ["02", "Elements", "MAGYC chooses useful sections instead of blank templates."],
+                    ["03", "Collaboration", "People can claim, vote, approve, upload, and decide."],
+                  ].map(([number, title, body]) => (
+                    <div key={number} className="rounded-[24px] border border-white/12 bg-white/[0.035] p-4">
+                      <div className="mono text-[11px] tracking-widest text-white/40">{number}</div>
+                      <div className="mt-3 text-base font-medium text-white">{title}</div>
+                      <p className="mt-2 text-sm leading-relaxed text-white/55">{body}</p>
+                    </div>
+                  ))}
+                </div>
+                <Link href="/showcase" className="mono mt-6 inline-block text-[12px] uppercase tracking-widest text-white/60 hover:text-white">
+                  Open gallery
+                </Link>
+              </div>
+
+              <div className="liquid-glass-strong rounded-[34px] p-5 sm:p-8">
+                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">First users</p>
+                <h3 className="mt-3 font-heading text-[30px] italic leading-tight text-white sm:text-[40px]">
+                  Built to reduce the distance between idea and shared reality.
+                </h3>
+                <p className="mt-5 text-sm leading-relaxed text-white/62">
+                  Use it for a shoot, campaign, workshop, event, or any early project that needs a place to become concrete.
+                </p>
+                <button
+                  type="button"
+                  onClick={focusPrompt}
+                  className="mt-6 rounded bg-white px-5 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.03] active:scale-[0.97]"
+                >
+                  Start above
+                </button>
+              </div>
+            </section>
+
+            <div className="mt-8 overflow-hidden rounded-[34px]">
+              <SiteFooter />
+            </div>
+          </div>
+        )}
       </div>
 
       {stage === "input" && (
         <div
-          className={`fixed bottom-8 left-0 right-0 z-20 hidden items-end justify-between px-10 transition-all delay-300 duration-1000 md:flex ${
+          className={`fixed bottom-8 left-0 right-0 z-40 hidden items-end justify-between px-10 transition-all delay-300 duration-1000 md:flex ${
             mounted ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
           }`}
         >
@@ -776,8 +881,11 @@ export default function HomePage() {
           <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-3">
             <button
               type="button"
-              onClick={submitInput}
-              disabled={busy || text.trim().length < 3}
+              onPointerDown={() => {
+                if (text.trim().length < 3 && !busy) nudgePrompt();
+              }}
+              onClick={promptOrSubmit}
+              disabled={busy}
               className="group relative overflow-hidden rounded bg-white px-6 py-3 text-sm font-medium text-black shadow-[0_0_0_0_rgba(255,255,255,0)] transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_0_24px_4px_rgba(255,255,255,0.25)] active:scale-[0.97] disabled:opacity-40"
             >
               <span className="relative z-10">Start generating</span>
