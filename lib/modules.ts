@@ -19,6 +19,9 @@ import { ALL_MODULE_TYPES, type Module, type ModuleType } from "./types";
 // ============================================================
 
 const ALLOWED = new Set<string>(ALL_MODULE_TYPES);
+const DELIVERABLE_STATUSES = new Set(["planned", "in_progress", "ready", "delivered"]);
+const APPROVAL_AUDIENCES = new Set(["client", "internal"]);
+const APPROVAL_STATUSES = new Set(["pending", "requested", "approved"]);
 
 function clean(s: unknown, max: number): string {
   return typeof s === "string"
@@ -257,6 +260,7 @@ export function sanitizeModule(raw: unknown): Module | null {
         quantity?: string;
         format?: string;
         due?: string;
+        status?: "planned" | "in_progress" | "ready" | "delivered";
       }[] = [];
       for (const x of raw) {
         if (!x || typeof x !== "object") continue;
@@ -267,7 +271,18 @@ export function sanitizeModule(raw: unknown): Module | null {
         const quantity = clean(xr.quantity, 60) || undefined;
         const format = clean(xr.format, 80) || undefined;
         const due = clean(xr.due, 80) || undefined;
-        items.push({ label, ...(details ? { details } : {}), ...(quantity ? { quantity } : {}), ...(format ? { format } : {}), ...(due ? { due } : {}) });
+        const status =
+          typeof xr.status === "string" && DELIVERABLE_STATUSES.has(xr.status)
+            ? (xr.status as "planned" | "in_progress" | "ready" | "delivered")
+            : undefined;
+        items.push({
+          label,
+          ...(details ? { details } : {}),
+          ...(quantity ? { quantity } : {}),
+          ...(format ? { format } : {}),
+          ...(due ? { due } : {}),
+          ...(status ? { status } : {}),
+        });
         if (items.length >= 16) break;
       }
       if (items.length === 0) return null;
@@ -275,7 +290,13 @@ export function sanitizeModule(raw: unknown): Module | null {
     }
     case "approvals": {
       const raw = Array.isArray(r.items) ? r.items : [];
-      const items: { text: string; description?: string }[] = [];
+      const items: {
+        text: string;
+        description?: string;
+        due?: string;
+        audience?: "client" | "internal";
+        status?: "pending" | "requested" | "approved";
+      }[] = [];
       for (const x of raw) {
         if (!x) continue;
         if (typeof x === "string") {
@@ -286,7 +307,22 @@ export function sanitizeModule(raw: unknown): Module | null {
           const text = clean(xr.text, 200);
           if (!text) continue;
           const description = clean(xr.description, 240) || undefined;
-          items.push(description ? { text, description } : { text });
+          const due = clean(xr.due, 80) || undefined;
+          const audience =
+            typeof xr.audience === "string" && APPROVAL_AUDIENCES.has(xr.audience)
+              ? (xr.audience as "client" | "internal")
+              : undefined;
+          const status =
+            typeof xr.status === "string" && APPROVAL_STATUSES.has(xr.status)
+              ? (xr.status as "pending" | "requested" | "approved")
+              : undefined;
+          items.push({
+            text,
+            ...(description ? { description } : {}),
+            ...(due ? { due } : {}),
+            ...(audience ? { audience } : {}),
+            ...(status ? { status } : {}),
+          });
         }
         if (items.length >= 16) break;
       }
@@ -690,11 +726,11 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     partOfHeader: false,
     alwaysInserted: false,
     relevantWhen:
-      "the concrete outputs, formats, counts, or delivery expectations should be made explicit.",
+      "the concrete outputs, formats, counts, delivery expectations, or ownership/status of outcomes should be made explicit.",
     requiresMandatoryConfig: false,
     externalSource: null,
     requiresAttribution: false,
-    hasSignals: false,
+    hasSignals: true,
     hasUploads: false,
     hasThread: false,
   },

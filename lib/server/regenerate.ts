@@ -199,19 +199,21 @@ Return STRICT JSON:
   deliverables: (ctx, n) => ({
     system: `Generate ${n} alternative DELIVERABLE sets. Each has
 2-5 concrete outputs in ${ctx.language}. Every item needs a short
-label and may include details, quantity, format, or due. Keep them
+label and may include details, quantity, format, due, or a workflow
+status. Keep them
 practical and outcome-focused. Return STRICT JSON:
 { "suggestions": [ { "type": "deliverables", "microTitle": "...",
-  "items": [{"label":"...","details":"...","quantity":"...","format":"...","due":"..."}] }, ... ] }`,
+  "items": [{"label":"...","details":"...","quantity":"...","format":"...","due":"...","status":"planned|in_progress|ready|delivered"}] }, ... ] }`,
     user: baseContext(ctx),
   }),
 
   approvals: (ctx, n) => ({
     system: `Generate ${n} alternative APPROVAL widget configurations.
 Each has 2-5 explicit sign-off checkpoints in ${ctx.language}; each
-item may also include a short description. Return STRICT JSON:
+item may also include a short description, due cue, audience, or
+workflow status. Return STRICT JSON:
 { "suggestions": [ { "type": "approvals", "microTitle": "...",
-  "items": [{"text":"...","description":"..."}] }, ... ] }`,
+  "items": [{"text":"...","description":"...","due":"...","audience":"client|internal","status":"pending|requested|approved"}] }, ... ] }`,
     user: baseContext(ctx),
   }),
 

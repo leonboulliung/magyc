@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, photographer workflow widgets)_
+_Last updated: 2026-06-15 (Codex, workflow objects)_
 
 ---
 
@@ -130,6 +130,14 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Workflow objects for deliverables + approvals**:
+  both widgets now behave as collaborative workflow objects instead of static
+  cards. Deliverables support per-item status, due-date edits, and a single
+  claimed owner; approvals support requested/approved flow, due cues, client vs
+  internal audience tags, claimed ownership, and visible approver attribution.
+  The photo-shoot authoring hints and regeneration prompts were updated to emit
+  these richer shapes, and the contract bumped to `1.2.0`. Verified locally
+  with `npm run build` and `npx tsc --noEmit`.
 - 2026-06-15 · **Photographer workflow widgets**: added explicit
   `deliverables` and `approvals` widgets, plus seeded starter questions for
   `qa`. The dev showroom now demonstrates all three states (deliverable

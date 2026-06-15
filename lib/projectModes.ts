@@ -70,9 +70,9 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
       crew:
         `{"type":"crew","microTitle":"<e.g. Roles>","description":"<1 short line about who needs to confirm involvement>","roles":[{"name":"Photographer"},{"name":"Subject / Talent"},{"name":"Stylist / Assistant"}]}`,
       deliverables:
-        `{"type":"deliverables","microTitle":"<e.g. Deliverables>","description":"<1 short line about what should exist after the shoot>","items":[{"label":"Hero selection","quantity":"8-12 images","format":"Edited JPG","due":"<if known>"},{"label":"Detail / process set","quantity":"10-20 images","format":"Web + social crops"}]}`,
+        `{"type":"deliverables","microTitle":"<e.g. Deliverables>","description":"<1 short line about what should exist after the shoot>","items":[{"label":"Hero selection","quantity":"8-12 images","format":"Edited JPG","due":"<if known>","status":"planned"},{"label":"Detail / process set","quantity":"10-20 images","format":"Web + social crops","status":"planned"}]}`,
       approvals:
-        `{"type":"approvals","microTitle":"<e.g. Approvals>","description":"<1 short line about what needs sign-off>","items":[{"text":"Moodboard and visual direction"},{"text":"Final shot list or priorities"},{"text":"Final image selection"}]}`,
+        `{"type":"approvals","microTitle":"<e.g. Approvals>","description":"<1 short line about what needs sign-off>","items":[{"text":"Moodboard and visual direction","audience":"client","status":"requested"},{"text":"Final shot list or priorities","audience":"client","status":"pending"},{"text":"Final image selection","audience":"client","status":"pending"}]}`,
       qa:
         `{"type":"qa","microTitle":"<e.g. Client questions>","description":"<1 short line about clarifying remaining client decisions>","placeholder":"<brief cue like 'Add open questions, missing details, or client notes.'>","questions":[{"text":"What must these images achieve?"},{"text":"Which usage rights or channels matter most?"},{"text":"What still feels open before we lock the plan?"}]}`,
       table:

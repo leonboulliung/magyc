@@ -215,6 +215,10 @@ export interface WorkPackagesWidget extends WidgetBase {
   packages: { label: string; description?: string }[];
 }
 
+export type DeliverableStatus = "planned" | "in_progress" | "ready" | "delivered";
+export type ApprovalAudience = "client" | "internal";
+export type ApprovalStatus = "pending" | "requested" | "approved";
+
 /**
  * Deliverables — the concrete outputs a project should produce, with
  * optional format / quantity / due hints for expectation-setting.
@@ -227,6 +231,7 @@ export interface DeliverablesWidget extends WidgetBase {
     quantity?: string;
     format?: string;
     due?: string;
+    status?: DeliverableStatus;
   }[];
 }
 
@@ -236,7 +241,13 @@ export interface DeliverablesWidget extends WidgetBase {
  */
 export interface ApprovalsWidget extends WidgetBase {
   type: "approvals";
-  items: { text: string; description?: string }[];
+  items: {
+    text: string;
+    description?: string;
+    due?: string;
+    audience?: ApprovalAudience;
+    status?: ApprovalStatus;
+  }[];
 }
 
 // ----- Free-form collaboration -----

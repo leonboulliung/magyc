@@ -1,6 +1,6 @@
 # magyc.site — Data Contract
 
-**Version:** 1.1.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
+**Version:** 1.2.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
 
 This document is the stable interface of a space. The **presentation
 layer** (renderers, animations, the style system, the grid) may change
@@ -89,14 +89,14 @@ widget may carry optional `microTitle`, `description`, `attribution`.
 ### Team / work
 - `crew` — `{ roles: {name}[] }`
 - `work_packages` — `{ packages: {label,description?}[] }`
-- `deliverables` — `{ items: {label,details?,quantity?,format?,due?}[] }`
+- `deliverables` — `{ items: {label,details?,quantity?,format?,due?,status?}[] }`
 
 ### Collaboration (mostly state-driven)
 - `notes` — `{ placeholder? }`
 - `qa` — `{ placeholder?, questions?: {text,answerHint?}[] }`
 - `poll` — `{ question, options: string[] }`
 - `discussion` — `{ placeholder? }`
-- `approvals` — `{ items: {text,description?}[] }`
+- `approvals` — `{ items: {text,description?,due?,audience?,status?}[] }`
 
 ### Visualisation
 - `phases` — `{ phases: {label,description?}[], currentPhase }`
@@ -126,10 +126,10 @@ widgets are dropped, not trusted.
 |----------|---------------------------------|-----------|
 | `vote`   | poll, location_suggestions      | `{ option }` — empty = retract |
 | `check`  | checklist, approvals            | `{ itemKey, checked }` |
-| `claim`  | crew, work_packages             | `{ slotLabel, claimed? }` — false = release |
+| `claim`  | crew, work_packages, deliverables, approvals | `{ slotLabel, claimed? }` — false = release |
 | `voice`  | qa, discussion                  | `{ id, text, role?, parentId? }` |
-| `edit`   | notes, table                    | `{ id?, text?, ... }` (last-write-wins) |
-| `add`    | notes, checklist, approvals, parts_list, … | free per widget (e.g. `{ id, text }`) |
+| `edit`   | notes, table, deliverables, approvals | `{ id?, text?, status?, due?, ... }` (last-write-wins) |
+| `add`    | notes, checklist, deliverables, approvals, parts_list, … | free per widget (e.g. `{ id, text }`) |
 | `upload` | attachments, images, audio      | `{ url, name, size?, mimeType?, path? }` |
 | `stroke` | sketch                          | `{ path, color?, width? }` |
 

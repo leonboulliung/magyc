@@ -95,7 +95,7 @@ export function WidgetDispatcher({
     case "work_packages":
       return <WorkPackagesRenderer module={m} index={index} state={s} />;
     case "deliverables":
-      return <DeliverablesRenderer module={m} index={index} />;
+      return <DeliverablesRenderer module={m} index={index} state={s} />;
     case "approvals":
       return <ApprovalsRenderer module={m} index={index} state={s} />;
     case "qa":
