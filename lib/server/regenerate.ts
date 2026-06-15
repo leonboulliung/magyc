@@ -55,6 +55,8 @@ const REGEN_LIMITS: Partial<Record<ModuleType, { defaultCount: number; max: numb
   checklist:    { defaultCount: 3, max: 5 },
   crew:         { defaultCount: 3, max: 5 },
   work_packages:{ defaultCount: 3, max: 5 },
+  deliverables: { defaultCount: 3, max: 5 },
+  approvals:    { defaultCount: 3, max: 5 },
   table:        { defaultCount: 3, max: 5 },
   parts_list:   { defaultCount: 3, max: 5 },
   range:        { defaultCount: 3, max: 5 },
@@ -191,6 +193,25 @@ has 2-5 short role names in ${ctx.language}. Return STRICT JSON:
 Return STRICT JSON:
 { "suggestions": [ { "type": "work_packages", "microTitle": "...",
   "packages": [{"label":"...","description":"..."}] }, ... ] }`,
+    user: baseContext(ctx),
+  }),
+
+  deliverables: (ctx, n) => ({
+    system: `Generate ${n} alternative DELIVERABLE sets. Each has
+2-5 concrete outputs in ${ctx.language}. Every item needs a short
+label and may include details, quantity, format, or due. Keep them
+practical and outcome-focused. Return STRICT JSON:
+{ "suggestions": [ { "type": "deliverables", "microTitle": "...",
+  "items": [{"label":"...","details":"...","quantity":"...","format":"...","due":"..."}] }, ... ] }`,
+    user: baseContext(ctx),
+  }),
+
+  approvals: (ctx, n) => ({
+    system: `Generate ${n} alternative APPROVAL widget configurations.
+Each has 2-5 explicit sign-off checkpoints in ${ctx.language}; each
+item may also include a short description. Return STRICT JSON:
+{ "suggestions": [ { "type": "approvals", "microTitle": "...",
+  "items": [{"text":"...","description":"..."}] }, ... ] }`,
     user: baseContext(ctx),
   }),
 

@@ -42,7 +42,7 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
       { label: "Add deliverables?", text: "Include final deliverables and approval points." },
     ],
     authoringGuide:
-      "Prefer a practical shoot workspace over generic brainstorming. Use images as references or moodboard slots, table as a shot list, checklist as prep, crew as confirmable roles, parts_list as props / looks / gear, attachments as brief or call-sheet support, and qa for client clarifications. When something is not confirmed, phrase it as a proposal, checklist item, or open question rather than a fact.",
+      "Prefer a practical shoot workspace over generic brainstorming. Use images as references or moodboard slots, table as a shot list, checklist as prep, crew as confirmable roles, deliverables for concrete outputs, approvals for sign-off moments, parts_list as props / looks / gear, attachments as brief or call-sheet support, and qa for client questions. When something is not confirmed, phrase it as a proposal, checklist item, deliverable expectation, approval step, or open question rather than a fact.",
     scoreBias: {
       ai_summary: 1,
       location_suggestions: 1,
@@ -51,6 +51,8 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
       range: 1,
       crew: 2,
       checklist: 3,
+      deliverables: 4,
+      approvals: 2,
       qa: 2,
       table: 4,
       parts_list: 2,
@@ -67,8 +69,12 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
         `{"type":"checklist","microTitle":"<e.g. Prep>","description":"<1 short line about what must be ready before the shoot>","items":[{"text":"Confirm final looks or products"},{"text":"Align on location details and timing"},{"text":"Prepare props, wardrobe, or brand materials"}]}`,
       crew:
         `{"type":"crew","microTitle":"<e.g. Roles>","description":"<1 short line about who needs to confirm involvement>","roles":[{"name":"Photographer"},{"name":"Subject / Talent"},{"name":"Stylist / Assistant"}]}`,
+      deliverables:
+        `{"type":"deliverables","microTitle":"<e.g. Deliverables>","description":"<1 short line about what should exist after the shoot>","items":[{"label":"Hero selection","quantity":"8-12 images","format":"Edited JPG","due":"<if known>"},{"label":"Detail / process set","quantity":"10-20 images","format":"Web + social crops"}]}`,
+      approvals:
+        `{"type":"approvals","microTitle":"<e.g. Approvals>","description":"<1 short line about what needs sign-off>","items":[{"text":"Moodboard and visual direction"},{"text":"Final shot list or priorities"},{"text":"Final image selection"}]}`,
       qa:
-        `{"type":"qa","microTitle":"<e.g. Open questions>","description":"<1 short line about clarifying remaining client decisions>","placeholder":"<brief cue like 'Add open questions, approvals, or missing details.'>"}`,
+        `{"type":"qa","microTitle":"<e.g. Client questions>","description":"<1 short line about clarifying remaining client decisions>","placeholder":"<brief cue like 'Add open questions, missing details, or client notes.'>","questions":[{"text":"What must these images achieve?"},{"text":"Which usage rights or channels matter most?"},{"text":"What still feels open before we lock the plan?"}]}`,
       table:
         `{"type":"table","microTitle":"<e.g. Shot list>","description":"<1 short line explaining what the team should align on>","columns":["Shot","Purpose","Location","Notes"],"rows":[["Hero portrait","Website / campaign","Main setup","Natural light, direct eye contact"],["Hands / process detail","Supporting asset","Work table","Tighter crop or detail frame"]]}`,
       parts_list:

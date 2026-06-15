@@ -5,7 +5,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleType } from "@/lib/types";
 
 /**
- * WidgetPicker — a compact dropdown listing all 26 body widget types,
+ * WidgetPicker — a compact dropdown listing all 28 body widget types,
  * grouped by domain. Labels are looked up from the space's detected
  * language so the picker never shows English on a non-English space.
  * Falls back to universal symbols when no translation exists.
@@ -21,7 +21,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   en: {
     ai_summary: "AI summary", icon: "Icon", wikipedia: "Wikipedia", gif: "GIF",
     notes: "Notes", discussion: "Chat", qa: "Q&A", poll: "Poll",
-    crew: "Crew", work_packages: "Tasks", checklist: "Checklist",
+    crew: "Crew", work_packages: "Tasks", deliverables: "Deliverables", approvals: "Approvals", checklist: "Checklist",
     date: "Date", appointment: "Appointment", appointments: "Schedule",
     range: "Range", phases: "Phases",
     location_single: "Location", locations_multi: "Locations",
@@ -32,7 +32,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   de: {
     ai_summary: "KI-Einschätzung", icon: "Symbol", wikipedia: "Wikipedia", gif: "GIF",
     notes: "Notizen", discussion: "Diskussion", qa: "Fragen", poll: "Umfrage",
-    crew: "Crew", work_packages: "Aufgaben", checklist: "Checkliste",
+    crew: "Crew", work_packages: "Aufgaben", deliverables: "Ergebnisse", approvals: "Freigaben", checklist: "Checkliste",
     date: "Datum", appointment: "Termin", appointments: "Termine",
     range: "Von – Bis", phases: "Phasen",
     location_single: "Ort", locations_multi: "Orte",
@@ -43,7 +43,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   fr: {
     ai_summary: "Synthèse IA", icon: "Icône", wikipedia: "Wikipedia", gif: "GIF",
     notes: "Notes", discussion: "Discussion", qa: "Questions", poll: "Sondage",
-    crew: "Équipe", work_packages: "Tâches", checklist: "Liste",
+    crew: "Équipe", work_packages: "Tâches", deliverables: "Livrables", approvals: "Validations", checklist: "Liste",
     date: "Date", appointment: "Rendez-vous", appointments: "Planning",
     range: "De – À", phases: "Phases",
     location_single: "Lieu", locations_multi: "Lieux",
@@ -54,7 +54,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   es: {
     ai_summary: "Resumen IA", icon: "Ícono", wikipedia: "Wikipedia", gif: "GIF",
     notes: "Notas", discussion: "Discusión", qa: "Preguntas", poll: "Encuesta",
-    crew: "Equipo", work_packages: "Tareas", checklist: "Lista",
+    crew: "Equipo", work_packages: "Tareas", deliverables: "Entregables", approvals: "Aprobaciones", checklist: "Lista",
     date: "Fecha", appointment: "Cita", appointments: "Agenda",
     range: "De – A", phases: "Fases",
     location_single: "Lugar", locations_multi: "Lugares",
@@ -65,7 +65,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   it: {
     ai_summary: "Sintesi IA", icon: "Icona", wikipedia: "Wikipedia", gif: "GIF",
     notes: "Note", discussion: "Discussione", qa: "Domande", poll: "Sondaggio",
-    crew: "Team", work_packages: "Compiti", checklist: "Lista",
+    crew: "Team", work_packages: "Compiti", deliverables: "Deliverable", approvals: "Approvazioni", checklist: "Lista",
     date: "Data", appointment: "Appuntamento", appointments: "Agenda",
     range: "Da – A", phases: "Fasi",
     location_single: "Luogo", locations_multi: "Luoghi",
@@ -76,7 +76,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   pt: {
     ai_summary: "Resumo IA", icon: "Ícone", wikipedia: "Wikipedia", gif: "GIF",
     notes: "Notas", discussion: "Discussão", qa: "Perguntas", poll: "Enquete",
-    crew: "Equipe", work_packages: "Tarefas", checklist: "Lista",
+    crew: "Equipe", work_packages: "Tarefas", deliverables: "Entregas", approvals: "Aprovações", checklist: "Lista",
     date: "Data", appointment: "Compromisso", appointments: "Agenda",
     range: "De – A", phases: "Fases",
     location_single: "Local", locations_multi: "Locais",
@@ -87,7 +87,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   nl: {
     ai_summary: "AI samenvatting", icon: "Icoon", wikipedia: "Wikipedia", gif: "GIF",
     notes: "Notities", discussion: "Discussie", qa: "Vragen", poll: "Enquête",
-    crew: "Team", work_packages: "Taken", checklist: "Checklist",
+    crew: "Team", work_packages: "Taken", deliverables: "Deliverables", approvals: "Goedkeuringen", checklist: "Checklist",
     date: "Datum", appointment: "Afspraak", appointments: "Agenda",
     range: "Van – Tot", phases: "Fasen",
     location_single: "Locatie", locations_multi: "Locaties",
@@ -143,6 +143,8 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
     entries: [
       { type: "crew",          symbol: "●" },
       { type: "work_packages", symbol: "□" },
+      { type: "deliverables",  symbol: "≣" },
+      { type: "approvals",     symbol: "✓" },
       { type: "checklist",     symbol: "✓" },
     ],
   },
@@ -198,6 +200,8 @@ function defaultWidget(type: ModuleType): Module | null {
     case "poll":                 return { type, question: "?", options: ["A", "B", "C"] };
     case "crew":                 return { type, roles: [{ name: "…" }] };
     case "work_packages":        return { type, packages: [{ label: "…" }] };
+    case "deliverables":         return { type, items: [{ label: "…" }] };
+    case "approvals":            return { type, items: [{ text: "…" }] };
     case "checklist":            return { type, items: [] };
     case "date":                 return { type, date: today };
     case "appointment":          return { type, datetime: now };

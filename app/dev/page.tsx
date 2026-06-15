@@ -33,8 +33,10 @@ const DEMO_MODULES: Module[] = [
   { type: "checklist", microTitle: "Aufgaben", items: [{ text: "Material besorgen" }, { text: "Ort buchen" }, { text: "Einladen" }] },
   { type: "crew", microTitle: "Crew", roles: [{ name: "Organisation" }, { name: "Technik" }, { name: "Catering" }] },
   { type: "work_packages", microTitle: "Arbeitspakete", packages: [{ label: "Aufbau", description: "Stände + Strom" }, { label: "Abbau" }] },
+  { type: "deliverables", microTitle: "Ergebnisse", items: [{ label: "Finale Galerie", quantity: "40 Bilder", format: "JPG + Web", due: "5 Tage nach dem Shooting", details: "Auswahl, Grundlook und Web-Export." }] },
+  { type: "approvals", microTitle: "Freigaben", items: [{ text: "Moodboard bestätigen", description: "Looks, Referenzen und Farbwelt gemeinsam absegnen." }, { text: "Finale Bildauswahl freigeben" }] },
   { type: "notes", microTitle: "Notizen" },
-  { type: "qa", microTitle: "Fragen" },
+  { type: "qa", microTitle: "Fragen", questions: [{ text: "Welche Motive haben oberste Priorität?" }, { text: "Welche Nutzungsrechte werden gebraucht?", answerHint: "z. B. Website, Print, Social, Ads" }] },
   { type: "discussion", microTitle: "Diskussion" },
   { type: "table", microTitle: "Vergleich", columns: ["Option", "Kosten", "Aufwand"], rows: [["A", "20€", "gering"], ["B", "50€", "mittel"]] },
   { type: "parts_list", microTitle: "Utensilien", items: [{ name: "Klapptisch", quantity: "2" }, { name: "Kabeltrommel" }] },
@@ -81,7 +83,9 @@ if (_missingFromDemo.length > 0) {
 function seed(): ModuleStateEntry[] {
   const idxPoll = DEMO_MODULES.findIndex((m) => m.type === "poll");
   const idxCheck = DEMO_MODULES.findIndex((m) => m.type === "checklist");
+  const idxApprovals = DEMO_MODULES.findIndex((m) => m.type === "approvals");
   const idxCrew = DEMO_MODULES.findIndex((m) => m.type === "crew");
+  const idxQa = DEMO_MODULES.findIndex((m) => m.type === "qa");
   const idxDisc = DEMO_MODULES.findIndex((m) => m.type === "discussion");
   const idxSketch = DEMO_MODULES.findIndex((m) => m.type === "sketch");
   const mk = (
@@ -96,7 +100,9 @@ function seed(): ModuleStateEntry[] {
     mk(idxPoll, "vote", { option: "Samstag" }, "seed-a", "Alice", "#7da3c0"),
     mk(idxPoll, "vote", { option: "Samstag" }, "seed-b", "Bob", "#d4a373"),
     mk(idxCheck, "check", { itemKey: "seed-0", checked: true }, "seed-a2", "Alice", "#7da3c0"),
+    mk(idxApprovals, "check", { itemKey: "seed-0", checked: true }, "seed-b0", "Bob", "#d4a373"),
     mk(idxCrew, "claim", { slotLabel: "Technik", claimed: true }, "seed-b2", "Bob", "#d4a373"),
+    mk(idxQa, "voice", { id: "a1", role: "answer", parentId: "seed-1", text: "Website, Instagram und ein paar Anzeigenmotive." }, "seed-c1", "Carla", "#9f86c0"),
     mk(idxDisc, "voice", { id: "m1", text: "Sollen wir Samstagnachmittag anpeilen?" }, "seed-a3", "Alice", "#7da3c0"),
     mk(idxSketch, "stroke", { path: "M120 180 L200 120 L280 180 L200 240 Z", width: 3 }, "seed-sk-a", "Alice", "#7da3c0"),
     mk(idxSketch, "stroke", { path: "M350 140 C400 80 480 80 500 160 C520 240 460 280 400 260 C340 240 300 200 350 140", width: 3 }, "seed-sk-b", "Bob", "#d4a373"),

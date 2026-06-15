@@ -57,8 +57,8 @@ const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
   { title: "REFERENCE & FRAMING", types: ["ai_summary", "wikipedia"] },
   { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "range", "phases"] },
   { title: "PLACE", types: ["location_single", "locations_multi", "location_suggestions", "route"] },
-  { title: "PEOPLE & WORK", types: ["crew", "work_packages", "checklist"] },
-  { title: "DISCUSSION & DECISIONS", types: ["notes", "qa", "poll", "discussion"] },
+  { title: "PEOPLE & WORK", types: ["crew", "work_packages", "deliverables", "checklist"] },
+  { title: "DISCUSSION & DECISIONS", types: ["notes", "qa", "poll", "discussion", "approvals"] },
   { title: "STRUCTURED DATA", types: ["table", "parts_list"] },
   { title: "MEDIA", types: ["attachments", "images", "audio", "sketch"] },
 ];
@@ -294,9 +294,11 @@ const SHAPE: Partial<Record<ModuleType, string>> = {
   phases: `{"type":"phases","microTitle":"<short label>","phases":[{"label":"<short>","description":"<optional>"}],"currentPhase":0}`,
   crew: `{"type":"crew","microTitle":"<short label>","description":"<optional 1-line context>","roles":[{"name":"<role>"}]}`,
   work_packages: `{"type":"work_packages","microTitle":"<short label>","packages":[{"label":"<package>","description":"<optional>"}]}`,
+  deliverables: `{"type":"deliverables","microTitle":"<short label>","description":"<optional 1-line context>","items":[{"label":"<deliverable>","details":"<optional>","quantity":"<optional>","format":"<optional>","due":"<optional>"}]}`,
+  approvals: `{"type":"approvals","microTitle":"<short label>","description":"<optional 1-line context>","items":[{"text":"<approval checkpoint>","description":"<optional>"}]}`,
   checklist: `{"type":"checklist","microTitle":"<short label>","description":"<optional 1-line context>","items":[{"text":"<concrete item>"}]}`,
   notes: `{"type":"notes","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
-  qa: `{"type":"qa","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
+  qa: `{"type":"qa","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>","questions":[{"text":"<optional seeded question>","answerHint":"<optional short answer cue>"}]}`,
   poll: `{"type":"poll","microTitle":"<short label>","question":"<question>","options":["<opt>","<opt>"]}`,
   discussion: `{"type":"discussion","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
   table: `{"type":"table","microTitle":"<short label>","description":"<optional 1-line context>","columns":["<col>","<col>"],"rows":[["<cell>","<cell>"]]}`,
@@ -404,14 +406,16 @@ CONTENT RULES:
   names only a city/area and no specific venue, emit
   location_suggestions (a text list of candidate venues) instead of a
   coordinate map.
-- Seed-content widgets (poll, checklist, crew, work_packages, phases,
-  table, parts_list, location_suggestions) must contain real, concrete
-  starter content drawn from the input — never empty arrays, never
-  placeholder text like "Option 1".
+- Seed-content widgets (poll, checklist, crew, work_packages,
+  deliverables, approvals, phases, table, parts_list,
+  location_suggestions) must contain real, concrete starter content
+  drawn from the input — never empty arrays, never placeholder text
+  like "Option 1".
 - Collaboration / upload widgets (notes, qa, discussion, attachments,
   images, audio, sketch) may use microTitle plus optional description
-  and placeholder guidance, but they must NOT invent conversation
-  entries, uploaded files, or finished approvals.
+  and placeholder guidance. The qa widget may optionally seed question
+  prompts, but it must NOT invent answers, conversation entries, uploaded
+  files, or completed approvals.
 - microTitles are short (1-3 words) and in ${langName}.
 
 LABELS — the UI chrome strings, all in ${langName}, each under 60 chars:

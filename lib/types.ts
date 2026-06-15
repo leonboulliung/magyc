@@ -2,7 +2,7 @@
  * v4 — types.
  *
  * A space is a workspace built from a sequence of typed widgets. There
- * are 29 widget kinds in the registry (3 header-zone, 26 body). The
+ * are 31 widget kinds in the registry (3 header-zone, 28 body). The
  * agent classifies the user's input, picks which widgets fit, and
  * configures each.
  *
@@ -215,6 +215,30 @@ export interface WorkPackagesWidget extends WidgetBase {
   packages: { label: string; description?: string }[];
 }
 
+/**
+ * Deliverables — the concrete outputs a project should produce, with
+ * optional format / quantity / due hints for expectation-setting.
+ */
+export interface DeliverablesWidget extends WidgetBase {
+  type: "deliverables";
+  items: {
+    label: string;
+    details?: string;
+    quantity?: string;
+    format?: string;
+    due?: string;
+  }[];
+}
+
+/**
+ * Approvals — named checkpoints collaborators can mark approved via
+ * `check` actions. Same state primitive as Checklist, different intent.
+ */
+export interface ApprovalsWidget extends WidgetBase {
+  type: "approvals";
+  items: { text: string; description?: string }[];
+}
+
 // ----- Free-form collaboration -----
 
 /**
@@ -228,12 +252,14 @@ export interface NotesWidget extends WidgetBase {
 }
 
 /**
- * Fragen und Antworten — Q&A list. Questions and answers in
- * module_state with `voice` actions.
+ * Fragen und Antworten — Q&A list. Can seed starting questions on the
+ * widget config; questions and answers themselves live in module_state
+ * with `voice` actions.
  */
 export interface QAWidget extends WidgetBase {
   type: "qa";
   placeholder?: string;
+  questions?: { text: string; answerHint?: string }[];
 }
 
 /** Umfrage. Single question with multiple-choice options. Votes via
@@ -342,6 +368,8 @@ export type Module =
   | RangeWidget
   | CrewWidget
   | WorkPackagesWidget
+  | DeliverablesWidget
+  | ApprovalsWidget
   | NotesWidget
   | QAWidget
   | PollWidget
@@ -363,7 +391,7 @@ export const ALL_MODULE_TYPES: readonly ModuleType[] = [
   "heading",
   "rich_text",
   "tags",
-  // Body widgets (26)
+  // Body widgets (28)
   "wikipedia",
   "ai_summary",
   "icon",
@@ -377,6 +405,8 @@ export const ALL_MODULE_TYPES: readonly ModuleType[] = [
   "range",
   "crew",
   "work_packages",
+  "deliverables",
+  "approvals",
   "notes",
   "qa",
   "poll",

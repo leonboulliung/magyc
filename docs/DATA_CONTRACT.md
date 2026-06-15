@@ -1,6 +1,6 @@
 # magyc.site — Data Contract
 
-**Version:** 1.0.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
+**Version:** 1.1.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
 
 This document is the stable interface of a space. The **presentation
 layer** (renderers, animations, the style system, the grid) may change
@@ -55,11 +55,11 @@ Everything after is the **body** — what the grid renders.
 | Zone   | Types                          | Notes |
 |--------|--------------------------------|-------|
 | header | `heading`, `rich_text`, `tags` | always present, not in grid |
-| body   | the other 26                   | 2–6 chosen by the classifier |
+| body   | the other 28                   | 2–6 chosen by the classifier |
 
 ---
 
-## 3. The 29 widget types
+## 3. The 31 widget types
 
 Each is a discriminated member of `Module`, keyed by `type`. Every
 widget may carry optional `microTitle`, `description`, `attribution`.
@@ -89,12 +89,14 @@ widget may carry optional `microTitle`, `description`, `attribution`.
 ### Team / work
 - `crew` — `{ roles: {name}[] }`
 - `work_packages` — `{ packages: {label,description?}[] }`
+- `deliverables` — `{ items: {label,details?,quantity?,format?,due?}[] }`
 
 ### Collaboration (mostly state-driven)
 - `notes` — `{ placeholder? }`
-- `qa` — `{ placeholder? }`
+- `qa` — `{ placeholder?, questions?: {text,answerHint?}[] }`
 - `poll` — `{ question, options: string[] }`
 - `discussion` — `{ placeholder? }`
+- `approvals` — `{ items: {text,description?}[] }`
 
 ### Visualisation
 - `phases` — `{ phases: {label,description?}[], currentPhase }`
@@ -123,11 +125,11 @@ widgets are dropped, not trusted.
 | kind     | widgets                         | data shape |
 |----------|---------------------------------|-----------|
 | `vote`   | poll, location_suggestions      | `{ option }` — empty = retract |
-| `check`  | checklist                       | `{ itemKey, checked }` |
+| `check`  | checklist, approvals            | `{ itemKey, checked }` |
 | `claim`  | crew, work_packages             | `{ slotLabel, claimed? }` — false = release |
 | `voice`  | qa, discussion                  | `{ id, text, role?, parentId? }` |
 | `edit`   | notes, table                    | `{ id?, text?, ... }` (last-write-wins) |
-| `add`    | notes, checklist, parts_list, … | free per widget (e.g. `{ id, text }`) |
+| `add`    | notes, checklist, approvals, parts_list, … | free per widget (e.g. `{ id, text }`) |
 | `upload` | attachments, images, audio      | `{ url, name, size?, mimeType?, path? }` |
 | `stroke` | sketch                          | `{ path, color?, width? }` |
 

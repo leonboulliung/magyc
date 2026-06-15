@@ -20,6 +20,8 @@ import { ChecklistRenderer } from "./ChecklistRenderer";
 import { PollRenderer } from "./PollRenderer";
 import { CrewRenderer } from "./CrewRenderer";
 import { WorkPackagesRenderer } from "./WorkPackagesRenderer";
+import { DeliverablesRenderer } from "./DeliverablesRenderer";
+import { ApprovalsRenderer } from "./ApprovalsRenderer";
 import { QaRenderer } from "./QaRenderer";
 import { DiscussionRenderer } from "./DiscussionRenderer";
 
@@ -92,6 +94,10 @@ export function WidgetDispatcher({
       return <CrewRenderer module={m} index={index} state={s} />;
     case "work_packages":
       return <WorkPackagesRenderer module={m} index={index} state={s} />;
+    case "deliverables":
+      return <DeliverablesRenderer module={m} index={index} />;
+    case "approvals":
+      return <ApprovalsRenderer module={m} index={index} state={s} />;
     case "qa":
       return <QaRenderer module={m} index={index} state={s} />;
     case "discussion":
@@ -140,7 +146,7 @@ export function WidgetDispatcher({
       return <SketchRenderer module={m} index={index} state={s} />;
 
     default:
-      // Exhaustive match — all 29 widget types are handled above.
+      // Exhaustive match — all 31 widget types are handled above.
       // This branch is a forward-compat safety net for new types added
       // before a renderer is built.
       return <PendingPlaceholder type={(m as { type: string }).type} />;

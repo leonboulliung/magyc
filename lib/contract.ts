@@ -20,11 +20,11 @@ import type { ModuleStateKind, ModuleType } from "./types";
 /** Bump on any breaking change to a module data shape, the state
  *  vocabulary, or the space shape. Minor (additive, back-compatible)
  *  changes bump the minor; breaking changes bump the major. */
-export const CONTRACT_VERSION = "1.0.0";
+export const CONTRACT_VERSION = "1.1.0";
 
 /**
  * The frozen set of widget types. Order is the canonical order.
- * If you add a 30th widget, add it here AND bump CONTRACT_VERSION.
+ * If you add another widget, add it here AND bump CONTRACT_VERSION.
  */
 export const CONTRACT_MODULE_TYPES = [
   // Header zone (always present)
@@ -36,9 +36,9 @@ export const CONTRACT_MODULE_TYPES = [
   // Time
   "date", "appointment", "appointments", "range",
   // Team / work
-  "crew", "work_packages",
+  "crew", "work_packages", "deliverables",
   // Collaboration
-  "notes", "qa", "poll", "discussion",
+  "notes", "qa", "poll", "discussion", "approvals",
   // Visualisation
   "phases", "checklist",
   // Uploads

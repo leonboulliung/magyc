@@ -33,7 +33,27 @@ export function QaRenderer({
     .filter((e) => e.kind === "voice")
     .sort((a, b) => a.createdAt - b.createdAt);
 
-  const questions = voices.filter((e) => e.data.role === "question");
+  const seededQuestions = (m.questions ?? []).map((question, i) => ({
+    key: `seed-${i}`,
+    text: question.text,
+    answerHint: question.answerHint,
+    seeded: true,
+  }));
+
+  const stateQuestions = voices
+    .filter((e) => e.data.role === "question")
+    .map((e) => ({
+      key: typeof e.data.id === "string" ? e.data.id : e.id,
+      text: String(e.data.text ?? ""),
+      seeded: false,
+      actor: {
+        displayName: e.actor.displayName,
+        color: typeof e.data.color === "string" ? (e.data.color as string) : undefined,
+      },
+    }))
+    .filter((question) => question.text);
+
+  const questions = [...seededQuestions, ...stateQuestions];
   const answersOf = (qid: string) =>
     voices.filter((e) => e.data.role === "answer" && e.data.parentId === qid);
 
@@ -74,9 +94,9 @@ export function QaRenderer({
 
         <ul className="space-y-3">
           <AnimatePresence initial={false}>
-            {questions.map((q) => (
+            {questions.map((question) => (
               <motion.li
-                key={q.id}
+                key={question.key}
                 layout
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -84,11 +104,9 @@ export function QaRenderer({
                 transition={{ duration: 0.15 }}
               >
                 <QuestionBlock
-                  q={q}
-                  answers={answersOf(typeof q.data.id === "string" ? q.data.id : q.id)}
-                  onAnswer={(text) =>
-                    answer(typeof q.data.id === "string" ? q.data.id : q.id, text)
-                  }
+                  question={question}
+                  answers={answersOf(question.key)}
+                  onAnswer={(text) => answer(question.key, text)}
                 />
               </motion.li>
             ))}
@@ -130,11 +148,17 @@ export function QaRenderer({
 }
 
 function QuestionBlock({
-  q,
+  question,
   answers,
   onAnswer,
 }: {
-  q: ModuleStateEntry;
+  question: {
+    key: string;
+    text: string;
+    answerHint?: string;
+    seeded: boolean;
+    actor?: { displayName?: string; color?: string };
+  };
   answers: ModuleStateEntry[];
   onAnswer: (text: string) => Promise<void> | void;
 }) {
@@ -151,18 +175,35 @@ function QuestionBlock({
   return (
     <div className="rounded-[var(--v-radius)] p-3" style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}>
       <div className="flex items-start gap-2.5">
-        <ActorDot
-          color={typeof q.data.color === "string" ? (q.data.color as string) : undefined}
-          displayName={q.actor.displayName}
-          size={16}
-        />
+        {question.seeded ? (
+          <span
+            className="mono inline-flex items-center justify-center shrink-0 rounded-full text-[10px]"
+            style={{
+              width: 16,
+              height: 16,
+              border: "1px dashed var(--v-rule)",
+              color: "var(--v-muted)",
+            }}
+            aria-hidden
+          >
+            ?
+          </span>
+        ) : (
+          <ActorDot
+            color={question.actor?.color}
+            displayName={question.actor?.displayName}
+            size={16}
+          />
+        )}
         <div className="flex-1 min-w-0">
           <div className="text-[13px] leading-snug" style={{ color: "var(--v-fg)" }}>
-            {String(q.data.text ?? "")}
+            {question.text}
           </div>
-          <div className="mono text-[9px] tracking-widest mt-1 opacity-60" style={{ color: "var(--v-muted)" }}>
-            {q.actor.displayName || "anon"}
-          </div>
+          {!question.seeded && question.actor?.displayName && (
+            <div className="mono text-[9px] tracking-widest mt-1 opacity-60" style={{ color: "var(--v-muted)" }}>
+              {question.actor.displayName}
+            </div>
+          )}
         </div>
       </div>
 
@@ -201,7 +242,7 @@ function QuestionBlock({
             }}
             rows={2}
             maxLength={600}
-            placeholder="…"
+            placeholder={question.answerHint || "…"}
             className="w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           />

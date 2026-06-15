@@ -1,5 +1,5 @@
 /**
- * Module registry — sanitizers + meta for the 29 widget types.
+ * Module registry — sanitizers + meta for the 31 widget types.
  *
  * Every widget that lands in `spaces.modules` flows through
  * `sanitizeModule()`. The AI is liberal about JSON shapes; we are
@@ -249,13 +249,73 @@ export function sanitizeModule(raw: unknown): Module | null {
       if (packages.length === 0) return null;
       return { type, ...b, packages };
     }
+    case "deliverables": {
+      const raw = Array.isArray(r.items) ? r.items : [];
+      const items: {
+        label: string;
+        details?: string;
+        quantity?: string;
+        format?: string;
+        due?: string;
+      }[] = [];
+      for (const x of raw) {
+        if (!x || typeof x !== "object") continue;
+        const xr = x as Record<string, unknown>;
+        const label = clean(xr.label, 120);
+        if (!label) continue;
+        const details = clean(xr.details, 240) || undefined;
+        const quantity = clean(xr.quantity, 60) || undefined;
+        const format = clean(xr.format, 80) || undefined;
+        const due = clean(xr.due, 80) || undefined;
+        items.push({ label, ...(details ? { details } : {}), ...(quantity ? { quantity } : {}), ...(format ? { format } : {}), ...(due ? { due } : {}) });
+        if (items.length >= 16) break;
+      }
+      if (items.length === 0) return null;
+      return { type, ...b, items };
+    }
+    case "approvals": {
+      const raw = Array.isArray(r.items) ? r.items : [];
+      const items: { text: string; description?: string }[] = [];
+      for (const x of raw) {
+        if (!x) continue;
+        if (typeof x === "string") {
+          const text = clean(x, 200);
+          if (text) items.push({ text });
+        } else if (typeof x === "object") {
+          const xr = x as Record<string, unknown>;
+          const text = clean(xr.text, 200);
+          if (!text) continue;
+          const description = clean(xr.description, 240) || undefined;
+          items.push(description ? { text, description } : { text });
+        }
+        if (items.length >= 16) break;
+      }
+      if (items.length === 0) return null;
+      return { type, ...b, items };
+    }
     case "notes": {
       const placeholder = clean(r.placeholder, 200) || undefined;
       return { type, ...b, placeholder };
     }
     case "qa": {
       const placeholder = clean(r.placeholder, 200) || undefined;
-      return { type, ...b, placeholder };
+      const raw = Array.isArray(r.questions) ? r.questions : [];
+      const questions: { text: string; answerHint?: string }[] = [];
+      for (const x of raw) {
+        if (!x) continue;
+        if (typeof x === "string") {
+          const text = clean(x, 200);
+          if (text) questions.push({ text });
+        } else if (typeof x === "object") {
+          const xr = x as Record<string, unknown>;
+          const text = clean(xr.text, 200);
+          if (!text) continue;
+          const answerHint = clean(xr.answerHint, 120) || undefined;
+          questions.push(answerHint ? { text, answerHint } : { text });
+        }
+        if (questions.length >= 12) break;
+      }
+      return { type, ...b, placeholder, ...(questions.length > 0 ? { questions } : {}) };
     }
     case "poll": {
       const question = clean(r.question, 200);
@@ -389,7 +449,7 @@ export function sanitizeModules(raw: unknown): Module[] {
 // MODULE_META — agent-facing semantics for every widget type
 //
 // The classifier prompt is constructed from this table at runtime so
-// it stays in lockstep with the registry. Adding a 30th widget means
+// it stays in lockstep with the registry. Adding another widget means
 // extending types + sanitizer + this table; the prompt picks the new
 // entry up automatically.
 // ============================================================
@@ -619,6 +679,30 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     alwaysInserted: false,
     relevantWhen:
       "recording the relevant work packages would help. Each package is claimable; the widget supports a segment-share invite per package.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: false,
+    hasThread: false,
+  },
+  deliverables: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "the concrete outputs, formats, counts, or delivery expectations should be made explicit.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  approvals: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "the work needs explicit sign-off checkpoints or named approvals before moving ahead.",
     requiresMandatoryConfig: false,
     externalSource: null,
     requiresAttribution: false,

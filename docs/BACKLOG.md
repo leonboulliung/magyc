@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, masonry gap fix)_
+_Last updated: 2026-06-15 (Codex, photographer workflow widgets)_
 
 ---
 
@@ -130,6 +130,14 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Photographer workflow widgets**: added explicit
+  `deliverables` and `approvals` widgets, plus seeded starter questions for
+  `qa`. The dev showroom now demonstrates all three states (deliverable
+  expectations, approval checkmarks, client answers), the classifier can score
+  and author the new widget types, the photo-shoot project mode now biases
+  toward deliverables / approvals / client questions, and the data contract
+  bumped to `1.1.0` for the additive widget/interface expansion. Verified
+  locally with `npm run build` and `npx tsc --noEmit`.
 - 2026-06-15 · **Masonry gap fix**: GridZone now uses a masonry-style CSS
   grid instead of equal-height visual rows. Each widget cell measures its own
   rendered height via `ResizeObserver` and spans the matching number of tiny
