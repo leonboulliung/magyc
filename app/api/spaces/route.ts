@@ -33,6 +33,7 @@ const MAX_ANSWERS = 6;
 export async function POST(req: Request) {
   const parsed = await parseBody(req, z.object({
     input: z.string().optional(),
+    projectMode: z.string().optional().nullable(),
     answers: z.unknown().optional(),
     configuredModules: z.unknown().optional(),
     anonToken: z.string().optional(),
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
 
   let result;
   try {
-    result = await classifyInput(input, answers, configuredModules);
+    result = await classifyInput(input, answers, configuredModules, { projectMode: body.projectMode });
   } catch (e) {
     const err = e as { message?: string; status?: number; code?: string };
     const msg = err.message || "unknown";

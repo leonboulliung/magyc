@@ -5,6 +5,7 @@ import { FONT_NAMES } from "@/lib/fonts";
 import { sanitizeStyle } from "@/lib/style";
 import { AI_LABEL_KEYS } from "@/lib/labels";
 import { resolveGeocoding } from "@/lib/server/geocode";
+import { projectContextLines } from "@/lib/projectModes";
 
 /**
  * Classifier v5 — two-stage scoring architecture.
@@ -101,6 +102,10 @@ exactly two things:
 1. DETECT the language of the input and a few framing facts.
 2. SCORE how well each available widget fits THIS SPECIFIC input.
 
+If UI CONTEXT is provided, use it to tailor scoring and structure. It
+represents an explicit project type the user selected in the interface.
+Do NOT let English UI context override the language of the USER INPUT.
+
 Return STRICT JSON, no preamble:
 
 {
@@ -137,8 +142,20 @@ ${typeList}
 Output ONLY the JSON object.`;
 }
 
-function buildAnalyzeUserMessage(input: string, answers: ClassifyAnswer[]): string {
+export interface ClassifyContext {
+  projectMode?: unknown;
+}
+
+function buildAnalyzeUserMessage(
+  input: string,
+  answers: ClassifyAnswer[],
+  context: ClassifyContext = {},
+): string {
   const lines: string[] = ["INPUT:", input.trim()];
+  const contextLines = projectContextLines(context.projectMode);
+  if (contextLines.length > 0) {
+    lines.push("", "UI CONTEXT:", ...contextLines);
+  }
   if (answers.length > 0) {
     lines.push("", "CLARIFICATIONS (the user answered these):");
     for (const a of answers) lines.push(`- ${a.questionText.trim()} → ${a.choice.trim()}`);
@@ -152,6 +169,7 @@ async function analyze(
   client: OpenAI,
   input: string,
   answers: ClassifyAnswer[],
+  context: ClassifyContext,
 ): Promise<AnalyzeResult> {
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
@@ -159,7 +177,7 @@ async function analyze(
     temperature: 0.2, // low — scoring should be stable, not creative
     messages: [
       { role: "system", content: buildAnalyzeSystemPrompt() },
-      { role: "user", content: buildAnalyzeUserMessage(input, answers) },
+      { role: "user", content: buildAnalyzeUserMessage(input, answers, context) },
     ],
   });
 
@@ -343,6 +361,12 @@ CONTENT RULES:
 - Never invent specifics: no fake place names, no fake Wikipedia
   titles that don't exist, no fake dates, no fake numbers. If you lack
   a real value for a date/appointment, omit that widget from "body".
+- Use UI CONTEXT as a planning lens. For example, a selected photo shoot
+  project type should make tables useful as shot lists/deliverables,
+  images useful as reference/moodboard slots, checklist useful as prep,
+  crew useful as roles, and appointments/ranges useful only when the
+  input or clarifications provide real timing. Keep unconfirmed details
+  phrased as questions, suggestions, or assumptions rather than facts.
 - For map widgets (location_single, locations_multi, route), the
   "query" must be a SPECIFIC, named, geocodable VENUE or address —
   a hall, park, café, landmark, street address — with its city and
@@ -405,6 +429,7 @@ async function author(
   answers: ClassifyAnswer[],
   language: string,
   chosen: ModuleType[],
+  context: ClassifyContext,
 ): Promise<AuthorResult> {
   if (chosen.length === 0) {
     // No body widgets — still author header + labels.
@@ -416,7 +441,7 @@ async function author(
     temperature: 0.6, // higher — authoring benefits from some variety
     messages: [
       { role: "system", content: buildAuthorSystemPrompt(language, chosen) },
-      { role: "user", content: buildAnalyzeUserMessage(input, answers) },
+      { role: "user", content: buildAnalyzeUserMessage(input, answers, context) },
     ],
   });
 
@@ -473,6 +498,7 @@ export async function classifyInput(
    *  re-geocoded — and the author stage skips their type (and its
    *  redundancy group, e.g. another place widget). */
   configuredModules: Module[] = [],
+  context: ClassifyContext = {},
 ): Promise<ClassifyResult> {
   if (!process.env.OPENAI_API_KEY) throw new Error("ai_not_configured");
   const input = prep(text);
@@ -485,7 +511,7 @@ export async function classifyInput(
   });
 
   // Stage A — analyze + score.
-  const a = await analyze(client, input, answers);
+  const a = await analyze(client, input, answers, context);
 
   // Server-side deterministic selection.
   let chosen = selectModuleTypes(a.scores);
@@ -513,7 +539,7 @@ export async function classifyInput(
   chosen = chosen.filter((t) => !suppress.has(t));
 
   // Stage B — author the chosen widgets in the detected language.
-  const authored = await author(client, input, answers, a.language, chosen);
+  const authored = await author(client, input, answers, a.language, chosen, context);
 
   // Assemble in header-zone order: heading → rich_text → tags →
   // (user-configured body first) → authored body.

@@ -22,6 +22,7 @@ const MAX_INPUT_CHARS = 1200;
 export async function POST(req: Request) {
   const parsed = await parseBody(req, z.object({
     input: z.string().optional(),
+    projectMode: z.string().optional().nullable(),
     anonToken: z.string().optional(),
   }));
   if (!parsed.ok) return parsed.response;
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
   lastCallAt.set(key, now);
 
   try {
-    const result = await clarifyInput(input);
+    const result = await clarifyInput(input, { projectMode: body.projectMode });
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     const msg = (e as Error).message || "unknown";

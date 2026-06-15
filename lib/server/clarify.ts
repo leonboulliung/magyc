@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { MODULE_META, mandatoryConfigTypes } from "@/lib/modules";
 import type { ClarifyStep, ClarifyPrefill, ModuleType } from "@/lib/types";
+import { projectContextLines } from "@/lib/projectModes";
 
 /**
  * Module types that currently have a clarify-editor on the frontend and
@@ -72,6 +73,12 @@ function buildSystemPrompt(): string {
 a wish, a concern, a plan. Your job: surface the few genuine gaps or
 ambiguities that, once resolved, let an agentic process build a useful
 workspace from the input.
+
+If the user interface provides UI CONTEXT (for example a selected
+project type), use it to tailor the questions and modules. Treat it as
+explicit context the user selected, but NOT as user-authored prose and
+NOT as the language signal. Detect the language from the user's typed
+input and answer in that language.
 
 ONE objective governs everything: structure the input with the LEAST
 friction for the user while still capturing what genuinely helps the
@@ -204,6 +211,19 @@ function prep(text: string): string {
   return text.replace(/\s+/g, " ").trim().slice(0, MAX_INPUT_CHARS);
 }
 
+export interface ClarifyContext {
+  projectMode?: unknown;
+}
+
+function buildUserMessage(input: string, context?: ClarifyContext): string {
+  const lines = ["USER INPUT:", input];
+  const contextLines = projectContextLines(context?.projectMode);
+  if (contextLines.length > 0) {
+    lines.push("", "UI CONTEXT:", ...contextLines);
+  }
+  return lines.join("\n");
+}
+
 /** Parse one raw choice step. Returns null if unusable. */
 function parseChoice(qr: Record<string, unknown>): Omit<Extract<ClarifyStep, { kind: "choice" }>, "id"> | null {
   const text = typeof qr.text === "string"
@@ -249,7 +269,7 @@ function parseModule(pr: Record<string, unknown>): Omit<ClarifyPrefill, "id"> | 
   return { kind: "module", type, reason, draft };
 }
 
-export async function clarifyInput(text: string): Promise<ClarifyResult> {
+export async function clarifyInput(text: string, context: ClarifyContext = {}): Promise<ClarifyResult> {
   if (!process.env.OPENAI_API_KEY) throw new Error("ai_not_configured");
   const input = prep(text);
   if (input.length < 3) throw new Error("input_too_short");
@@ -265,7 +285,7 @@ export async function clarifyInput(text: string): Promise<ClarifyResult> {
     temperature: 0.3,
     messages: [
       { role: "system", content: buildSystemPrompt() },
-      { role: "user", content: input },
+      { role: "user", content: buildUserMessage(input, context) },
     ],
   });
   const raw = completion.choices[0]?.message?.content || "{}";

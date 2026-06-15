@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-13 (Claude, session 4)_
+_Last updated: 2026-06-15 (Codex, guided intake package)_
 
 ---
 
@@ -130,6 +130,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Guided intake package**: Home now has project-type chips
+  (Photo shoot, Event, Trip, Campaign, Workshop), contextual example prompts,
+  and in-flow "Add …?" chips that append useful structure while typing. The
+  selected project type is passed to clarify/classify as UI context, so it can
+  steer questions and widget scoring without overriding the user's input
+  language. Home logo radius now matches the 20px element/input/Enter radius.
+  Verified locally with `npx tsc --noEmit` and `npm run build`.
 - 2026-06-13 · **Wikipedia "…" resolution bug + GIF picker rework** (`7b593e9`,
   `fc1b6d7`). Wikipedia (architectural, Leon-spotted): a freshly-added widget's
   placeholder topic "…" was resolved literally → the "Ellipsis/Auslassungspunkte"

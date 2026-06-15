@@ -10,6 +10,7 @@ import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
 import { EnterKey } from "@/components/EnterKey";
+import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
 
 type Stage = "input" | "clarify" | "building";
 
@@ -21,6 +22,19 @@ interface Answer {
 
 const CLARIFY_TIMEOUT_MS = 25_000;
 const BUILD_TIMEOUT_MS = 45_000;
+
+const DEFAULT_EXAMPLES: { prompt: string; mode?: ProjectModeId }[] = [
+  { prompt: "Plan a fashion shoot in Berlin.", mode: "photo_shoot" },
+  { prompt: "Create a launch plan for a neighborhood cafe.", mode: "campaign" },
+  { prompt: "Organize a podcast episode with guests and production tasks." },
+];
+
+const DEFAULT_ASSIST_CHIPS: { label: string; text: string }[] = [
+  { label: "Add locations?", text: "Include useful locations or place suggestions." },
+  { label: "Need roles?", text: "Add roles and responsibilities for the people involved." },
+  { label: "Want a timeline?", text: "Turn this into a clear timeline." },
+  { label: "Add deliverables?", text: "Include concrete deliverables and approval points." },
+];
 
 /**
  * Read a human error string out of an API (or Vercel platform) error
@@ -93,6 +107,7 @@ export default function HomePage() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("input");
   const [text, setText] = useState("");
+  const [projectMode, setProjectMode] = useState<ProjectModeId | null>(null);
   const [, setLanguage] = useState("en");
   // AI-authored "bringing your idea to life" line for the build screen.
   const [comingToLife, setComingToLife] = useState("");
@@ -112,6 +127,11 @@ export default function HomePage() {
   const dotFieldRef = useRef<DotFieldHandle>(null);
   const enterKeyRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const selectedMode = projectModeById(projectMode);
+  const promptExamples = selectedMode
+    ? selectedMode.examples.map((prompt) => ({ prompt, mode: selectedMode.id }))
+    : DEFAULT_EXAMPLES;
+  const assistChips = selectedMode?.assistChips ?? DEFAULT_ASSIST_CHIPS;
 
   // The landing page is a fixed, full-screen surface — there is nothing
   // to scroll. Lock the document while it's mounted so mobile browsers
@@ -174,6 +194,29 @@ export default function HomePage() {
     goClarify();
   }
 
+  function focusPrompt() {
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function toggleProjectMode(id: ProjectModeId) {
+    setProjectMode((current) => (current === id ? null : id));
+    focusPrompt();
+  }
+
+  function applyExample(prompt: string, mode?: ProjectModeId) {
+    if (mode) setProjectMode(mode);
+    setText(prompt);
+    focusPrompt();
+  }
+
+  function addPromptHint(hint: string) {
+    setText((current) => {
+      const trimmed = current.trim();
+      return trimmed ? `${trimmed}\n${hint}` : hint;
+    });
+    focusPrompt();
+  }
+
   // Clean up auto-advance timer on unmount
   useEffect(() => () => { if (advanceTimer.current) clearTimeout(advanceTimer.current); }, []);
 
@@ -188,7 +231,7 @@ export default function HomePage() {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input: trimmed, anonToken: getAnonToken() }),
+        body: JSON.stringify({ input: trimmed, projectMode, anonToken: getAnonToken() }),
       }, CLARIFY_TIMEOUT_MS);
       if (!res.ok) {
         setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
@@ -282,7 +325,13 @@ export default function HomePage() {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input: text.trim(), answers: payloadAnswers, configuredModules, anonToken: getAnonToken() }),
+        body: JSON.stringify({
+          input: text.trim(),
+          projectMode,
+          answers: payloadAnswers,
+          configuredModules,
+          anonToken: getAnonToken(),
+        }),
       }, BUILD_TIMEOUT_MS);
       if (!res.ok) {
         setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
@@ -328,7 +377,7 @@ export default function HomePage() {
       >
         <div className="w-full max-w-3xl mx-auto flex flex-col gap-[clamp(24px,5vh,56px)] mt-[clamp(24px,5vh,56px)]">
           <div
-            className="mx-auto w-fit px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[14px]"
+            className="mx-auto w-fit px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[20px]"
             style={{
               background: "#ffffff",
               border: "1px solid rgba(0,0,0,0.08)",
@@ -364,6 +413,31 @@ export default function HomePage() {
                     boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
                   }}
                 >
+                  <div className="mb-5 flex flex-col gap-3">
+                    <div className="flex flex-wrap gap-2">
+                      {PROJECT_MODES.map((mode) => {
+                        const picked = projectMode === mode.id;
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => toggleProjectMode(mode.id)}
+                            disabled={busy}
+                            className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded-[20px] transition-opacity disabled:opacity-30"
+                            style={{
+                              border: "1px solid",
+                              borderColor: picked ? "#111" : "rgba(0,0,0,0.10)",
+                              background: picked ? "#111" : "rgba(255,255,255,0.55)",
+                              color: picked ? "#fff" : "#111",
+                            }}
+                          >
+                            {mode.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <textarea
                     ref={inputRef}
                     autoFocus
@@ -371,7 +445,7 @@ export default function HomePage() {
                     onChange={(e) => setText(e.target.value)}
                     rows={2}
                     maxLength={1200}
-                    placeholder=""
+                    placeholder={selectedMode?.placeholder ?? "Describe a rough idea, project, or plan."}
                     className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none"
                     disabled={busy}
                     onKeyDown={(e) => {
@@ -387,8 +461,45 @@ export default function HomePage() {
                       {text.length > 0 ? `${text.length}/1200` : ""}
                     </span>
                   </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {text.trim().length === 0 ? (
+                      promptExamples.map((example) => (
+                        <button
+                          key={`${example.mode ?? "free"}:${example.prompt}`}
+                          type="button"
+                          onClick={() => applyExample(example.prompt, example.mode)}
+                          disabled={busy}
+                          className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded-[20px] transition-opacity disabled:opacity-30"
+                          style={{
+                            border: "1px solid rgba(0,0,0,0.08)",
+                            background: "rgba(0,0,0,0.025)",
+                            color: "rgba(0,0,0,0.68)",
+                          }}
+                        >
+                          {example.prompt}
+                        </button>
+                      ))
+                    ) : (
+                      assistChips.map((chip) => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          onClick={() => addPromptHint(chip.text)}
+                          disabled={busy}
+                          className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded-[20px] transition-opacity disabled:opacity-30"
+                          style={{
+                            border: "1px dashed rgba(0,0,0,0.14)",
+                            background: "transparent",
+                            color: "rgba(0,0,0,0.55)",
+                          }}
+                        >
+                          {chip.label}
+                        </button>
+                      ))
+                    )}
+                  </div>
                   {!busy && (
-                    <p className="mt-2 text-[13px] opacity-45 leading-relaxed">
+                    <p className="mt-4 text-[13px] opacity-45 leading-relaxed">
                       Start with a rough idea, a plan, or a prompt.
                     </p>
                   )}
