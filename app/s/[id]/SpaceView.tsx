@@ -30,6 +30,7 @@ import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { GridZone } from "@/components/GridZone";
 import { ParticipantsBar } from "@/components/ParticipantsBar";
 import { StyleEditor } from "@/components/StyleEditor";
+import { AssistantDock } from "@/components/AssistantDock";
 
 interface SpaceNotice {
   tone: "saving" | "success" | "error";
@@ -613,6 +614,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         {/* Dev-only: persona switcher for simulating multiplayer.
             Hidden in production; enable on any space with ?dev=1. */}
         {devMode && <PersonaSwitcher />}
+        <AssistantDock spaceId={space.id} />
       </div>
     </WidgetContext.Provider>
   );

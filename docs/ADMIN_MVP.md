@@ -33,6 +33,7 @@ server logs a warning instead.
 - Recent spaces with direct links
 - Anonymous actor activity from `module_state`
 - AI events for clarify, initial classify, widget regenerate, and prompt edits
+- Persistent assistant chats via `assistant_chat`
 - Error status, latency, prompt/output snippets, and token fields when supplied
 
 ## Next iteration

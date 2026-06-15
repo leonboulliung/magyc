@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, admin MVP)_
+_Last updated: 2026-06-15 (Codex, persistent assistant MVP)_
 
 ---
 
@@ -130,6 +130,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Persistent assistant MVP**:
+  added a fixed Ask MAGYC dock on every Thing page plus
+  `/api/spaces/[id]/assistant`. The assistant answers with full page context
+  (title, original prompt, current elements), stays available after generation,
+  rate-limits per actor, and logs chats as `assistant_chat` in `ai_events` for
+  the admin backend. It intentionally proposes changes instead of silently
+  mutating widgets; direct action execution is the next product step.
 - 2026-06-15 · **AI observability + read-only admin MVP**:
   added `ai_events` and `admin_notes` migrations, best-effort AI event logging
   for clarify/classify/widget-regenerate flows, env-gated `/admin`, and setup
