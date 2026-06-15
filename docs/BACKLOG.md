@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, guided intake package)_
+_Last updated: 2026-06-15 (Codex, photo-shoot authoring package)_
 
 ---
 
@@ -130,6 +130,15 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Photo-shoot authoring package**: selected `Photo shoot`
+  now affects the actual build, not just the intake UI. Classifier scores get
+  a deterministic shoot bias (shot list / references / prep / crew /
+  deliverables-support widgets up, generic notes/discussion down). Authoring
+  prompt now accepts project-mode shape hints, so `table` can land as a shot
+  list, `images` as references, `checklist` as prep, `parts_list` as props /
+  looks, `attachments` as brief-files, and collaboration/upload widgets can
+  carry helpful placeholder/description cues. Verified locally with
+  `npx tsc --noEmit` and `npm run build`.
 - 2026-06-15 · **Guided intake package**: Home now has project-type chips
   (Photo shoot, Event, Trip, Campaign, Workshop), contextual example prompts,
   and in-flow "Add …?" chips that append useful structure while typing. The

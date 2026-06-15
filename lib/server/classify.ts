@@ -5,7 +5,12 @@ import { FONT_NAMES } from "@/lib/fonts";
 import { sanitizeStyle } from "@/lib/style";
 import { AI_LABEL_KEYS } from "@/lib/labels";
 import { resolveGeocoding } from "@/lib/server/geocode";
-import { projectContextLines } from "@/lib/projectModes";
+import {
+  projectContextLines,
+  projectModeAuthoringGuide,
+  projectModeScoreBias,
+  projectModeShapeHints,
+} from "@/lib/projectModes";
 
 /**
  * Classifier v5 — two-stage scoring architecture.
@@ -163,6 +168,21 @@ function buildAnalyzeUserMessage(
   return lines.join("\n");
 }
 
+function applyProjectModeScoreBias(
+  scores: Record<string, number>,
+  context: ClassifyContext,
+): Record<string, number> {
+  const bias = projectModeScoreBias(context.projectMode);
+  if (Object.keys(bias).length === 0) return scores;
+  const adjusted: Record<string, number> = { ...scores };
+  for (const type of AI_SCORABLE_TYPES) {
+    const delta = bias[type] ?? 0;
+    if (!delta) continue;
+    adjusted[type] = Math.max(0, Math.min(10, (adjusted[type] ?? 0) + delta));
+  }
+  return adjusted;
+}
+
 const VIBE_SET = new Set<string>(ALL_VIBES);
 
 async function analyze(
@@ -208,7 +228,7 @@ async function analyze(
     scores[t] = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : 0;
   }
 
-  return { language, title, vibe, scores };
+  return { language, title, vibe, scores: applyProjectModeScoreBias(scores, context) };
 }
 
 // ── Server-side selection (the anti-bias core) ────────────────────────
@@ -272,19 +292,19 @@ const SHAPE: Partial<Record<ModuleType, string>> = {
   appointments: `{"type":"appointments","microTitle":"<short label>","entries":[{"datetime":"<ISO 8601>","label":"<short>"}]}`,
   range: `{"type":"range","microTitle":"<short label>","unit":"time|weekday|month|year|date|place|amount|generic","from":"<value>","to":"<value>"}`,
   phases: `{"type":"phases","microTitle":"<short label>","phases":[{"label":"<short>","description":"<optional>"}],"currentPhase":0}`,
-  crew: `{"type":"crew","microTitle":"<short label>","roles":[{"name":"<role>"}]}`,
+  crew: `{"type":"crew","microTitle":"<short label>","description":"<optional 1-line context>","roles":[{"name":"<role>"}]}`,
   work_packages: `{"type":"work_packages","microTitle":"<short label>","packages":[{"label":"<package>","description":"<optional>"}]}`,
-  checklist: `{"type":"checklist","microTitle":"<short label>","items":[{"text":"<concrete item>"}]}`,
-  notes: `{"type":"notes","microTitle":"<short label>"}`,
-  qa: `{"type":"qa","microTitle":"<short label>"}`,
+  checklist: `{"type":"checklist","microTitle":"<short label>","description":"<optional 1-line context>","items":[{"text":"<concrete item>"}]}`,
+  notes: `{"type":"notes","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
+  qa: `{"type":"qa","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
   poll: `{"type":"poll","microTitle":"<short label>","question":"<question>","options":["<opt>","<opt>"]}`,
-  discussion: `{"type":"discussion","microTitle":"<short label>"}`,
-  table: `{"type":"table","microTitle":"<short label>","columns":["<col>","<col>"],"rows":[["<cell>","<cell>"]]}`,
-  parts_list: `{"type":"parts_list","microTitle":"<short label>","items":[{"name":"<item>","quantity":"<optional>"}]}`,
-  attachments: `{"type":"attachments","microTitle":"<short label>"}`,
-  images: `{"type":"images","microTitle":"<short label>"}`,
-  audio: `{"type":"audio","microTitle":"<short label>"}`,
-  sketch: `{"type":"sketch","microTitle":"<short label>"}`,
+  discussion: `{"type":"discussion","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
+  table: `{"type":"table","microTitle":"<short label>","description":"<optional 1-line context>","columns":["<col>","<col>"],"rows":[["<cell>","<cell>"]]}`,
+  parts_list: `{"type":"parts_list","microTitle":"<short label>","description":"<optional 1-line context>","items":[{"name":"<item>","quantity":"<optional>"}]}`,
+  attachments: `{"type":"attachments","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
+  images: `{"type":"images","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
+  audio: `{"type":"audio","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
+  sketch: `{"type":"sketch","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
 };
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -305,11 +325,17 @@ interface AuthorResult {
   style: SpaceStyle | null;
 }
 
-function buildAuthorSystemPrompt(language: string, chosen: ModuleType[]): string {
+function shapeFor(type: ModuleType, context: ClassifyContext): string {
+  const hinted = projectModeShapeHints(context.projectMode)[type];
+  return hinted ?? SHAPE[type] ?? `{"type":"${type}","microTitle":"<short label>"}`;
+}
+
+function buildAuthorSystemPrompt(language: string, chosen: ModuleType[], context: ClassifyContext): string {
   const langName = languageName(language);
   const shapes = chosen
-    .map((t) => `  - ${t}:\n      ${SHAPE[t] ?? `{"type":"${t}","microTitle":"<short label>"}`}`)
+    .map((t) => `  - ${t}:\n      ${shapeFor(t, context)}`)
     .join("\n");
+  const guide = projectModeAuthoringGuide(context.projectMode);
 
   const fontList = FONT_NAMES.join(", ");
 
@@ -334,6 +360,8 @@ Return STRICT JSON, no preamble:
 
 THE CHOSEN BODY WIDGETS — author exactly these, in this order:
 ${shapes}
+
+${guide ? `PROJECT-TYPE AUTHORING GUIDE:\n- ${guide}\n` : ""}
 
 STYLE — assign a palette + font that matches the input's MOOD:
 - font: choose exactly one family name from this list:
@@ -380,8 +408,10 @@ CONTENT RULES:
   table, parts_list, location_suggestions) must contain real, concrete
   starter content drawn from the input — never empty arrays, never
   placeholder text like "Option 1".
-- Collaboration widgets (notes, qa, discussion, attachments, images,
-  audio, sketch) take only a microTitle — no seed content.
+- Collaboration / upload widgets (notes, qa, discussion, attachments,
+  images, audio, sketch) may use microTitle plus optional description
+  and placeholder guidance, but they must NOT invent conversation
+  entries, uploaded files, or finished approvals.
 - microTitles are short (1-3 words) and in ${langName}.
 
 LABELS — the UI chrome strings, all in ${langName}, each under 60 chars:
@@ -440,7 +470,7 @@ async function author(
     response_format: { type: "json_object" },
     temperature: 0.6, // higher — authoring benefits from some variety
     messages: [
-      { role: "system", content: buildAuthorSystemPrompt(language, chosen) },
+      { role: "system", content: buildAuthorSystemPrompt(language, chosen, context) },
       { role: "user", content: buildAnalyzeUserMessage(input, answers, context) },
     ],
   });
@@ -519,7 +549,7 @@ export async function classifyInput(
   // One observability line per request (Vercel function logs) — the
   // basis for tuning MIN_SCORE/MIN_BODY against real inputs.
   console.log(
-    `[classify] lang=${a.language} chosen=[${chosen.join(",")}] scores=` +
+    `[classify] mode=${String(context.projectMode || "-")} lang=${a.language} chosen=[${chosen.join(",")}] scores=` +
     Object.entries(a.scores)
       .filter(([, v]) => v > 0)
       .sort(([, x], [, y]) => y - x)

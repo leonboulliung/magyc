@@ -1,4 +1,29 @@
-export const PROJECT_MODES = [
+import type { ModuleType } from "./types";
+
+type AssistChip = { label: string; text: string };
+type ScoreBias = Partial<Record<ModuleType, number>>;
+type ShapeHints = Partial<Record<ModuleType, string>>;
+
+export interface ProjectMode {
+  id: ProjectModeId;
+  label: string;
+  composerHint: string;
+  placeholder: string;
+  examples: string[];
+  assistChips: AssistChip[];
+  authoringGuide?: string;
+  scoreBias?: ScoreBias;
+  shapeHints?: ShapeHints;
+}
+
+export type ProjectModeId =
+  | "photo_shoot"
+  | "event"
+  | "trip"
+  | "campaign"
+  | "workshop";
+
+export const PROJECT_MODES: readonly ProjectMode[] = [
   {
     id: "photo_shoot",
     label: "Photo shoot",
@@ -16,6 +41,43 @@ export const PROJECT_MODES = [
       { label: "Want a shot list?", text: "Turn the idea into a practical shot list." },
       { label: "Add deliverables?", text: "Include final deliverables and approval points." },
     ],
+    authoringGuide:
+      "Prefer a practical shoot workspace over generic brainstorming. Use images as references or moodboard slots, table as a shot list, checklist as prep, crew as confirmable roles, parts_list as props / looks / gear, attachments as brief or call-sheet support, and qa for client clarifications. When something is not confirmed, phrase it as a proposal, checklist item, or open question rather than a fact.",
+    scoreBias: {
+      ai_summary: 1,
+      location_suggestions: 1,
+      appointment: 1,
+      appointments: 1,
+      range: 1,
+      crew: 2,
+      checklist: 3,
+      qa: 2,
+      table: 4,
+      parts_list: 2,
+      attachments: 2,
+      images: 4,
+      sketch: 1,
+      notes: -2,
+      discussion: -2,
+    },
+    shapeHints: {
+      images:
+        `{"type":"images","microTitle":"<e.g. References>","description":"<1 short line inviting visual references or moodboard uploads>","placeholder":"<brief upload cue like 'Upload references, lighting, styling, or location ideas.'>"}`,
+      checklist:
+        `{"type":"checklist","microTitle":"<e.g. Prep>","description":"<1 short line about what must be ready before the shoot>","items":[{"text":"Confirm final looks or products"},{"text":"Align on location details and timing"},{"text":"Prepare props, wardrobe, or brand materials"}]}`,
+      crew:
+        `{"type":"crew","microTitle":"<e.g. Roles>","description":"<1 short line about who needs to confirm involvement>","roles":[{"name":"Photographer"},{"name":"Subject / Talent"},{"name":"Stylist / Assistant"}]}`,
+      qa:
+        `{"type":"qa","microTitle":"<e.g. Open questions>","description":"<1 short line about clarifying remaining client decisions>","placeholder":"<brief cue like 'Add open questions, approvals, or missing details.'>"}`,
+      table:
+        `{"type":"table","microTitle":"<e.g. Shot list>","description":"<1 short line explaining what the team should align on>","columns":["Shot","Purpose","Location","Notes"],"rows":[["Hero portrait","Website / campaign","Main setup","Natural light, direct eye contact"],["Hands / process detail","Supporting asset","Work table","Tighter crop or detail frame"]]}`,
+      parts_list:
+        `{"type":"parts_list","microTitle":"<e.g. Props & looks>","description":"<1 short line about what needs to be brought or prepared>","items":[{"name":"Hero look / outfit","quantity":"1-2 options"},{"name":"Key prop or product","quantity":"Final version ready"},{"name":"Brand material / packaging","quantity":"If needed on set"}]}`,
+      attachments:
+        `{"type":"attachments","microTitle":"<e.g. Brief & files>","description":"<1 short line inviting supporting documents>","placeholder":"<brief upload cue like 'Upload brand brief, call sheet, contracts, or usage notes.'>"}`,
+      sketch:
+        `{"type":"sketch","microTitle":"<e.g. Setup sketch>","description":"<1 short line about lighting, framing, or floor-plan ideas>","placeholder":"<brief cue like 'Sketch framing, lighting, or set layout here.'>"}`,
+    },
   },
   {
     id: "event",
@@ -87,10 +149,6 @@ export const PROJECT_MODES = [
   },
 ] as const;
 
-export type ProjectModeId = (typeof PROJECT_MODES)[number]["id"];
-
-export type ProjectMode = (typeof PROJECT_MODES)[number];
-
 export function projectModeById(id: unknown): ProjectMode | null {
   if (typeof id !== "string") return null;
   return PROJECT_MODES.find((mode) => mode.id === id) ?? null;
@@ -103,4 +161,16 @@ export function projectContextLines(id: unknown): string[] {
     `- Selected project type: ${mode.label}`,
     `- Planning focus: ${mode.composerHint}`,
   ];
+}
+
+export function projectModeAuthoringGuide(id: unknown): string | null {
+  return projectModeById(id)?.authoringGuide ?? null;
+}
+
+export function projectModeScoreBias(id: unknown): ScoreBias {
+  return projectModeById(id)?.scoreBias ?? {};
+}
+
+export function projectModeShapeHints(id: unknown): ShapeHints {
+  return projectModeById(id)?.shapeHints ?? {};
 }
