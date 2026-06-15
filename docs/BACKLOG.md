@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, persistent assistant MVP)_
+_Last updated: 2026-06-15 (Claude, marketing-site scaffold)_
 
 ---
 
@@ -65,6 +65,28 @@ space lost. **Plan:** gentle "secure your space" nudge on draft spaces
 
 ---
 
+
+### 15. Marketing site — fill the scaffold with real content (iterative)
+The `(site)` route group + hybrid landing ship as a clickable **look & feel**
+scaffold only (commit `3c0b50c`): every page uses placeholder copy and dashed
+`MediaPlaceholder` boxes, on purpose. Leon's directive: bring it to a top
+level **step by step**, no invented mediocre copy, no random stock images.
+**Next, per page (in priority order):**
+- `/for/[area]` (start with `photography`) — real promise, proof, creator
+  quote, and real shoot imagery; then deepen the other four modes.
+- `/showcase` — replace the 6 placeholders with real space previews (link
+  to live `/s/...` examples once curated).
+- `/how-it-works`, `/story` — real narrative.
+- `/docs`, `/changelog` — port the real docs/contract + changelog content.
+- `/contact` — wire the inert form (email/inbox); see also #9 OG + favicon.
+- `/legal/{imprint,privacy,terms}` — **launch-blocking**: real, legally
+  reviewed text covering the actual data flows (Clerk/Supabase/OpenAI/Vercel/
+  Giphy/Wikipedia/Photon). Currently explicit placeholder disclaimers.
+Possible additions Leon may want: Pricing/FAQ, newsletter capture, per-page
+SEO/OG. Brand palette + primitives live in `lib/site.ts` and
+`components/site/`.
+
+---
 
 ## P3 — infrastructure & hygiene
 
@@ -130,6 +152,15 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Marketing-site scaffold (look & feel)** (`3c0b50c`):
+  turned magyc.site into a full site without touching the create flow. New
+  `app/(site)` route group with shared `SiteNav` + `SiteFooter` on a fixed
+  brand theme (`lib/site.ts`), `MediaPlaceholder` + section primitives, and
+  pages: showcase, `for/[area]` (5 modes, SSG), how-it-works, docs, story,
+  changelog, roadmap, contact (inert form), legal/{imprint,privacy,terms}.
+  Landing `/` is now the hybrid (nav + live-prompt hero + marketing teaser +
+  footer on the input stage only). Placeholder copy/media on purpose —
+  real content is tracked as open item #15. Verified click-through on prod.
 - 2026-06-15 · **Persistent assistant MVP**:
   added a fixed Ask MAGYC dock on every Thing page plus
   `/api/spaces/[id]/assistant`. The assistant answers with full page context
