@@ -408,29 +408,28 @@ export default function HomePage() {
       {stage === "input" && <SiteNav />}
 
       {stage === "input" && (
-        <div
-          className={`fixed left-0 right-0 z-20 w-full px-4 transition-all duration-1000 ${
-            mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+        <Link
+          href="/"
+          aria-label="MAGYC home"
+          className={`fixed left-5 top-6 z-50 block transition-all duration-1000 sm:left-8 ${
+            mounted ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
           }`}
-          style={{ top: "112px" }}
         >
-          <div className="mx-auto grid w-fit place-items-center rounded-[28px] bg-white px-5 py-3 shadow-[0_18px_70px_rgba(255,255,255,0.12)] sm:px-7 sm:py-4">
-            <Image
-              src="/magyc-marble-2048x2048.png"
-              alt="MAGYC"
-              width={1130}
-              height={312}
-              priority
-              className="h-[54px] w-auto select-none sm:h-[74px] lg:h-[92px]"
-            />
-          </div>
-        </div>
+          <Image
+            src="/magyc-marble-2048x2048.png"
+            alt="MAGYC"
+            width={1130}
+            height={312}
+            priority
+            className="h-[19px] w-auto select-none brightness-0 invert sm:h-[23px]"
+          />
+        </Link>
       )}
 
       <div
         className={
           stage === "input"
-            ? "relative z-30 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-[250px] sm:px-8 sm:pt-[310px]"
+            ? "relative z-30 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-[132px] sm:px-8 sm:pt-[154px]"
             : "relative z-10 mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto overscroll-contain px-4 pb-8 sm:px-10"
         }
         style={stage === "input" ? undefined : { paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}

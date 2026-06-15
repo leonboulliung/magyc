@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
 import { NAV_LINKS } from "@/lib/site";
-import { LogoMark } from "@/components/site/LogoMark";
 
 /**
  * SiteNav — the marketing-site top bar. Sticky, translucent, with the
@@ -14,10 +13,6 @@ export function SiteNav() {
   return (
     <header className="fixed left-1/2 top-5 z-50 -translate-x-1/2 whitespace-nowrap px-3">
       <nav className="liquid-glass flex items-center gap-3 rounded px-3 py-2.5 sm:gap-6 sm:px-4">
-        <Link href="/" aria-label="MAGYC home" className="shrink-0">
-          <LogoMark />
-        </Link>
-
         <div className="hidden items-center gap-5 md:flex">
           {NAV_LINKS.map((l) => (
             <Link
