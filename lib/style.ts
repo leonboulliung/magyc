@@ -29,16 +29,6 @@ function toRgb(hex: string): [number, number, number] {
   ];
 }
 
-/** Mix a color toward another by t (0..1). */
-function mix(a: string, b: string, t: number): string {
-  const [r1, g1, b1] = toRgb(a);
-  const [r2, g2, b2] = toRgb(b);
-  const r = Math.round(r1 + (r2 - r1) * t);
-  const g = Math.round(g1 + (g2 - g1) * t);
-  const bl = Math.round(b1 + (b2 - b1) * t);
-  return `rgb(${r}, ${g}, ${bl})`;
-}
-
 /** Relative luminance (0..1) for contrast decisions. */
 export function luminance(hex: string): number {
   const [r, g, b] = toRgb(hex).map((c) => {
@@ -127,30 +117,27 @@ export function normalizeStyle(style: SpaceStyle): SpaceStyle {
  * Build the CSS-variable overrides from a style. These are applied
  * inline on the space root, where they win over the vibe class vars.
  *
- *   --v-fg     = color1 (ink: text, borders, pins)
+ *   --v-page   = black application canvas
+ *   --v-bg     = deep surface base for controls
+ *   --v-fg     = white interface ink
  *   --v-accent = color2 (widget accents, map fills)
- *   --v-page   = background (page canvas)
- *   --v-bg     = white   (cards + grid stay white per spec)
- *   --v-rule   = color1 @ ~14%
- *   --v-muted  = color1 @ ~48%
+ *   --v-rule   = translucent glass border
+ *   --v-muted  = subdued white copy
  */
 export function styleVars(style: SpaceStyle, fontStackValue: string): React.CSSProperties {
-  const ink = normHex(style.color1);
   const accent = normHex(style.color2);
-  const page = normHex(style.background);
   return {
     // Custom props — cast through a record so TS accepts the css vars.
-    ["--v-fg" as string]: ink,
+    ["--v-fg" as string]: "#ffffff",
     ["--v-accent" as string]: accent,
-    ["--v-page" as string]: page,
-    ["--v-bg" as string]: "#ffffff",
-    ["--v-rule" as string]: mix(ink, "#ffffff", 0.86),
-    ["--v-muted" as string]: mix(ink, "#ffffff", 0.5),
-    // Body widgets carry color2: a faint wash for the card surface and a
-    // softened accent for the card frame. The white dot-grid shows
-    // between them, so the tint reads clearly without hurting contrast.
-    ["--v-widget" as string]: mix(accent, "#ffffff", 0.9),
-    ["--v-widget-border" as string]: mix(accent, "#ffffff", 0.45),
+    ["--v-page" as string]: "#000000",
+    ["--v-bg" as string]: "#050505",
+    ["--v-rule" as string]: "rgba(255,255,255,0.16)",
+    ["--v-muted" as string]: "rgba(255,255,255,0.58)",
+    ["--v-card" as string]: "rgba(255,255,255,0.045)",
+    ["--v-widget" as string]: `color-mix(in srgb, ${accent} 18%, rgba(255,255,255,0.035))`,
+    ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 54%, rgba(255,255,255,0.18))`,
+    ["--v-radius" as string]: "28px",
     ["--v-font" as string]: fontStackValue,
     ["--v-heading" as string]: fontStackValue,
   } as React.CSSProperties;

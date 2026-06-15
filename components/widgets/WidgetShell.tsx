@@ -140,7 +140,7 @@ export function WidgetShell({
   const showBar = ctx.isOwner && (!!cell || canRegenerate || promptEditable);
   const clusterVisible = hover || busy || altOpen || bubbleOpen;
 
-  const barBtn = "w-7 h-7 flex items-center justify-center hover:bg-black/[0.06] transition-colors disabled:opacity-30";
+  const barBtn = "w-7 h-7 flex items-center justify-center hover:bg-white/[0.08] transition-colors disabled:opacity-30";
 
   return (
     <div
@@ -156,11 +156,11 @@ export function WidgetShell({
           style={{
             opacity: clusterVisible ? 1 : 0,
             pointerEvents: clusterVisible ? "auto" : "none",
-            background: "color-mix(in srgb, var(--v-bg) 92%, transparent)",
+            background: "rgba(255,255,255,0.055)",
             border: "1px solid var(--v-rule)",
             borderRadius: 999,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.10)",
-            backdropFilter: "blur(6px)",
+            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 10px 28px rgba(0,0,0,0.22)",
+            backdropFilter: "blur(18px)",
           }}
         >
           {cell && (
@@ -293,7 +293,7 @@ export function WidgetShell({
                         <button
                           type="button"
                           onClick={() => pick(s)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-black/[0.03] transition-colors flex items-start gap-3"
+                          className="w-full text-left px-3 py-2.5 hover:bg-white/[0.06] transition-colors flex items-start gap-3"
                         >
                           <span className="mono text-[10px] tracking-widest opacity-50 tabular-nums shrink-0 pt-0.5">
                             {String(i + 1).padStart(2, "0")}

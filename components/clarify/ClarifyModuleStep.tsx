@@ -129,7 +129,7 @@ function LocationEditor({
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="…"
           className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
-          style={{ border: "1px solid rgba(0,0,0,0.15)" }}
+          style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
         />
         {searching && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] opacity-40">…</span>
@@ -142,15 +142,15 @@ function LocationEditor({
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-white"
-              style={{ border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}
+              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-black/90"
+              style={{ border: "1px solid var(--v-rule)", boxShadow: "0 18px 50px rgba(0,0,0,0.28)", backdropFilter: "blur(18px)" }}
             >
               {results.map((r, i) => (
                 <li key={i}>
                   <button
                     type="button"
                     onClick={() => pick(r)}
-                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-black/[0.04] transition-colors"
+                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-white/[0.08] transition-colors"
                   >
                     {r.label}
                   </button>
@@ -163,7 +163,7 @@ function LocationEditor({
 
       {/* Mini map with the picked pin (draggable) */}
       {selected && (
-        <div className="rounded-[var(--v-radius)] overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.12)" }}>
+        <div className="rounded-[var(--v-radius)] overflow-hidden" style={{ border: "1px solid var(--v-rule)" }}>
           <MapCanvas
             height={180}
             deps={[mapVersion]}
@@ -312,7 +312,7 @@ function MultiPointEditor({
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="…"
           className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
-          style={{ border: "1px solid rgba(0,0,0,0.15)" }}
+          style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
         />
         {searching && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 mono text-[11px] opacity-40">…</span>
@@ -323,15 +323,15 @@ function MultiPointEditor({
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-white"
-              style={{ border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}
+              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-black/90"
+              style={{ border: "1px solid var(--v-rule)", boxShadow: "0 18px 50px rgba(0,0,0,0.28)", backdropFilter: "blur(18px)" }}
             >
               {results.map((r, i) => (
                 <li key={i}>
                   <button
                     type="button"
                     onClick={() => add(r)}
-                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-black/[0.04] transition-colors"
+                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-white/[0.08] transition-colors"
                   >
                     {r.label}
                   </button>
@@ -365,7 +365,7 @@ function MultiPointEditor({
 
       {/* Map with all pins (+ route line) */}
       {points.length > 0 && (
-        <div className="rounded-[var(--v-radius)] overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.12)" }}>
+        <div className="rounded-[var(--v-radius)] overflow-hidden" style={{ border: "1px solid var(--v-rule)" }}>
           <MapCanvas
             height={180}
             deps={[mapVersion]}
@@ -454,8 +454,8 @@ function PhasesEditor({
               onChange={(e) => setLabel(i, e.target.value)}
               placeholder="…"
               maxLength={80}
-          className="flex-1 text-[15px] px-3 py-2 rounded-[var(--v-radius)] bg-transparent outline-none"
-              style={{ border: "1px solid rgba(0,0,0,0.12)" }}
+              className="flex-1 text-[15px] px-3 py-2 rounded-[var(--v-radius)] bg-transparent outline-none"
+              style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
             />
             <div className="flex items-center gap-0.5 shrink-0">
               <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="mono text-[12px] px-1.5 opacity-40 hover:opacity-90 disabled:opacity-15">↑</button>
@@ -469,7 +469,7 @@ function PhasesEditor({
         type="button"
         onClick={add}
         className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full opacity-50 hover:opacity-100"
-        style={{ border: "1px dashed rgba(0,0,0,0.2)" }}
+        style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
       >
         +
       </button>
@@ -507,7 +507,7 @@ function DateEditor({
         onChange(e.target.value ? { type: "date", date: e.target.value } : null);
       }}
       className="text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
-      style={{ border: "1px solid rgba(0,0,0,0.15)" }}
+      style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
     />
   );
 }

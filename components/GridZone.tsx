@@ -208,10 +208,12 @@ export function GridZone({
     <div
       className="rounded-[var(--v-radius)] relative"
       style={{
-        // Always white with a dot grid, independent of the space's
-        // background — a stable neutral canvas the coloured widgets sit on.
-        background: "#ffffff",
+        // A bounded glass surface with its own dot-grid layer, matching
+        // the page-wide MAGYC field while keeping widgets legible.
+        background: "rgba(255,255,255,0.028)",
         border: "1px solid var(--v-rule)",
+        boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 24px 80px rgba(0,0,0,0.24)",
+        backdropFilter: "blur(18px)",
         minHeight: 240,
       }}
     >
@@ -221,7 +223,7 @@ export function GridZone({
           style={{
             width: "100%",
             height: "100%",
-            backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.18) 1px, transparent 1.4px)",
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.22) 1px, transparent 1.4px)",
             backgroundSize: "24px 24px",
             backgroundPosition: "12px 12px",
           }}
@@ -416,7 +418,7 @@ function AddButton({
           style={{
             border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
             color: "var(--v-fg)",
-            background: "var(--v-bg)",
+            background: open ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.05)",
           }}
         >
           {busy ? "…" : "+"}
@@ -444,7 +446,7 @@ function AddButton({
           style={{
             border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
             color: "var(--v-fg)",
-            background: "var(--v-bg)",
+            background: open ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.05)",
           }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.96 }}

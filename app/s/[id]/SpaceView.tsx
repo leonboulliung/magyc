@@ -31,6 +31,7 @@ import { GridZone } from "@/components/GridZone";
 import { ParticipantsBar } from "@/components/ParticipantsBar";
 import { StyleEditor } from "@/components/StyleEditor";
 import { AssistantDock } from "@/components/AssistantDock";
+import { DotField } from "@/components/DotField";
 
 interface SpaceNotice {
   tone: "saving" | "success" | "error";
@@ -452,16 +453,20 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
       }}
     >
       <div
-        className={`vibe-root vibe-${space.vibe} min-h-screen flex flex-col`}
+        className={`vibe-root vibe-${space.vibe} relative min-h-screen flex flex-col overflow-hidden`}
         style={{ ...rootStyleVars, background: "var(--v-page, var(--v-bg))" }}
       >
+        <DotField color="255,255,255" className="pointer-events-none fixed inset-0 z-0 opacity-[0.13]" />
+        <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.09),transparent_34%),linear-gradient(to_bottom,rgba(0,0,0,0),rgba(0,0,0,0.64))]" />
+
         {/* Floating top-right controls */}
         <div
           className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 px-1.5 py-1 rounded-full"
           style={{
-            background: "color-mix(in srgb, var(--v-bg) 88%, transparent)",
+            background: "rgba(255,255,255,0.045)",
             border: "1px solid var(--v-rule)",
-            backdropFilter: "blur(10px)",
+            backdropFilter: "blur(24px)",
+            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 12px 34px rgba(0,0,0,0.2)",
           }}
         >
           {isHistorical && (
@@ -519,7 +524,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
 
         {/* HEADER ZONE — heading + rich_text, not in grid. */}
         <header className="w-full">
-          <div className="max-w-5xl mx-auto px-4 sm:px-10 pt-20 sm:pt-20 pb-8 sm:pb-12 space-y-6">
+          <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-10 pt-24 sm:pt-24 pb-8 sm:pb-12 space-y-6">
             <motion.div initial="hidden" animate="show" variants={heroIn} className="space-y-6">
               {hero.map(({ module: m, index: i }) => (
                 <WidgetDispatcher
@@ -573,7 +578,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         )}
 
         {/* MAIN: grid + version stripes. */}
-        <section className="flex-1 w-full">
+        <section className="relative z-10 flex-1 w-full">
           <div className="max-w-5xl mx-auto px-4 sm:px-10 py-6 sm:py-10 flex gap-6 sm:gap-8 items-start">
             <div className="flex-1 min-w-0">
               <motion.div initial="hidden" animate="show" variants={bodyContainer}>
@@ -604,7 +609,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         </section>
 
         {/* FOOTER. */}
-        <footer className="w-full" style={{ borderTop: "1px solid var(--v-rule)" }}>
+        <footer className="relative z-10 w-full" style={{ borderTop: "1px solid var(--v-rule)" }}>
           <div className="max-w-5xl mx-auto px-4 sm:px-10 py-5 flex items-center justify-between gap-4 flex-wrap">
             <SpacePrivacy space={space} />
             <MagyCBadge />

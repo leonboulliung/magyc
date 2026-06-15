@@ -397,10 +397,13 @@ export default function HomePage() {
       style={{ overscrollBehavior: "none" }}
     >
       {stage === "input" ? (
-        <EmergentBackdrop />
+        <>
+          <EmergentBackdrop />
+          <DotField ref={dotFieldRef} color="255,255,255" className="fixed inset-0 z-[1] opacity-[0.22]" />
+        </>
       ) : (
         <div className="fixed inset-0 z-0 bg-black">
-          <DotField ref={dotFieldRef} />
+          <DotField ref={dotFieldRef} color="255,255,255" className="opacity-[0.18]" />
           <div className="absolute inset-0 bg-black/70" />
         </div>
       )}
@@ -583,11 +586,17 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="rounded-[20px] p-5 sm:p-9"
+                className="liquid-glass-strong rounded-[34px] p-5 text-white sm:p-9"
                 style={{
-                  background: "rgba(255,255,255,0.96)",
-                  border: "1px solid rgba(255,255,255,0.16)",
-                  boxShadow: "0 12px 50px rgba(0,0,0,0.22)",
+                  background: "rgba(255,255,255,0.035)",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  boxShadow: "0 18px 70px rgba(0,0,0,0.36), inset 0 1px 1px rgba(255,255,255,0.12)",
+                  ["--v-radius" as string]: "28px",
+                  ["--v-bg" as string]: "rgba(255,255,255,0.06)",
+                  ["--v-fg" as string]: "#ffffff",
+                  ["--v-muted" as string]: "rgba(255,255,255,0.58)",
+                  ["--v-rule" as string]: "rgba(255,255,255,0.18)",
+                  ["--v-accent" as string]: "#ffffff",
                 }}
               >
                 {/* Progress bar + step counter */}
@@ -607,10 +616,10 @@ export default function HomePage() {
                   </div>
                   <div
                     className="w-full rounded-full overflow-hidden"
-                    style={{ height: 2, background: "rgba(0,0,0,0.07)" }}
+                    style={{ height: 2, background: "rgba(255,255,255,0.12)" }}
                   >
                     <motion.div
-                      className="h-full rounded-full bg-black"
+                      className="h-full rounded-full bg-white"
                       initial={false}
                       animate={{ width: `${Math.max(progress * 100, 4)}%` }}
                       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -669,8 +678,8 @@ export default function HomePage() {
                             rows={3}
                             maxLength={currentStep.maxLength ?? 240}
                             placeholder={currentStep.placeholder ?? "…"}
-                            className="w-full text-[16px] leading-relaxed p-3 rounded-[20px] bg-transparent outline-none resize-none placeholder:text-black/25"
-                            style={{ border: "1px solid rgba(0,0,0,0.15)" }}
+                            className="w-full resize-none rounded-[28px] bg-white/[0.04] p-4 text-[16px] leading-relaxed text-white outline-none placeholder:text-white/28"
+                            style={{ border: "1px solid rgba(255,255,255,0.18)" }}
                           />
                         </>
                       ) : (
@@ -703,9 +712,9 @@ export default function HomePage() {
                                   className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full"
                                   style={{
                                     border: "1px solid",
-                                    borderColor: picked ? "#000" : "rgba(0,0,0,0.12)",
-                                    background: picked ? "#000" : "transparent",
-                                    color: picked ? "#fff" : "#000",
+                                    borderColor: picked ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.18)",
+                                    background: picked ? "#fff" : "rgba(255,255,255,0.035)",
+                                    color: picked ? "#000" : "rgba(255,255,255,0.78)",
                                   }}
                                   whileHover={{ y: -2 }}
                                   whileTap={{ scale: 0.96 }}
@@ -732,8 +741,8 @@ export default function HomePage() {
                               className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full bg-transparent outline-none"
                               style={{
                                 border: "1px solid",
-                                borderColor: isCustom ? "#000" : "rgba(0,0,0,0.08)",
-                                color: "#000",
+                                borderColor: isCustom ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.18)",
+                                color: "#fff",
                                 minWidth: "80px",
                               }}
                             />
@@ -759,7 +768,7 @@ export default function HomePage() {
                     onClick={goForward}
                     disabled={busy}
                     aria-label={isLastStep ? "build" : "next"}
-                    className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30"
+                    className="mono rounded-full bg-white px-5 py-2 text-[11px] tracking-widest text-black disabled:opacity-30"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}

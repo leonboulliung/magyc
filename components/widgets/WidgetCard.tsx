@@ -25,10 +25,10 @@ export function WidgetCard({
     <motion.div
       className={`rounded-[var(--v-radius)] ${bare ? "" : "p-4"}`}
       style={{
-        // Body widgets carry the space's secondary colour (color2):
-        // a faint wash for the surface + a softened accent frame.
         border: "1px solid var(--v-widget-border, var(--v-rule))",
         background: "var(--v-widget, var(--v-bg))",
+        boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 14px 40px rgba(0,0,0,0.18)",
+        backdropFilter: "blur(16px)",
       }}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
