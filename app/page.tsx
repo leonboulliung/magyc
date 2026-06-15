@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,8 +12,7 @@ import { DotField, type DotFieldHandle } from "@/components/DotField";
 import { EnterKey } from "@/components/EnterKey";
 import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
 import { SiteNav } from "@/components/site/SiteNav";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { AREAS, brand } from "@/lib/site";
+import { VideoBoomerangBackground } from "@/components/site/VideoBoomerangBackground";
 
 type Stage = "input" | "clarify" | "building";
 
@@ -110,6 +108,7 @@ const slideVariants = {
 export default function HomePage() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("input");
+  const [mounted, setMounted] = useState(false);
   const [text, setText] = useState("");
   const [projectMode, setProjectMode] = useState<ProjectModeId | null>(null);
   const [, setLanguage] = useState("en");
@@ -136,6 +135,10 @@ export default function HomePage() {
     ? selectedMode.examples.map((prompt) => ({ prompt, mode: selectedMode.id }))
     : DEFAULT_EXAMPLES;
   const assistChips = selectedMode?.assistChips ?? DEFAULT_ASSIST_CHIPS;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // The landing page is a fixed, full-screen surface — there is nothing
   // to scroll. Lock the document while it's mounted so mobile browsers
@@ -368,44 +371,46 @@ export default function HomePage() {
 
   return (
     <main
-      className="fixed inset-0 text-black flex flex-col overflow-hidden"
-      style={{ background: "#f5f3ee", overscrollBehavior: "none" }}
+      className="fixed inset-0 flex flex-col overflow-hidden bg-black font-body text-white"
+      style={{ overscrollBehavior: "none" }}
     >
-      <div className="fixed inset-0 z-0">
-        <DotField ref={dotFieldRef} />
-      </div>
+      {stage === "input" ? (
+        <VideoBoomerangBackground />
+      ) : (
+        <div className="fixed inset-0 z-0 bg-black">
+          <DotField ref={dotFieldRef} />
+          <div className="absolute inset-0 bg-black/70" />
+        </div>
+      )}
 
-      {/* On the landing (input stage) this is a full marketing site: the
-          nav reaches every page, the prompt is the hero, and marketing
-          sections + footer scroll below. Clarify/building stay focused. */}
+      {stage === "input" && <SiteNav />}
+
       {stage === "input" && (
-        <div className="relative z-20 shrink-0">
-          <SiteNav />
+        <div
+          className={`fixed left-0 right-0 z-20 w-full px-4 transition-all duration-1000 ${
+            mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+          }`}
+          style={{ top: "126px" }}
+        >
+          <h1 className="hero-title select-none">MAGYC</h1>
         </div>
       )}
 
       <div
-        className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-4 sm:px-10 pb-8 min-h-0 overflow-y-auto overscroll-contain"
-        style={{ paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
+        className={
+          stage === "input"
+            ? "relative z-30 flex min-h-0 w-full flex-1 items-center justify-center px-4 pb-28 pt-[270px] sm:px-8 sm:pt-[330px]"
+            : "relative z-10 mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto overscroll-contain px-4 pb-8 sm:px-10"
+        }
+        style={stage === "input" ? undefined : { paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
       >
-        <div className="w-full max-w-3xl mx-auto flex flex-col gap-[clamp(24px,5vh,56px)] mt-[clamp(24px,5vh,56px)]">
-          <div
-            className="mx-auto w-fit px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-[20px]"
-            style={{
-              background: "#ffffff",
-              border: "1px solid rgba(0,0,0,0.08)",
-              boxShadow: "0 12px 30px rgba(0,0,0,0.07)",
-            }}
-          >
-            <Image
-              src="/magyc-marble-2048x2048.png"
-              alt="MAGYC"
-              width={1128}
-              height={310}
-              priority
-              className="block h-[26px] sm:h-[30px] w-auto select-none"
-            />
-          </div>
+        <div
+          className={
+            stage === "input"
+              ? "mx-auto flex w-full max-w-2xl flex-col gap-4"
+              : "mx-auto mt-[clamp(24px,5vh,56px)] flex w-full max-w-3xl flex-col gap-[clamp(24px,5vh,56px)]"
+          }
+        >
 
           <AnimatePresence mode="wait" initial={false}>
 
@@ -416,16 +421,13 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="flex flex-col gap-5"
+                className={`flex flex-col gap-5 transition-all duration-1000 delay-300 ${
+                  mounted ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
+                }`}
               >
                 <div
                   id="start"
-                  className="w-full rounded-[20px] p-5 sm:p-8 scroll-mt-20"
-                  style={{
-                    background: "#fff",
-                    border: "1px solid rgba(0,0,0,0.06)",
-                    boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
-                  }}
+                  className="liquid-glass-strong w-full scroll-mt-20 rounded-[34px] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:rounded-[42px] sm:p-7"
                 >
                   <div className="mb-5 flex flex-col gap-3">
                     <div className="flex flex-wrap gap-2">
@@ -437,12 +439,12 @@ export default function HomePage() {
                             type="button"
                             onClick={() => toggleProjectMode(mode.id)}
                             disabled={busy}
-                            className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded-[20px] transition-opacity disabled:opacity-30"
+                            className="font-body text-[11px] tracking-wide px-3 py-2 rounded transition-all disabled:opacity-30"
                             style={{
                               border: "1px solid",
-                              borderColor: picked ? "#111" : "rgba(0,0,0,0.10)",
-                              background: picked ? "#111" : "rgba(255,255,255,0.55)",
-                              color: picked ? "#fff" : "#111",
+                              borderColor: picked ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.14)",
+                              background: picked ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.04)",
+                              color: picked ? "#fff" : "rgba(255,255,255,0.72)",
                             }}
                           >
                             {mode.label}
@@ -460,7 +462,7 @@ export default function HomePage() {
                     rows={2}
                     maxLength={1200}
                     placeholder={selectedMode?.placeholder ?? "Describe a rough idea, project, or plan."}
-                    className="w-full text-[20px] sm:text-[24px] leading-relaxed bg-transparent border-0 outline-none resize-none"
+                    className="w-full resize-none border-0 bg-transparent text-[20px] leading-relaxed text-white outline-none placeholder:text-white/32 sm:text-[24px]"
                     disabled={busy}
                     onKeyDown={(e) => {
                       // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.
@@ -471,7 +473,7 @@ export default function HomePage() {
                     }}
                   />
                   <div className="mt-3 flex justify-end">
-                    <span className="mono text-[10px] tracking-widest opacity-30 tabular-nums">
+                    <span className="mono text-[10px] tracking-widest opacity-40 tabular-nums">
                       {text.length > 0 ? `${text.length}/1200` : ""}
                     </span>
                   </div>
@@ -483,11 +485,11 @@ export default function HomePage() {
                           type="button"
                           onClick={() => applyExample(example.prompt, example.mode)}
                           disabled={busy}
-                          className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded-[20px] transition-opacity disabled:opacity-30"
+                          className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded transition-all disabled:opacity-30 hover:bg-white/10"
                           style={{
-                            border: "1px solid rgba(0,0,0,0.08)",
-                            background: "rgba(0,0,0,0.025)",
-                            color: "rgba(0,0,0,0.68)",
+                            border: "1px solid rgba(255,255,255,0.14)",
+                            background: "rgba(255,255,255,0.035)",
+                            color: "rgba(255,255,255,0.72)",
                           }}
                         >
                           {example.prompt}
@@ -500,11 +502,11 @@ export default function HomePage() {
                           type="button"
                           onClick={() => addPromptHint(chip.text)}
                           disabled={busy}
-                          className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded-[20px] transition-opacity disabled:opacity-30"
+                          className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded transition-opacity disabled:opacity-30"
                           style={{
-                            border: "1px dashed rgba(0,0,0,0.14)",
+                            border: "1px dashed rgba(255,255,255,0.22)",
                             background: "transparent",
-                            color: "rgba(0,0,0,0.55)",
+                            color: "rgba(255,255,255,0.64)",
                           }}
                         >
                           {chip.label}
@@ -513,7 +515,7 @@ export default function HomePage() {
                     )}
                   </div>
                   {!busy && (
-                    <p className="mt-4 text-[13px] opacity-45 leading-relaxed">
+                    <p className="mt-4 text-[13px] opacity-55 leading-relaxed">
                       Start with a rough idea, a plan, or a prompt.
                     </p>
                   )}
@@ -528,7 +530,7 @@ export default function HomePage() {
                     busy={busy}
                   />
                   {statusText && (
-                    <p className="mono text-[10px] tracking-widest opacity-45 text-right">
+                    <p className="mono text-[10px] tracking-widest opacity-60 text-right text-white">
                       {statusText}
                     </p>
                   )}
@@ -545,9 +547,9 @@ export default function HomePage() {
                 exit="exit"
                 className="rounded-[20px] p-5 sm:p-9"
                 style={{
-                  background: "#fff",
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
+                  background: "rgba(255,255,255,0.96)",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                  boxShadow: "0 12px 50px rgba(0,0,0,0.22)",
                 }}
               >
                 {/* Progress bar + step counter */}
@@ -739,9 +741,9 @@ export default function HomePage() {
                 exit="exit"
                 className="rounded-[20px] py-20"
                 style={{
-                  background: "#fff",
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  boxShadow: "0 12px 50px rgba(0,0,0,0.09)",
+                  background: "rgba(255,255,255,0.96)",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                  boxShadow: "0 12px 50px rgba(0,0,0,0.22)",
                 }}
               >
                 <BuildingScreen inputText={text} comingToLife={comingToLife} statusText={statusText} />
@@ -754,60 +756,45 @@ export default function HomePage() {
             <motion.p
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mono text-[10px] tracking-widest opacity-60 mt-6"
+              className="mono text-[10px] tracking-widest opacity-70 mt-6"
             >
               {error}
             </motion.p>
           )}
         </div>
-
-        {/* Marketing sections below the prompt hero — only on the landing. */}
-        {stage === "input" && (
-          <div className="mt-20 sm:mt-28">
-            <section className="py-10" style={{ borderTop: `1px solid ${brand.rule}` }}>
-              <p className="mono text-[11px] tracking-[0.22em] uppercase" style={{ color: brand.accent }}>For creatives</p>
-              <h2 className="mt-3 font-semibold tracking-tight" style={{ fontSize: "clamp(22px,3.5vw,34px)", lineHeight: 1.1, color: brand.ink, maxWidth: 620 }}>
-                Built for the way creative projects actually run.
-              </h2>
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                {AREAS.map((a) => (
-                  <Link
-                    key={a.slug}
-                    href={`/for/${a.slug}`}
-                    className="rounded-full px-4 py-2 transition-colors"
-                    style={{ fontSize: 14, border: `1px solid ${brand.rule}`, color: brand.ink, background: "rgba(255,255,255,0.6)" }}
-                  >
-                    {a.label}
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-            <section className="py-10" style={{ borderTop: `1px solid ${brand.rule}` }}>
-              <div className="grid sm:grid-cols-3 gap-6">
-                {[
-                  ["01", "Type a rough idea", "A sentence is enough."],
-                  ["02", "Answer a few questions", "Only what can't be inferred."],
-                  ["03", "Get a living space", "Themed, sharable, collaborative."],
-                ].map(([n, t, d]) => (
-                  <div key={n}>
-                    <div className="mono text-[11px] tracking-widest" style={{ color: brand.accent }}>{n}</div>
-                    <div className="mt-2 font-semibold" style={{ fontSize: 17, color: brand.ink }}>{t}</div>
-                    <div className="mt-1.5 leading-relaxed" style={{ fontSize: 14, color: brand.muted }}>{d}</div>
-                  </div>
-                ))}
-              </div>
-              <Link href="/how-it-works" className="mono text-[12px] tracking-widest inline-block mt-7" style={{ color: brand.muted }}>
-                How it works →
-              </Link>
-            </section>
-
-            <div className="mt-6 -mx-4 sm:-mx-10">
-              <SiteFooter />
-            </div>
-          </div>
-        )}
       </div>
+
+      {stage === "input" && (
+        <div
+          className={`fixed bottom-8 left-0 right-0 z-20 hidden items-end justify-between px-10 transition-all delay-300 duration-1000 md:flex ${
+            mounted ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
+          }`}
+        >
+          <p className="max-w-[220px] text-sm font-light leading-relaxed text-white/90 drop-shadow-[0_1px_10px_rgba(0,0,0,0.8)]">
+            MAGYC understands context, structure, and momentum like a creative director would.
+          </p>
+          <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-3">
+            <button
+              type="button"
+              onClick={submitInput}
+              disabled={busy || text.trim().length < 3}
+              className="group relative overflow-hidden rounded bg-white px-6 py-3 text-sm font-medium text-black shadow-[0_0_0_0_rgba(255,255,255,0)] transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_0_24px_4px_rgba(255,255,255,0.25)] active:scale-[0.97] disabled:opacity-40"
+            >
+              <span className="relative z-10">Start generating</span>
+              <span className="absolute inset-0 bg-gradient-to-b from-white to-white/85 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+            </button>
+            <Link
+              href="/showcase"
+              className="liquid-glass group rounded px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.03] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_0_20px_2px_rgba(255,255,255,0.07)] active:scale-[0.97]"
+            >
+              See examples
+            </Link>
+          </div>
+          <p className="max-w-[220px] text-right text-sm font-light leading-relaxed text-white/90 drop-shadow-[0_1px_10px_rgba(0,0,0,0.8)]">
+            Describe what you see in your head. Get a page that actually helps it become real.
+          </p>
+        </div>
+      )}
     </main>
   );
 }

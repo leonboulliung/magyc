@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Claude, marketing-site scaffold)_
+_Last updated: 2026-06-15 (Codex, black video restyle)_
 
 ---
 
@@ -86,6 +86,14 @@ Possible additions Leon may want: Pricing/FAQ, newsletter capture, per-page
 SEO/OG. Brand palette + primitives live in `lib/site.ts` and
 `components/site/`.
 
+### 16. Home bundle after video restyle
+The black video/glass restyle intentionally adds `gsap`, video capture, and
+Clerk sign-in chrome to the public home route. Build shows `/` at ~42.6 kB
+route size / ~211 kB first-load JS. It is acceptable for the current visual
+direction, but before acquisition traffic starts, check real Core Web Vitals
+on mobile and consider lazy-loading Clerk sign-in or simplifying parallax if
+LCP/INP suffers.
+
 ---
 
 ## P3 — infrastructure & hygiene
@@ -152,6 +160,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **Black video / liquid-glass restyle**:
+  public MAGYC now uses Barlow + Instrument Serif + Dirtyline, black global
+  canvas, liquid-glass primitives, a captured-frame boomerang video hero with
+  GSAP parallax, pill nav (`Gallery`, `Styles`, `API`, `Pricing`, `Blog`),
+  and a restyled first-screen prompt that preserves the existing create flow.
+  Marketing palette moved to the same black/glass direction; `Sign in` opens
+  Clerk instead of pointing normal users at `/admin`.
 - 2026-06-15 · **Marketing-site scaffold (look & feel)** (`3c0b50c`):
   turned magyc.site into a full site without touching the create flow. New
   `app/(site)` route group with shared `SiteNav` + `SiteFooter` on a fixed

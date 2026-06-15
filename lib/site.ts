@@ -10,13 +10,13 @@
 
 /** Fixed brand palette for the marketing site (not per-space themed). */
 export const brand = {
-  bg: "#f5f3ee",        // warm off-white canvas
-  surface: "#ffffff",
-  ink: "#1d1d1f",       // near-black text
-  muted: "#6f6c66",     // secondary text
-  rule: "#e4e2db",      // hairlines / borders
-  accent: "#b4532a",    // restrained warm clay — used sparingly
-  accentSoft: "#f0e6df",
+  bg: "#000000",
+  surface: "rgba(255,255,255,0.055)",
+  ink: "#ffffff",
+  muted: "rgba(255,255,255,0.68)",
+  rule: "rgba(255,255,255,0.16)",
+  accent: "rgba(255,255,255,0.92)",
+  accentSoft: "rgba(255,255,255,0.08)",
 } as const;
 
 export interface NavLink {
@@ -26,11 +26,11 @@ export interface NavLink {
 
 /** Top navigation (primary). The "Start" CTA is rendered separately. */
 export const NAV_LINKS: NavLink[] = [
-  { href: "/showcase", label: "Showcase" },
-  { href: "/for/photography", label: "For creatives" },
-  { href: "/how-it-works", label: "How it works" },
-  { href: "/docs", label: "Docs" },
-  { href: "/roadmap", label: "Roadmap" },
+  { href: "/showcase", label: "Gallery" },
+  { href: "/for/photography", label: "Styles" },
+  { href: "/docs", label: "API" },
+  { href: "/roadmap", label: "Pricing" },
+  { href: "/story", label: "Blog" },
 ];
 
 export interface FooterGroup {

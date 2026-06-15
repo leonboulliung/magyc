@@ -10,6 +10,9 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui"],
+        body: ["Barlow", "ui-sans-serif", "system-ui"],
+        heading: ["Instrument Serif", "serif"],
+        dirtyline: ["Dirtyline", "ui-sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular"],
       },
       colors: {
@@ -22,7 +25,7 @@ const config: Config = {
         "rule-strong": "#d4d4cd",
       },
       borderRadius: {
-        DEFAULT: "14px",
+        DEFAULT: "9999px",
         xl: "20px",
         "2xl": "26px",
       },

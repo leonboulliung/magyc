@@ -12,7 +12,7 @@ const clerkAppearance = {
     colorInputText: "#0d0d0d",
     colorDanger: "#7a1f1f",
     colorSuccess: "#225f3a",
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+    fontFamily: "Barlow, ui-sans-serif, system-ui, sans-serif",
     fontFamilyButtons: "'JetBrains Mono', ui-monospace, monospace",
     fontSize: "13px",
     borderRadius: "0px",
@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen antialiased">
+      <body className="min-h-screen bg-black antialiased">
         <ClerkProvider appearance={clerkAppearance}>
           {children}
         </ClerkProvider>
