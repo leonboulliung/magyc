@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { regenerateWidget } from "@/lib/server/regenerate";
 import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { ALL_VIBES, type Module, type SpaceLabels, type Vibe } from "@/lib/types";
 import { sanitizeModule } from "@/lib/modules";
+import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
 
 const lastCallAt = new Map<string, number>();
@@ -27,6 +29,7 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string; index: string } },
 ) {
+  const { userId } = await auth();
   const widgetIndex = Number.parseInt(params.index, 10);
   if (!Number.isFinite(widgetIndex) || widgetIndex < 0 || widgetIndex > 64) {
     return NextResponse.json({ error: "bad_widget_index" }, { status: 400 });
@@ -84,6 +87,7 @@ export async function POST(
   const vibe: Vibe = (ALL_VIBES as readonly string[]).includes(vibeRaw)
     ? (vibeRaw as Vibe) : "minimal";
 
+  const started = Date.now();
   try {
     const result = await regenerateWidget({
       spaceInput: String(space.input_text ?? ""),
@@ -100,10 +104,35 @@ export async function POST(
     const suggestions = await resolveExternalRefs(
       result.suggestions,
       String(space.language ?? "en"),
-    );
+    ) as Module[];
+    await recordAiEvent({
+      userId,
+      anonId: anonToken || null,
+      spaceId: params.id,
+      moduleIndex: widgetIndex,
+      eventType: basePrompt ? "widget_prompt_edit" : "widget_regenerate",
+      model: "gpt-4o-mini",
+      input: { widgetType: current.type, basePrompt: basePrompt ?? null, count },
+      output: { suggestionTypes: suggestions.map((m) => m.type), suggestions },
+      metadata: { language: String(space.language ?? "en"), vibe, hydrated: true },
+      latencyMs: Date.now() - started,
+    });
     return NextResponse.json({ ok: true, suggestions });
   } catch (e) {
     const msg = (e as Error).message || "unknown";
+    await recordAiEvent({
+      userId,
+      anonId: anonToken || null,
+      spaceId: params.id,
+      moduleIndex: widgetIndex,
+      eventType: basePrompt ? "widget_prompt_edit" : "widget_regenerate",
+      model: "gpt-4o-mini",
+      status: "error",
+      input: { widgetType: current.type, basePrompt: basePrompt ?? null, count },
+      error: msg,
+      metadata: { language: String(space.language ?? "en"), vibe },
+      latencyMs: Date.now() - started,
+    });
     if (msg === "ai_not_configured")
       return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
     if (msg === "regen_not_supported")

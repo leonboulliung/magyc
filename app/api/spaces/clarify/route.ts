@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { clarifyInput } from "@/lib/server/clarify";
+import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
 
 const lastCallAt = new Map<string, number>();
@@ -20,6 +22,7 @@ const MAX_INPUT_CHARS = 1200;
  * memory until the user is ready to commit.
  */
 export async function POST(req: Request) {
+  const { userId } = await auth();
   const parsed = await parseBody(req, z.object({
     input: z.string().optional(),
     projectMode: z.string().optional().nullable(),
@@ -49,11 +52,37 @@ export async function POST(req: Request) {
   }
   lastCallAt.set(key, now);
 
+  const started = Date.now();
   try {
     const result = await clarifyInput(input, { projectMode: body.projectMode });
+    await recordAiEvent({
+      userId,
+      anonId: typeof body.anonToken === "string" ? body.anonToken.slice(0, 64) : null,
+      eventType: "clarify",
+      model: "gpt-4o-mini",
+      input,
+      output: {
+        language: result.language,
+        comingToLife: result.comingToLife,
+        steps: result.steps.map((step) => ({ id: step.id, kind: step.kind })),
+      },
+      metadata: { projectMode: body.projectMode ?? null, stepCount: result.steps.length },
+      latencyMs: Date.now() - started,
+    });
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     const msg = (e as Error).message || "unknown";
+    await recordAiEvent({
+      userId,
+      anonId: typeof body.anonToken === "string" ? body.anonToken.slice(0, 64) : null,
+      eventType: "clarify",
+      model: "gpt-4o-mini",
+      status: "error",
+      input,
+      error: msg,
+      metadata: { projectMode: body.projectMode ?? null },
+      latencyMs: Date.now() - started,
+    });
     if (msg === "ai_not_configured")
       return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
     if (msg === "clarify_unparseable")

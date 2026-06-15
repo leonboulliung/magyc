@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, workflow objects)_
+_Last updated: 2026-06-15 (Codex, admin MVP)_
 
 ---
 
@@ -130,6 +130,11 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-15 · **AI observability + read-only admin MVP**:
+  added `ai_events` and `admin_notes` migrations, best-effort AI event logging
+  for clarify/classify/widget-regenerate flows, env-gated `/admin`, and setup
+  notes in `docs/ADMIN_MVP.md`. The admin view shows users, recent spaces,
+  anonymous actors, and recent AI logs without exposing destructive actions.
 - 2026-06-15 · **Workflow objects for deliverables + approvals**:
   both widgets now behave as collaborative workflow objects instead of static
   cards. Deliverables support per-item status, due-date edits, and a single

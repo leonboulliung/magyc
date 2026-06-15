@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { sanitizeModules } from "@/lib/modules";
 import { newAnonToken, newId } from "@/lib/id";
+import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
 
 // The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
@@ -31,6 +33,7 @@ const MAX_ANSWERS = 6;
  * the space, returns its id + owner token.
  */
 export async function POST(req: Request) {
+  const { userId } = await auth();
   const parsed = await parseBody(req, z.object({
     input: z.string().optional(),
     projectMode: z.string().optional().nullable(),
@@ -87,11 +90,23 @@ export async function POST(req: Request) {
   lastCallAt.set(anonToken, now);
 
   let result;
+  const aiStarted = Date.now();
   try {
     result = await classifyInput(input, answers, configuredModules, { projectMode: body.projectMode });
   } catch (e) {
     const err = e as { message?: string; status?: number; code?: string };
     const msg = err.message || "unknown";
+    await recordAiEvent({
+      userId,
+      anonId: anonToken,
+      eventType: "classify",
+      model: "gpt-4o-mini",
+      status: "error",
+      input: { input, answers, configuredModuleTypes: configuredModules.map((m) => m.type) },
+      error: msg,
+      metadata: { projectMode: body.projectMode ?? null, status: err.status ?? null, code: err.code ?? null },
+      latencyMs: Date.now() - aiStarted,
+    });
     // Log the full error server-side so it appears in Vercel logs.
     console.error("[spaces] classify failed:", err.status, err.code, msg);
     if (msg === "ai_not_configured")
@@ -141,6 +156,23 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  await recordAiEvent({
+    userId,
+    anonId: anonToken,
+    spaceId: id,
+    eventType: "classify",
+    model: "gpt-4o-mini",
+    input: { input, answers, configuredModuleTypes: configuredModules.map((m) => m.type) },
+    output: {
+      title: result.title,
+      language: result.language,
+      vibe: result.vibe,
+      moduleTypes: result.modules.map((m) => m.type),
+    },
+    metadata: { projectMode: body.projectMode ?? null, moduleCount: result.modules.length },
+    latencyMs: Date.now() - aiStarted,
+  });
 
   return NextResponse.json({ ok: true, id, anonOwnerToken: anonToken });
 }
