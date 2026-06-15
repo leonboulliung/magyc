@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -11,6 +12,9 @@ import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
 import { EnterKey } from "@/components/EnterKey";
 import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
+import { SiteNav } from "@/components/site/SiteNav";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { AREAS, brand } from "@/lib/site";
 
 type Stage = "input" | "clarify" | "building";
 
@@ -371,6 +375,15 @@ export default function HomePage() {
         <DotField ref={dotFieldRef} />
       </div>
 
+      {/* On the landing (input stage) this is a full marketing site: the
+          nav reaches every page, the prompt is the hero, and marketing
+          sections + footer scroll below. Clarify/building stay focused. */}
+      {stage === "input" && (
+        <div className="relative z-20 shrink-0">
+          <SiteNav />
+        </div>
+      )}
+
       <div
         className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-4 sm:px-10 pb-8 min-h-0 overflow-y-auto overscroll-contain"
         style={{ paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
@@ -406,7 +419,8 @@ export default function HomePage() {
                 className="flex flex-col gap-5"
               >
                 <div
-                  className="w-full rounded-[20px] p-5 sm:p-8"
+                  id="start"
+                  className="w-full rounded-[20px] p-5 sm:p-8 scroll-mt-20"
                   style={{
                     background: "#fff",
                     border: "1px solid rgba(0,0,0,0.06)",
@@ -746,6 +760,53 @@ export default function HomePage() {
             </motion.p>
           )}
         </div>
+
+        {/* Marketing sections below the prompt hero — only on the landing. */}
+        {stage === "input" && (
+          <div className="mt-20 sm:mt-28">
+            <section className="py-10" style={{ borderTop: `1px solid ${brand.rule}` }}>
+              <p className="mono text-[11px] tracking-[0.22em] uppercase" style={{ color: brand.accent }}>For creatives</p>
+              <h2 className="mt-3 font-semibold tracking-tight" style={{ fontSize: "clamp(22px,3.5vw,34px)", lineHeight: 1.1, color: brand.ink, maxWidth: 620 }}>
+                Built for the way creative projects actually run.
+              </h2>
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {AREAS.map((a) => (
+                  <Link
+                    key={a.slug}
+                    href={`/for/${a.slug}`}
+                    className="rounded-full px-4 py-2 transition-colors"
+                    style={{ fontSize: 14, border: `1px solid ${brand.rule}`, color: brand.ink, background: "rgba(255,255,255,0.6)" }}
+                  >
+                    {a.label}
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section className="py-10" style={{ borderTop: `1px solid ${brand.rule}` }}>
+              <div className="grid sm:grid-cols-3 gap-6">
+                {[
+                  ["01", "Type a rough idea", "A sentence is enough."],
+                  ["02", "Answer a few questions", "Only what can't be inferred."],
+                  ["03", "Get a living space", "Themed, sharable, collaborative."],
+                ].map(([n, t, d]) => (
+                  <div key={n}>
+                    <div className="mono text-[11px] tracking-widest" style={{ color: brand.accent }}>{n}</div>
+                    <div className="mt-2 font-semibold" style={{ fontSize: 17, color: brand.ink }}>{t}</div>
+                    <div className="mt-1.5 leading-relaxed" style={{ fontSize: 14, color: brand.muted }}>{d}</div>
+                  </div>
+                ))}
+              </div>
+              <Link href="/how-it-works" className="mono text-[12px] tracking-widest inline-block mt-7" style={{ color: brand.muted }}>
+                How it works →
+              </Link>
+            </section>
+
+            <div className="mt-6 -mx-4 sm:-mx-10">
+              <SiteFooter />
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
