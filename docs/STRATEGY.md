@@ -260,3 +260,63 @@ but in the product it's the secondary/"power user" path.
 Consequence for the marketing segment pages: their CTA should eventually lead
 into the **guided builder for that segment**, not the generic prompt. (Not
 built yet — captured here so the IA and CTAs are designed with it in mind.)
+
+---
+
+## 13. Product MVP — discovery + build roadmap (Leon, 2026-06-16)
+
+Answers from a 10-question discovery with Leon, plus market research, sharpen
+the MVP.
+
+### Who & what
+- **First user:** mid-tier, ambitious, communication-open **solo** photographers
+  — *early adopters* who get the concept. **Product/commercial** focus (via
+  presets, not hard-wired). Won via **mail (+ phone)**.
+- **The wonder (north-star value):** nailing **references + the client's actual
+  intent**. Research confirms: clients often *can't describe their vision but
+  know it when they see it* → shared reference/moodboards + alignment are the
+  cure; their absence causes revisions and unhappy clients. This is MAGYC's
+  sharpest wedge.
+- **Aha moment:** quickly prove MAGYC competently covers the *whole fulfilment
+  process* with high automation + AI-nativity + a success/structure-oriented
+  architecture — not by doing every part (e.g. not invoicing).
+- **Hand-off (Module 3):** make it a **story** — gallery + guiding statements
+  ("Leitsätze") + project facts. Impresses photographer *and* client.
+- **Biggest replaceable pain:** anything around **file transfer / delivery**
+  (fragmented, unbranded). Address at the *high-value* end (the story page),
+  not by rebuilding bulk proofing galleries.
+- **Success metric:** fuzzy — time saved + productivity, but also branding,
+  long-term focus, happier clients. **Sharpen via user interviews.**
+
+### The spine MAGYC owns (and the lines it won't cross)
+Owns: **Intake (mail) → Brief & Vision/References → Project structure → Story
+hand-off.** Integrates/links (does NOT rebuild): RAW edit (Lightroom/Capture
+One), culling/AI-edit (Aftershoot/Imagen), bulk proofing (Pixieset/Pic-Time).
+
+### Product project anatomy (from research — basis for the guided builder)
+Background/goal · references/moodboard · creative direction/style · shot list
+(hero shots, angles) · deliverables (count, format, crop, retouch level, usage
+rights) · approval milestones (concept → moodboard → selects → final).
+
+### Build roadmap (product, not marketing)
+- **A — Foundation + guided product builder.** Account-first photographer;
+  project `stage`; a **product preset** (segment-first, §12): click → pre-seeded
+  brief/shotlist/deliverables, few clicks, no prompting.
+- **B — Brief & Vision core (THE differentiator).** First-class brief surface:
+  client's idea in their words + moodboard (reference images & links) + style +
+  deliverables + shot list. AI turns a vague client message into a structured,
+  clarified brief; proposes missing refs/shots; flags ambiguities.
+- **C — Mail intake.** Per-project inbound address (Postmark/Mailgun) → parse
+  message + attachments/links → draft the brief (B). Matches the mail-first
+  acquisition.
+- **D — Client collaboration / onboarding.** Invited client (guest link) adds
+  references, confirms the brief, later picks favourites, approves.
+- **E — Story hand-off (Module 3).** Auto-composed narrative page: gallery
+  (photographer drops finals/selects) + AI-drafted Leitsätze + project facts;
+  branded, shareable. High-value delivery without the storage war.
+- **F — Polish + instrument the success metric(s).**
+
+### Highest-leverage non-code step
+Interview 3–5 of these solo product photographers (mail/phone): validate that
+**brief/reference alignment + story hand-off** is the felt pain, and pin down
+the **one success metric**. Do this before/parallel to Phase A.
