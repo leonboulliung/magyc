@@ -159,6 +159,16 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-16 · **Marketing redesign: bold brand type + real logo + gallery** (`0f5ecd2`):
+  per Leon's "feels artificial / italic distracts / logo missing" feedback —
+  headlines off italic serif → bold Space Grotesk (`font-brand`); deleted the
+  pink brush `logo.png`, added white serif `magyc` wordmark top-left in a clean
+  full-width top bar (replaced the floating pill); removed the animated
+  EmergentBackdrop from segment pages; rebuilt `/showcase` as a real 10-image
+  cross-segment masonry gallery (public/media/showcase-*). Open: Corporate has
+  no real imagery yet (kept placeholders — provided set was event/wedding/
+  editorial/product, no corporate); the landing `app/page.tsx`'s own teaser
+  still uses the old italic style (app file, left untouched).
 - 2026-06-16 · **Reusable segment landings + Corporate** (`588a488`):
   data-driven `Segment` model (`lib/segments.ts`) + one renderer
   (`SegmentLanding`); `/product` (real imagery) and `/corporate` (placeholders)
