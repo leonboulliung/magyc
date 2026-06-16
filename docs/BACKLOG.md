@@ -159,6 +159,18 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-16 · **Marketing IA overhaul + 3 segments + pricing** (`59c524a`):
+  Phase 1 — `SiteNav` responsive (white wordmark top-left, "Anwendungsfälle"
+  desktop dropdown, mobile burger panel); new IA in `lib/site.ts` (`MAIN_NAV`,
+  `USE_CASES`, Roadmap→footer, `LOCALES`); footer DE/EN switch placeholder;
+  landing double-logo + italic fixed (marble wordmark removed, teaser German +
+  font-brand, chips → segment routes; create flow untouched). Phase 2 — Event,
+  Wedding, Fashion segments (message per bottleneck). Phase 3 — `/pricing`
+  (Free/Pro/Studio, marketing-only). Captured `STRATEGY.md §12`: suite's primary
+  creation path is a guided segment-first builder, prompt flow = homepage demo.
+  Open: real imagery for Event/Wedding/Corporate work bands; Phase 4 polish of
+  remaining (site) pages; Phase 5 i18n (/en) — switch goes live then; mobile
+  burger needs a real on-device tap-test (Chrome MCP was down this session).
 - 2026-06-16 · **Marketing redesign: bold brand type + real logo + gallery** (`0f5ecd2`):
   per Leon's "feels artificial / italic distracts / logo missing" feedback —
   headlines off italic serif → bold Space Grotesk (`font-brand`); deleted the
