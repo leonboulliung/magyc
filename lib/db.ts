@@ -3,7 +3,7 @@ import { sanitizeModules } from "./modules";
 import { AI_LABEL_KEYS } from "./labels";
 import { sanitizeStyle } from "./style";
 import type {
-  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, Space, SpaceLabels, SpaceVersion, Vibe, Visibility,
+  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, ProjectStage, Space, SpaceLabels, SpaceVersion, Vibe, Visibility,
 } from "./types";
 import { ALL_VIBES } from "./types";
 
@@ -42,6 +42,8 @@ type SpaceRow = {
   modules: unknown[] | null;
   labels: Record<string, unknown> | null;
   style: Record<string, unknown> | null;
+  stage: string | null;
+  segment: string | null;
   owner_id: string | null;
   visibility: string | null;
   created_at: string;
@@ -171,6 +173,10 @@ function mapSpace(row: SpaceRow): Space {
     title: row.title || "",
     language: row.language || "en",
     vibe: mapVibe(row.vibe),
+    stage: (row.stage === "brief" || row.stage === "production" || row.stage === "handoff")
+      ? (row.stage as ProjectStage)
+      : null,
+    segment: row.segment ?? null,
     modules,
     labels: mapLabels(row.labels ?? null),
     style: sanitizeStyle(row.style ?? null),
@@ -186,6 +192,7 @@ function mapSpace(row: SpaceRow): Space {
 
 const SPACE_SELECT = `
   id, input_text, title, language, vibe, modules, labels, style,
+  stage, segment,
   owner_id, visibility,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),

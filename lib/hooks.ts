@@ -8,13 +8,13 @@ import type { Space } from "./types";
 /**
  * Whether the current viewer has owner privileges on this space.
  *
- *   Draft (visibility === null):
+ *   Claimed (`owner` set — Creator-Suite project or published space):
+ *     true if the Clerk-signed-in user is that owner.
+ *
+ *   Unclaimed anonymous draft (`owner` null):
  *     true if the browser holds the matching anon_owner_token in
  *     localStorage. The DB-side `anonOwnerTokenHint` only tells us
  *     a token exists; matching happens at the API.
- *
- *   Published:
- *     true if the Clerk-signed-in user is the bound owner_id.
  *
  * The hook runs only client-side and returns false during SSR.
  */
@@ -32,13 +32,13 @@ export function useIsOwner(space: Space | null): boolean {
 
   if (!space) return false;
 
-  if (space.visibility === null) {
-    // Draft: presence of the owner token is the signal.
-    return hasOwnerToken;
+  // Claimed by a Clerk account (suite project or published).
+  if (space.owner) {
+    return !!user && space.owner.id === user.id;
   }
 
-  // Published: Clerk owner.
-  return !!user && !!space.owner && space.owner.id === user.id;
+  // Unclaimed anonymous draft: presence of the browser owner token.
+  return hasOwnerToken;
 }
 
 /**

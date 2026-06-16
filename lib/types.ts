@@ -642,12 +642,19 @@ export interface SpaceStyle {
   background: string;
 }
 
+/** Creator-Suite project lifecycle stage. Null for anonymous spaces. */
+export type ProjectStage = "brief" | "production" | "handoff";
+
 export interface Space {
   id: string;
   inputText: string;
   title: string;
   language: string;
   vibe: Vibe;
+  /** Creator-Suite lifecycle stage (null = anonymous space, not a project). */
+  stage: ProjectStage | null;
+  /** Which guided preset a suite project was built from (null otherwise). */
+  segment: string | null;
   modules: Module[];
   /** AI-generated UI labels in `language`. May be sparsely filled;
    *  renderers fall back to symbols. */

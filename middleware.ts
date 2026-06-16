@@ -1,13 +1,22 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-export default clerkMiddleware((auth, request: NextRequest) => {
+// The Creator Suite is account-first: every /studio route requires a
+// signed-in user. Everything else (homepage demo, public spaces, API)
+// stays open.
+const isStudio = createRouteMatcher(["/studio(.*)"]);
+
+export default clerkMiddleware(async (auth, request: NextRequest) => {
   // Redirect root domain (magyc.site) to www (www.magyc.site)
   const host = request.headers.get("host") || "";
   if (host === "magyc.site") {
     const url = request.nextUrl.clone();
     url.hostname = "www.magyc.site";
     return NextResponse.redirect(url, { status: 301 });
+  }
+
+  if (isStudio(request)) {
+    await auth.protect();
   }
 });
 
