@@ -12,6 +12,9 @@ const config: Config = {
         sans: ["Inter", "ui-sans-serif", "system-ui"],
         body: ["Barlow", "ui-sans-serif", "system-ui"],
         heading: ["Instrument Serif", "serif"],
+        // Brand display face for marketing headlines — clear, bold, clean
+        // edges, low complexity. Replaces the distracting italic serif.
+        brand: ["Space Grotesk", "Inter", "ui-sans-serif", "system-ui"],
         dirtyline: ["Dirtyline", "ui-sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular"],
       },

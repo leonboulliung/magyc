@@ -5,43 +5,55 @@ import { SignInButton } from "@clerk/nextjs";
 import { NAV_LINKS } from "@/lib/site";
 
 /**
- * SiteNav — the marketing-site top bar. Sticky, translucent, with the
- * serif wordmark, primary links, and a "Start" CTA into the tool. On
- * phones the links collapse into a simple toggled sheet.
+ * SiteNav — the marketing-site top bar. A clean, full-width bar: the white
+ * serif wordmark sits top-left, the links + CTA sit right. No floating
+ * pill, no decoration — it should read like a real product, not an art
+ * piece. The logo PNG is black-on-transparent; `invert` renders it white.
  */
 export function SiteNav() {
   return (
-    <header className="fixed left-1/2 top-5 z-50 -translate-x-1/2 whitespace-nowrap px-3">
-      <nav className="liquid-glass flex items-center gap-3 rounded px-3 py-2.5 sm:gap-6 sm:px-4">
-        <div className="hidden items-center gap-5 md:flex">
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="font-body text-sm font-light text-white/70 transition-colors duration-200 hover:text-white"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </div>
+    <header className="fixed inset-x-0 top-0 z-50">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
+        <Link href="/" aria-label="MAGYC" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/magyc-logo.png"
+            alt="MAGYC"
+            className="h-[18px] w-auto sm:h-[20px]"
+            style={{ filter: "invert(1) brightness(2)" }}
+          />
+        </Link>
 
-        <div className="ml-1 flex items-center gap-3 sm:ml-4">
+        <nav className="flex items-center gap-5 sm:gap-7">
+          <div className="hidden items-center gap-6 md:flex">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+
           <SignInButton mode="modal">
             <button
               type="button"
-              className="hidden font-body text-sm font-light text-white/70 transition-colors duration-200 hover:text-white sm:inline"
+              className="hidden font-body text-sm text-white/65 transition-colors duration-200 hover:text-white sm:inline"
             >
               Anmelden
             </button>
           </SignInButton>
+
           <Link
             href="/#start"
-            className="liquid-glass-strong rounded px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:scale-[1.04] hover:shadow-[0_0_16px_2px_rgba(255,255,255,0.12)] active:scale-[0.97]"
+            className="rounded-full bg-white px-4 py-1.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]"
           >
             Kostenlos testen
           </Link>
-        </div>
-      </nav>
+        </nav>
+      </div>
     </header>
   );
 }
