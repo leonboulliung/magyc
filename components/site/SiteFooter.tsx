@@ -44,7 +44,7 @@ export function SiteFooter() {
             © {new Date().getFullYear()} MAGYC · magyc.site
           </span>
           <span className="font-mono tracking-widest" style={{ fontSize: 11, color: brand.muted }}>
-            Made for creatives
+            Für kreative Arbeit gebaut
           </span>
         </div>
       </div>

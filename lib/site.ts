@@ -29,9 +29,9 @@ export interface NavLink {
  *  pages). Focused on the Commercial/Product beachhead — see
  *  docs/STRATEGY.md. */
 export const NAV_LINKS: NavLink[] = [
-  { href: "/product", label: "For photographers" },
-  { href: "/showcase", label: "Showcase" },
-  { href: "/how-it-works", label: "How it works" },
+  { href: "/product", label: "Für Fotografen" },
+  { href: "/showcase", label: "Beispiele" },
+  { href: "/how-it-works", label: "So funktioniert's" },
   { href: "/roadmap", label: "Roadmap" },
 ];
 
@@ -42,37 +42,29 @@ export interface FooterGroup {
 
 export const FOOTER_GROUPS: FooterGroup[] = [
   {
-    title: "Product",
+    title: "Produkt",
     links: [
-      { href: "/how-it-works", label: "How it works" },
-      { href: "/showcase", label: "Showcase" },
+      { href: "/product", label: "Für Fotografen" },
+      { href: "/how-it-works", label: "So funktioniert's" },
+      { href: "/showcase", label: "Beispiele" },
       { href: "/roadmap", label: "Roadmap" },
       { href: "/changelog", label: "Changelog" },
     ],
   },
   {
-    title: "For",
+    title: "Unternehmen",
     links: [
-      { href: "/for/photography", label: "Photography" },
-      { href: "/for/events", label: "Events" },
-      { href: "/for/campaigns", label: "Campaigns" },
-      { href: "/for/workshops", label: "Workshops" },
+      { href: "/story", label: "Geschichte" },
+      { href: "/docs", label: "Doku" },
+      { href: "/contact", label: "Kontakt" },
     ],
   },
   {
-    title: "Company",
+    title: "Rechtliches",
     links: [
-      { href: "/story", label: "Story" },
-      { href: "/docs", label: "Docs" },
-      { href: "/contact", label: "Contact" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { href: "/legal/imprint", label: "Imprint" },
-      { href: "/legal/privacy", label: "Privacy" },
-      { href: "/legal/terms", label: "Terms" },
+      { href: "/legal/imprint", label: "Impressum" },
+      { href: "/legal/privacy", label: "Datenschutz" },
+      { href: "/legal/terms", label: "AGB" },
     ],
   },
 ];

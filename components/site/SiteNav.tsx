@@ -31,14 +31,14 @@ export function SiteNav() {
               type="button"
               className="hidden font-body text-sm font-light text-white/70 transition-colors duration-200 hover:text-white sm:inline"
             >
-              Sign in
+              Anmelden
             </button>
           </SignInButton>
           <Link
             href="/#start"
             className="liquid-glass-strong rounded px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:scale-[1.04] hover:shadow-[0_0_16px_2px_rgba(255,255,255,0.12)] active:scale-[0.97]"
           >
-            Try it free
+            Kostenlos testen
           </Link>
         </div>
       </nav>
