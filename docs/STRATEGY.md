@@ -1,7 +1,7 @@
 # MAGYC — Product Strategy & PMF Compass
 
-_Last updated: 2026-06-16 (Claude). This file is the binding strategic
-compass. If a decision here changes, update this file in the same commit and
+_Last updated: 2026-06-16 (Claude; rev. with staggered segment-page model,
+§11). This file is the binding strategic compass. If a decision here changes, update this file in the same commit and
 note it in `docs/BACKLOG.md`. Engineering decisions should trace back to a
 line in this document._
 
@@ -204,10 +204,36 @@ already" → sharpen the position before investing months.
 
 ---
 
-## 11. Consequences for the marketing site
+## 11. Marketing site — segment pages as staggered acquisition doors
 
-The generic `for/[area]` IA (5 areas) does **not** fit a single-segment
-beachhead. The front door should tell **one** story: product/commercial
-photography. First artifact: a target-group-specific landing at `/product`
-(built 2026-06-16) to test how clearly the message lands before any app code
-changes.
+The product/engine is **horizontal**: the lifecycle (brief → produce →
+present) and most building blocks (deliverables, crew, schedule, location,
+approvals, shotlist, moodboard) are shared across product, corporate, event
+and wedding. So segment landing pages are worth preparing — each is a distinct
+search intent (SEO) and ad target, and a low-cost clone of one template.
+
+**But the message must differ by bottleneck, not by word.** The analysis's
+core finding holds: software choice follows the segment's bottleneck. A page
+that only swaps "wedding" for "product" would be weak — and worse, a wedding
+page implicitly promises proofing galleries, our deliberate non-feature (§4).
+
+Therefore: build the **capability** to spin up segment pages, but roll them
+out **staggered**, ordered by adjacency to our strengths, keeping one primary
+so the conversion signal stays clean:
+
+1. **Product / Commercial** — primary beachhead (`/product`, real imagery).
+2. **Corporate** — closest adjacent: coordination-heavy (many stakeholders,
+   multi-location scheduling, usage rights, consistency), light gallery load
+   (`/corporate`, imagery pending).
+3. **Event** — speed/bulk; delivery matters more. Later.
+4. **Wedding** — biggest market but most gallery/volume-dependent; furthest
+   from current strengths, highest over-promise risk. Last, ideally only once
+   the delivery/gallery (Module 2) story is real.
+
+Implementation (built 2026-06-16): a data-driven `Segment` model
+(`lib/segments.ts`) + one renderer (`components/site/SegmentLanding.tsx`).
+Each segment is a thin wrapper page (`app/(site)/<slug>/page.tsx`) and links
+to the others. Imagery is optional — missing images render labelled
+placeholders. This **supersedes** the earlier "generic `for/[area]` doesn't
+fit" note: a per-bottleneck, staggered segment IA is the right model; the old
+generic `for/[area]` pages should be retired/redirected onto this.

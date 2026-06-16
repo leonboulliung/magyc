@@ -52,6 +52,13 @@ export const FOOTER_GROUPS: FooterGroup[] = [
     ],
   },
   {
+    title: "Für",
+    links: [
+      { href: "/product", label: "Produktfotografie" },
+      { href: "/corporate", label: "Corporate-Fotografie" },
+    ],
+  },
+  {
     title: "Unternehmen",
     links: [
       { href: "/story", label: "Geschichte" },

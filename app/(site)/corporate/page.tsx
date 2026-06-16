@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { SegmentLanding } from "@/components/site/SegmentLanding";
 import { segmentBySlug } from "@/lib/segments";
 
-const segment = segmentBySlug("product")!;
+const segment = segmentBySlug("corporate")!;
 
 export const metadata: Metadata = {
   title: segment.meta.title,
   description: segment.meta.description,
 };
 
-export default function ProductPhotographyPage() {
+export default function CorporatePhotographyPage() {
   return <SegmentLanding segment={segment} />;
 }
