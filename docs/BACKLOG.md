@@ -159,6 +159,15 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-16 · **Strategy compass + product-photographer landing** (`8307748`):
+  added `docs/STRATEGY.md` (binding pivot strategy — "one engine, two intents",
+  Commercial/Product beachhead, GenAI-anxiety positioning, 3-module product +
+  first sellable slice, architecture verdict) and a target-group-specific
+  marketing landing at `/product` in the dark/editorial design language. Fixed
+  `NAV_LINKS` (old labels Gallery/Styles/API/Pricing/Blog pointed at mismatched
+  routes). No application code touched. Open follow-ups: real creative imagery
+  for `/product` media slots; the generic `for/[area]` IA no longer fits a
+  single-segment beachhead; decide whether `/product` becomes the front door.
 - 2026-06-15 · **Black video / liquid-glass restyle**:
   public MAGYC now uses Barlow + Instrument Serif + Dirtyline, black global
   canvas, liquid-glass primitives, a captured-frame boomerang video hero with
