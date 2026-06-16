@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,7 +13,6 @@ import { EnterKey } from "@/components/EnterKey";
 import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { AREAS } from "@/lib/site";
 import { EmergentBackdrop } from "@/components/site/EmergentBackdrop";
 
 type Stage = "input" | "clarify" | "building";
@@ -408,26 +406,10 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* The marketing top bar provides the single wordmark (top-left) on
+          the input stage. The old marble wordmark here was a duplicate of
+          the nav logo — removed to fix the double-logo on mobile. */}
       {stage === "input" && <SiteNav />}
-
-      {stage === "input" && (
-        <Link
-          href="/"
-          aria-label="MAGYC home"
-          className={`fixed left-5 top-6 z-50 block transition-all duration-1000 sm:left-8 ${
-            mounted ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
-          }`}
-        >
-          <Image
-            src="/magyc-marble-2048x2048.png"
-            alt="MAGYC"
-            width={1130}
-            height={312}
-            priority
-            className="h-[19px] w-auto select-none brightness-0 invert sm:h-[23px]"
-          />
-        </Link>
-      )}
 
       <div
         className={
@@ -813,19 +795,25 @@ export default function HomePage() {
         {stage === "input" && (
           <div className="mx-auto mt-16 w-full max-w-5xl pb-20 sm:mt-24">
             <section className="liquid-glass rounded-[34px] p-5 sm:p-8">
-              <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/55">For creative work</p>
-              <h2 className="mt-3 max-w-2xl font-heading text-[32px] italic leading-[1.02] tracking-[-0.01em] text-white sm:text-[52px]">
-                A page that starts as a prompt and becomes a shared project surface.
+              <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/55">Für kreative Arbeit</p>
+              <h2 className="mt-3 max-w-2xl font-brand text-[30px] font-bold leading-[1.06] tracking-[-0.02em] text-white sm:text-[48px]">
+                Eine Seite, die als Prompt beginnt und zur gemeinsamen Projektfläche wird.
               </h2>
               <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                {AREAS.map((area) => (
+                {[
+                  { href: "/product", label: "Produkt", tag: "Briefing, Rechte, Deliverables." },
+                  { href: "/event", label: "Event", tag: "Tempo, Volumen, schnelle Auslieferung." },
+                  { href: "/wedding", label: "Hochzeit", tag: "Ein Tag, viele Beteiligte." },
+                  { href: "/corporate", label: "Corporate", tag: "Standorte, Termine, Freigaben." },
+                  { href: "/fashion", label: "Fashion", tag: "Crew, Styling, Looks." },
+                ].map((c) => (
                   <Link
-                    key={area.slug}
-                    href={`/for/${area.slug}`}
+                    key={c.href}
+                    href={c.href}
                     className="liquid-glass rounded-[24px] p-4 transition-transform hover:-translate-y-1"
                   >
-                    <span className="block text-sm font-medium text-white">{area.label}</span>
-                    <span className="mt-2 block text-sm leading-relaxed text-white/55">{area.tagline}</span>
+                    <span className="block text-sm font-medium text-white">{c.label}</span>
+                    <span className="mt-2 block text-sm leading-relaxed text-white/55">{c.tag}</span>
                   </Link>
                 ))}
               </div>
@@ -833,12 +821,12 @@ export default function HomePage() {
 
             <section className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
               <div className="liquid-glass rounded-[34px] p-5 sm:p-8">
-                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">Example landscape</p>
+                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">So entsteht ein Projekt</p>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
                   {[
-                    ["01", "Intake", "A rough thought becomes structured questions."],
-                    ["02", "Elements", "MAGYC chooses useful sections instead of blank templates."],
-                    ["03", "Collaboration", "People can claim, vote, approve, upload, and decide."],
+                    ["01", "Idee rein", "Ein grober Gedanke wird zu klaren Fragen."],
+                    ["02", "Bausteine", "MAGYC wählt sinnvolle Abschnitte statt leerer Vorlagen."],
+                    ["03", "Zusammen", "Übernehmen, abstimmen, freigeben, hochladen, entscheiden."],
                   ].map(([number, title, body]) => (
                     <div key={number} className="rounded-[24px] border border-white/12 bg-white/[0.035] p-4">
                       <div className="mono text-[11px] tracking-widest text-white/40">{number}</div>
@@ -848,24 +836,24 @@ export default function HomePage() {
                   ))}
                 </div>
                 <Link href="/showcase" className="mono mt-6 inline-block text-[12px] uppercase tracking-widest text-white/60 hover:text-white">
-                  Open gallery
+                  Galerie öffnen
                 </Link>
               </div>
 
               <div className="liquid-glass-strong rounded-[34px] p-5 sm:p-8">
-                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">First users</p>
-                <h3 className="mt-3 font-heading text-[30px] italic leading-tight text-white sm:text-[40px]">
-                  Built to reduce the distance between idea and shared reality.
+                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">Wofür</p>
+                <h3 className="mt-3 font-brand text-[26px] font-bold leading-[1.1] tracking-[-0.02em] text-white sm:text-[36px]">
+                  Weniger Distanz zwischen Idee und gemeinsamer Realität.
                 </h3>
                 <p className="mt-5 text-sm leading-relaxed text-white/62">
-                  Use it for a shoot, campaign, workshop, event, or any early project that needs a place to become concrete.
+                  Für ein Shooting, eine Kampagne, einen Event oder jedes frühe Projekt, das einen Ort braucht, um konkret zu werden.
                 </p>
                 <button
                   type="button"
                   onClick={focusPrompt}
                   className="mt-6 rounded bg-white px-5 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.03] active:scale-[0.97]"
                 >
-                  Start above
+                  Oben starten
                 </button>
               </div>
             </section>

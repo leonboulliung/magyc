@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { brand, FOOTER_GROUPS } from "@/lib/site";
+import { brand, FOOTER_GROUPS, LOCALES } from "@/lib/site";
 
 /**
  * SiteFooter — link columns + wordmark. Stable across the marketing site.
@@ -43,9 +43,36 @@ export function SiteFooter() {
           <span className="font-mono tracking-widest" style={{ fontSize: 11, color: brand.muted }}>
             © {new Date().getFullYear()} MAGYC · magyc.site
           </span>
-          <span className="font-mono tracking-widest" style={{ fontSize: 11, color: brand.muted }}>
-            Für kreative Arbeit gebaut
-          </span>
+          <div className="flex items-center gap-4">
+            {/* Language switch — EN goes live in Phase 5 (real /en routes). */}
+            <div className="flex items-center gap-1.5" aria-label="Sprache">
+              {LOCALES.map((l, i) => (
+                <span key={l.code} className="flex items-center gap-1.5">
+                  {i > 0 && <span style={{ color: brand.rule }}>·</span>}
+                  {l.enabled ? (
+                    <Link
+                      href={l.href}
+                      className="font-mono tracking-widest"
+                      style={{ fontSize: 11, color: brand.ink, opacity: 0.9 }}
+                    >
+                      {l.label}
+                    </Link>
+                  ) : (
+                    <span
+                      className="font-mono tracking-widest"
+                      title="Englisch folgt"
+                      style={{ fontSize: 11, color: brand.muted, opacity: 0.45, cursor: "not-allowed" }}
+                    >
+                      {l.label}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+            <span className="font-mono tracking-widest" style={{ fontSize: 11, color: brand.muted }}>
+              Für kreative Arbeit gebaut
+            </span>
+          </div>
         </div>
       </div>
     </footer>

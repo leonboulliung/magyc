@@ -237,3 +237,26 @@ to the others. Imagery is optional — missing images render labelled
 placeholders. This **supersedes** the earlier "generic `for/[area]` doesn't
 fit" note: a per-bottleneck, staggered segment IA is the right model; the old
 generic `for/[area]` pages should be retired/redirected onto this.
+
+---
+
+## 12. Creation UX — guided over prompt (Leon, 2026-06-16)
+
+The free-text prompt → clarify → classify flow is a **quick path and a nice
+homepage preview/demo** — it should NOT be the primary way to create in the
+actual Creator Suite. Leon's observation: the homepage presets and clickable
+example texts hint that there are **even easier, click-based** ways to start a
+project — *click "Wedding" → click x → click y → done, no thinking, no
+prompting*.
+
+**Direction:** the suite's primary creation path is a **guided, segment-first
+builder** (pick segment → a few structured choices → a fully-formed project),
+not a blank prompt box. This maps directly onto the existing project modes
+(`lib/projectModes.ts`) and the segment model: a wedding builder pre-seeds the
+wedding lifecycle + building blocks, the photographer just answers a few clicks.
+The prompt flow stays available (and on the marketing landing as the wow demo),
+but in the product it's the secondary/"power user" path.
+
+Consequence for the marketing segment pages: their CTA should eventually lead
+into the **guided builder for that segment**, not the generic prompt. (Not
+built yet — captured here so the IA and CTAs are designed with it in mind.)

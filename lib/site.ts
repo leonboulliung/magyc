@@ -24,15 +24,37 @@ export interface NavLink {
   label: string;
 }
 
-/** Top navigation (primary). The "Start" CTA is rendered separately.
- *  Labels point at real routes (the previous set linked to mismatched
- *  pages). Focused on the Commercial/Product beachhead — see
- *  docs/STRATEGY.md. */
-export const NAV_LINKS: NavLink[] = [
-  { href: "/product", label: "Für Fotografen" },
-  { href: "/showcase", label: "Beispiele" },
+/** A top-nav entry is either a direct link or a labelled dropdown group. */
+export interface NavGroup {
+  label: string;
+  items: NavLink[];
+}
+export type NavEntry = NavLink | NavGroup;
+export function isNavGroup(e: NavEntry): e is NavGroup {
+  return (e as NavGroup).items !== undefined;
+}
+
+/**
+ * Use cases — the photography segments. Single source of truth, reused by
+ * the "Anwendungsfälle" nav dropdown AND the footer. Each maps to a
+ * segment landing page (lib/segments.ts). Order = adjacency to our
+ * strengths (see docs/STRATEGY.md §11).
+ */
+export const USE_CASES: NavLink[] = [
+  { href: "/product", label: "Produkt" },
+  { href: "/event", label: "Event" },
+  { href: "/wedding", label: "Hochzeit" },
+  { href: "/corporate", label: "Corporate" },
+  { href: "/fashion", label: "Fashion" },
+];
+
+/** Top navigation (primary). "Anmelden" + the CTA are rendered separately.
+ *  Roadmap deliberately lives in the footer, not here. */
+export const MAIN_NAV: NavEntry[] = [
+  { label: "Anwendungsfälle", items: USE_CASES },
+  { href: "/showcase", label: "Galerie" },
   { href: "/how-it-works", label: "So funktioniert's" },
-  { href: "/roadmap", label: "Roadmap" },
+  { href: "/pricing", label: "Preise" },
 ];
 
 export interface FooterGroup {
@@ -42,20 +64,17 @@ export interface FooterGroup {
 
 export const FOOTER_GROUPS: FooterGroup[] = [
   {
-    title: "Produkt",
-    links: [
-      { href: "/product", label: "Für Fotografen" },
-      { href: "/how-it-works", label: "So funktioniert's" },
-      { href: "/showcase", label: "Beispiele" },
-      { href: "/roadmap", label: "Roadmap" },
-      { href: "/changelog", label: "Changelog" },
-    ],
+    title: "Anwendungsfälle",
+    links: USE_CASES,
   },
   {
-    title: "Für",
+    title: "Produkt",
     links: [
-      { href: "/product", label: "Produktfotografie" },
-      { href: "/corporate", label: "Corporate-Fotografie" },
+      { href: "/how-it-works", label: "So funktioniert's" },
+      { href: "/showcase", label: "Galerie" },
+      { href: "/pricing", label: "Preise" },
+      { href: "/roadmap", label: "Roadmap" },
+      { href: "/changelog", label: "Changelog" },
     ],
   },
   {
@@ -74,6 +93,21 @@ export const FOOTER_GROUPS: FooterGroup[] = [
       { href: "/legal/terms", label: "AGB" },
     ],
   },
+];
+
+/**
+ * Locale options for the footer language switch. EN is a placeholder until
+ * Phase 5 (real i18n with /en routes); `enabled:false` renders it disabled.
+ */
+export interface LocaleOption {
+  code: string;
+  label: string;
+  href: string;
+  enabled: boolean;
+}
+export const LOCALES: LocaleOption[] = [
+  { code: "de", label: "DE", href: "/", enabled: true },
+  { code: "en", label: "EN", href: "/en", enabled: false },
 ];
 
 /**
