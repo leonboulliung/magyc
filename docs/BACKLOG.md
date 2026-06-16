@@ -159,6 +159,17 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-16 · **Reusable segment landings + Corporate** (`588a488`):
+  data-driven `Segment` model (`lib/segments.ts`) + one renderer
+  (`SegmentLanding`); `/product` (real imagery) and `/corporate` (placeholders)
+  are thin wrappers, interlinked, in a footer "Für" group. Message differs per
+  bottleneck. STRATEGY.md §11 reworked to the staggered segment-page model
+  (Product → Corporate → Event → Wedding). Open: corporate imagery; retire/
+  redirect old generic `for/[area]` onto this model; Event/Wedding pages later.
+- 2026-06-16 · **German /product landing + first real media** (`745cbc5`):
+  translated `/product` to German + shared nav/footer; brought in BTS hero +
+  6-image sample band (`public/media/`, via `SiteImage`). Present slot stays a
+  placeholder (future Module-3 UI).
 - 2026-06-16 · **Strategy compass + product-photographer landing** (`8307748`):
   added `docs/STRATEGY.md` (binding pivot strategy — "one engine, two intents",
   Commercial/Product beachhead, GenAI-anxiety positioning, 3-module product +
