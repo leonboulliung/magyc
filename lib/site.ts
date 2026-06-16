@@ -24,13 +24,15 @@ export interface NavLink {
   label: string;
 }
 
-/** Top navigation (primary). The "Start" CTA is rendered separately. */
+/** Top navigation (primary). The "Start" CTA is rendered separately.
+ *  Labels point at real routes (the previous set linked to mismatched
+ *  pages). Focused on the Commercial/Product beachhead — see
+ *  docs/STRATEGY.md. */
 export const NAV_LINKS: NavLink[] = [
-  { href: "/showcase", label: "Gallery" },
-  { href: "/for/photography", label: "Styles" },
-  { href: "/docs", label: "API" },
-  { href: "/roadmap", label: "Pricing" },
-  { href: "/story", label: "Blog" },
+  { href: "/product", label: "For photographers" },
+  { href: "/showcase", label: "Showcase" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/roadmap", label: "Roadmap" },
 ];
 
 export interface FooterGroup {
