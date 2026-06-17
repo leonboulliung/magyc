@@ -51,7 +51,7 @@ export async function POST(
 ) {
   const parsed = await parseBody(req, z.object({
     widget: z.unknown().optional(),
-    anonOwnerToken: z.string().optional(),
+    anonOwnerToken: z.string().nullish(),
   }));
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;
@@ -84,7 +84,7 @@ export async function PATCH(
 ) {
   const parsed = await parseBody(req, z.object({
     modules: z.unknown().optional(),
-    anonOwnerToken: z.string().optional(),
+    anonOwnerToken: z.string().nullish(),
   }));
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;
@@ -115,7 +115,7 @@ export async function DELETE(
 ) {
   const parsed = await parseBody(req, z.object({
     index: z.number().optional(),
-    anonOwnerToken: z.string().optional(),
+    anonOwnerToken: z.string().nullish(),
   }));
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;

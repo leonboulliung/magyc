@@ -33,7 +33,7 @@ export async function POST(
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const parsed = await parseBody(req, z.object({
-    anonOwnerToken: z.string().optional(),
+    anonOwnerToken: z.string().nullish(),
   }));
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;

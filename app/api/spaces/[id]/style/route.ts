@@ -19,7 +19,7 @@ export async function PUT(
 ) {
   const parsed = await parseBody(req, z.object({
     style: z.unknown().optional(),
-    anonOwnerToken: z.string().optional(),
+    anonOwnerToken: z.string().nullish(),
   }));
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;
