@@ -60,11 +60,16 @@ export async function POST(
   const admin = supabaseAdmin();
   const { data: space, error } = await admin
     .from("spaces")
-    .select("id, input_text, language, vibe, modules, labels")
+    .select("id, input_text, language, vibe, modules, labels, stage, shared, owner_id")
     .eq("id", params.id)
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // Private suite project: stale shared links must not be able to inspect
+  // context or generate paid alternatives once sharing is switched off.
+  if (space.stage && !space.shared && (!userId || space.owner_id !== userId)) {
+    return NextResponse.json({ error: "not_shared" }, { status: 403 });
+  }
 
   const modules = Array.isArray(space.modules) ? space.modules : [];
   if (widgetIndex >= modules.length) {

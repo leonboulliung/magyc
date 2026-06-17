@@ -97,12 +97,17 @@ export async function POST(
   const admin = supabaseAdmin();
   const { data: space, error } = await admin
     .from("spaces")
-    .select("id, title, input_text, language, modules")
+    .select("id, title, input_text, language, modules, stage, shared, owner_id")
     .eq("id", params.id)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // Private suite project: once sharing is off, the assistant must not
+  // expose project context or trigger OpenAI spend for a stale link.
+  if (space.stage && !space.shared && (!userId || space.owner_id !== userId)) {
+    return NextResponse.json({ error: "not_shared" }, { status: 403 });
+  }
   if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
 
   const started = Date.now();
