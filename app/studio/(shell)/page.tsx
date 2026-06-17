@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { fetchSpacesByOwner } from "@/lib/db";
 import { ensureProfile } from "@/lib/server/profile";
 import { ProjectCardActions } from "@/components/studio/ProjectCardActions";
+import { StudioSettingsPanel } from "@/components/studio/StudioSettingsPanel";
 import type { ProjectStage } from "@/lib/types";
 
 // Projects are mutable; never serve a stale dashboard from the data cache.
@@ -96,12 +97,14 @@ export default async function StudioDashboard() {
               href="/studio/new"
               aria-label="Neues Projekt"
               title="Neues Projekt"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[22px] leading-none text-black transition-all hover:bg-white/85 active:scale-[0.98]"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-all hover:bg-white/85 active:scale-[0.98]"
             >
-              +
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
             </Link>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-white/12">
+          <div className="rounded-2xl border border-white/12">
           <table className="w-full border-collapse text-left">
             <thead className="bg-white/[0.04]">
               <tr className="mono text-[10px] uppercase tracking-[0.2em] text-white/40">
@@ -141,6 +144,8 @@ export default async function StudioDashboard() {
           </div>
         </div>
       )}
+
+      <StudioSettingsPanel />
     </div>
   );
 }

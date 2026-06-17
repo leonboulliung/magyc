@@ -13,13 +13,9 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
           <div className="flex items-center gap-6">
-            <Link href="/studio" aria-label="MAGYC Studio" className="flex items-center gap-3">
+            <Link href="/studio" aria-label="MAGYC" className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/magyc-logo.png" alt="MAGYC" className="h-[17px] w-auto" style={{ filter: "invert(1) brightness(2)" }} />
-              <span className="font-body text-sm text-white/45">Studio</span>
-            </Link>
-            <Link href="/studio" className="hidden font-body text-sm text-white/65 transition-colors hover:text-white sm:inline">
-              Projekte
             </Link>
           </div>
           <div className="flex items-center gap-4">

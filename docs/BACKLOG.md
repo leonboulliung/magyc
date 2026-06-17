@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, studio dashboard slice 1)_
+_Last updated: 2026-06-17 (Codex, studio settings slice 2)_
 
 ---
 
@@ -170,6 +170,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Studio settings slice 2**:
+  added the first Studio settings surface for photographer workflows: editable
+  local element presets, public profile draft fields, focus tags, and a small
+  team/client directory. Also removed dead Studio/Projects header labels,
+  centered the new-project plus icon, and made project row action menus open
+  upward so all actions stay visible inside the table area. Persistence is local
+  browser state for this slice; server-side account storage is still pending.
 - 2026-06-17 · **Studio dashboard slice 1**:
   simplified the Studio project overview to one table-only view. Removed the
   cards/table toggle and the large "Neues Projekt" CTA from the shell header;
