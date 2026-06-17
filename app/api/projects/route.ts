@@ -25,24 +25,35 @@ const FIELD_MAX = 600;
 const str = (v: unknown) =>
   typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, FIELD_MAX) : "";
 
-function buildBriefInput(f: {
-  client: string;
-  product: string;
-  goal: string;
-  usage: string;
-  deadline: string;
-  references: string;
-  scope: string;
-}): string {
-  const lines: string[] = ["Produktshooting-Briefing."];
-  if (f.client) lines.push(`Kunde/Marke: ${f.client}.`);
-  if (f.product) lines.push(`Produkt(e): ${f.product}.`);
-  if (f.goal) lines.push(`Ziel & Verwendung: ${f.goal}.`);
-  if (f.usage) lines.push(`Nutzungsrechte: ${f.usage}.`);
-  if (f.deadline) lines.push(`Termin/Deadline: ${f.deadline}.`);
-  if (f.references) lines.push(`Referenzen: ${f.references}.`);
-  if (f.scope) lines.push(`Umfang/Budget: ${f.scope}.`);
-  return lines.join(" ").slice(0, 1200);
+function buildBriefInput(
+  prompt: string,
+  f: {
+    client: string;
+    product: string;
+    goal: string;
+    usage: string;
+    deadline: string;
+    references: string;
+    scope: string;
+  },
+): string {
+  const fieldLines: string[] = [];
+  if (f.client) fieldLines.push(`Kunde/Marke: ${f.client}.`);
+  if (f.product) fieldLines.push(`Produkt(e): ${f.product}.`);
+  if (f.goal) fieldLines.push(`Ziel & Verwendung: ${f.goal}.`);
+  if (f.usage) fieldLines.push(`Nutzungsrechte: ${f.usage}.`);
+  if (f.deadline) fieldLines.push(`Termin/Deadline: ${f.deadline}.`);
+  if (f.references) fieldLines.push(`Referenzen: ${f.references}.`);
+  if (f.scope) fieldLines.push(`Umfang/Budget: ${f.scope}.`);
+
+  // Prompt-first (matches the demo). A prompt and structured fields can
+  // combine; with neither, fall back to a generic product-shoot seed so an
+  // empty "just create one" still yields a starter brief.
+  const parts: string[] = [];
+  if (prompt) parts.push(prompt);
+  if (fieldLines.length) parts.push((prompt ? "Eckdaten — " : "Produktshooting-Briefing. ") + fieldLines.join(" "));
+  const input = parts.join(" ").trim();
+  return (input || "Neues Produktshooting.").slice(0, 1200);
 }
 
 export async function POST(req: Request) {
@@ -51,6 +62,7 @@ export async function POST(req: Request) {
 
   const parsed = await parseBody(req, z.object({
     segment: z.string().optional(),
+    prompt: z.string().optional(),
     client: z.string().optional(),
     product: z.string().optional(),
     goal: z.string().optional(),
@@ -71,15 +83,13 @@ export async function POST(req: Request) {
     references: str(b.references),
     scope: str(b.scope),
   };
-  // Need at least a product or a goal to author a meaningful brief.
-  if (!fields.product && !fields.goal) {
-    return NextResponse.json({ error: "need_product_or_goal" }, { status: 400 });
-  }
 
   // Segment is currently always product (the only guided preset). Kept as a
   // field so more presets slot in without an API change.
   const segment = str(b.segment) || "product";
-  const input = buildBriefInput(fields);
+  // Create works with a prompt, with structured fields, or with NOTHING
+  // (an empty "just give me a starter project" path).
+  const input = buildBriefInput(str(b.prompt), fields);
 
   let result;
   const aiStarted = Date.now();

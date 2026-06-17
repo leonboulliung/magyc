@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { fetchSpacesByOwner } from "@/lib/db";
 import { ensureProfile } from "@/lib/server/profile";
+import { ProjectCardActions } from "@/components/studio/ProjectCardActions";
 import type { ProjectStage } from "@/lib/types";
 
 // Projects are mutable; never serve a stale dashboard from the data cache.
@@ -69,26 +70,30 @@ export default async function StudioDashboard() {
       ) : (
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <Link
-              key={p.id}
-              href={`/studio/${p.id}`}
-              className="group flex flex-col rounded-2xl border border-white/12 bg-white/[0.02] p-5 transition-colors hover:border-white/30 hover:bg-white/[0.05]"
-            >
-              <div className="flex items-center gap-2">
-                <span className="mono rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/55">
-                  {p.stage ? STAGE_LABEL[p.stage] : "—"}
+            <div key={p.id} className="relative">
+              <Link
+                href={`/studio/${p.id}`}
+                className="flex h-full flex-col rounded-2xl border border-white/12 bg-white/[0.02] p-5 pr-12 transition-colors hover:border-white/30 hover:bg-white/[0.05]"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="mono rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/55">
+                    {p.stage ? STAGE_LABEL[p.stage] : "—"}
+                  </span>
+                  {p.segment && (
+                    <span className="mono text-[10px] uppercase tracking-widest text-white/35">{p.segment}</span>
+                  )}
+                </div>
+                <h2 className="mt-4 line-clamp-2 font-body text-[17px] font-medium leading-snug text-white">
+                  {p.title || "Unbenanntes Projekt"}
+                </h2>
+                <span className="mono mt-auto pt-5 text-[11px] tracking-widest text-white/35">
+                  {relTime(p.createdAt)}
                 </span>
-                {p.segment && (
-                  <span className="mono text-[10px] uppercase tracking-widest text-white/35">{p.segment}</span>
-                )}
+              </Link>
+              <div className="absolute right-3 top-3">
+                <ProjectCardActions id={p.id} title={p.title} />
               </div>
-              <h2 className="mt-4 line-clamp-2 font-body text-[17px] font-medium leading-snug text-white">
-                {p.title || "Unbenanntes Projekt"}
-              </h2>
-              <span className="mono mt-auto pt-5 text-[11px] tracking-widest text-white/35">
-                {relTime(p.createdAt)}
-              </span>
-            </Link>
+            </div>
           ))}
         </div>
       )}

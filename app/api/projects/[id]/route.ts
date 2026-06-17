@@ -42,3 +42,31 @@ export async function PATCH(
 
   return NextResponse.json({ ok: true });
 }
+
+/**
+ * DELETE /api/projects/[id] — permanently delete a suite project. Owner-only.
+ * module_state rows cascade (FK on delete cascade in 001).
+ */
+export async function DELETE(
+  _req: Request,
+  { params }: { params: { id: string } },
+) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const admin = supabaseAdmin();
+  const { data: space } = await admin
+    .from("spaces")
+    .select("id, owner_id")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (space.owner_id !== userId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const { error } = await admin.from("spaces").delete().eq("id", params.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}
