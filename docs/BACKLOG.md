@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, stage labels)_
+_Last updated: 2026-06-17 (Codex, studio dashboard slice 1)_
 
 ---
 
@@ -170,6 +170,14 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Studio dashboard slice 1**:
+  simplified the Studio project overview to one table-only view. Removed the
+  cards/table toggle and the large "Neues Projekt" CTA from the shell header;
+  the header now uses calmer typography and a visible "Abmelden" action next
+  to the Clerk user button. Project creation moved to a compact `+` near the
+  table. Every project row now has a required gear menu with open, share,
+  duplicate, and delete actions. Presets, profile page, team/client management
+  remain the next Studio settings slice.
 - 2026-06-17 · **Iteration: account-project adds, visible errors, home consolidation, style simplification, studio overview**:
   fixed the real `invalid_body` root cause for Studio projects: Clerk-owned
   spaces have no anon owner token, but the client sent `anonOwnerToken: null`

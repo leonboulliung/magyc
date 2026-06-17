@@ -31,7 +31,7 @@ function relTime(ts: number): string {
   return months === 1 ? "vor 1 Monat" : `vor ${months} Monaten`;
 }
 
-export default async function StudioDashboard({ searchParams }: { searchParams?: { view?: string } }) {
+export default async function StudioDashboard() {
   const { userId } = await auth();
   if (!userId) return null; // middleware guards this; defensive.
 
@@ -41,7 +41,6 @@ export default async function StudioDashboard({ searchParams }: { searchParams?:
     // owned by this user without a stage are not shown as projects.
     (s) => s.stage !== null,
   );
-  const view = searchParams?.view === "table" ? "table" : "cards";
   const counts = {
     brief: projects.filter((p) => p.stage === "brief").length,
     production: projects.filter((p) => p.stage === "production").length,
@@ -56,22 +55,6 @@ export default async function StudioDashboard({ searchParams }: { searchParams?:
           <h1 className="mt-3 font-brand text-[30px] font-bold tracking-[-0.02em] text-white sm:text-[42px]">
             Deine Projekte
           </h1>
-        </div>
-        <div className="flex items-center rounded-full border border-white/12 p-1">
-          <Link
-            href="/studio?view=cards"
-            className="rounded-full px-3 py-1.5 font-body text-sm transition-colors"
-            style={{ background: view === "cards" ? "#fff" : "transparent", color: view === "cards" ? "#000" : "rgba(255,255,255,0.65)" }}
-          >
-            Zellen
-          </Link>
-          <Link
-            href="/studio?view=table"
-            className="rounded-full px-3 py-1.5 font-body text-sm transition-colors"
-            style={{ background: view === "table" ? "#fff" : "transparent", color: view === "table" ? "#000" : "rgba(255,255,255,0.65)" }}
-          >
-            Tabelle
-          </Link>
         </div>
       </div>
 
@@ -103,8 +86,22 @@ export default async function StudioDashboard({ searchParams }: { searchParams?:
             Erstes Projekt anlegen
           </Link>
         </div>
-      ) : view === "table" ? (
-        <div className="mt-10 overflow-hidden rounded-2xl border border-white/12">
+      ) : (
+        <div className="mt-10">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">
+              Projektliste
+            </p>
+            <Link
+              href="/studio/new"
+              aria-label="Neues Projekt"
+              title="Neues Projekt"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[22px] leading-none text-black transition-all hover:bg-white/85 active:scale-[0.98]"
+            >
+              +
+            </Link>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/12">
           <table className="w-full border-collapse text-left">
             <thead className="bg-white/[0.04]">
               <tr className="mono text-[10px] uppercase tracking-[0.2em] text-white/40">
@@ -112,6 +109,7 @@ export default async function StudioDashboard({ searchParams }: { searchParams?:
                 <th className="px-4 py-3 font-normal">Phase</th>
                 <th className="px-4 py-3 font-normal">Typ</th>
                 <th className="px-4 py-3 font-normal">Erstellt</th>
+                <th className="px-4 py-3 text-right font-normal">Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -131,39 +129,16 @@ export default async function StudioDashboard({ searchParams }: { searchParams?:
                   <td className="px-4 py-4 mono text-[11px] tracking-widest text-white/35">
                     {relTime(p.createdAt)}
                   </td>
+                  <td className="px-4 py-4">
+                    <div className="flex justify-end">
+                      <ProjectCardActions id={p.id} title={p.title} shared={p.shared} />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      ) : (
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
-            <div key={p.id} className="relative">
-              <Link
-                href={`/studio/${p.id}`}
-                className="flex h-full flex-col rounded-2xl border border-white/12 bg-white/[0.02] p-5 pr-12 transition-colors hover:border-white/30 hover:bg-white/[0.05]"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="mono rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/55">
-                    {p.stage ? STAGE_LABEL[p.stage] : "—"}
-                  </span>
-                  {p.segment && (
-                    <span className="mono text-[10px] uppercase tracking-widest text-white/35">{p.segment}</span>
-                  )}
-                </div>
-                <h2 className="mt-4 line-clamp-2 font-body text-[17px] font-medium leading-snug text-white">
-                  {p.title || "Unbenanntes Projekt"}
-                </h2>
-                <span className="mono mt-auto pt-5 text-[11px] tracking-widest text-white/35">
-                  {relTime(p.createdAt)}
-                </span>
-              </Link>
-              <div className="absolute right-3 top-3">
-                <ProjectCardActions id={p.id} title={p.title} shared={p.shared} />
-              </div>
-            </div>
-          ))}
+          </div>
         </div>
       )}
     </div>

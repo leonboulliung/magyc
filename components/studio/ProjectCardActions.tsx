@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShareDialog } from "@/components/studio/ShareDialog";
 
 /**
- * Per-project actions on a dashboard card: share, duplicate, delete.
- * Rendered as a "⋯" button in the card corner; stops propagation so it
- * doesn't trigger the card's link.
+ * Per-project actions on the dashboard table: open, share, duplicate,
+ * delete. Rendered as a required gear button per project row.
  */
 export function ProjectCardActions({ id, title, shared }: { id: string; title: string; shared: boolean }) {
   const router = useRouter();
@@ -54,12 +54,14 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
     <div className="relative">
       <button
         type="button"
-        aria-label="Projekt-Aktionen"
+        aria-label="Projekt bearbeiten"
+        title="Projekt bearbeiten"
         onClick={(e) => { stop(e); setOpen((v) => !v); }}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-white/55 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.4 1.06V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 8.6 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 0-1.06-.4H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8.6a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 0 .4-1.06V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15.4 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.29.36.6.67 1 .85.33.15.7.23 1.06.23H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51.92Z" />
         </svg>
       </button>
 
@@ -68,6 +70,13 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
           {/* click-away backdrop */}
           <div className="fixed inset-0 z-40" onClick={(e) => { stop(e); setOpen(false); }} />
           <div className="absolute right-0 top-9 z-50 w-40 overflow-hidden rounded-xl border border-white/12 bg-black/95 p-1 backdrop-blur-md">
+            <Link
+              href={`/studio/${id}`}
+              onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+              className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Öffnen
+            </Link>
             <button
               type="button"
               onClick={(e) => { stop(e); setOpen(false); setShareOpen(true); }}
