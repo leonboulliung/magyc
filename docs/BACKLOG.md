@@ -159,6 +159,22 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-16 · **Creator-Suite foundation + brief core (Phase A)** (`4a6fb2d`):
+  account-first suite (`/studio` dashboard, `/studio/new` guided product
+  builder, `/studio/[id]` owner-gated workspace reusing SpaceView + stage
+  stepper); `/api/projects` (create via classifier photo_shoot mode),
+  `/api/projects/[id]` (PATCH stage); migration 010 (`spaces.stage`+`segment`,
+  applied in Supabase); ownership unified (`isSpaceOwner`+`useIsOwner` honor a
+  set `owner_id` via Clerk). Homepage demo untouched. Verified non-authed:
+  `/studio`→307 Clerk sign-in (browser Accept), `/api/projects`→405,
+  homepage/`/product`→200 (migration safe). **Open / next:**
+  - "Brief schärfen" AI assist (refine brief from refs, propose shot list,
+    flag ambiguities) — deferred, riskiest untested piece.
+  - Signed-in flow needs Leon's manual test (no Clerk session available here).
+  - Clerk is on a **dev** instance (`*.clerk.accounts.dev`); a production
+    instance is needed before real launch.
+  - Suite-draft privacy: `spaces` RLS is `select true` (public-by-id); real
+    ACL for private projects is a later item. Add a nav entry into `/studio`.
 - 2026-06-16 · **Marketing IA overhaul + 3 segments + pricing** (`59c524a`):
   Phase 1 — `SiteNav` responsive (white wordmark top-left, "Anwendungsfälle"
   desktop dropdown, mobile burger panel); new IA in `lib/site.ts` (`MAIN_NAV`,
