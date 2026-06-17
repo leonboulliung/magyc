@@ -56,12 +56,6 @@ export default async function StudioDashboard() {
             Deine Projekte
           </h1>
         </div>
-        <Link
-          href="/studio/presets"
-          className="rounded-full border border-white/14 px-4 py-2 font-body text-sm text-white/70 transition-colors hover:border-white/35 hover:text-white"
-        >
-          Presets verwalten
-        </Link>
       </div>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">

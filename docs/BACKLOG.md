@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, preset builder + draft claim flow)_
+_Last updated: 2026-06-17 (Codex, studio navigation + preset UX correction)_
 
 ---
 
@@ -176,6 +176,14 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Studio navigation + preset UX correction**:
+  added a quiet Studio sidebar for Studiobereich, Presets, Nutzer, Profil,
+  and Einstellungen; removed the redundant dashboard preset CTA. Reworked
+  `/studio/presets` from a card/form wall into a table-led preset overview
+  with a registry-derived element pool, 27 available project elements, and
+  per-element configuration controls for rows, locations, dates, titles, and
+  notes instead of one generic text field per element. Placeholder pages now
+  exist for users, profile, and settings so the sidebar is structurally stable.
 - 2026-06-17 · **Preset builder + draft claim flow**:
   moved presets off the Studio dashboard into a dedicated `/studio/presets`
   page. The builder now supports creating/naming presets, assigning at least

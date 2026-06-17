@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { SignOutButton, UserButton } from "@clerk/nextjs";
+import { StudioSidebar } from "@/components/studio/StudioSidebar";
 
 /**
  * Suite shell — the header for the dashboard and the guided builder. The
@@ -31,7 +32,10 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
           </div>
         </div>
       </header>
-      <main>{children}</main>
+      <div className="sm:grid sm:grid-cols-[176px_1fr]">
+        <StudioSidebar />
+        <main className="min-w-0">{children}</main>
+      </div>
     </>
   );
 }
