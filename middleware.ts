@@ -16,7 +16,13 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   }
 
   if (isStudio(request)) {
-    await auth.protect({ unauthenticatedUrl: "/" });
+    const { userId } = await auth();
+    if (!userId) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      url.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
   }
 });
 
