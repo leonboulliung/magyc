@@ -5,7 +5,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleType } from "@/lib/types";
 
 /**
- * WidgetPicker — a compact dropdown listing all 28 body widget types,
+ * WidgetPicker — a compact dropdown listing the active body widget types,
  * grouped by domain. Labels are looked up from the space's detected
  * language so the picker never shows English on a non-English space.
  * Falls back to universal symbols when no translation exists.
@@ -125,8 +125,6 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
     symbol: "✦",
     entries: [
       { type: "ai_summary", symbol: "✦" },
-      { type: "wikipedia",  symbol: "W" },
-      { type: "gif",        symbol: "▷" },
     ],
   },
   {

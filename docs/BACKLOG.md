@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-15 (Codex, black video restyle)_
+_Last updated: 2026-06-17 (Codex, photography element scope)_
 
 ---
 
@@ -93,6 +93,25 @@ lighter CSS emergent backdrop and the build shows `/` at ~15.9 kB route size /
 acquisition traffic starts, especially because Clerk sign-in chrome remains
 on the public nav.
 
+### 17. Photography specialty elements — build only Moodboard + Shotlist first
+Leon wants MAGYC to stay flexible via project-type presets and future user
+presets, not a locked-down photographer-only board. Evaluation, 2026-06-17:
+most requested photography tools can reuse existing widgets without becoming
+duplicates:
+- Briefing → rich_text + qa + attachments, authored with better photo prompts.
+- Location plan → location_suggestions / locations_multi, with shoot-specific
+  labels and shape hints.
+- Schedule / call sheet → appointments, with shoot-block labels.
+- Team / roles → crew, seeded with photography roles.
+- Styling / props and equipment → parts_list, seeded as separate widgets when
+  both are needed.
+- Deliverables / approvals → existing deliverables + approvals.
+
+The two real gaps are **Moodboard** and **Shotlist**: `images` is only an upload
+gallery (no visual direction / approval / reference notes), and `table` is too
+generic for production-critical shot status. Build these as first-class widget
+types before adding more photography-specific data shapes.
+
 ---
 
 ## P3 — infrastructure & hygiene
@@ -159,6 +178,10 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Wiki/GIF hidden from active creation**: removed `wikipedia` from
+  AI scoring/authoring and removed both `wikipedia` and `gif` from the manual
+  add-widget picker. Types/renderers remain for backward compatibility with old
+  spaces that already contain them.
 - 2026-06-16 · **Suite quick-wins: prompt-first builder + dup/delete** (`96a2a53`):
   builder is prompt-first (central prompt + quick-selects, optional Eckdaten,
   empty create allowed → starter project); `/api/projects` takes `prompt` and
