@@ -26,8 +26,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     range: "Range", phases: "Phases",
     location_single: "Location", locations_multi: "Locations",
     location_suggestions: "Place ideas", route: "Route",
-    table: "Table", parts_list: "Parts list",
-    attachments: "Files", images: "Images", audio: "Audio", sketch: "Sketch",
+    table: "Table", shot_list: "Shotlist", parts_list: "Parts list",
+    attachments: "Files", images: "Images", moodboard: "Moodboard", audio: "Audio", sketch: "Sketch",
   },
   de: {
     ai_summary: "KI-Einschätzung", icon: "Symbol", wikipedia: "Wikipedia", gif: "GIF",
@@ -37,8 +37,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     range: "Von – Bis", phases: "Phasen",
     location_single: "Ort", locations_multi: "Orte",
     location_suggestions: "Ortsvorschläge", route: "Route",
-    table: "Tabelle", parts_list: "Utensilien",
-    attachments: "Anhänge", images: "Bilder", audio: "Audio", sketch: "Skizze",
+    table: "Tabelle", shot_list: "Shotlist", parts_list: "Utensilien",
+    attachments: "Anhänge", images: "Bilder", moodboard: "Moodboard", audio: "Audio", sketch: "Skizze",
   },
   fr: {
     ai_summary: "Synthèse IA", icon: "Icône", wikipedia: "Wikipedia", gif: "GIF",
@@ -48,8 +48,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     range: "De – À", phases: "Phases",
     location_single: "Lieu", locations_multi: "Lieux",
     location_suggestions: "Suggestions", route: "Itinéraire",
-    table: "Tableau", parts_list: "Matériel",
-    attachments: "Fichiers", images: "Images", audio: "Audio", sketch: "Esquisse",
+    table: "Tableau", shot_list: "Plan de prises", parts_list: "Matériel",
+    attachments: "Fichiers", images: "Images", moodboard: "Moodboard", audio: "Audio", sketch: "Esquisse",
   },
   es: {
     ai_summary: "Resumen IA", icon: "Ícono", wikipedia: "Wikipedia", gif: "GIF",
@@ -59,8 +59,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     range: "De – A", phases: "Fases",
     location_single: "Lugar", locations_multi: "Lugares",
     location_suggestions: "Sugerencias", route: "Ruta",
-    table: "Tabla", parts_list: "Materiales",
-    attachments: "Archivos", images: "Imágenes", audio: "Audio", sketch: "Boceto",
+    table: "Tabla", shot_list: "Lista de tomas", parts_list: "Materiales",
+    attachments: "Archivos", images: "Imágenes", moodboard: "Moodboard", audio: "Audio", sketch: "Boceto",
   },
   it: {
     ai_summary: "Sintesi IA", icon: "Icona", wikipedia: "Wikipedia", gif: "GIF",
@@ -70,8 +70,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     range: "Da – A", phases: "Fasi",
     location_single: "Luogo", locations_multi: "Luoghi",
     location_suggestions: "Suggerimenti", route: "Percorso",
-    table: "Tabella", parts_list: "Materiali",
-    attachments: "File", images: "Immagini", audio: "Audio", sketch: "Schizzo",
+    table: "Tabella", shot_list: "Shotlist", parts_list: "Materiali",
+    attachments: "File", images: "Immagini", moodboard: "Moodboard", audio: "Audio", sketch: "Schizzo",
   },
   pt: {
     ai_summary: "Resumo IA", icon: "Ícone", wikipedia: "Wikipedia", gif: "GIF",
@@ -81,8 +81,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     range: "De – A", phases: "Fases",
     location_single: "Local", locations_multi: "Locais",
     location_suggestions: "Sugestões", route: "Rota",
-    table: "Tabela", parts_list: "Materiais",
-    attachments: "Arquivos", images: "Imagens", audio: "Áudio", sketch: "Esboço",
+    table: "Tabela", shot_list: "Lista de fotos", parts_list: "Materiais",
+    attachments: "Arquivos", images: "Imagens", moodboard: "Moodboard", audio: "Áudio", sketch: "Esboço",
   },
   nl: {
     ai_summary: "AI samenvatting", icon: "Icoon", wikipedia: "Wikipedia", gif: "GIF",
@@ -92,8 +92,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     range: "Van – Tot", phases: "Fasen",
     location_single: "Locatie", locations_multi: "Locaties",
     location_suggestions: "Ideeën", route: "Route",
-    table: "Tabel", parts_list: "Materialen",
-    attachments: "Bestanden", images: "Afbeeldingen", audio: "Audio", sketch: "Schets",
+    table: "Tabel", shot_list: "Shotlist", parts_list: "Materialen",
+    attachments: "Bestanden", images: "Afbeeldingen", moodboard: "Moodboard", audio: "Audio", sketch: "Schets",
   },
 };
 
@@ -169,6 +169,7 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
     symbol: "▦",
     entries: [
       { type: "table",      symbol: "▦" },
+      { type: "shot_list",  symbol: "▤" },
       { type: "parts_list", symbol: "≡" },
     ],
   },
@@ -177,6 +178,7 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
     entries: [
       { type: "attachments", symbol: "□" },
       { type: "images",      symbol: "▨" },
+      { type: "moodboard",   symbol: "▧" },
       { type: "audio",       symbol: "♫" },
       { type: "sketch",      symbol: "○" },
     ],
@@ -211,9 +213,11 @@ function defaultWidget(type: ModuleType): Module | null {
     case "location_suggestions": return { type, suggestions: [] };
     case "route":                return { type, stops: [] };
     case "table":                return { type, columns: ["A", "B", "C"], rows: [["", "", ""]] };
+    case "shot_list":            return { type, shots: [{ label: "…", priority: "must", status: "planned" }] };
     case "parts_list":           return { type, items: [] };
     case "attachments":          return { type };
     case "images":               return { type };
+    case "moodboard":            return { type, directions: [{ label: "…" }] };
     case "audio":                return { type };
     case "sketch":               return { type };
     default:                     return null;

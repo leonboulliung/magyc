@@ -1,5 +1,5 @@
 /**
- * Module registry — sanitizers + meta for the 31 widget types.
+ * Module registry — sanitizers + meta for the 33 widget types.
  *
  * Every widget that lands in `spaces.modules` flows through
  * `sanitizeModule()`. The AI is liberal about JSON shapes; we are
@@ -22,6 +22,9 @@ const ALLOWED = new Set<string>(ALL_MODULE_TYPES);
 const DELIVERABLE_STATUSES = new Set(["planned", "in_progress", "ready", "delivered"]);
 const APPROVAL_AUDIENCES = new Set(["client", "internal"]);
 const APPROVAL_STATUSES = new Set(["pending", "requested", "approved"]);
+const MOODBOARD_DIRECTION_STATUSES = new Set(["reference", "approved", "avoid"]);
+const SHOT_PRIORITIES = new Set(["must", "should", "nice"]);
+const SHOT_STATUSES = new Set(["planned", "captured", "selected"]);
 
 function clean(s: unknown, max: number): string {
   return typeof s === "string"
@@ -409,6 +412,33 @@ export function sanitizeModule(raw: unknown): Module | null {
       const placeholder = clean(r.placeholder, 200) || undefined;
       return { type, ...b, placeholder };
     }
+    case "moodboard": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      const raw = Array.isArray(r.directions) ? r.directions : [];
+      const directions: {
+        label: string;
+        note?: string;
+        status?: "reference" | "approved" | "avoid";
+      }[] = [];
+      for (const x of raw) {
+        if (!x || typeof x !== "object") continue;
+        const xr = x as Record<string, unknown>;
+        const label = clean(xr.label, 120);
+        if (!label) continue;
+        const note = clean(xr.note, 240) || undefined;
+        const status =
+          typeof xr.status === "string" && MOODBOARD_DIRECTION_STATUSES.has(xr.status)
+            ? (xr.status as "reference" | "approved" | "avoid")
+            : undefined;
+        directions.push({
+          label,
+          ...(note ? { note } : {}),
+          ...(status ? { status } : {}),
+        });
+        if (directions.length >= 12) break;
+      }
+      return { type, ...b, placeholder, directions };
+    }
     case "audio": {
       const placeholder = clean(r.placeholder, 200) || undefined;
       return { type, ...b, placeholder };
@@ -432,6 +462,48 @@ export function sanitizeModule(raw: unknown): Module | null {
         if (rows.length >= 24) break;
       }
       return { type, ...b, columns, rows };
+    }
+    case "shot_list": {
+      const raw = Array.isArray(r.shots) ? r.shots : [];
+      const shots: {
+        label: string;
+        purpose?: string;
+        setup?: string;
+        location?: string;
+        notes?: string;
+        priority?: "must" | "should" | "nice";
+        status?: "planned" | "captured" | "selected";
+      }[] = [];
+      for (const x of raw) {
+        if (!x || typeof x !== "object") continue;
+        const xr = x as Record<string, unknown>;
+        const label = clean(xr.label, 140);
+        if (!label) continue;
+        const purpose = clean(xr.purpose, 160) || undefined;
+        const setup = clean(xr.setup, 160) || undefined;
+        const location = clean(xr.location, 120) || undefined;
+        const notes = clean(xr.notes, 220) || undefined;
+        const priority =
+          typeof xr.priority === "string" && SHOT_PRIORITIES.has(xr.priority)
+            ? (xr.priority as "must" | "should" | "nice")
+            : undefined;
+        const status =
+          typeof xr.status === "string" && SHOT_STATUSES.has(xr.status)
+            ? (xr.status as "planned" | "captured" | "selected")
+            : undefined;
+        shots.push({
+          label,
+          ...(purpose ? { purpose } : {}),
+          ...(setup ? { setup } : {}),
+          ...(location ? { location } : {}),
+          ...(notes ? { notes } : {}),
+          ...(priority ? { priority } : {}),
+          ...(status ? { status } : {}),
+        });
+        if (shots.length >= 40) break;
+      }
+      if (shots.length === 0) return null;
+      return { type, ...b, shots };
     }
     case "parts_list": {
       const raw = Array.isArray(r.items) ? r.items : [];
@@ -848,6 +920,18 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     hasUploads: true,
     hasThread: false,
   },
+  moodboard: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "a visual direction needs shared reference images, style cues, lighting notes, colour/mood, poses, styling direction, or explicit no-gos. Best for photo/video/creative projects.",
+    requiresMandatoryConfig: false,
+    externalSource: "storage",
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: true,
+    hasThread: false,
+  },
   audio: {
     partOfHeader: false,
     alwaysInserted: false,
@@ -883,6 +967,18 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     externalSource: null,
     requiresAttribution: false,
     hasSignals: false,
+    hasUploads: false,
+    hasThread: false,
+  },
+  shot_list: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "a photo/video production needs a concrete capture list with shots, purpose, setup, location, priority, notes, or capture status. Prefer this over a generic table for shoots.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: true,
     hasUploads: false,
     hasThread: false,
   },

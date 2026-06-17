@@ -35,6 +35,16 @@ const DEMO_MODULES: Module[] = [
   { type: "work_packages", microTitle: "Arbeitspakete", packages: [{ label: "Aufbau", description: "Stände + Strom" }, { label: "Abbau" }] },
   { type: "deliverables", microTitle: "Ergebnisse", items: [{ label: "Finale Galerie", quantity: "40 Bilder", format: "JPG + Web", due: "5 Tage nach dem Shooting", details: "Auswahl, Grundlook und Web-Export.", status: "in_progress" }] },
   { type: "approvals", microTitle: "Freigaben", items: [{ text: "Moodboard bestätigen", description: "Looks, Referenzen und Farbwelt gemeinsam absegnen.", audience: "client", status: "requested", due: "vor dem Shooting" }, { text: "Finale Bildauswahl freigeben", audience: "client", status: "pending" }] },
+  { type: "moodboard", microTitle: "Moodboard", description: "Visuelle Richtung, Referenzen und No-Gos.", placeholder: "Referenzen hochladen…", directions: [
+    { label: "Weiches Seitenlicht", note: "Natürlich, ruhig, nicht zu kontrastig.", status: "approved" },
+    { label: "Warme Hauttöne", note: "Editorial, aber nicht orange.", status: "reference" },
+    { label: "Keine Stock-Ästhetik", note: "Nichts zu glatt oder generisch.", status: "avoid" },
+  ] },
+  { type: "shot_list", microTitle: "Shotlist", description: "Motive, Prioritäten und Produktionsstatus.", shots: [
+    { label: "Hero-Porträt", purpose: "Website", setup: "Fensterlicht", location: "Studio", priority: "must", status: "planned" },
+    { label: "Detail Hände / Prozess", purpose: "Social", setup: "Arbeitstisch", priority: "should", status: "captured" },
+    { label: "Produkt mit Verpackung", purpose: "Shop", setup: "Clean background", priority: "must", status: "selected" },
+  ] },
   { type: "notes", microTitle: "Notizen" },
   { type: "qa", microTitle: "Fragen", questions: [{ text: "Welche Motive haben oberste Priorität?" }, { text: "Welche Nutzungsrechte werden gebraucht?", answerHint: "z. B. Website, Print, Social, Ads" }] },
   { type: "discussion", microTitle: "Diskussion" },

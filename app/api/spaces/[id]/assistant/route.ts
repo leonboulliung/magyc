@@ -36,6 +36,8 @@ function moduleSummary(module: unknown, index: number): string {
     "packages",
     "columns",
     "rows",
+    "shots",
+    "directions",
     "phases",
     "from",
     "to",

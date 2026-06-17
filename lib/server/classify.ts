@@ -58,8 +58,8 @@ const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
   { title: "PLACE", types: ["location_single", "locations_multi", "location_suggestions", "route"] },
   { title: "PEOPLE & WORK", types: ["crew", "work_packages", "deliverables", "checklist"] },
   { title: "DISCUSSION & DECISIONS", types: ["notes", "qa", "poll", "discussion", "approvals"] },
-  { title: "STRUCTURED DATA", types: ["table", "parts_list"] },
-  { title: "MEDIA", types: ["attachments", "images", "audio", "sketch"] },
+  { title: "STRUCTURED DATA", types: ["table", "shot_list", "parts_list"] },
+  { title: "MEDIA", types: ["attachments", "images", "moodboard", "audio", "sketch"] },
 ];
 
 const AI_SCORABLE_TYPES: ModuleType[] = SCORING_GROUPS.flatMap((g) => g.types);
@@ -300,9 +300,11 @@ const SHAPE: Partial<Record<ModuleType, string>> = {
   poll: `{"type":"poll","microTitle":"<short label>","question":"<question>","options":["<opt>","<opt>"]}`,
   discussion: `{"type":"discussion","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
   table: `{"type":"table","microTitle":"<short label>","description":"<optional 1-line context>","columns":["<col>","<col>"],"rows":[["<cell>","<cell>"]]}`,
+  shot_list: `{"type":"shot_list","microTitle":"<short label>","description":"<optional 1-line context>","shots":[{"label":"<shot>","purpose":"<optional>","setup":"<optional>","location":"<optional>","notes":"<optional>","priority":"must|should|nice","status":"planned|captured|selected"}]}`,
   parts_list: `{"type":"parts_list","microTitle":"<short label>","description":"<optional 1-line context>","items":[{"name":"<item>","quantity":"<optional>"}]}`,
   attachments: `{"type":"attachments","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
   images: `{"type":"images","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
+  moodboard: `{"type":"moodboard","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional upload cue>","directions":[{"label":"<visual direction, lighting, colour, pose, styling cue or no-go>","note":"<optional>","status":"reference|approved|avoid"}]}`,
   audio: `{"type":"audio","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
   sketch: `{"type":"sketch","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
 };
@@ -390,8 +392,8 @@ CONTENT RULES:
   titles that don't exist, no fake dates, no fake numbers. If you lack
   a real value for a date/appointment, omit that widget from "body".
 - Use UI CONTEXT as a planning lens. For example, a selected photo shoot
-  project type should make tables useful as shot lists/deliverables,
-  images useful as reference/moodboard slots, checklist useful as prep,
+  project type should make shot_list useful as the capture plan,
+  moodboard useful as reference/visual direction, checklist useful as prep,
   crew useful as roles, and appointments/ranges useful only when the
   input or clarifications provide real timing. Keep unconfirmed details
   phrased as questions, suggestions, or assumptions rather than facts.
@@ -405,7 +407,7 @@ CONTENT RULES:
   location_suggestions (a text list of candidate venues) instead of a
   coordinate map.
 - Seed-content widgets (poll, checklist, crew, work_packages,
-  deliverables, approvals, phases, table, parts_list,
+  deliverables, approvals, phases, table, shot_list, parts_list,
   location_suggestions) must contain real, concrete starter content
   drawn from the input — never empty arrays, never placeholder text
   like "Option 1".

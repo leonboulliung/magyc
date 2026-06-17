@@ -1,6 +1,6 @@
 # magyc.site — Data Contract
 
-**Version:** 1.2.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
+**Version:** 1.3.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
 
 This document is the stable interface of a space. The **presentation
 layer** (renderers, animations, the style system, the grid) may change
@@ -55,11 +55,11 @@ Everything after is the **body** — what the grid renders.
 | Zone   | Types                          | Notes |
 |--------|--------------------------------|-------|
 | header | `heading`, `rich_text`, `tags` | always present, not in grid |
-| body   | the other 28                   | 2–6 chosen by the classifier |
+| body   | the other 30                   | 2–6 chosen by the classifier |
 
 ---
 
-## 3. The 31 widget types
+## 3. The 33 widget types
 
 Each is a discriminated member of `Module`, keyed by `type`. Every
 widget may carry optional `microTitle`, `description`, `attribution`.
@@ -104,10 +104,12 @@ widget may carry optional `microTitle`, `description`, `attribution`.
 
 ### Uploads (Supabase Storage)
 - `attachments`, `images`, `audio` — `{ placeholder? }`
+- `moodboard` — `{ placeholder?, directions: {label,note?,status?}[] }`
 
 ### Specialty
 - `sketch` — `{ placeholder? }`
 - `table` — `{ columns: string[], rows: string[][] }`
+- `shot_list` — `{ shots: {label,purpose?,setup?,location?,notes?,priority?,status?}[] }`
 - `parts_list` — `{ items: {name,quantity?,imageUrl?}[] }`
 - `gif` — `{ gifUrl, thumbnailUrl? }`
 
@@ -128,9 +130,9 @@ widgets are dropped, not trusted.
 | `check`  | checklist, approvals            | `{ itemKey, checked }` |
 | `claim`  | crew, work_packages, deliverables, approvals | `{ slotLabel, claimed? }` — false = release |
 | `voice`  | qa, discussion                  | `{ id, text, role?, parentId? }` |
-| `edit`   | notes, table, deliverables, approvals | `{ id?, text?, status?, due?, ... }` (last-write-wins) |
-| `add`    | notes, checklist, deliverables, approvals, parts_list, … | free per widget (e.g. `{ id, text }`) |
-| `upload` | attachments, images, audio      | `{ url, name, size?, mimeType?, path? }` |
+| `edit`   | notes, table, shot_list, deliverables, approvals | `{ id?, text?, status?, due?, ... }` (last-write-wins) |
+| `add`    | notes, checklist, shot_list, deliverables, approvals, parts_list, … | free per widget (e.g. `{ id, text }`) |
+| `upload` | attachments, images, moodboard, audio | `{ url, name, size?, mimeType?, path? }` |
 | `stroke` | sketch                          | `{ path, color?, width? }` |
 
 Every action snapshots `data.color` (the actor's accent) so attribution

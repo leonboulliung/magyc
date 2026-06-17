@@ -15,6 +15,7 @@ import { RangeRenderer } from "./RangeRenderer";
 import { AiSummaryRenderer } from "./AiSummaryRenderer";
 import { NotesRenderer } from "./NotesRenderer";
 import { TableRenderer } from "./TableRenderer";
+import { ShotListRenderer } from "./ShotListRenderer";
 import { PartsListRenderer } from "./PartsListRenderer";
 import { ChecklistRenderer } from "./ChecklistRenderer";
 import { PollRenderer } from "./PollRenderer";
@@ -42,6 +43,7 @@ const LocationSuggestionsRenderer = dynamic(() => import("./LocationSuggestionsR
 const RouteRenderer = dynamic(() => import("./RouteRenderer").then((mod) => mod.RouteRenderer), { loading: () => <LoadingPlaceholder type="route" /> });
 const AttachmentsRenderer = dynamic(() => import("./AttachmentsRenderer").then((mod) => mod.AttachmentsRenderer), { loading: () => <LoadingPlaceholder type="attachments" /> });
 const ImagesRenderer = dynamic(() => import("./ImagesRenderer").then((mod) => mod.ImagesRenderer), { loading: () => <LoadingPlaceholder type="images" /> });
+const MoodboardRenderer = dynamic(() => import("./MoodboardRenderer").then((mod) => mod.MoodboardRenderer), { loading: () => <LoadingPlaceholder type="moodboard" /> });
 const AudioRenderer = dynamic(() => import("./AudioRenderer").then((mod) => mod.AudioRenderer), { loading: () => <LoadingPlaceholder type="audio" /> });
 const GifRenderer = dynamic(() => import("./GifRenderer").then((mod) => mod.GifRenderer), { loading: () => <LoadingPlaceholder type="gif" /> });
 const SketchRenderer = dynamic(() => import("./SketchRenderer").then((mod) => mod.SketchRenderer), { loading: () => <LoadingPlaceholder type="sketch" /> });
@@ -84,6 +86,8 @@ export function WidgetDispatcher({
       return <NotesRenderer module={m} index={index} state={s} />;
     case "table":
       return <TableRenderer module={m} index={index} />;
+    case "shot_list":
+      return <ShotListRenderer module={m} index={index} state={s} />;
     case "parts_list":
       return <PartsListRenderer module={m} index={index} state={s} />;
     case "checklist":
@@ -134,6 +138,8 @@ export function WidgetDispatcher({
       return <AttachmentsRenderer module={m} index={index} state={s} />;
     case "images":
       return <ImagesRenderer module={m} index={index} state={s} />;
+    case "moodboard":
+      return <MoodboardRenderer module={m} index={index} state={s} />;
     case "audio":
       return <AudioRenderer module={m} index={index} state={s} />;
 
@@ -146,7 +152,7 @@ export function WidgetDispatcher({
       return <SketchRenderer module={m} index={index} state={s} />;
 
     default:
-      // Exhaustive match — all 31 widget types are handled above.
+      // Exhaustive match — all 33 widget types are handled above.
       // This branch is a forward-compat safety net for new types added
       // before a renderer is built.
       return <PendingPlaceholder type={(m as { type: string }).type} />;

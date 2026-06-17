@@ -2,7 +2,7 @@
  * v4 — types.
  *
  * A space is a workspace built from a sequence of typed widgets. There
- * are 31 widget kinds in the registry (3 header-zone, 28 body). The
+ * are 33 widget kinds in the registry (3 header-zone, 30 body). The
  * agent classifies the user's input, picks which widgets fit, and
  * configures each.
  *
@@ -323,6 +323,24 @@ export interface ImagesWidget extends WidgetBase {
   placeholder?: string;
 }
 
+export type MoodboardDirectionStatus = "reference" | "approved" | "avoid";
+
+/**
+ * Moodboard — first-class visual direction for photo productions.
+ * Reference images are collaborative uploads in module_state; seeded
+ * directions live in config so AI/presets can describe the intended
+ * light, colour, poses, styling, and no-gos without inventing assets.
+ */
+export interface MoodboardWidget extends WidgetBase {
+  type: "moodboard";
+  placeholder?: string;
+  directions: {
+    label: string;
+    note?: string;
+    status?: MoodboardDirectionStatus;
+  }[];
+}
+
 export interface AudioWidget extends WidgetBase {
   type: "audio";
   placeholder?: string;
@@ -345,6 +363,27 @@ export interface TableWidget extends WidgetBase {
   type: "table";
   columns: string[];
   rows: string[][];
+}
+
+export type ShotPriority = "must" | "should" | "nice";
+export type ShotStatus = "planned" | "captured" | "selected";
+
+/**
+ * Shotlist — production-critical list of images to capture. Unlike
+ * the generic table, rows have shoot semantics: purpose, setup,
+ * location, priority and capture/selection status.
+ */
+export interface ShotListWidget extends WidgetBase {
+  type: "shot_list";
+  shots: {
+    label: string;
+    purpose?: string;
+    setup?: string;
+    location?: string;
+    notes?: string;
+    priority?: ShotPriority;
+    status?: ShotStatus;
+  }[];
 }
 
 /** Utensilien — parts list / BOM with image and name per item. */
@@ -389,9 +428,11 @@ export type Module =
   | ChecklistWidget
   | AttachmentsWidget
   | ImagesWidget
+  | MoodboardWidget
   | AudioWidget
   | SketchWidget
   | TableWidget
+  | ShotListWidget
   | PartsListWidget
   | GifWidget;
 
@@ -402,7 +443,7 @@ export const ALL_MODULE_TYPES: readonly ModuleType[] = [
   "heading",
   "rich_text",
   "tags",
-  // Body widgets (28)
+  // Body widgets (30)
   "wikipedia",
   "ai_summary",
   "icon",
@@ -426,9 +467,11 @@ export const ALL_MODULE_TYPES: readonly ModuleType[] = [
   "checklist",
   "attachments",
   "images",
+  "moodboard",
   "audio",
   "sketch",
   "table",
+  "shot_list",
   "parts_list",
   "gif",
 ] as const;

@@ -93,25 +93,6 @@ lighter CSS emergent backdrop and the build shows `/` at ~15.9 kB route size /
 acquisition traffic starts, especially because Clerk sign-in chrome remains
 on the public nav.
 
-### 17. Photography specialty elements — build only Moodboard + Shotlist first
-Leon wants MAGYC to stay flexible via project-type presets and future user
-presets, not a locked-down photographer-only board. Evaluation, 2026-06-17:
-most requested photography tools can reuse existing widgets without becoming
-duplicates:
-- Briefing → rich_text + qa + attachments, authored with better photo prompts.
-- Location plan → location_suggestions / locations_multi, with shoot-specific
-  labels and shape hints.
-- Schedule / call sheet → appointments, with shoot-block labels.
-- Team / roles → crew, seeded with photography roles.
-- Styling / props and equipment → parts_list, seeded as separate widgets when
-  both are needed.
-- Deliverables / approvals → existing deliverables + approvals.
-
-The two real gaps are **Moodboard** and **Shotlist**: `images` is only an upload
-gallery (no visual direction / approval / reference notes), and `table` is too
-generic for production-critical shot status. Build these as first-class widget
-types before adding more photography-specific data shapes.
-
 ---
 
 ## P3 — infrastructure & hygiene
@@ -178,6 +159,14 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Photography specialty elements: Moodboard + Shotlist**:
+  added first-class `moodboard` and `shot_list` widget types, renderers,
+  sanitizers, picker entries, classifier authoring shapes, photo-shoot score
+  bias, dev showroom fixtures, assistant context keys, and data contract
+  version `1.3.0`. Existing widgets remain the preferred implementation for
+  Briefing, Location Plan, Schedule, Team/Roles, Styling/Props, Gear,
+  Deliverables, and Approvals to avoid duplicate functionality. Future product
+  lever: preset builder / user presets.
 - 2026-06-17 · **Wiki/GIF hidden from active creation**: removed `wikipedia` from
   AI scoring/authoring and removed both `wikipedia` and `gif` from the manual
   add-widget picker. Types/renderers remain for backward compatibility with old

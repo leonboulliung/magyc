@@ -42,7 +42,7 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
       { label: "Add deliverables?", text: "Include final deliverables and approval points." },
     ],
     authoringGuide:
-      "Prefer a practical shoot workspace over generic brainstorming. Use images as references or moodboard slots, table as a shot list, checklist as prep, crew as confirmable roles, deliverables for concrete outputs, approvals for sign-off moments, parts_list as props / looks / gear, attachments as brief or call-sheet support, and qa for client questions. When something is not confirmed, phrase it as a proposal, checklist item, deliverable expectation, approval step, or open question rather than a fact.",
+      "Prefer a practical shoot workspace over generic brainstorming. Use moodboard for visual direction and references, shot_list for the concrete capture plan, checklist as prep, crew as confirmable roles, deliverables for concrete outputs, approvals for sign-off moments, parts_list as props / looks / gear, attachments as brief or call-sheet support, and qa for client questions. Keep table/images available only when they are genuinely generic data or image collections rather than moodboard/shotlist substitutes. When something is not confirmed, phrase it as a proposal, checklist item, deliverable expectation, approval step, or open question rather than a fact.",
     scoreBias: {
       ai_summary: 1,
       location_suggestions: 1,
@@ -54,17 +54,19 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
       deliverables: 4,
       approvals: 2,
       qa: 2,
-      table: 4,
+      shot_list: 5,
+      moodboard: 5,
+      table: -1,
       parts_list: 2,
       attachments: 2,
-      images: 4,
+      images: -1,
       sketch: 1,
       notes: -2,
       discussion: -2,
     },
     shapeHints: {
-      images:
-        `{"type":"images","microTitle":"<e.g. References>","description":"<1 short line inviting visual references or moodboard uploads>","placeholder":"<brief upload cue like 'Upload references, lighting, styling, or location ideas.'>"}`,
+      moodboard:
+        `{"type":"moodboard","microTitle":"<e.g. Moodboard>","description":"<1 short line about the shared visual direction>","placeholder":"<brief upload cue like 'Upload references, lighting, styling, poses, or no-gos.'>","directions":[{"label":"Lighting direction","note":"<what the light should feel like, if inferable>","status":"reference"},{"label":"Colour / mood","note":"<visual mood cue from the brief>","status":"reference"},{"label":"No-go","note":"<only if the input implies something to avoid>","status":"avoid"}]}`,
       checklist:
         `{"type":"checklist","microTitle":"<e.g. Prep>","description":"<1 short line about what must be ready before the shoot>","items":[{"text":"Confirm final looks or products"},{"text":"Align on location details and timing"},{"text":"Prepare props, wardrobe, or brand materials"}]}`,
       crew:
@@ -75,8 +77,8 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
         `{"type":"approvals","microTitle":"<e.g. Approvals>","description":"<1 short line about what needs sign-off>","items":[{"text":"Moodboard and visual direction","audience":"client","status":"requested"},{"text":"Final shot list or priorities","audience":"client","status":"pending"},{"text":"Final image selection","audience":"client","status":"pending"}]}`,
       qa:
         `{"type":"qa","microTitle":"<e.g. Client questions>","description":"<1 short line about clarifying remaining client decisions>","placeholder":"<brief cue like 'Add open questions, missing details, or client notes.'>","questions":[{"text":"What must these images achieve?"},{"text":"Which usage rights or channels matter most?"},{"text":"What still feels open before we lock the plan?"}]}`,
-      table:
-        `{"type":"table","microTitle":"<e.g. Shot list>","description":"<1 short line explaining what the team should align on>","columns":["Shot","Purpose","Location","Notes"],"rows":[["Hero portrait","Website / campaign","Main setup","Natural light, direct eye contact"],["Hands / process detail","Supporting asset","Work table","Tighter crop or detail frame"]]}`,
+      shot_list:
+        `{"type":"shot_list","microTitle":"<e.g. Shotlist>","description":"<1 short line explaining what must be captured>","shots":[{"label":"Hero image","purpose":"Website / campaign","setup":"Main setup","location":"<if known>","notes":"<framing or light cue>","priority":"must","status":"planned"},{"label":"Detail / process shot","purpose":"Supporting asset","setup":"Work table or product detail","priority":"should","status":"planned"}]}`,
       parts_list:
         `{"type":"parts_list","microTitle":"<e.g. Props & looks>","description":"<1 short line about what needs to be brought or prepared>","items":[{"name":"Hero look / outfit","quantity":"1-2 options"},{"name":"Key prop or product","quantity":"Final version ready"},{"name":"Brand material / packaging","quantity":"If needed on set"}]}`,
       attachments:
