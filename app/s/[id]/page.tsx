@@ -17,11 +17,20 @@ export const dynamic = "force-dynamic";
  */
 const getSpace = cache((id: string) => fetchSpaceById(id).catch(() => null));
 
+async function blocksPrivateSuiteLink(space: Awaited<ReturnType<typeof getSpace>>) {
+  if (!space || space.stage === null || space.shared) return false;
+  const { userId } = await auth();
+  return !userId || space.owner?.id !== userId;
+}
+
 export async function generateMetadata(
   { params }: { params: { id: string } },
 ): Promise<Metadata> {
   const space = await getSpace(params.id);
   if (!space) return { title: "—", robots: { index: false, follow: false } };
+  if (await blocksPrivateSuiteLink(space)) {
+    return { title: "—", robots: { index: false, follow: false } };
+  }
   return {
     title: space.title || "MAGYC",
     description: space.inputText.slice(0, 200),
@@ -47,10 +56,7 @@ export default async function SpacePage({ params }: { params: { id: string } }) 
   // Suite projects are private until shared: a non-owner opening an
   // unshared project's link gets a 404. Anonymous/published spaces
   // (stage === null) are unaffected and stay public-by-id.
-  if (space && space.stage !== null && !space.shared) {
-    const { userId } = await auth();
-    if (!userId || space.owner?.id !== userId) notFound();
-  }
+  if (await blocksPrivateSuiteLink(space)) notFound();
 
   return <SpaceView id={params.id} initialSpace={space} />;
 }

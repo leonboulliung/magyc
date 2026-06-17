@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
 
@@ -27,6 +27,10 @@ export function ShareDialog({
   const [copied, setCopied] = useState(false);
 
   const link = typeof window !== "undefined" ? `${window.location.origin}/s/${id}` : `/s/${id}`;
+
+  useEffect(() => {
+    setShared(initialShared);
+  }, [initialShared, open]);
 
   async function toggle(next: boolean) {
     if (busy) return;
