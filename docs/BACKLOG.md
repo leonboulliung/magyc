@@ -159,6 +159,19 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Stability audit fixes: picker defaults, picker scroll, auth return**:
+  root causes found during an architecture pass. Some manual add-widget entries
+  posted invalid default configs (`appointments`, `locations_multi`,
+  `location_suggestions`, `route`, `parts_list`) because the picker used empty
+  arrays while `sanitizeModule()` requires at least one valid item/stop. The
+  picker also had nested scroll containers (inner `WidgetPickerContent` plus
+  popover/mobile sheet), making scroll feel sticky. Finally `/studio` redirected
+  signed-out users to `/?next=/studio`, but the marketing `SignInButton` ignored
+  that target, so users could authenticate and remain outside the app. Fixed
+  defaults, moved scrolling to the owning container, and wired sign-in/sign-up
+  redirect URLs to `/studio` or the safe `next` path. Follow-up risk: project
+  APIs still duplicate owner checks instead of consistently reusing
+  `isSpaceOwner`, and config writes still need the `modules_rev` fix in P1 #3.
 - 2026-06-17 · **Photography specialty elements: Moodboard + Shotlist**:
   added first-class `moodboard` and `shot_list` widget types, renderers,
   sanitizers, picker entries, classifier authoring shapes, photo-shoot score

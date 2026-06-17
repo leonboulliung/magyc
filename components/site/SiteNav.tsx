@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
 import { MAIN_NAV, USE_CASES, isNavGroup } from "@/lib/site";
@@ -14,6 +14,14 @@ import { MAIN_NAV, USE_CASES, isNavGroup } from "@/lib/site";
  */
 export function SiteNav() {
   const [open, setOpen] = useState(false);
+  const [signInTarget, setSignInTarget] = useState("/studio");
+
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      setSignInTarget(next);
+    }
+  }, []);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -56,7 +64,13 @@ export function SiteNav() {
               </Link>
             ),
           )}
-          <SignInButton mode="modal">
+          <SignInButton
+            mode="modal"
+            forceRedirectUrl={signInTarget}
+            fallbackRedirectUrl={signInTarget}
+            signUpForceRedirectUrl={signInTarget}
+            signUpFallbackRedirectUrl={signInTarget}
+          >
             <button type="button" className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
               Anmelden
             </button>
@@ -103,7 +117,13 @@ export function SiteNav() {
               })}
             </div>
             <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
-              <SignInButton mode="modal">
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl={signInTarget}
+                fallbackRedirectUrl={signInTarget}
+                signUpForceRedirectUrl={signInTarget}
+                signUpFallbackRedirectUrl={signInTarget}
+              >
                 <button type="button" className="font-body text-[15px] text-white/70 hover:text-white">Anmelden</button>
               </SignInButton>
               <Link href="/#start" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-white px-4 py-2 font-body text-sm font-medium text-black">

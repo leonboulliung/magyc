@@ -205,16 +205,16 @@ function defaultWidget(type: ModuleType): Module | null {
     case "checklist":            return { type, items: [] };
     case "date":                 return { type, date: today };
     case "appointment":          return { type, datetime: now };
-    case "appointments":         return { type, entries: [] };
+    case "appointments":         return { type, entries: [{ datetime: now, label: "…" }] };
     case "range":                return { type, unit: "generic", from: "—", to: "—" };
     case "phases":               return { type, phases: [{ label: "I" }, { label: "II" }, { label: "III" }], currentPhase: 0 };
     case "location_single":      return { type, center: [2.3522, 48.8566], zoom: 13, label: "Paris" };
-    case "locations_multi":      return { type, locations: [] };
-    case "location_suggestions": return { type, suggestions: [] };
-    case "route":                return { type, stops: [] };
+    case "locations_multi":      return { type, locations: [{ lng: 2.3522, lat: 48.8566, label: "…" }] };
+    case "location_suggestions": return { type, suggestions: [{ label: "…" }] };
+    case "route":                return { type, stops: [{ lng: 2.3522, lat: 48.8566, label: "A" }, { lng: 2.3601, lat: 48.8529, label: "B" }] };
     case "table":                return { type, columns: ["A", "B", "C"], rows: [["", "", ""]] };
     case "shot_list":            return { type, shots: [{ label: "…", priority: "must", status: "planned" }] };
-    case "parts_list":           return { type, items: [] };
+    case "parts_list":           return { type, items: [{ name: "…" }] };
     case "attachments":          return { type };
     case "images":               return { type };
     case "moodboard":            return { type, directions: [{ label: "…" }] };
@@ -237,10 +237,10 @@ export function WidgetPickerContent({
   const emergent = ctx.labels.widgetLabels;
 
   return (
-    // Width is owned by the container (desktop popover / mobile sheet);
-    // the inner scroll keeps the long list usable inside the popover,
-    // whose wrapper is overflow-hidden.
-    <div style={{ width: "100%", maxHeight: "min(70vh, 460px)", overflowY: "auto" }}>
+    // Width and scrolling are owned by the container (desktop popover /
+    // mobile sheet). Keeping this layer unscrollable prevents nested
+    // scroll areas, which felt sticky and unnatural in the picker.
+    <div style={{ width: "100%" }}>
       {GROUPS.map((group, gi) => (
         <div key={gi} style={{ borderBottom: gi < GROUPS.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
           <div

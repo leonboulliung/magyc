@@ -437,7 +437,7 @@ function AddButton({
       side="top"
       sideOffset={8}
       width="min(360px, calc(100vw - 24px))"
-      contentStyle={{ maxHeight: "min(70vh, 460px)" }}
+      contentStyle={{ maxHeight: "min(70vh, 460px)", overflowY: "auto" }}
       trigger={
         <motion.button
           type="button"
