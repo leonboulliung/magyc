@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SignInButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { MAIN_NAV, USE_CASES, isNavGroup } from "@/lib/site";
 
 /**
@@ -64,20 +64,30 @@ export function SiteNav() {
               </Link>
             ),
           )}
-          <SignInButton
-            mode="modal"
-            forceRedirectUrl={signInTarget}
-            fallbackRedirectUrl={signInTarget}
-            signUpForceRedirectUrl={signInTarget}
-            signUpFallbackRedirectUrl={signInTarget}
-          >
-            <button type="button" className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
-              Anmelden
-            </button>
-          </SignInButton>
-          <Link href="/#start" className="rounded-full bg-white px-4 py-1.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
-            Kostenlos testen
-          </Link>
+          <SignedOut>
+            <SignInButton
+              mode="modal"
+              forceRedirectUrl={signInTarget}
+              fallbackRedirectUrl={signInTarget}
+              signUpForceRedirectUrl={signInTarget}
+              signUpFallbackRedirectUrl={signInTarget}
+            >
+              <button type="button" className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
+                Anmelden
+              </button>
+            </SignInButton>
+            <Link href="/#start" className="rounded-full bg-white px-4 py-1.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
+              Kostenlos testen
+            </Link>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/studio" className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
+              Studio
+            </Link>
+            <Link href="/studio/new" className="rounded-full bg-white px-4 py-1.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
+              Neues Projekt
+            </Link>
+          </SignedIn>
         </nav>
 
         {/* ── Mobile burger ───────────────────────────────────── */}
@@ -117,18 +127,28 @@ export function SiteNav() {
               })}
             </div>
             <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
-              <SignInButton
-                mode="modal"
-                forceRedirectUrl={signInTarget}
-                fallbackRedirectUrl={signInTarget}
-                signUpForceRedirectUrl={signInTarget}
-                signUpFallbackRedirectUrl={signInTarget}
-              >
-                <button type="button" className="font-body text-[15px] text-white/70 hover:text-white">Anmelden</button>
-              </SignInButton>
-              <Link href="/#start" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-white px-4 py-2 font-body text-sm font-medium text-black">
-                Kostenlos testen
-              </Link>
+              <SignedOut>
+                <SignInButton
+                  mode="modal"
+                  forceRedirectUrl={signInTarget}
+                  fallbackRedirectUrl={signInTarget}
+                  signUpForceRedirectUrl={signInTarget}
+                  signUpFallbackRedirectUrl={signInTarget}
+                >
+                  <button type="button" className="font-body text-[15px] text-white/70 hover:text-white">Anmelden</button>
+                </SignInButton>
+                <Link href="/#start" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-white px-4 py-2 font-body text-sm font-medium text-black">
+                  Kostenlos testen
+                </Link>
+              </SignedOut>
+              <SignedIn>
+                <Link href="/studio" onClick={() => setOpen(false)} className="font-body text-[15px] text-white/70 hover:text-white">
+                  Studio
+                </Link>
+                <Link href="/studio/new" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-white px-4 py-2 font-body text-sm font-medium text-black">
+                  Neues Projekt
+                </Link>
+              </SignedIn>
             </div>
           </div>
         </div>

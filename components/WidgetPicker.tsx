@@ -122,9 +122,13 @@ interface PickerEntry { type: ModuleType; symbol: string }
 
 const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
   {
-    symbol: "✦",
+    symbol: "▧",
     entries: [
-      { type: "ai_summary", symbol: "✦" },
+      { type: "moodboard",   symbol: "▧" },
+      { type: "shot_list",   symbol: "▤" },
+      { type: "images",      symbol: "▨" },
+      { type: "attachments", symbol: "□" },
+      { type: "parts_list",  symbol: "≡" },
     ],
   },
   {
@@ -169,16 +173,12 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
     symbol: "▦",
     entries: [
       { type: "table",      symbol: "▦" },
-      { type: "shot_list",  symbol: "▤" },
-      { type: "parts_list", symbol: "≡" },
     ],
   },
   {
-    symbol: "▨",
+    symbol: "✦",
     entries: [
-      { type: "attachments", symbol: "□" },
-      { type: "images",      symbol: "▨" },
-      { type: "moodboard",   symbol: "▧" },
+      { type: "ai_summary", symbol: "✦" },
       { type: "audio",       symbol: "♫" },
       { type: "sketch",      symbol: "○" },
     ],
@@ -227,11 +227,7 @@ function defaultWidget(type: ModuleType): Module | null {
 // ── Content ──────────────────────────────────────────────────────────
 // Just the grouped grid of widget types. Dismissal / positioning /
 // focus are owned by the Radix Popover this is rendered inside.
-export function WidgetPickerContent({
-  onPick,
-}: {
-  onPick: (widget: Module) => void;
-}) {
+export function WidgetPickerContent({ onPick }: { onPick: (widget: Module) => void }) {
   const ctx = useWidgetContext();
   const lang = ctx.language || "en";
   const emergent = ctx.labels.widgetLabels;

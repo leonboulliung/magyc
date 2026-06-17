@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import {
   DndContext,
@@ -25,8 +26,6 @@ import { useIsMobile } from "@/lib/hooks";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
 import { CellChromeContext } from "./widgets/cellChrome";
 import { WidgetPickerContent } from "./WidgetPicker";
-import { Popover } from "./ui/Popover";
-import { MobileSheet } from "./ui/MobileSheet";
 
 /**
  * GridZone — the body widget area of a space.
@@ -93,6 +92,7 @@ export function GridZone({
   const [fullWidth, setFullWidth] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [addError, setAddError] = useState("");
 
   const sensors = useSensors(
     // A small distance threshold means a click on the grip that doesn't
@@ -158,6 +158,11 @@ export function GridZone({
   // ── Add (optimistic) ────────────────────────────────────────────
   async function addWidget(widget: Module) {
     setPickerOpen(false);
+    setAddError("");
+    const previous = optimisticItems;
+    const visible = optimisticItems ?? bodyItems;
+    const optimisticIndex = headerModules.length + visible.length;
+    setOptimisticItems([...visible, { module: widget, index: optimisticIndex }]);
     setBusy(true);
     try {
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
@@ -166,13 +171,27 @@ export function GridZone({
         body: body({ widget }),
       });
       const json = await res.json().catch(() => ({} as { index?: number }));
+      if (!res.ok) {
+        const message = json && typeof json === "object" && "error" in json
+          ? String((json as { error?: unknown }).error || "add_failed")
+          : "add_failed";
+        throw new Error(message);
+      }
       const realIndex = typeof json.index === "number" ? json.index : null;
+      if (realIndex !== null && realIndex !== optimisticIndex) {
+        setOptimisticItems((current) => current
+          ? current.map((it) => (it.index === optimisticIndex ? { ...it, index: realIndex } : it))
+          : current);
+      }
       // Manual adds of AI-authorable widgets should NOT keep their dumb
       // placeholder (e.g. icon = star). Author it from space context.
       if (realIndex !== null && AI_FILL_ON_ADD.has(widget.type)) {
         await fillFromContext(realIndex);
       }
       onRefresh();
+    } catch (error) {
+      setOptimisticItems(previous);
+      setAddError(error instanceof Error ? error.message : "add_failed");
     } finally {
       setBusy(false);
     }
@@ -239,7 +258,14 @@ export function GridZone({
               </p>
             )}
             {isOwner && (
-              <AddButton open={pickerOpen} busy={busy} onToggle={() => setPickerOpen((v) => !v)} onClose={() => setPickerOpen(false)} onPick={addWidget} />
+              <AddButton
+                open={pickerOpen}
+                busy={busy}
+                error={addError}
+                onToggle={() => setPickerOpen((v) => !v)}
+                onClose={() => setPickerOpen(false)}
+                onPick={addWidget}
+              />
             )}
           </div>
         ) : (
@@ -275,8 +301,15 @@ export function GridZone({
             </DndContext>
 
             {isOwner && (
-              <div className="flex justify-center mt-4">
-                <AddButton open={pickerOpen} busy={busy} onToggle={() => setPickerOpen((v) => !v)} onClose={() => setPickerOpen(false)} onPick={addWidget} />
+              <div className="flex flex-col items-center gap-2 mt-4">
+                <AddButton
+                  open={pickerOpen}
+                  busy={busy}
+                  error={addError}
+                  onToggle={() => setPickerOpen((v) => !v)}
+                  onClose={() => setPickerOpen(false)}
+                  onPick={addWidget}
+                />
               </div>
             )}
           </>
@@ -392,56 +425,26 @@ function SortableCell({
 function AddButton({
   open,
   busy,
+  error,
   onToggle,
   onClose,
   onPick,
 }: {
   open: boolean;
   busy: boolean;
+  error: string;
   onToggle: () => void;
   onClose: () => void;
   onPick: (w: Module) => void;
 }) {
-  const isMobile = useIsMobile();
-
-  // On phones the picker is a full-width bottom sheet (big tap targets,
-  // dismiss on backdrop) instead of a popover anchored to a centered
-  // button at the bottom of a long grid, which was awkward to reach.
-  if (isMobile) {
-    return (
-      <>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onToggle}
-          className="mono text-[11px] tracking-widest px-6 py-2.5 rounded-full disabled:opacity-30"
-          style={{
-            border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
-            color: "var(--v-fg)",
-            background: open ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.05)",
-          }}
-        >
-          {busy ? "…" : "+"}
-        </button>
-        <MobileSheet open={open} onClose={onClose} title="add widget">
-          <WidgetPickerContent onPick={(w) => { onPick(w); onClose(); }} />
-        </MobileSheet>
-      </>
-    );
-  }
-
   return (
-    <Popover
-      open={open}
-      onOpenChange={(o) => (o ? onToggle() : onClose())}
-      side="top"
-      sideOffset={8}
-      width="min(360px, calc(100vw - 24px))"
-      contentStyle={{ maxHeight: "min(70vh, 460px)", overflowY: "auto" }}
-      trigger={
+    <>
+      <div className="flex flex-col items-center gap-2">
         <motion.button
           type="button"
           disabled={busy}
+          onClick={onToggle}
+          aria-expanded={open}
           className="mono text-[11px] tracking-widest px-5 py-2 rounded-full disabled:opacity-30"
           style={{
             border: `1px dashed ${open ? "var(--v-fg)" : "var(--v-rule)"}`,
@@ -454,11 +457,112 @@ function AddButton({
         >
           {busy ? "…" : "+"}
         </motion.button>
-      }
-    >
-      <WidgetPickerContent
-        onPick={(w) => { onPick(w); onClose(); }}
+        {error && (
+          <div className="mono max-w-[280px] text-center text-[9px] tracking-widest opacity-70" style={{ color: "var(--v-fg)" }}>
+            {error}
+          </div>
+        )}
+      </div>
+      <WidgetPickerOverlay
+        open={open}
+        onClose={onClose}
+        onPick={(w) => {
+          onPick(w);
+          onClose();
+        }}
       />
-    </Popover>
+    </>
+  );
+}
+
+function WidgetPickerOverlay({
+  open,
+  onClose,
+  onPick,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onPick: (w: Module) => void;
+}) {
+  const [target, setTarget] = useState<Element | null>(null);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setTarget(document.querySelector(".vibe-root") ?? document.body);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!target || !open) return null;
+
+  return createPortal(
+    <>
+      <motion.button
+        type="button"
+        aria-label="close widget picker"
+        className="fixed inset-0 z-50 cursor-default"
+        style={{ background: "rgba(0,0,0,0.42)" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.14 }}
+        onClick={onClose}
+      />
+      <div
+        className={`fixed z-50 pointer-events-none ${isMobile ? "inset-x-0 bottom-0 p-3" : "inset-0 flex items-center justify-center p-5"}`}
+      >
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="add widget"
+          initial={{ opacity: 0, y: isMobile ? 28 : 10, scale: isMobile ? 1 : 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: isMobile ? 28 : 10, scale: isMobile ? 1 : 0.97 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className={`pointer-events-auto flex w-full flex-col overflow-hidden ${isMobile ? "rounded-t-[var(--v-radius)]" : "rounded-[var(--v-radius)]"}`}
+          style={{
+            maxWidth: isMobile ? undefined : 560,
+            maxHeight: isMobile ? "82dvh" : "min(78dvh, 640px)",
+            background: "var(--v-bg)",
+            border: "1px solid var(--v-rule)",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.36)",
+          }}
+        >
+          <div
+            className="flex shrink-0 items-center justify-between gap-3 px-4 py-3"
+            style={{ borderBottom: "1px solid var(--v-rule)" }}
+          >
+            <div className="mono text-[10px] uppercase tracking-[0.22em]" style={{ color: "var(--v-muted)" }}>
+              Baustein hinzufügen
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="close"
+              className="mono rounded-full px-2 py-1 text-[11px]"
+              style={{ color: "var(--v-muted)", border: "1px solid var(--v-rule)" }}
+            >
+              ×
+            </button>
+          </div>
+          <div className="min-h-0 overflow-y-auto overscroll-contain">
+            <WidgetPickerContent onPick={onPick} />
+          </div>
+        </motion.div>
+      </div>
+    </>,
+    target,
   );
 }

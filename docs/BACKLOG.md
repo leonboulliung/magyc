@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, photography element scope)_
+_Last updated: 2026-06-17 (Codex, picker/auth stability follow-up)_
 
 ---
 
@@ -159,6 +159,17 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Widget picker and marketing app-entry follow-up**:
+  the first picker fix removed one nested scroll layer but kept the wrong
+  interaction model: the full element library still opened as a small popover
+  anchored to the plus button near the bottom of the workspace, so long lists
+  were clipped and photography elements such as Moodboard felt missing. Rebuilt
+  manual add as a viewport overlay portaled to `.vibe-root`, with one natural
+  scroll area, photography-first ordering (Moodboard/Shotlist visible first),
+  optimistic widget insertion, and explicit add errors. Also changed the
+  marketing nav from a permanent "Anmelden" button to auth-aware actions:
+  signed-out users can sign in with `/studio` as target; signed-in users see
+  direct Studio / Neues Projekt links.
 - 2026-06-17 · **Stability audit fixes: picker defaults, picker scroll, auth return**:
   root causes found during an architecture pass. Some manual add-widget entries
   posted invalid default configs (`appointments`, `locations_multi`,
