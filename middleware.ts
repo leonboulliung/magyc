@@ -16,7 +16,7 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   }
 
   if (isStudio(request)) {
-    await auth.protect();
+    await auth.protect({ unauthenticatedUrl: "/" });
   }
 });
 
