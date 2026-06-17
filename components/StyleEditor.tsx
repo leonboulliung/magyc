@@ -2,16 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 import type { SpaceStyle } from "@/lib/types";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { useIsMobile } from "@/lib/hooks";
+import { apiErrorMessage, withOwnerToken } from "@/lib/client/errors";
 import { MobileSheet } from "./ui/MobileSheet";
 
 /**
- * StyleEditor — owner-only popover to edit a space's visual style:
- * font (Google Fonts) + three colors. Changes preview live (via
- * onPreview, which re-paints the CSS vars + loads the font) and persist
- * with a short debounce.
+ * StyleEditor — owner-only popover to edit the few style controls that
+ * still matter in the black workspace system: font and accent. The canvas
+ * and text colours are fixed for readability.
  */
 const CATEGORY_LABEL: Record<string, string> = {
   sans: "Sans", serif: "Serif", mono: "Mono", display: "Display", hand: "Hand",
@@ -53,14 +54,18 @@ export function StyleEditor({
       const res = await fetch(`/api/spaces/${spaceId}/style`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ style: next, anonOwnerToken: ownerToken }),
+        body: JSON.stringify(withOwnerToken({ style: next }, ownerToken)),
         keepalive: immediate,
       });
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setStatus("error");
         onPreview(lastSavedRef.current);
         setDraft(lastSavedRef.current);
         draftRef.current = lastSavedRef.current;
+        toast.error("Design nicht gespeichert", {
+          description: apiErrorMessage(json, "Die Design-Aenderung konnte nicht gespeichert werden."),
+        });
         return false;
       }
       lastSavedRef.current = next;
@@ -72,6 +77,9 @@ export function StyleEditor({
       onPreview(lastSavedRef.current);
       setDraft(lastSavedRef.current);
       draftRef.current = lastSavedRef.current;
+      toast.error("Design nicht gespeichert", {
+        description: "Die Design-Aenderung konnte nicht gespeichert werden.",
+      });
       return false;
     }
   }, [onPreview, onSaved, ownerToken, spaceId]);
@@ -133,11 +141,9 @@ export function StyleEditor({
         </select>
       </div>
 
-      {/* Colors */}
+      {/* Accent */}
       <div className="space-y-3">
-        <ColorRow label="ink" hint="text · borders · pins" value={draft.color1} onChange={(c) => update({ color1: c })} />
-        <ColorRow label="accent" hint="widgets · maps" value={draft.color2} onChange={(c) => update({ color2: c })} />
-        <ColorRow label="canvas" hint="page background" value={draft.background} onChange={(c) => update({ background: c })} />
+        <ColorRow label="accent" hint="widgets · maps · highlights" value={draft.color2} onChange={(c) => update({ color2: c })} />
       </div>
 
       <div className="mono text-[9px] tracking-widest opacity-55" style={{ color: "var(--v-muted)" }}>

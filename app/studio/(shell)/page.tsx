@@ -25,7 +25,7 @@ function relTime(ts: number): string {
   return months === 1 ? "vor 1 Monat" : `vor ${months} Monaten`;
 }
 
-export default async function StudioDashboard() {
+export default async function StudioDashboard({ searchParams }: { searchParams?: { view?: string } }) {
   const { userId } = await auth();
   if (!userId) return null; // middleware guards this; defensive.
 
@@ -35,22 +35,51 @@ export default async function StudioDashboard() {
     // owned by this user without a stage are not shown as projects.
     (s) => s.stage !== null,
   );
+  const view = searchParams?.view === "table" ? "table" : "cards";
+  const counts = {
+    brief: projects.filter((p) => p.stage === "brief").length,
+    production: projects.filter((p) => p.stage === "production").length,
+    handoff: projects.filter((p) => p.stage === "handoff").length,
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">Studio</p>
           <h1 className="mt-3 font-brand text-[30px] font-bold tracking-[-0.02em] text-white sm:text-[42px]">
             Deine Projekte
           </h1>
         </div>
-        <Link
-          href="/studio/new"
-          className="shrink-0 rounded-full bg-white px-5 py-2.5 font-body text-sm font-medium text-black transition-all hover:bg-white/85 active:scale-[0.98]"
-        >
-          Neues Projekt
-        </Link>
+        <div className="flex items-center rounded-full border border-white/12 p-1">
+          <Link
+            href="/studio?view=cards"
+            className="rounded-full px-3 py-1.5 font-body text-sm transition-colors"
+            style={{ background: view === "cards" ? "#fff" : "transparent", color: view === "cards" ? "#000" : "rgba(255,255,255,0.65)" }}
+          >
+            Zellen
+          </Link>
+          <Link
+            href="/studio?view=table"
+            className="rounded-full px-3 py-1.5 font-body text-sm transition-colors"
+            style={{ background: view === "table" ? "#fff" : "transparent", color: view === "table" ? "#000" : "rgba(255,255,255,0.65)" }}
+          >
+            Tabelle
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-3 sm:grid-cols-3">
+        {([
+          ["brief", "Briefing"],
+          ["production", "Produktion"],
+          ["handoff", "Übergabe"],
+        ] as const).map(([key, text]) => (
+          <div key={key} className="rounded-2xl border border-white/12 bg-white/[0.035] p-4">
+            <div className="mono text-[10px] uppercase tracking-[0.22em] text-white/40">{text}</div>
+            <div className="mt-3 font-brand text-[28px] font-bold text-white">{counts[key]}</div>
+          </div>
+        ))}
       </div>
 
       {projects.length === 0 ? (
@@ -66,6 +95,39 @@ export default async function StudioDashboard() {
           >
             Erstes Projekt anlegen
           </Link>
+        </div>
+      ) : view === "table" ? (
+        <div className="mt-10 overflow-hidden rounded-2xl border border-white/12">
+          <table className="w-full border-collapse text-left">
+            <thead className="bg-white/[0.04]">
+              <tr className="mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                <th className="px-4 py-3 font-normal">Projekt</th>
+                <th className="px-4 py-3 font-normal">Phase</th>
+                <th className="px-4 py-3 font-normal">Typ</th>
+                <th className="px-4 py-3 font-normal">Erstellt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((p) => (
+                <tr key={p.id} className="border-t border-white/10 text-white/78 hover:bg-white/[0.035]">
+                  <td className="px-4 py-4">
+                    <Link href={`/studio/${p.id}`} className="font-body text-[15px] font-medium text-white hover:underline">
+                      {p.title || "Unbenanntes Projekt"}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/55">
+                    {p.stage ? STAGE_LABEL[p.stage] : "—"}
+                  </td>
+                  <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/35">
+                    {p.segment ?? "—"}
+                  </td>
+                  <td className="px-4 py-4 mono text-[11px] tracking-widest text-white/35">
+                    {relTime(p.createdAt)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,5 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
+import { AppToaster } from "@/components/AppToaster";
 import "./globals.css";
 
 const clerkAppearance = {
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-black antialiased">
         <ClerkProvider appearance={clerkAppearance}>
           {children}
+          <AppToaster />
         </ClerkProvider>
       </body>
     </html>

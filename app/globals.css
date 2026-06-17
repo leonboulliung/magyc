@@ -348,3 +348,33 @@ body {
 .vibe-root textarea.vibe-input:focus {
   border-color: var(--v-accent);
 }
+
+.magyc-toast {
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  background: rgba(6,6,6,0.96) !important;
+  color: #fff !important;
+  box-shadow: 0 22px 70px rgba(0,0,0,0.42), inset 0 1px 1px rgba(255,255,255,0.12) !important;
+  backdrop-filter: blur(18px);
+  font-family: Barlow, ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.magyc-toast-title {
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+
+.magyc-toast-description {
+  color: rgba(255,255,255,0.68) !important;
+}
+
+.magyc-toast-action,
+.magyc-toast-cancel {
+  border-radius: 9999px !important;
+}
+
+.magyc-toast-close {
+  background: #fff !important;
+  color: #000 !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+}

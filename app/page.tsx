@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -37,6 +38,13 @@ const DEFAULT_ASSIST_CHIPS: { label: string; text: string }[] = [
   { label: "Need roles?", text: "Add roles and responsibilities for the people involved." },
   { label: "Want a timeline?", text: "Turn this into a clear timeline." },
   { label: "Add deliverables?", text: "Include concrete deliverables and approval points." },
+];
+
+const HOME_WORK_IMAGES = [
+  { src: "/media/showcase-10.jpg", alt: "Luxusuhr auf dunklem Grund", label: "Produkt" },
+  { src: "/media/showcase-03.jpg", alt: "Editorial-Portraet mit schwarzem Blazer", label: "Editorial" },
+  { src: "/media/showcase-05.jpg", alt: "Event in einer grossen Halle", label: "Event" },
+  { src: "/media/showcase-02.jpg", alt: "Skincare-Stillleben mit Palmblatt", label: "Stilllife" },
 ];
 
 /**
@@ -835,9 +843,6 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                <Link href="/showcase" className="mono mt-6 inline-block text-[12px] uppercase tracking-widest text-white/60 hover:text-white">
-                  Galerie öffnen
-                </Link>
               </div>
 
               <div className="liquid-glass-strong rounded-[34px] p-5 sm:p-8">
@@ -858,6 +863,40 @@ export default function HomePage() {
               </div>
             </section>
 
+            <section id="work" className="mt-5 liquid-glass rounded-[34px] p-5 sm:p-8 scroll-mt-24">
+              <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+                <div>
+                  <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">Für Fotografen</p>
+                  <h3 className="mt-3 font-brand text-[28px] font-bold leading-[1.08] tracking-[-0.02em] text-white sm:text-[42px]">
+                    Nicht noch eine Galerie. Ein Arbeitsraum, der davor aufraeumt.
+                  </h3>
+                  <p className="mt-5 text-sm leading-relaxed text-white/62">
+                    Moodboard, Shotlist, Rollen, Deliverables und Freigaben entstehen aus dem Briefing. So bleibt mehr Energie fuer Licht, Motiv und Timing.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {HOME_WORK_IMAGES.map((img, i) => (
+                    <figure
+                      key={img.src}
+                      className={`relative overflow-hidden rounded-[24px] border border-white/12 bg-white/[0.04] ${i === 1 ? "translate-y-6" : ""}`}
+                    >
+                      <Image
+                        src={img.src}
+                        alt={img.alt}
+                        width={520}
+                        height={640}
+                        sizes="(max-width: 1024px) 45vw, 260px"
+                        className="aspect-[4/5] h-full w-full object-cover opacity-82"
+                      />
+                      <figcaption className="mono absolute left-3 top-3 rounded-full bg-black/70 px-2.5 py-1 text-[9px] uppercase tracking-widest text-white/85 backdrop-blur-sm">
+                        {img.label}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            </section>
+
             <div className="mt-8 overflow-hidden rounded-[34px]">
               <SiteFooter />
             </div>
@@ -865,40 +904,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {stage === "input" && (
-        <div
-          className={`fixed bottom-8 left-0 right-0 z-40 hidden items-end justify-between px-10 transition-all delay-300 duration-1000 md:flex ${
-            mounted ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
-          }`}
-        >
-          <p className="max-w-[220px] text-sm font-light leading-relaxed text-white/90 drop-shadow-[0_1px_10px_rgba(0,0,0,0.8)]">
-            MAGYC understands context, structure, and momentum like a creative director would.
-          </p>
-          <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-3">
-            <button
-              type="button"
-              onPointerDown={() => {
-                if (text.trim().length < 3 && !busy) nudgePrompt();
-              }}
-              onClick={promptOrSubmit}
-              disabled={busy}
-              className="group relative overflow-hidden rounded bg-white px-6 py-3 text-sm font-medium text-black shadow-[0_0_0_0_rgba(255,255,255,0)] transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_0_24px_4px_rgba(255,255,255,0.25)] active:scale-[0.97] disabled:opacity-40"
-            >
-              <span className="relative z-10">Start generating</span>
-              <span className="absolute inset-0 bg-gradient-to-b from-white to-white/85 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-            </button>
-            <Link
-              href="/showcase"
-              className="liquid-glass group rounded px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.03] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_0_20px_2px_rgba(255,255,255,0.07)] active:scale-[0.97]"
-            >
-              See examples
-            </Link>
-          </div>
-          <p className="max-w-[220px] text-right text-sm font-light leading-relaxed text-white/90 drop-shadow-[0_1px_10px_rgba(0,0,0,0.8)]">
-            Describe what you see in your head. Get a page that actually helps it become real.
-          </p>
-        </div>
-      )}
     </main>
   );
 }

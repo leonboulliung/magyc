@@ -66,7 +66,7 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
               <Link href="/#start" className="rounded-full bg-white px-5 py-2.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
                 {segment.hero.ctaPrimary}
               </Link>
-              <Link href="/showcase" className="mono text-[12px] uppercase tracking-widest text-white/55 hover:text-white">
+              <Link href="/how-it-works" className="mono text-[12px] uppercase tracking-widest text-white/55 hover:text-white">
                 {segment.hero.ctaSecondary}
               </Link>
             </div>

@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, picker/auth stability follow-up)_
+_Last updated: 2026-06-17 (Codex, iteration: errors, home, style, studio)_
 
 ---
 
@@ -27,6 +27,14 @@ then treat insert conflict as 409. (Manual SQL in Supabase editor.)
 ---
 
 ## P2 — product levers
+
+### 5. Studio settings: presets, profile, contacts
+Leon's next Studio slice: element presets, public profile settings
+(`profilname.magyc.site` later), focus tags (Mode, Produktfotografie, …),
+profile description, and a lightweight directory for team members and clients
+(user accounts). First dashboard pass now has phase counts and cards/table
+view; keep the settings work as its own coherent flow instead of scattering
+placeholder controls through the project list.
 
 ### 6. Sparse spaces — observe the new tuning
 First pass shipped 2026-06-13: `MIN_SCORE` 5→4, `MIN_BODY` 2→3, per-request
@@ -159,6 +167,20 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Iteration: account-project adds, visible errors, home consolidation, style simplification, studio overview**:
+  fixed the real `invalid_body` root cause for Studio projects: Clerk-owned
+  spaces have no anon owner token, but the client sent `anonOwnerToken: null`
+  to schemas that accept only string/undefined. Added a shared client helper to
+  omit null owner tokens, wired it through widget add, widget save, and style
+  save, and added Sonner toasts for visible API failures. Consolidated the
+  standalone gallery into the home page as a photographer-facing proof/work
+  section and redirected `/showcase` to `/#work`; removed "Galerie" from nav
+  and footer. Simplified style editing to font + accent and made workspace
+  cards substantially more opaque/readable. Demo drafts now lead signed-out
+  users toward account creation/saving instead of "Publish", and the draft
+  footer no longer shows the obsolete public/private toggle. Studio dashboard
+  now shows phase counts and cards/table view; duplicate "Neues Projekt" CTA
+  removed from the dashboard body.
 - 2026-06-17 · **Widget picker and marketing app-entry follow-up**:
   the first picker fix removed one nested scroll layer but kept the wrong
   interaction model: the full element library still opened as a small popover

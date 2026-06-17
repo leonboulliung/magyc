@@ -198,7 +198,7 @@ function DirectionRow({
   return (
     <div
       className="rounded-[var(--v-radius)] p-2.5"
-      style={{ border: "1px solid var(--v-rule)", background: "rgba(255,255,255,0.52)" }}
+      style={{ border: "1px solid var(--v-rule)", background: "#181818" }}
     >
       <div className="flex items-start gap-2">
         <button

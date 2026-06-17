@@ -39,8 +39,8 @@ export default function AreaPage({ params }: { params: { area: string } }) {
               <Link href="/#start" className="font-mono uppercase tracking-widest rounded-full px-5 py-3" style={{ fontSize: 12, background: brand.ink, color: brand.bg }}>
                 Start a {area.label.toLowerCase()} space
               </Link>
-              <Link href="/showcase" className="font-mono uppercase tracking-widest" style={{ fontSize: 12, color: brand.muted }}>
-                See examples →
+              <Link href="/how-it-works" className="font-mono uppercase tracking-widest" style={{ fontSize: 12, color: brand.muted }}>
+                So funktioniert's →
               </Link>
             </div>
           </div>

@@ -28,6 +28,7 @@ export function PublishButton({
   if (space.visibility !== null) return null;
   const ownerToken = getSpaceOwnerToken(space.id);
   if (!ownerToken) return null;
+  const signedOut = !user;
 
   async function publish() {
     if (busy) return;
@@ -62,16 +63,20 @@ export function PublishButton({
           color: "var(--v-bg)",
         }}
       >
-        {label(L, "publishCta")}
+        {signedOut ? "Account anlegen" : label(L, "publishCta")}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen} maxWidth={448} title={label(L, "publishTitle")}>
         <div className="w-full bg-white text-black p-6 rounded-[var(--v-radius)] space-y-5">
             <div className="space-y-1.5">
               <h2 className="font-black text-[22px] leading-snug">
-                {label(L, "publishTitle")}
+                {signedOut ? "Projekt speichern" : label(L, "publishTitle")}
               </h2>
-              {label(L, "publishExplanation") && (
+              {signedOut ? (
+                <p className="text-[13px] opacity-70 leading-relaxed">
+                  Lege einen Account an oder melde dich an, um dieses Projekt im Studio zu speichern und mit Kunden oder Teammitgliedern zu teilen.
+                </p>
+              ) : label(L, "publishExplanation") && (
                 <p className="text-[13px] opacity-70 leading-relaxed">
                   {label(L, "publishExplanation")}
                 </p>
@@ -106,11 +111,6 @@ export function PublishButton({
             </SignedIn>
 
             <SignedOut>
-              {label(L, "signInPrompt") && (
-                <p className="text-[13px] opacity-70 leading-relaxed">
-                  {label(L, "signInPrompt")}
-                </p>
-              )}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button
                   onClick={() => setOpen(false)}
@@ -118,9 +118,15 @@ export function PublishButton({
                 >
                   {label(L, "cancel")}
                 </button>
-                <SignInButton mode="modal">
+                <SignInButton
+                  mode="modal"
+                  forceRedirectUrl={`/s/${space.id}`}
+                  fallbackRedirectUrl={`/s/${space.id}`}
+                  signUpForceRedirectUrl={`/s/${space.id}`}
+                  signUpFallbackRedirectUrl={`/s/${space.id}`}
+                >
                   <button className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white">
-                    {label(L, "signInCta")}
+                    Anmelden / Account anlegen
                   </button>
                 </SignInButton>
               </div>

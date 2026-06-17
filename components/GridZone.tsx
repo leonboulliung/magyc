@@ -23,9 +23,11 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 import { useIsMobile } from "@/lib/hooks";
+import { apiErrorMessage, withOwnerToken } from "@/lib/client/errors";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
 import { CellChromeContext } from "./widgets/cellChrome";
 import { WidgetPickerContent } from "./WidgetPicker";
+import { toast } from "sonner";
 
 /**
  * GridZone — the body widget area of a space.
@@ -101,7 +103,7 @@ export function GridZone({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const body = (m: Record<string, unknown>) => JSON.stringify({ ...m, anonOwnerToken: ownerToken });
+  const body = (m: Record<string, unknown>) => JSON.stringify(withOwnerToken(m, ownerToken));
 
   // ── Reorder ─────────────────────────────────────────────────────
   async function commitOrder(next: BodyItem[]) {
@@ -172,10 +174,7 @@ export function GridZone({
       });
       const json = await res.json().catch(() => ({} as { index?: number }));
       if (!res.ok) {
-        const message = json && typeof json === "object" && "error" in json
-          ? String((json as { error?: unknown }).error || "add_failed")
-          : "add_failed";
-        throw new Error(message);
+        throw new Error(apiErrorMessage(json, "Element konnte nicht hinzugefuegt werden."));
       }
       const realIndex = typeof json.index === "number" ? json.index : null;
       if (realIndex !== null && realIndex !== optimisticIndex) {
@@ -190,8 +189,10 @@ export function GridZone({
       }
       onRefresh();
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Element konnte nicht hinzugefuegt werden.";
       setOptimisticItems(previous);
-      setAddError(error instanceof Error ? error.message : "add_failed");
+      setAddError(message);
+      toast.error("Element nicht hinzugefuegt", { description: message });
     } finally {
       setBusy(false);
     }
@@ -229,7 +230,7 @@ export function GridZone({
       style={{
         // A bounded glass surface with its own dot-grid layer, matching
         // the page-wide MAGYC field while keeping widgets legible.
-        background: "rgba(255,255,255,0.028)",
+        background: "#080808",
         border: "1px solid var(--v-rule)",
         boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 24px 80px rgba(0,0,0,0.24)",
         backdropFilter: "blur(18px)",

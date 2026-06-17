@@ -1,7 +1,7 @@
 import type { SpaceStyle } from "./types";
 
 /**
- * Style helpers — turn a SpaceStyle (font + 3 colors) into the full set
+ * Style helpers — turn a SpaceStyle (font + accent) into the full set
  * of CSS variables the vibe system already consumes, and validate /
  * default styles coming from the AI or the editor.
  */
@@ -97,18 +97,16 @@ function reLight(hex: string, lMin: number, lMax: number, sMax: number): string 
 
 /**
  * Force a style into the always-readable design band:
- *   - background: a very light, low-saturation canvas (the white grid
- *     and tinted widgets sit on top of it)
- *   - color1 (ink): dark enough to read on that canvas
- *   - color2 (accent): a mid-lightness, saturated accent for widgets/maps
- * This is applied to every style — AI-assigned or editor-picked — so the
- * surface can never end up unreadable.
+ *   - canvas and ink are fixed by the black glossy workspace system
+ *   - color2 (accent) carries widget/map highlights only
+ * This is applied to every style so old AI/editor values cannot make the
+ * surface unreadable.
  */
 export function normalizeStyle(style: SpaceStyle): SpaceStyle {
   return {
     font: style.font,
-    background: reLight(style.background, 0.9, 0.985, 0.28),
-    color1: reLight(style.color1, 0.14, 0.42, 0.9),
+    background: "#000000",
+    color1: "#ffffff",
     color2: reLight(style.color2, 0.4, 0.6, 0.85),
   };
 }
@@ -132,11 +130,11 @@ export function styleVars(style: SpaceStyle, fontStackValue: string): React.CSSP
     ["--v-accent" as string]: accent,
     ["--v-page" as string]: "#000000",
     ["--v-bg" as string]: "#050505",
-    ["--v-rule" as string]: "rgba(255,255,255,0.16)",
-    ["--v-muted" as string]: "rgba(255,255,255,0.58)",
-    ["--v-card" as string]: "rgba(255,255,255,0.045)",
-    ["--v-widget" as string]: `color-mix(in srgb, ${accent} 18%, rgba(255,255,255,0.035))`,
-    ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 54%, rgba(255,255,255,0.18))`,
+    ["--v-rule" as string]: "rgba(255,255,255,0.22)",
+    ["--v-muted" as string]: "rgba(255,255,255,0.68)",
+    ["--v-card" as string]: "#101010",
+    ["--v-widget" as string]: `color-mix(in srgb, ${accent} 20%, #171717)`,
+    ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 44%, rgba(255,255,255,0.28))`,
     ["--v-radius" as string]: "28px",
     ["--v-font" as string]: fontStackValue,
     ["--v-heading" as string]: fontStackValue,

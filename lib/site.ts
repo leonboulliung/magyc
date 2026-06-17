@@ -52,7 +52,6 @@ export const USE_CASES: NavLink[] = [
  *  Roadmap deliberately lives in the footer, not here. */
 export const MAIN_NAV: NavEntry[] = [
   { label: "Anwendungsfälle", items: USE_CASES },
-  { href: "/showcase", label: "Galerie" },
   { href: "/how-it-works", label: "So funktioniert's" },
   { href: "/pricing", label: "Preise" },
 ];
@@ -71,7 +70,6 @@ export const FOOTER_GROUPS: FooterGroup[] = [
     title: "Produkt",
     links: [
       { href: "/how-it-works", label: "So funktioniert's" },
-      { href: "/showcase", label: "Galerie" },
       { href: "/pricing", label: "Preise" },
       { href: "/roadmap", label: "Roadmap" },
       { href: "/changelog", label: "Changelog" },

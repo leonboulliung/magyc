@@ -127,8 +127,8 @@ export function DeliverablesRenderer({
                   className="rounded-[var(--v-radius)] p-3"
                   style={{
                     border: "1px solid var(--v-rule)",
-                    background: "rgba(255,255,255,0.65)",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                    background: "#181818",
+                    boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08)",
                   }}
                 >
                   <div className="flex items-start gap-3">

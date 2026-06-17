@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { fetchSpaceById, fetchVersionModules, mapStateRow, type ModuleStateRow } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
+import { apiErrorMessage, withOwnerToken } from "@/lib/client/errors";
 import {
   applyActionLocally,
   getSelfId,
@@ -38,14 +40,6 @@ interface SpaceNotice {
   message: string;
   actionLabel?: string;
   onAction?: (() => void) | null;
-}
-
-function apiErrorMessage(json: unknown, fallback = "save_failed"): string {
-  if (!json || typeof json !== "object") return fallback;
-  const data = json as Record<string, unknown>;
-  if (typeof data.detail === "string" && data.detail.trim()) return data.detail.trim();
-  if (typeof data.error === "string" && data.error.trim()) return data.error.trim();
-  return fallback;
 }
 
 /**
@@ -167,12 +161,11 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         const res = await fetch(`/api/spaces/${space.id}/widgets/${index}`, {
           method: "PUT",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
+          body: JSON.stringify(withOwnerToken({
             widget: module,
-            anonOwnerToken: ownerToken,
             note: options?.note,
             resolveExternal: options?.resolveExternal,
-          }),
+          }, ownerToken)),
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(apiErrorMessage(json, options?.errorMessage ?? "save_failed"));
@@ -207,6 +200,9 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           tone: "error",
           message: error instanceof Error ? error.message : options?.errorMessage ?? "save_failed",
         }, 3600);
+        toast.error("Aenderung nicht gespeichert", {
+          description: error instanceof Error ? error.message : options?.errorMessage ?? "save_failed",
+        });
         return false;
       }
     },
@@ -611,7 +607,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         {/* FOOTER. */}
         <footer className="relative z-10 w-full" style={{ borderTop: "1px solid var(--v-rule)" }}>
           <div className="max-w-5xl mx-auto px-4 sm:px-10 py-5 flex items-center justify-between gap-4 flex-wrap">
-            <SpacePrivacy space={space} />
+            {space.visibility !== null ? <SpacePrivacy space={space} /> : <div />}
             <MagyCBadge />
           </div>
         </footer>
