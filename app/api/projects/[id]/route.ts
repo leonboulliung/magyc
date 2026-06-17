@@ -19,11 +19,24 @@ export async function PATCH(
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const parsed = await parseBody(req, z.object({ stage: z.string().optional() }));
+  const parsed = await parseBody(req, z.object({
+    stage: z.string().optional(),
+    shared: z.boolean().optional(),
+  }));
   if (!parsed.ok) return parsed.response;
-  const stage = typeof parsed.data.stage === "string" ? parsed.data.stage : "";
-  if (!VALID_STAGES.has(stage)) {
-    return NextResponse.json({ error: "bad_stage" }, { status: 400 });
+
+  const update: { stage?: string; shared?: boolean } = {};
+  if (typeof parsed.data.stage === "string") {
+    if (!VALID_STAGES.has(parsed.data.stage)) {
+      return NextResponse.json({ error: "bad_stage" }, { status: 400 });
+    }
+    update.stage = parsed.data.stage;
+  }
+  if (typeof parsed.data.shared === "boolean") {
+    update.shared = parsed.data.shared;
+  }
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "nothing_to_update" }, { status: 400 });
   }
 
   const admin = supabaseAdmin();
@@ -37,7 +50,7 @@ export async function PATCH(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const { error } = await admin.from("spaces").update({ stage }).eq("id", params.id);
+  const { error } = await admin.from("spaces").update(update).eq("id", params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });

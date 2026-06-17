@@ -655,6 +655,9 @@ export interface Space {
   stage: ProjectStage | null;
   /** Which guided preset a suite project was built from (null otherwise). */
   segment: string | null;
+  /** Suite project shared via unlisted link? (false = owner-only). Only
+   *  meaningful for suite projects; anonymous/published spaces ignore it. */
+  shared: boolean;
   modules: Module[];
   /** AI-generated UI labels in `language`. May be sparsely filled;
    *  renderers fall back to symbols. */

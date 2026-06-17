@@ -22,7 +22,7 @@ export default async function StudioProjectPage({ params }: { params: { id: stri
 
   return (
     <>
-      <StudioProjectBar id={space.id} stage={space.stage} segment={space.segment} />
+      <StudioProjectBar id={space.id} stage={space.stage} segment={space.segment} shared={space.shared} />
       <SpaceView id={space.id} initialSpace={space} />
     </>
   );

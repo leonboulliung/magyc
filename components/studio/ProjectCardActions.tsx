@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ShareDialog } from "@/components/studio/ShareDialog";
 
 /**
- * Per-project actions on a dashboard card: duplicate, delete. Rendered as
- * a "⋯" button in the card corner; stops propagation so it doesn't trigger
- * the card's link. Share/collaboration comes in Phase D.
+ * Per-project actions on a dashboard card: share, duplicate, delete.
+ * Rendered as a "⋯" button in the card corner; stops propagation so it
+ * doesn't trigger the card's link.
  */
-export function ProjectCardActions({ id, title }: { id: string; title: string }) {
+export function ProjectCardActions({ id, title, shared }: { id: string; title: string; shared: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const stop = (e: React.MouseEvent) => {
@@ -68,6 +70,13 @@ export function ProjectCardActions({ id, title }: { id: string; title: string })
           <div className="absolute right-0 top-9 z-50 w-40 overflow-hidden rounded-xl border border-white/12 bg-black/95 p-1 backdrop-blur-md">
             <button
               type="button"
+              onClick={(e) => { stop(e); setOpen(false); setShareOpen(true); }}
+              className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Teilen …
+            </button>
+            <button
+              type="button"
               onClick={duplicate}
               disabled={busy}
               className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
@@ -85,6 +94,8 @@ export function ProjectCardActions({ id, title }: { id: string; title: string })
           </div>
         </>
       )}
+
+      <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
     </div>
   );
 }

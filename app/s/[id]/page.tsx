@@ -1,5 +1,7 @@
 import { cache } from "react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { fetchSpaceById } from "@/lib/db";
 import { SpaceView } from "./SpaceView";
 
@@ -41,5 +43,14 @@ export async function generateMetadata(
  */
 export default async function SpacePage({ params }: { params: { id: string } }) {
   const space = await getSpace(params.id);
+
+  // Suite projects are private until shared: a non-owner opening an
+  // unshared project's link gets a 404. Anonymous/published spaces
+  // (stage === null) are unaffected and stay public-by-id.
+  if (space && space.stage !== null && !space.shared) {
+    const { userId } = await auth();
+    if (!userId || space.owner?.id !== userId) notFound();
+  }
+
   return <SpaceView id={params.id} initialSpace={space} />;
 }

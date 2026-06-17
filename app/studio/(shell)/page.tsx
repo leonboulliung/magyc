@@ -91,7 +91,7 @@ export default async function StudioDashboard() {
                 </span>
               </Link>
               <div className="absolute right-3 top-3">
-                <ProjectCardActions id={p.id} title={p.title} />
+                <ProjectCardActions id={p.id} title={p.title} shared={p.shared} />
               </div>
             </div>
           ))}

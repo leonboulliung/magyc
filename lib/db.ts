@@ -44,6 +44,7 @@ type SpaceRow = {
   style: Record<string, unknown> | null;
   stage: string | null;
   segment: string | null;
+  shared: boolean | null;
   owner_id: string | null;
   visibility: string | null;
   created_at: string;
@@ -177,6 +178,7 @@ function mapSpace(row: SpaceRow): Space {
       ? (row.stage as ProjectStage)
       : null,
     segment: row.segment ?? null,
+    shared: row.shared === true,
     modules,
     labels: mapLabels(row.labels ?? null),
     style: sanitizeStyle(row.style ?? null),
@@ -192,7 +194,7 @@ function mapSpace(row: SpaceRow): Space {
 
 const SPACE_SELECT = `
   id, input_text, title, language, vibe, modules, labels, style,
-  stage, segment,
+  stage, segment, shared,
   owner_id, visibility,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),

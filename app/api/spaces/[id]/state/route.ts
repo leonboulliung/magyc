@@ -107,12 +107,17 @@ export async function POST(
   // Verify space + module index exist.
   const { data: space } = await admin
     .from("spaces")
-    .select("id, modules")
+    .select("id, modules, stage, shared, owner_id")
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!Array.isArray(space.modules) || moduleIndex >= space.modules.length) {
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
+  }
+  // Private suite project (stage set, not shared): only the owner may
+  // contribute. Once shared, anyone with the link contributes as today.
+  if (space.stage && !space.shared && (actorKind !== "user" || actorId !== space.owner_id)) {
+    return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }
 
   // ── vote ──────────────────────────────────────────────────────────────

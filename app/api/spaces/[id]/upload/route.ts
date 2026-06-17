@@ -120,10 +120,15 @@ export async function POST(
   // Verify space exists.
   const { data: space } = await admin
     .from("spaces")
-    .select("id, anon_owner_token, modules")
+    .select("id, anon_owner_token, modules, stage, shared, owner_id")
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // Private suite project (stage set, not shared): only the owner may
+  // upload. Once shared, anyone with the link can, as today.
+  if (space.stage && !space.shared && (actorKind !== "user" || actorId !== space.owner_id)) {
+    return NextResponse.json({ error: "not_shared" }, { status: 403 });
+  }
 
   // Build storage path.
   const ext = file.name.includes(".") ? file.name.split(".").pop()!.slice(0, 8) : "bin";
