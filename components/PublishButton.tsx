@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
 import type { Space } from "@/lib/types";
@@ -19,6 +20,7 @@ export function PublishButton({
   space: Space;
   onChanged: () => void;
 }) {
+  const router = useRouter();
   const { user } = useUser();
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
@@ -29,6 +31,30 @@ export function PublishButton({
   const ownerToken = getSpaceOwnerToken(space.id);
   if (!ownerToken) return null;
   const signedOut = !user;
+  const isAnonymousDraft = !space.owner;
+  const claimIntentKey = `magyc.claim_after_signin.${space.id}`;
+
+  async function saveToStudio() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/spaces/${space.id}/claim`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ anonOwnerToken: ownerToken }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json?.error || "✕");
+        return;
+      }
+      setOpen(false);
+      router.push(json?.redirectTo || `/studio/${space.id}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function publish() {
     if (busy) return;
@@ -52,6 +78,14 @@ export function PublishButton({
     }
   }
 
+  useEffect(() => {
+    if (!user || !isAnonymousDraft || !ownerToken || busy) return;
+    if (window.sessionStorage.getItem(claimIntentKey) !== "1") return;
+    window.sessionStorage.removeItem(claimIntentKey);
+    void saveToStudio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAnonymousDraft, ownerToken, claimIntentKey, busy]);
+
   return (
     <>
       <button
@@ -63,18 +97,18 @@ export function PublishButton({
           color: "var(--v-bg)",
         }}
       >
-        {signedOut ? "Account anlegen" : label(L, "publishCta")}
+        {signedOut || isAnonymousDraft ? "Im Studio speichern" : label(L, "publishCta")}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen} maxWidth={448} title={label(L, "publishTitle")}>
         <div className="w-full bg-white text-black p-6 rounded-[var(--v-radius)] space-y-5">
             <div className="space-y-1.5">
               <h2 className="font-black text-[22px] leading-snug">
-                {signedOut ? "Projekt speichern" : label(L, "publishTitle")}
+                {signedOut || isAnonymousDraft ? "Projekt im Studio speichern" : label(L, "publishTitle")}
               </h2>
-              {signedOut ? (
+              {signedOut || isAnonymousDraft ? (
                 <p className="text-[13px] opacity-70 leading-relaxed">
-                  Lege einen Account an oder melde dich an, um dieses Projekt im Studio zu speichern und mit Kunden oder Teammitgliedern zu teilen.
+                  Melde dich an, um diesen Entwurf als privates Studio-Projekt zu übernehmen. Danach kannst du Planung, Auswahl und Übergabe weiterführen.
                 </p>
               ) : label(L, "publishExplanation") && (
                 <p className="text-[13px] opacity-70 leading-relaxed">
@@ -101,11 +135,11 @@ export function PublishButton({
                   {label(L, "cancel")}
                 </button>
                 <button
-                  onClick={publish}
+                  onClick={isAnonymousDraft ? saveToStudio : publish}
                   disabled={busy}
                   className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30"
                 >
-                  {busy ? "…" : label(L, "publishConfirm")}
+                  {busy ? "…" : isAnonymousDraft ? "Im Studio öffnen" : label(L, "publishConfirm")}
                 </button>
               </div>
             </SignedIn>
@@ -125,7 +159,10 @@ export function PublishButton({
                   signUpForceRedirectUrl={`/s/${space.id}`}
                   signUpFallbackRedirectUrl={`/s/${space.id}`}
                 >
-                  <button className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white">
+                  <button
+                    onClick={() => window.sessionStorage.setItem(claimIntentKey, "1")}
+                    className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white"
+                  >
                     Anmelden / Account anlegen
                   </button>
                 </SignInButton>

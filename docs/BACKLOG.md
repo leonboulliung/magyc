@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, studio settings slice 2)_
+_Last updated: 2026-06-17 (Codex, preset builder + draft claim flow)_
 
 ---
 
@@ -28,31 +28,37 @@ then treat insert conflict as 409. (Manual SQL in Supabase editor.)
 
 ## P2 — product levers
 
-### 5. Studio settings: presets, profile, contacts
-Leon's next Studio slice: element presets, public profile settings
-(`profilname.magyc.site` later), focus tags (Mode, Produktfotografie, …),
-profile description, and a lightweight directory for team members and clients
-(user accounts). First dashboard pass now has phase counts and cards/table
-view; keep the settings work as its own coherent flow instead of scattering
-placeholder controls through the project list. Product decision made:
-visible project stages are **Planung / Auswahl / Abgeschlossen** while the
-current DB enum remains `brief / production / handoff` until a deliberate
-migration is worth it.
+### 5. Studio settings: profile and contacts
+Presets now have their own `/studio/presets` surface. Remaining Studio
+settings should also be dedicated flows rather than dashboard clutter:
+public profile settings (`profilname.magyc.site` later), focus tags (Mode,
+Produktfotografie, …), profile description, and a lightweight directory for
+team members and clients (user accounts). Product decision made: visible
+project stages are **Planung / Auswahl / Abgeschlossen** while the current
+DB enum remains `brief / production / handoff` until a deliberate migration
+is worth it.
 
-### 6. Sparse spaces — observe the new tuning
+### 6. Error UX architecture
+Current visible errors use Sonner toasts in selected flows, but the product
+needs a deliberate error system: inline validation for fixable form errors,
+toast/dialog treatment for recoverable action failures, and React error
+boundaries for rendering failures. Candidate open-source pieces researched:
+Sonner for action feedback and `react-error-boundary` for component fallbacks.
+
+### 7. Sparse spaces — observe the new tuning
 First pass shipped 2026-06-13: `MIN_SCORE` 5→4, `MIN_BODY` 2→3, per-request
 score logging (`[classify]` lines in Vercel function logs), and a body
 de-dupe (one widget per type). **Next:** watch the logs against real
 prompts; if pages are still bare, consider a stronger Stage-A model —
 scoring quality is the foundation of the page.
 
-### 7. Streamed space creation (biggest perceived-speed win)
+### 8. Streamed space creation (biggest perceived-speed win)
 Today: 2 sequential OpenAI calls finish before redirect (~10-15 s wait).
 **Plan:** after Stage A (~2 s) create the space with heading + pending
 placeholders and redirect immediately; Stage B authors content and fills
 widgets in, visible live. Turns the wait into a "magic build-up" moment.
 
-### 8. Realtime sync for config changes — broadcast shipped, pg_changes open
+### 9. Realtime sync for config changes — broadcast shipped, pg_changes open
 Shipped 2026-06-13: the saving client broadcasts `config` on the shared
 channel; receivers refetch (debounced). Covers all UI-driven edits without
 DB setup. **Open upgrade:** `postgres_changes` on `spaces` UPDATE would also
@@ -170,6 +176,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Preset builder + draft claim flow**:
+  moved presets off the Studio dashboard into a dedicated `/studio/presets`
+  page. The builder now supports creating/naming presets, assigning at least
+  one element from the element pool, optional per-element default content, and
+  optional prompt-injection text fields. Added `/api/spaces/[id]/claim` so
+  anonymous homepage drafts can be saved privately into Studio after login
+  instead of being forced through public `publish`.
 - 2026-06-17 · **Studio settings slice 2**:
   added the first Studio settings surface for photographer workflows: editable
   local element presets, public profile draft fields, focus tags, and a small
