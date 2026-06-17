@@ -159,6 +159,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-16 · **Suite quick-wins: prompt-first builder + dup/delete** (`96a2a53`):
+  builder is prompt-first (central prompt + quick-selects, optional Eckdaten,
+  empty create allowed → starter project); `/api/projects` takes `prompt` and
+  no longer requires fields; dashboard per-project Duplicate
+  (`/api/projects/[id]/duplicate`) + Delete (`DELETE /api/projects/[id]`).
+  Verified unauth boundaries (401/307). **Share for collaborators is next
+  (Phase D)** — needs the private-project ACL.
 - 2026-06-16 · **Creator-Suite foundation + brief core (Phase A)** (`4a6fb2d`):
   account-first suite (`/studio` dashboard, `/studio/new` guided product
   builder, `/studio/[id]` owner-gated workspace reusing SpaceView + stage
