@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, iteration: errors, home, style, studio)_
+_Last updated: 2026-06-17 (Codex, stage labels)_
 
 ---
 
@@ -34,7 +34,10 @@ Leon's next Studio slice: element presets, public profile settings
 profile description, and a lightweight directory for team members and clients
 (user accounts). First dashboard pass now has phase counts and cards/table
 view; keep the settings work as its own coherent flow instead of scattering
-placeholder controls through the project list.
+placeholder controls through the project list. Product decision made:
+visible project stages are **Planung / Auswahl / Abgeschlossen** while the
+current DB enum remains `brief / production / handoff` until a deliberate
+migration is worth it.
 
 ### 6. Sparse spaces — observe the new tuning
 First pass shipped 2026-06-13: `MIN_SCORE` 5→4, `MIN_BODY` 2→3, per-request

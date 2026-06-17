@@ -9,9 +9,15 @@ import type { ProjectStage } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
-  brief: "Briefing",
-  production: "Produktion",
-  handoff: "Übergabe",
+  brief: "Planung",
+  production: "Auswahl",
+  handoff: "Abgeschlossen",
+};
+
+const STAGE_HELP: Record<ProjectStage, string> = {
+  brief: "Briefing, Moodboard, Shotlist, Team und Ablauf vorbereiten.",
+  production: "Auswahl, Feedback, Freigaben und Übergabe vorbereiten.",
+  handoff: "Fertige Projekte, Kundenseiten und Referenzen sammeln.",
 };
 
 function relTime(ts: number): string {
@@ -71,13 +77,14 @@ export default async function StudioDashboard({ searchParams }: { searchParams?:
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
         {([
-          ["brief", "Briefing"],
-          ["production", "Produktion"],
-          ["handoff", "Übergabe"],
+          ["brief", "Planung"],
+          ["production", "Auswahl"],
+          ["handoff", "Abgeschlossen"],
         ] as const).map(([key, text]) => (
           <div key={key} className="rounded-2xl border border-white/12 bg-white/[0.035] p-4">
             <div className="mono text-[10px] uppercase tracking-[0.22em] text-white/40">{text}</div>
             <div className="mt-3 font-brand text-[28px] font-bold text-white">{counts[key]}</div>
+            <p className="mt-2 text-[12px] leading-relaxed text-white/45">{STAGE_HELP[key]}</p>
           </div>
         ))}
       </div>
@@ -86,7 +93,7 @@ export default async function StudioDashboard({ searchParams }: { searchParams?:
         <div className="mt-12 rounded-2xl border border-dashed border-white/15 p-10 text-center">
           <p className="font-brand text-[20px] font-bold text-white">Noch kein Projekt</p>
           <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-white/60">
-            Starte mit einem geführten Produkt-Briefing — Referenzen, Shotlist, Deliverables
+            Starte mit einer geführten Planung — Referenzen, Shotlist, Deliverables
             und Freigaben sind in Minuten aufgesetzt.
           </p>
           <Link

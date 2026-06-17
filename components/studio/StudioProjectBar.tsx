@@ -7,9 +7,9 @@ import { ShareDialog } from "@/components/studio/ShareDialog";
 import type { ProjectStage } from "@/lib/types";
 
 const STAGES: { id: ProjectStage; label: string }[] = [
-  { id: "brief", label: "Briefing" },
-  { id: "production", label: "Produktion" },
-  { id: "handoff", label: "Übergabe" },
+  { id: "brief", label: "Planung" },
+  { id: "production", label: "Auswahl" },
+  { id: "handoff", label: "Abgeschlossen" },
 ];
 
 /**

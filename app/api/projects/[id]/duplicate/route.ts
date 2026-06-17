@@ -7,7 +7,7 @@ import { newId, newAnonToken } from "@/lib/id";
  * POST /api/projects/[id]/duplicate — copy a suite project as a fresh
  * draft. Owner-only. Copies the config (modules/title/style/labels) but
  * NOT the collaborative module_state (a duplicate is a clean start).
- * Resets stage to 'brief'.
+ * Resets stage to 'brief' (displayed as "Planung").
  */
 export async function POST(
   _req: Request,
