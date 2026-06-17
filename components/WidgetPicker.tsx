@@ -186,7 +186,7 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
 ];
 
 // ── Default configs ──────────────────────────────────────────────────
-function defaultWidget(type: ModuleType): Module | null {
+export function defaultWidget(type: ModuleType): Module | null {
   const now = new Date().toISOString();
   const today = now.split("T")[0];
   switch (type) {

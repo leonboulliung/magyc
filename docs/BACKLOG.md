@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, studio navigation + preset UX correction)_
+_Last updated: 2026-06-17 (Codex, preset module renderer alignment)_
 
 ---
 
@@ -176,6 +176,14 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-17 · **Preset module renderer alignment**:
+  corrected the preset architecture so preset elements store real `Module`
+  configs and render through the same `WidgetDispatcher` / `WidgetContext`
+  path used by project pages. The preset editor now opens only after explicit
+  create/edit intent; active element previews use the actual project renderer,
+  so map/location presets show the real map element instead of a fake form.
+  `components/WidgetPicker.defaultWidget` is now exported as the shared
+  default module factory to avoid a second element truth.
 - 2026-06-17 · **Studio navigation + preset UX correction**:
   added a quiet Studio sidebar for Studiobereich, Presets, Nutzer, Profil,
   and Einstellungen; removed the redundant dashboard preset CTA. Reworked
