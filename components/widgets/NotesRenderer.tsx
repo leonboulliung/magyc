@@ -42,6 +42,10 @@ export function NotesRenderer({
     await ctx.act(index, "edit", { id, text });
   }
 
+  async function deleteNote(id: string) {
+    await ctx.act(index, "edit", { id, deleted: true });
+  }
+
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
@@ -65,7 +69,7 @@ export function NotesRenderer({
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.18 }}
               >
-                <NoteCard note={n} onEdit={(text) => editNote(n.id, text)} />
+                <NoteCard note={n} onEdit={(text) => editNote(n.id, text)} onDelete={() => deleteNote(n.id)} />
               </motion.li>
             ))}
           </AnimatePresence>
@@ -120,6 +124,9 @@ interface Note {
 
 function buildNotes(entries: ModuleStateEntry[]): Note[] {
   const byId = new Map<string, Note>();
+  // Append-only log → a delete is an `edit` carrying { deleted: true }, so
+  // no extra server route is needed. Collect them and filter at the end.
+  const deleted = new Set<string>();
   for (const e of entries) {
     if (e.kind === "add") {
       const id = String(e.data.id ?? e.id);
@@ -134,19 +141,24 @@ function buildNotes(entries: ModuleStateEntry[]): Note[] {
     } else if (e.kind === "edit") {
       const id = typeof e.data.id === "string" ? e.data.id : null;
       if (!id) continue;
+      if (e.data.deleted === true) { deleted.add(id); continue; }
       const existing = byId.get(id);
       if (existing) existing.text = String(e.data.text ?? existing.text);
     }
   }
-  return [...byId.values()].sort((a, b) => a.createdAt - b.createdAt);
+  return [...byId.values()]
+    .filter((n) => !deleted.has(n.id))
+    .sort((a, b) => a.createdAt - b.createdAt);
 }
 
 function NoteCard({
   note,
   onEdit,
+  onDelete,
 }: {
   note: Note;
   onEdit: (text: string) => Promise<void> | void;
+  onDelete: () => Promise<void> | void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);
@@ -158,12 +170,23 @@ function NoteCard({
 
   return (
     <div
-      className="rounded-[var(--v-radius)] p-3 transition-colors"
+      className="group/note relative rounded-[var(--v-radius)] p-3 transition-colors"
       style={{
         background: "var(--v-bg)",
         border: "1px solid var(--v-rule)",
       }}
     >
+      {!editing && (
+        <button
+          type="button"
+          onClick={() => onDelete()}
+          aria-label="Notiz löschen"
+          className="mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/note:opacity-50 hover:!opacity-100"
+          style={{ color: "var(--v-muted)" }}
+        >
+          ×
+        </button>
+      )}
       <div className="flex items-start gap-2.5">
         <ActorDot color={note.authorColor} displayName={note.authorName} size={16} />
         {editing ? (

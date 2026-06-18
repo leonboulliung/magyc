@@ -33,8 +33,17 @@ export function QaRenderer({
     .filter((e) => e.kind === "voice")
     .sort((a, b) => a.createdAt - b.createdAt);
 
+  // Append-only log → deletes are `edit` entries carrying { id, deleted }.
+  const deleted = new Set<string>();
+  for (const e of state) {
+    if (e.kind === "edit" && e.data.deleted === true && typeof e.data.id === "string") {
+      deleted.add(e.data.id);
+    }
+  }
+
   const seededQuestions = (m.questions ?? []).map((question, i) => ({
     key: `seed-${i}`,
+    seedIndex: i,
     text: question.text,
     answerHint: question.answerHint,
     seeded: true,
@@ -44,6 +53,7 @@ export function QaRenderer({
     .filter((e) => e.data.role === "question")
     .map((e) => ({
       key: typeof e.data.id === "string" ? e.data.id : e.id,
+      seedIndex: -1,
       text: String(e.data.text ?? ""),
       seeded: false,
       actor: {
@@ -51,11 +61,16 @@ export function QaRenderer({
         color: typeof e.data.color === "string" ? (e.data.color as string) : undefined,
       },
     }))
-    .filter((question) => question.text);
+    .filter((question) => question.text && !deleted.has(question.key));
 
   const questions = [...seededQuestions, ...stateQuestions];
   const answersOf = (qid: string) =>
-    voices.filter((e) => e.data.role === "answer" && e.data.parentId === qid);
+    voices.filter(
+      (e) =>
+        e.data.role === "answer" &&
+        e.data.parentId === qid &&
+        !deleted.has(typeof e.data.id === "string" ? e.data.id : e.id),
+    );
 
   const [pendingQ, setPendingQ] = useState("");
   const [askOpen, setAskOpen] = useState(false);
@@ -83,6 +98,16 @@ export function QaRenderer({
     });
   }
 
+  // Delete a state-added question/answer (append-only → edit{deleted}).
+  async function deleteVoice(id: string) {
+    await ctx.act(index, "edit", { id, deleted: true });
+  }
+  // Remove a seeded (config) question — owner only, via saveModule.
+  function removeSeeded(seedIndex: number) {
+    const questionsCfg = (m.questions ?? []).filter((_, i) => i !== seedIndex);
+    ctx.saveModule(index, { ...m, questions: questionsCfg });
+  }
+
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
@@ -107,6 +132,11 @@ export function QaRenderer({
                   question={question}
                   answers={answersOf(question.key)}
                   onAnswer={(text) => answer(question.key, text)}
+                  canDelete={question.seeded ? ctx.isOwner : true}
+                  onDeleteQuestion={() =>
+                    question.seeded ? removeSeeded(question.seedIndex) : deleteVoice(question.key)
+                  }
+                  onDeleteAnswer={(id) => deleteVoice(id)}
                 />
               </motion.li>
             ))}
@@ -151,6 +181,9 @@ function QuestionBlock({
   question,
   answers,
   onAnswer,
+  canDelete,
+  onDeleteQuestion,
+  onDeleteAnswer,
 }: {
   question: {
     key: string;
@@ -161,6 +194,9 @@ function QuestionBlock({
   };
   answers: ModuleStateEntry[];
   onAnswer: (text: string) => Promise<void> | void;
+  canDelete: boolean;
+  onDeleteQuestion: () => void;
+  onDeleteAnswer: (id: string) => void;
 }) {
   const [replyOpen, setReplyOpen] = useState(false);
   const [pending, setPending] = useState("");
@@ -173,7 +209,18 @@ function QuestionBlock({
   }
 
   return (
-    <div className="rounded-[var(--v-radius)] p-3" style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}>
+    <div className="group/q relative rounded-[var(--v-radius)] p-3" style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={() => onDeleteQuestion()}
+          aria-label="Frage löschen"
+          className="mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/q:opacity-50 hover:!opacity-100"
+          style={{ color: "var(--v-muted)" }}
+        >
+          ×
+        </button>
+      )}
       <div className="flex items-start gap-2.5">
         {question.seeded ? (
           <span
@@ -209,23 +256,35 @@ function QuestionBlock({
 
       {answers.length > 0 && (
         <ul className="mt-2.5 pl-7 space-y-2">
-          {answers.map((a) => (
-            <li key={a.id} className="flex items-start gap-2.5">
-              <ActorDot
-                color={typeof a.data.color === "string" ? (a.data.color as string) : undefined}
-                displayName={a.actor.displayName}
-                size={14}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="text-[12.5px] leading-snug" style={{ color: "var(--v-fg)" }}>
-                  {String(a.data.text ?? "")}
+          {answers.map((a) => {
+            const aid = typeof a.data.id === "string" ? a.data.id : a.id;
+            return (
+              <li key={a.id} className="group/a flex items-start gap-2.5">
+                <ActorDot
+                  color={typeof a.data.color === "string" ? (a.data.color as string) : undefined}
+                  displayName={a.actor.displayName}
+                  size={14}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12.5px] leading-snug" style={{ color: "var(--v-fg)" }}>
+                    {String(a.data.text ?? "")}
+                  </div>
+                  <div className="mono text-[9px] tracking-widest mt-0.5 opacity-50" style={{ color: "var(--v-muted)" }}>
+                    {a.actor.displayName || "anon"}
+                  </div>
                 </div>
-                <div className="mono text-[9px] tracking-widest mt-0.5 opacity-50" style={{ color: "var(--v-muted)" }}>
-                  {a.actor.displayName || "anon"}
-                </div>
-              </div>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  onClick={() => onDeleteAnswer(aid)}
+                  aria-label="Antwort löschen"
+                  className="mono text-[12px] opacity-0 transition-opacity group-hover/a:opacity-50 hover:!opacity-100"
+                  style={{ color: "var(--v-muted)" }}
+                >
+                  ×
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
