@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, studio intent UI pass)_
+_Last updated: 2026-06-18 (Codex, preset project-preview parity)_
 
 ---
 
@@ -176,6 +176,13 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Preset project-preview parity**:
+  changed the preset element preview from a custom scrollable settings
+  frame into a miniature project-grid surface using the same terminal
+  vibe, dot field, radius, border and two-column cell sizing rules as
+  project pages. The selected module now renders in a real grid cell
+  without an extra overflow cage, so map widgets and address suggestion
+  overlays can display like they do on the actual project page.
 - 2026-06-18 · **Studio intent UI pass**:
   reframed Studio UI as product logic rather than decoration. The Studio
   sidebar now explains each area through concise purpose hints without a

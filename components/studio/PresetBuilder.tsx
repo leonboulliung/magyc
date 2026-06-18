@@ -477,13 +477,40 @@ function PresetModulePreview({
 
   return (
     <WidgetContext.Provider value={context}>
-      <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+      <div className="vibe-root vibe-terminal">
         <div className="mb-3 flex items-center justify-between px-1">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/30">Projektseiten-Vorschau</span>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/25">Live Element</span>
         </div>
-        <div className="vibe-root vibe-terminal max-h-[520px] overflow-auto rounded-xl border border-white/10 bg-black p-4">
-          <WidgetDispatcher module={module} index={index} state={[]} />
+        <div
+          className="relative rounded-[var(--v-radius)]"
+          style={{
+            background: "#080808",
+            border: "1px solid var(--v-rule)",
+            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 24px 80px rgba(0,0,0,0.24)",
+            backdropFilter: "blur(18px)",
+            minHeight: 240,
+          }}
+        >
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[var(--v-radius)]">
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.22) 1px, transparent 1.4px)",
+                backgroundSize: "24px 24px",
+                backgroundPosition: "12px 12px",
+              }}
+            />
+          </div>
+
+          <div className="relative p-3">
+            <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+              <div className="relative group/cell" style={{ borderRadius: "var(--v-radius)" }}>
+                <WidgetDispatcher module={module} index={index} state={[]} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </WidgetContext.Provider>
