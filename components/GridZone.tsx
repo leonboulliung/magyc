@@ -119,10 +119,18 @@ export function GridZone({
     setBusy(true);
     try {
       const modules = [...headerModules, ...next.map((it) => it.module)];
+      // `order[newPosition] = oldIndex` — lets the server remap module_state
+      // (keyed by positional index) so collaborative rows follow their widget
+      // instead of orphaning onto whatever slides into the slot. Header
+      // modules don't reorder, so they map to themselves.
+      const order = [
+        ...headerModules.map((_, i) => i),
+        ...next.map((it) => it.index),
+      ];
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: body({ modules }),
+        body: body({ modules, order }),
       });
       const json = await readApiJson(res);
       if (!res.ok) {

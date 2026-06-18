@@ -13,6 +13,7 @@ import {
   makeOptimisticEntry,
   mergeRealtimeInsert,
   postState,
+  setSelfUser,
 } from "@/lib/state";
 import { bodyContainer, heroIn } from "@/lib/anim";
 import { getSpaceOwnerToken } from "@/lib/anonId";
@@ -61,6 +62,16 @@ interface SpaceNotice {
  */
 export function SpaceView({ id, initialSpace = null }: { id: string; initialSpace?: Space | null }) {
   const { user } = useUser();
+
+  // Bridge the signed-in identity into the plain-function state layer so
+  // "is this mine?", realtime dedupe, and attribution use the Clerk user
+  // id/name (matching what the server stamps) instead of the anon token.
+  useEffect(() => {
+    setSelfUser(
+      user ? { id: user.id, name: user.username ?? user.fullName ?? undefined } : null,
+    );
+  }, [user]);
+
   // Seeded from the server-rendered fetch — content is present on first
   // paint, no client fetch waterfall.
   const [space, setSpace] = useState<Space | null>(initialSpace);

@@ -14,24 +14,23 @@ _Last updated: 2026-06-18 (Claude, Studio QA triage)_
 Triaged from a full QA pass. Grouped by severity. **Heart of the app = the
 elements**, so the correctness bugs there come first.
 
-### Q1 — CRITICAL: state bleeds across widgets (data integrity)
-Uploads made in one widget reappear in another (moodboard images showed up in
-images/selection after other elements were deleted). **Root cause:**
-`module_state` is keyed by **positional `module_index`** (sliced in
-`app/s/[id]/SpaceView.tsx:391` `stateByModule`). Deleting/reordering a module
-shifts the modules array but the state rows keep their old index → orphaned
-state re-associates with whatever widget now sits at that index. **Fix
-options:** (a) on widget delete/reorder, re-index `module_state` rows (delete
-removed module's rows + decrement higher indices); needs the widgets
-delete/reorder routes to remap state. (b) durable: give each module a stable
-`id` and key state by id (migration + contract change). Start with (a).
+### Q1 — ✅ FIXED: state bleeds across widgets (data integrity)
+Uploads made in one widget reappeared in another after delete/reorder.
+**Root cause:** `module_state` is keyed by positional `module_index`; the
+delete/reorder routes didn't touch state, so rows orphaned onto whatever
+widget slid into the slot. **Fix (option a):** widget DELETE now drops the
+removed module's state rows + shifts higher indices down; reorder PATCH takes
+an `order` permutation from the client and remaps state via a two-phase offset
+(`app/api/spaces/[id]/widgets/route.ts`, `components/GridZone.tsx`). Durable
+option (b) — stable module ids — no longer urgent; keep as a nice-to-have.
 
-### Q2 — CRITICAL: actor shows "?" / "anon" even when signed-in owner
-On element interactions the contributor renders as "?" / "anon" although the
-signed-in owner is in the participants strip. Likely the client writes state
-with the anon actor (`getSelfId()` in `lib/state.ts`) or display_name/profile
-isn't resolved for the Clerk user. Investigate the actor path on `/state`
-writes from a signed-in owner.
+### Q2 — ✅ FIXED: actor shows "?" / "anon" even when signed-in owner
+**Root cause:** `getSelfId()` always returned the anon token (so "is mine?" +
+realtime dedupe mismatched the server's Clerk actor id), and `/state` stored
+`display_name` only from the empty `anonName`. **Fix:** `lib/state.ts` now has
+a signed-in identity bridge (`setSelfUser`, set by `SpaceView` from the Clerk
+user) feeding `getSelfId`/`getMyColor`/optimistic actor; `/state` + `/upload`
+resolve `display_name` from the profile for signed-in contributors.
 
 ### Q3 — Element bugs (Herzstück)
 - **Moodboard:** images overflow the border-radius (missing overflow-hidden on

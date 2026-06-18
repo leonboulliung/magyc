@@ -104,6 +104,18 @@ export async function POST(
 
   const admin = supabaseAdmin();
 
+  // Signed-in contributors get their real name (and colour) from their
+  // profile, so elements show "Leon" instead of an empty "anon"/"?".
+  if (actorKind === "user") {
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("display_name")
+      .eq("id", actorId)
+      .maybeSingle();
+    const profName = typeof prof?.display_name === "string" ? prof.display_name.trim() : "";
+    if (profName) displayName = profName.slice(0, 40);
+  }
+
   // Verify space + module index exist.
   const { data: space } = await admin
     .from("spaces")

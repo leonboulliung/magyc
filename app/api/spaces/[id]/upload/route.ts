@@ -117,6 +117,17 @@ export async function POST(
 
   const admin = supabaseAdmin();
 
+  // Signed-in uploaders get their real name from their profile.
+  if (actorKind === "user") {
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("display_name")
+      .eq("id", actorId)
+      .maybeSingle();
+    const profName = typeof prof?.display_name === "string" ? prof.display_name.trim() : "";
+    if (profName) displayName = profName.slice(0, 40);
+  }
+
   // Verify space exists.
   const { data: space } = await admin
     .from("spaces")

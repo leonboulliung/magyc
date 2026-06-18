@@ -15,16 +15,36 @@ import type { ModuleStateEntry, ModuleStateKind } from "./types";
  * key directly and so always saw an empty id.
  */
 export function getSelfId(): string {
-  return getAnonToken();
+  return selfUserId ?? getAnonToken();
+}
+
+/**
+ * Signed-in identity bridge. `getSelfId()` and renderers run outside React
+ * (plain functions), so they can't read Clerk hooks. SpaceView pushes the
+ * current Clerk user here; when set, the actor id/color/name reflect the
+ * signed-in user so "is this mine?", realtime dedupe, and attribution all
+ * match what the server stamps (actor_id = Clerk user id). When null, we
+ * fall back to the anonymous browser token.
+ */
+let selfUserId: string | null = null;
+let selfUserName: string | null = null;
+export function setSelfUser(user: { id: string; name?: string } | null): void {
+  selfUserId = user?.id ?? null;
+  selfUserName = user?.name ?? null;
+}
+export function getSelfName(): string | null {
+  return selfUserName;
 }
 
 /** Stable colour for the current actor — persona swatch if a persona
- *  is active, else a deterministic pick from the anon token. */
+ *  is active, else a deterministic pick from the actor id (Clerk user id
+ *  when signed in, else the anon token — matching the server's profile
+ *  colour, which is colorForId(userId)). */
 export function getMyColor(): string {
   if (typeof window === "undefined") return PALETTE[0];
   const persona = getActivePersona();
   if (persona) return persona.swatch;
-  return colorForId(getAnonToken());
+  return colorForId(getSelfId());
 }
 
 /** Stable colour for a known actor id (anon token or user id). Used
@@ -74,11 +94,9 @@ export function makeOptimisticEntry(
   data: Record<string, unknown>,
   actor?: { id: string; kind: "anon" | "user"; displayName?: string },
 ): ModuleStateEntry {
-  const currentActor = actor ?? {
-    kind: "anon" as const,
-    id: getSelfId(),
-    displayName: getAnonDisplayName() || undefined,
-  };
+  const currentActor = actor ?? (selfUserId
+    ? { kind: "user" as const, id: selfUserId, displayName: selfUserName || undefined }
+    : { kind: "anon" as const, id: getAnonToken(), displayName: getAnonDisplayName() || undefined });
   return {
     id: `tmp_${Math.random().toString(36).slice(2, 10)}`,
     spaceId,

@@ -85,6 +85,9 @@ export async function PATCH(
   const parsed = await parseBody(req, z.object({
     modules: z.unknown().optional(),
     anonOwnerToken: z.string().nullish(),
+    // order[newPosition] = oldIndex — the reorder permutation, so we can
+    // remap module_state (keyed by positional index) to follow the widgets.
+    order: z.array(z.number()).optional(),
   }));
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;
@@ -105,6 +108,36 @@ export async function PATCH(
 
   const failure = await persistModules(admin, params.id, modules);
   if (failure) return failure;
+
+  // Remap module_state so collaborative rows follow their reordered widget.
+  // Two-phase via a large offset: first move each changed index out to
+  // oldIndex→(newPos + OFFSET), then back down to newPos. The offset keeps
+  // the two passes from matching rows they've already moved (there is no
+  // unique constraint on module_index, so no collision either way).
+  const order = body.order;
+  if (Array.isArray(order) && order.length === modules.length) {
+    const OFFSET = 100_000;
+    const moves: { oldIndex: number; newPos: number }[] = [];
+    order.forEach((oldIndex, newPos) => {
+      if (Number.isInteger(oldIndex) && oldIndex !== newPos) moves.push({ oldIndex, newPos });
+    });
+    for (const { oldIndex, newPos } of moves) {
+      const { error } = await admin
+        .from("module_state")
+        .update({ module_index: newPos + OFFSET })
+        .eq("space_id", params.id)
+        .eq("module_index", oldIndex);
+      if (error) console.error("[widgets] reorder phase1 failed:", error.message);
+    }
+    for (const { newPos } of moves) {
+      const { error } = await admin
+        .from("module_state")
+        .update({ module_index: newPos })
+        .eq("space_id", params.id)
+        .eq("module_index", newPos + OFFSET);
+      if (error) console.error("[widgets] reorder phase2 failed:", error.message);
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -138,6 +171,28 @@ export async function DELETE(
   const next = current.filter((_, i) => i !== idx);
   const failure = await persistModules(admin, params.id, next);
   if (failure) return failure;
+
+  // Keep module_state aligned with the now-shifted module indices.
+  // module_state is keyed by positional module_index; without this, the
+  // deleted widget's collaborative rows (uploads, votes, comments) would
+  // orphan onto whatever widget slides into its index — the "images bleed
+  // between widgets" bug. Drop the deleted module's rows, then shift every
+  // higher index down by one. Ascending order means each target slot is
+  // already vacated, so there are no unique-index collisions.
+  const { error: delErr } = await admin
+    .from("module_state")
+    .delete()
+    .eq("space_id", params.id)
+    .eq("module_index", idx);
+  if (delErr) console.error("[widgets] state cleanup failed:", delErr.message);
+  for (let k = idx + 1; k < current.length; k++) {
+    const { error: shiftErr } = await admin
+      .from("module_state")
+      .update({ module_index: k - 1 })
+      .eq("space_id", params.id)
+      .eq("module_index", k);
+    if (shiftErr) console.error("[widgets] state reindex failed at", k, shiftErr.message);
+  }
 
   return NextResponse.json({ ok: true });
 }
