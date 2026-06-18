@@ -5,9 +5,74 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, architecture audit cleanup)_
+_Last updated: 2026-06-18 (Claude, Studio QA triage)_
 
 ---
+
+## Studio QA — 2026-06-18 (Leon, live test from his account)
+
+Triaged from a full QA pass. Grouped by severity. **Heart of the app = the
+elements**, so the correctness bugs there come first.
+
+### Q1 — CRITICAL: state bleeds across widgets (data integrity)
+Uploads made in one widget reappear in another (moodboard images showed up in
+images/selection after other elements were deleted). **Root cause:**
+`module_state` is keyed by **positional `module_index`** (sliced in
+`app/s/[id]/SpaceView.tsx:391` `stateByModule`). Deleting/reordering a module
+shifts the modules array but the state rows keep their old index → orphaned
+state re-associates with whatever widget now sits at that index. **Fix
+options:** (a) on widget delete/reorder, re-index `module_state` rows (delete
+removed module's rows + decrement higher indices); needs the widgets
+delete/reorder routes to remap state. (b) durable: give each module a stable
+`id` and key state by id (migration + contract change). Start with (a).
+
+### Q2 — CRITICAL: actor shows "?" / "anon" even when signed-in owner
+On element interactions the contributor renders as "?" / "anon" although the
+signed-in owner is in the participants strip. Likely the client writes state
+with the anon actor (`getSelfId()` in `lib/state.ts`) or display_name/profile
+isn't resolved for the Clerk user. Investigate the actor path on `/state`
+writes from a signed-in owner.
+
+### Q3 — Element bugs (Herzstück)
+- **Moodboard:** images overflow the border-radius (missing overflow-hidden on
+  the rounded frame); support MORE images + per-image text notes (not only the
+  separate direction list). The no-go/ref/ok toggle is good — keep.
+- **Shotlist:** adding new entries is confusing and too slow. Streamline the
+  add UX (inline, fast).
+- **Images:** no placeholder when empty; border-radius overflow; unclear/safe
+  behaviour for LARGE sets (how it looks + scrolls); plus the Q1 bleed.
+- **Selection:** same border-radius overflow + Q1 bleed. NOTE: selection ≈
+  moodboard after Leon's changes — decide whether to merge or clearly
+  differentiate (no duplication).
+- **Attachments:** unusable (can't edit text/images). Restructure: most
+  important attachments on top, rest sorted by type. Position attachments as a
+  "catch-all / last" module.
+- **Notes:** can't delete individual entries.
+- **Q&A (Fragen):** can't delete individual entries.
+- **Poll (Umfrage):** can't be configured.
+- **Crew:** can't be configured.
+- **Work packages (Aufgaben):** can't be configured.
+- **Appointment (Termin):** center the content.
+- **Range (Von-Bis):** hide for now (remove from picker + classifier).
+- **Phases:** make bigger + vertical; show all phases.
+- **Table:** "+ col" button does nothing when there's only one column (A).
+
+### Q4 — Studio / creation UX
+- Dashboard: open a project by clicking anywhere on its row (not only the
+  name). (Done? see card-actions; make the whole card the open target.)
+- New-project UX: presets closer to / inside the prompt field (like the
+  homepage demo); below, suggest clickable **fast-prompt snippets** (general,
+  or preset-specific if a preset is picked) so the user thinks less
+  (e.g. "Deliverables für Social Media werden benötigt"). Architecturally: a
+  dedicated **Fast Prompts** section (editable; AI can seed some from the
+  onboarding answers).
+- **Creation-centric redesign:** tighter UI/UX, guide the user more, make the
+  prompt field the architectural center. (Design task.)
+- Colour/font popover doesn't close on outside click (it should).
+- Inconsistent spacing between elements (see Bild-1) — normalise the grid gap.
+
+### Q5 — cross-cutting
+- Element-level help text / empty states are inconsistent (some missing).
 
 ## P1 — correctness
 
