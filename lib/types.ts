@@ -346,6 +346,19 @@ export interface AudioWidget extends WidgetBase {
   placeholder?: string;
 }
 
+/**
+ * Selection — post-shoot proofing-lite. The photographer (owner) uploads
+ * a set of photos via module_state `upload`; collaborators with the share
+ * link select/favourite each photo (`check`, itemKey = upload id) and
+ * comment (`voice`, data { text, parentId: upload id }). Config is just a
+ * label/placeholder; all content lives in module_state. NOT authored by
+ * the classifier — it is added in the Auswahl stage, not at briefing.
+ */
+export interface SelectionWidget extends WidgetBase {
+  type: "selection";
+  placeholder?: string;
+}
+
 // ----- Specialty -----
 
 /**
@@ -429,6 +442,7 @@ export type Module =
   | AttachmentsWidget
   | ImagesWidget
   | MoodboardWidget
+  | SelectionWidget
   | AudioWidget
   | SketchWidget
   | TableWidget
@@ -468,6 +482,7 @@ export const ALL_MODULE_TYPES: readonly ModuleType[] = [
   "attachments",
   "images",
   "moodboard",
+  "selection",
   "audio",
   "sketch",
   "table",

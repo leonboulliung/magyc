@@ -27,7 +27,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
     location_single: "Location", locations_multi: "Locations",
     location_suggestions: "Place ideas", route: "Route",
     table: "Table", shot_list: "Shotlist", parts_list: "Parts list",
-    attachments: "Files", images: "Images", moodboard: "Moodboard", audio: "Audio", sketch: "Sketch",
+    attachments: "Files", images: "Images", moodboard: "Moodboard", selection: "Selection", audio: "Audio", sketch: "Sketch",
   },
   de: {
     ai_summary: "KI-Einschätzung", icon: "Symbol", wikipedia: "Wikipedia", gif: "GIF",
@@ -38,7 +38,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
     location_single: "Ort", locations_multi: "Orte",
     location_suggestions: "Ortsvorschläge", route: "Route",
     table: "Tabelle", shot_list: "Shotlist", parts_list: "Utensilien",
-    attachments: "Anhänge", images: "Bilder", moodboard: "Moodboard", audio: "Audio", sketch: "Skizze",
+    attachments: "Anhänge", images: "Bilder", moodboard: "Moodboard", selection: "Auswahl", audio: "Audio", sketch: "Skizze",
   },
   fr: {
     ai_summary: "Synthèse IA", icon: "Icône", wikipedia: "Wikipedia", gif: "GIF",
@@ -127,6 +127,7 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
       { type: "moodboard",   symbol: "▧" },
       { type: "shot_list",   symbol: "▤" },
       { type: "images",      symbol: "▨" },
+      { type: "selection",   symbol: "▥" },
       { type: "attachments", symbol: "□" },
       { type: "parts_list",  symbol: "≡" },
     ],
@@ -218,6 +219,7 @@ export function defaultWidget(type: ModuleType): Module | null {
     case "attachments":          return { type };
     case "images":               return { type };
     case "moodboard":            return { type, directions: [{ label: "…" }] };
+    case "selection":            return { type };
     case "audio":                return { type };
     case "sketch":               return { type };
     default:                     return null;

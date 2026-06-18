@@ -44,6 +44,7 @@ const RouteRenderer = dynamic(() => import("./RouteRenderer").then((mod) => mod.
 const AttachmentsRenderer = dynamic(() => import("./AttachmentsRenderer").then((mod) => mod.AttachmentsRenderer), { loading: () => <LoadingPlaceholder type="attachments" /> });
 const ImagesRenderer = dynamic(() => import("./ImagesRenderer").then((mod) => mod.ImagesRenderer), { loading: () => <LoadingPlaceholder type="images" /> });
 const MoodboardRenderer = dynamic(() => import("./MoodboardRenderer").then((mod) => mod.MoodboardRenderer), { loading: () => <LoadingPlaceholder type="moodboard" /> });
+const SelectionRenderer = dynamic(() => import("./SelectionRenderer").then((mod) => mod.SelectionRenderer), { loading: () => <LoadingPlaceholder type="selection" /> });
 const AudioRenderer = dynamic(() => import("./AudioRenderer").then((mod) => mod.AudioRenderer), { loading: () => <LoadingPlaceholder type="audio" /> });
 const GifRenderer = dynamic(() => import("./GifRenderer").then((mod) => mod.GifRenderer), { loading: () => <LoadingPlaceholder type="gif" /> });
 const SketchRenderer = dynamic(() => import("./SketchRenderer").then((mod) => mod.SketchRenderer), { loading: () => <LoadingPlaceholder type="sketch" /> });
@@ -140,6 +141,8 @@ export function WidgetDispatcher({
       return <ImagesRenderer module={m} index={index} state={s} />;
     case "moodboard":
       return <MoodboardRenderer module={m} index={index} state={s} />;
+    case "selection":
+      return <SelectionRenderer module={m} index={index} state={s} />;
     case "audio":
       return <AudioRenderer module={m} index={index} state={s} />;
 

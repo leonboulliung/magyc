@@ -46,6 +46,7 @@ const LABELS: Record<ModuleType, string> = {
   attachments: "Dateien",
   images: "Bilder",
   moodboard: "Moodboard",
+  selection: "Auswahl",
   audio: "Audio",
   sketch: "Skizze",
   table: "Tabelle / Technikliste",

@@ -180,6 +180,17 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Auswahl-Phase: `selection` widget (proofing-lite)**: new
+  `selection` widget (contract 1.4.0→1.5.0) — owner uploads a photo set
+  (`upload`), share-link collaborators select/favourite (`check`, itemKey =
+  photo id) and comment (`voice`, parentId = photo id). Reuses /upload + /state,
+  no DB migration. Registered like `moodboard` (types/contract/modules/
+  dispatcher/picker/PresetBuilder). Auto-seeded when a project enters the
+  `production` ("Auswahl") stage (PATCH /api/projects/[id]); also in the widget
+  picker. Upload owner-only (UI). NOT in the classifier (post-shoot tool).
+  Open: hard server-side owner-only-upload per widget; selected photos feeding
+  the Abschluss/story page (later phase).
+
 - 2026-06-18 · **Architecture audit cleanup**:
   reconciled the docs/contract with the current photographer-first Studio
   direction. `README.md` and `AGENTS.md` no longer describe MAGYC as only a

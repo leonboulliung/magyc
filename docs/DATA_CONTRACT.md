@@ -1,6 +1,6 @@
 # magyc.site — Data Contract
 
-**Version:** 1.4.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
+**Version:** 1.5.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
 
 This document is the stable interface of a space. The **presentation
 layer** (renderers, animations, the style system, the grid) may change
@@ -115,6 +115,10 @@ widget may carry optional `microTitle`, `description`, `attribution`.
 ### Uploads (Supabase Storage)
 - `attachments`, `images`, `audio` — `{ placeholder? }`
 - `moodboard` — `{ placeholder?, directions: {label,note?,status?}[] }`
+- `selection` — `{ placeholder? }` — post-shoot proofing-lite. Photos are
+  owner `upload`s; collaborators select via `check` (itemKey = upload id) and
+  comment via `voice` (parentId = upload id). Added in the Auswahl stage, not
+  authored by the classifier.
 
 ### Specialty
 - `sketch` — `{ placeholder? }`
@@ -142,7 +146,7 @@ widgets are dropped, not trusted.
 | `voice`  | qa, discussion                  | `{ id, text, role?, parentId? }` |
 | `edit`   | notes, table, shot_list, deliverables, approvals | `{ id?, text?, status?, due?, ... }` (last-write-wins) |
 | `add`    | notes, checklist, shot_list, deliverables, approvals, parts_list, … | free per widget (e.g. `{ id, text }`) |
-| `upload` | attachments, images, moodboard, audio | `{ url, name, size?, mimeType?, path? }` |
+| `upload` | attachments, images, moodboard, selection, audio | `{ url, name, size?, mimeType?, path? }` |
 | `stroke` | sketch                          | `{ path, color?, width? }` |
 
 Every action snapshots `data.color` (the actor's accent) so attribution

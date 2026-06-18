@@ -439,6 +439,10 @@ export function sanitizeModule(raw: unknown): Module | null {
       }
       return { type, ...b, placeholder, directions };
     }
+    case "selection": {
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, placeholder };
+    }
     case "audio": {
       const placeholder = clean(r.placeholder, 200) || undefined;
       return { type, ...b, placeholder };
@@ -931,6 +935,18 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     hasSignals: true,
     hasUploads: true,
     hasThread: false,
+  },
+  selection: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "the photographer provides a set of photos for a client to review, select/favourite, and comment on (post-shoot proofing). Added in the selection stage, not at briefing.",
+    requiresMandatoryConfig: false,
+    externalSource: "storage",
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: true,
+    hasThread: true,
   },
   audio: {
     partOfHeader: false,

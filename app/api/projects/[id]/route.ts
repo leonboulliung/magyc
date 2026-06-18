@@ -31,6 +31,7 @@ export async function PATCH(
     shared?: boolean;
     archived_at?: string | null;
     deleted_at?: string | null;
+    modules?: unknown[];
   } = {};
   if (typeof parsed.data.stage === "string") {
     if (!VALID_STAGES.has(parsed.data.stage)) {
@@ -56,12 +57,31 @@ export async function PATCH(
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, owner_id")
+    .select("id, owner_id, modules")
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (space.owner_id !== userId) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // Entering the selection stage seeds a selection widget once, so the
+  // "Auswahl" phase has real behaviour instead of showing the same brief.
+  if (update.stage === "production") {
+    const modules = Array.isArray(space.modules) ? space.modules : [];
+    const hasSelection = modules.some(
+      (mod) => mod && typeof mod === "object" && (mod as { type?: unknown }).type === "selection",
+    );
+    if (!hasSelection) {
+      update.modules = [
+        ...modules,
+        {
+          type: "selection",
+          microTitle: "Auswahl",
+          description: "Wähle Favoriten aus und hinterlasse Kommentare.",
+        },
+      ];
+    }
   }
 
   const { data: updated, error } = await admin
