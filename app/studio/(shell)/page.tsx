@@ -15,8 +15,8 @@ const STAGE_LABEL: Record<ProjectStage, string> = {
 };
 
 const STAGE_HELP: Record<ProjectStage, string> = {
-  brief: "Briefing, Moodboard, Shotlist, Team und Ablauf vorbereiten.",
-  production: "Auswahl, Feedback, Freigaben und Übergabe vorbereiten.",
+  brief: "Moodboard, Shotlist, Team, Orte und Ablauf vorbereiten.",
+  production: "Medien auswählen, Feedback sammeln und Freigaben klären.",
   handoff: "Fertige Projekte, Kundenseiten und Referenzen sammeln.",
 };
 

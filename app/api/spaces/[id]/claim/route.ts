@@ -35,7 +35,10 @@ export async function POST(
     .select("id, anon_owner_token, owner_id, visibility, stage")
     .eq("id", params.id)
     .maybeSingle();
-  if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+  if (fetchErr) {
+    console.error("[claim] fetch failed:", fetchErr.message);
+    return NextResponse.json({ error: "claim_failed" }, { status: 500 });
+  }
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   if (space.owner_id && space.owner_id !== userId) {
@@ -61,7 +64,10 @@ export async function POST(
         shared: false,
       })
       .eq("id", params.id);
-    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+    if (upErr) {
+      console.error("[claim] update failed:", upErr.message);
+      return NextResponse.json({ error: "claim_failed" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true, id: params.id, redirectTo: `/studio/${params.id}` });

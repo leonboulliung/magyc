@@ -1,23 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { defaultWidget, WidgetPickerContent } from "@/components/WidgetPicker";
+import { WidgetPickerContent } from "@/components/WidgetPicker";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { WidgetContext } from "@/lib/widgetContext";
-import { bodyTypes } from "@/lib/modules";
+import {
+  cleanStudioPresets,
+  createStudioPreset,
+  DEFAULT_STUDIO_PRESETS,
+  PRESET_ELEMENT_TYPE_SET,
+  STUDIO_PRESETS_STORAGE_KEY,
+  type StudioPreset,
+} from "@/lib/studioPresets";
 import type { Module, ModuleStateKind, ModuleType, SpaceLabels } from "@/lib/types";
-
-type Preset = {
-  id: string;
-  name: string;
-  description: string;
-  modules: Module[];
-  promptInjections: string[];
-};
-
-const HIDDEN_IN_PRESETS = new Set<ModuleType>(["wikipedia", "gif", "icon", "ai_summary", "notes", "sketch"]);
-const ELEMENT_TYPES = bodyTypes().filter((type) => !HIDDEN_IN_PRESETS.has(type));
-const ELEMENT_TYPE_SET = new Set(ELEMENT_TYPES);
 
 const LABELS: Record<ModuleType, string> = {
   heading: "Titel",
@@ -55,95 +50,10 @@ const LABELS: Record<ModuleType, string> = {
   gif: "GIF",
 };
 
-const STORAGE_KEY = "magyc.studio.presets.v3";
-
-function widget(type: ModuleType): Module {
-  const base = defaultWidget(type);
-  if (base) return base;
-  return { type: "notes" };
-}
-
-const DEFAULT_PRESETS: Preset[] = [
-  {
-    id: "product",
-    name: "Produktshooting",
-    description: "Packshots, Editorials und Webshop-Serien.",
-    modules: [
-      { type: "moodboard", microTitle: "Moodboard", directions: [{ label: "Licht & Look" }, { label: "Material / Textur" }] },
-      { type: "shot_list", microTitle: "Shotlist", shots: [
-        { label: "Hero-Aufnahme", priority: "must", status: "planned" },
-        { label: "Detail / Prozess", priority: "should", status: "planned" },
-      ] },
-      { type: "table", microTitle: "Technikliste", columns: ["Bereich", "Vorgabe"], rows: [["Kamera", ""], ["Objektiv", ""], ["Licht", ""]] },
-      { type: "deliverables", microTitle: "Deliverables", items: [{ label: "Webshop" }, { label: "Social Crops" }] },
-      { type: "approvals", microTitle: "Freigaben", items: [{ text: "Look freigeben" }, { text: "Finale Auswahl freigeben" }] },
-    ],
-    promptInjections: [
-      "Plane wie ein kommerzieller Produktfotograf: Deliverables, Nutzungsrechte, Shotlist und Freigaben explizit machen.",
-    ],
-  },
-  {
-    id: "wedding",
-    name: "Hochzeit",
-    description: "Ablauf, Orte, Must-have-Motive und Übergabe.",
-    modules: [
-      { type: "shot_list", microTitle: "Must-have-Motive", shots: [
-        { label: "Getting Ready", priority: "must", status: "planned" },
-        { label: "Trauung", priority: "must", status: "planned" },
-        { label: "Gruppenbilder", priority: "must", status: "planned" },
-      ] },
-      { type: "locations_multi", microTitle: "Orte", locations: [
-        { lng: 13.4049, lat: 52.52, label: "Trauung" },
-        { lng: 13.3903, lat: 52.5076, label: "Feier" },
-      ] },
-      { type: "appointment", microTitle: "Termin", datetime: new Date().toISOString() },
-      { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Ablauf bestätigen" }, { text: "Kontaktperson klären" }] },
-      { type: "deliverables", microTitle: "Übergabe", items: [{ label: "Online-Galerie" }, { label: "Highlight-Auswahl" }] },
-    ],
-    promptInjections: ["Sensible Kommunikation, klare Timings und Must-have-Momente priorisieren."],
-  },
-];
-
 const EMPTY_LABELS: SpaceLabels = {};
 
-function createPreset(): Preset {
-  return {
-    id: `preset-${Date.now()}`,
-    name: "Neues Preset",
-    description: "",
-    modules: [],
-    promptInjections: [""],
-  };
-}
-
-function cleanPresets(raw: unknown): Preset[] | null {
-  if (!Array.isArray(raw)) return null;
-  const allowed = new Set(ELEMENT_TYPES);
-  const parsed = raw
-    .map((item) => {
-      const candidate = item as Partial<Preset>;
-      const modules = Array.isArray(candidate.modules)
-        ? candidate.modules.filter((module): module is Module =>
-            !!module && typeof module === "object" && allowed.has((module as Module).type),
-          )
-        : [];
-      if (!candidate.id || !candidate.name || modules.length === 0) return null;
-      return {
-        id: String(candidate.id),
-        name: String(candidate.name),
-        description: typeof candidate.description === "string" ? candidate.description : "",
-        modules,
-        promptInjections: Array.isArray(candidate.promptInjections)
-          ? candidate.promptInjections.filter((prompt): prompt is string => typeof prompt === "string")
-          : [""],
-      };
-    })
-    .filter(Boolean) as Preset[];
-  return parsed;
-}
-
 export function PresetBuilder() {
-  const [presets, setPresets] = useState<Preset[]>(DEFAULT_PRESETS);
+  const [presets, setPresets] = useState<StudioPreset[]>(DEFAULT_STUDIO_PRESETS);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [addingElement, setAddingElement] = useState(false);
@@ -151,8 +61,8 @@ export function PresetBuilder() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      const parsed = cleanPresets(raw ? JSON.parse(raw) : null);
+      const raw = window.localStorage.getItem(STUDIO_PRESETS_STORAGE_KEY);
+      const parsed = cleanStudioPresets(raw ? JSON.parse(raw) : null);
       if (parsed) setPresets(parsed);
     } catch {
       // Local drafts must never block Studio.
@@ -160,7 +70,7 @@ export function PresetBuilder() {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
+    window.localStorage.setItem(STUDIO_PRESETS_STORAGE_KEY, JSON.stringify(presets));
   }, [presets]);
 
   const editing = useMemo(
@@ -169,7 +79,7 @@ export function PresetBuilder() {
   );
   const activeModule = editing?.modules[Math.min(activeIndex, Math.max(0, editing.modules.length - 1))] || null;
 
-  function updatePreset(id: string, patch: Partial<Preset>) {
+  function updatePreset(id: string, patch: Partial<StudioPreset>) {
     setPresets((items) =>
       items.map((preset) => (preset.id === id ? { ...preset, ...patch } : preset)),
     );
@@ -183,7 +93,7 @@ export function PresetBuilder() {
   }
 
   function addPreset() {
-    const preset = createPreset();
+    const preset = createStudioPreset();
     setPresets((items) => [...items, preset]);
     openPreset(preset.id);
   }
@@ -600,7 +510,7 @@ function PresetElementPicker({
             </div>
             <div className="min-h-0 overflow-y-auto overscroll-contain">
               <WidgetPickerContent
-                allowedTypes={ELEMENT_TYPE_SET}
+                allowedTypes={PRESET_ELEMENT_TYPE_SET}
                 onPick={(module) => {
                   onPick(module);
                   onClose();

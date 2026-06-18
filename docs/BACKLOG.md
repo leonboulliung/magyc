@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, preset draft and picker logic)_
+_Last updated: 2026-06-18 (Codex, preset-driven project start)_
 
 ---
 
@@ -29,14 +29,15 @@ then treat insert conflict as 409. (Manual SQL in Supabase editor.)
 ## P2 — product levers
 
 ### 5. Studio settings: profile and contacts
-Presets now have their own `/studio/presets` surface. Remaining Studio
-settings should also be dedicated flows rather than dashboard clutter:
-public profile settings (`profilname.magyc.site` later), focus tags (Mode,
-Produktfotografie, …), profile description, and a lightweight directory for
-team members and clients (user accounts). Product decision made: visible
-project stages are **Planung / Auswahl / Abgeschlossen** while the current
-DB enum remains `brief / production / handoff` until a deliberate migration
-is worth it.
+Presets now have their own `/studio/presets` surface and `/studio/new`
+can apply them to new Planning projects. Remaining Studio settings should
+also be dedicated flows rather than dashboard clutter: public profile
+settings (`profilname.magyc.site` later), focus tags (Mode,
+Produktfotografie, …), profile description, and a lightweight directory
+for team members and clients (user accounts). Product decision made:
+visible project stages are **Planung / Auswahl / Abgeschlossen** while
+the current DB enum remains `brief / production / handoff` until a
+deliberate migration is worth it.
 
 ### 6. Error UX architecture
 Current visible errors use Sonner toasts in selected flows, but the product
@@ -176,6 +177,18 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Preset-driven project start**:
+  connected Studio presets to actual project creation. Preset definitions
+  now live in a shared `lib/studioPresets` registry used by both
+  `/studio/presets` and `/studio/new`, and empty draft presets survive
+  local storage instead of being silently dropped. `/studio/new` now lets
+  photographers start in **Planung** with or without a preset, previews the
+  prepared elements, and sends selected preset modules plus prompt rules
+  to `/api/projects`. The project API sanitizes preset modules, passes them
+  into the classifier as preconfigured body modules, and records preset
+  metadata in AI events. Also replaced raw create/claim/update/delete
+  errors with stable error codes plus friendlier client messages, and
+  removed remaining "Briefing" wording from the Studio phase cards.
 - 2026-06-18 · **Preset draft and picker logic**:
   changed presets from forced Moodboard defaults to true drafts: new and
   edited presets may temporarily have zero elements, but closing/saving

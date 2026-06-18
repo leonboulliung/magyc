@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/server/profile";
 import { classifyInput } from "@/lib/server/classify";
 import { recordAiEvent } from "@/lib/server/aiEvents";
+import { sanitizeModules } from "@/lib/modules";
 import { newId, newAnonToken } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 
@@ -24,6 +25,8 @@ export const maxDuration = 30;
 const FIELD_MAX = 600;
 const str = (v: unknown) =>
   typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, FIELD_MAX) : "";
+const promptRule = (v: unknown) =>
+  typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, 500) : "";
 
 function buildBriefInput(
   prompt: string,
@@ -63,6 +66,9 @@ export async function POST(req: Request) {
   const parsed = await parseBody(req, z.object({
     segment: z.string().optional(),
     prompt: z.string().optional(),
+    presetName: z.string().optional(),
+    presetModules: z.unknown().optional(),
+    presetPromptInjections: z.unknown().optional(),
     client: z.string().optional(),
     product: z.string().optional(),
     goal: z.string().optional(),
@@ -87,14 +93,24 @@ export async function POST(req: Request) {
   // Segment is currently always product (the only guided preset). Kept as a
   // field so more presets slot in without an API change.
   const segment = str(b.segment) || "product";
+  const presetName = str(b.presetName);
+  const presetModules = sanitizeModules(Array.isArray(b.presetModules) ? b.presetModules.slice(0, 24) : []);
+  const presetPromptInjections = Array.isArray(b.presetPromptInjections)
+    ? b.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
+    : [];
   // Create works with a prompt, with structured fields, or with NOTHING
   // (an empty "just give me a starter project" path).
-  const input = buildBriefInput(str(b.prompt), fields);
+  const inputBase = buildBriefInput(str(b.prompt), fields);
+  const input = [
+    inputBase,
+    presetName ? `Preset: ${presetName}.` : "",
+    presetPromptInjections.length ? `Preset-Regeln: ${presetPromptInjections.join(" ")}` : "",
+  ].filter(Boolean).join(" ").slice(0, 1200);
 
   let result;
   const aiStarted = Date.now();
   try {
-    result = await classifyInput(input, [], [], { projectMode: "photo_shoot" });
+    result = await classifyInput(input, [], presetModules, { projectMode: "photo_shoot" });
   } catch (e) {
     const err = e as { message?: string; status?: number };
     const msg = err.message || "unknown";
@@ -131,16 +147,30 @@ export async function POST(req: Request) {
     stage: "brief",
     segment,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[projects] insert failed:", error.message);
+    return NextResponse.json({ error: "create_failed" }, { status: 500 });
+  }
 
   await recordAiEvent({
     userId,
     spaceId: id,
     eventType: "classify",
     model: "gpt-4o-mini",
-    input: { input, segment },
+    input: {
+      input,
+      segment,
+      presetName: presetName || null,
+      presetModuleTypes: presetModules.map((m) => m.type),
+      presetPromptInjections,
+    },
     output: { title: result.title, moduleTypes: result.modules.map((m) => m.type) },
-    metadata: { source: "studio_builder", segment, moduleCount: result.modules.length },
+    metadata: {
+      source: "studio_builder",
+      segment,
+      presetApplied: presetModules.length > 0,
+      moduleCount: result.modules.length,
+    },
     latencyMs: Date.now() - aiStarted,
   });
 

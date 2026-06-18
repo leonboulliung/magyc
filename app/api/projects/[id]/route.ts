@@ -51,7 +51,10 @@ export async function PATCH(
   }
 
   const { error } = await admin.from("spaces").update(update).eq("id", params.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[projects] update failed:", error.message);
+    return NextResponse.json({ error: "update_failed" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -79,7 +82,10 @@ export async function DELETE(
   }
 
   const { error } = await admin.from("spaces").delete().eq("id", params.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[projects] delete failed:", error.message);
+    return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

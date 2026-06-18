@@ -34,6 +34,16 @@ export function PublishButton({
   const isAnonymousDraft = !space.owner;
   const claimIntentKey = `magyc.claim_after_signin.${space.id}`;
 
+  function friendlyError(code: unknown): string {
+    if (code === "owner_token_required" || code === "owner_token_mismatch") {
+      return "Dieser Entwurf kann in diesem Browser nicht mehr eindeutig zugeordnet werden.";
+    }
+    if (code === "already_published") return "Dieses Projekt wurde bereits veröffentlicht.";
+    if (code === "claim_failed") return "Das Projekt konnte gerade nicht im Studio gespeichert werden.";
+    if (code === "unauthorized") return "Bitte melde dich an, um das Projekt zu speichern.";
+    return "Die Aktion konnte gerade nicht abgeschlossen werden.";
+  }
+
   async function saveToStudio() {
     if (busy) return;
     setBusy(true);
@@ -46,7 +56,7 @@ export function PublishButton({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json?.error || "✕");
+        setError(friendlyError(json?.error));
         return;
       }
       setOpen(false);
@@ -68,7 +78,7 @@ export function PublishButton({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json?.error || "✕");
+        setError(friendlyError(json?.error));
         return;
       }
       setOpen(false);

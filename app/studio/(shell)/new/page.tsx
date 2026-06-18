@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  cleanStudioPresets,
+  DEFAULT_STUDIO_PRESETS,
+  STUDIO_PRESETS_STORAGE_KEY,
+  type StudioPreset,
+} from "@/lib/studioPresets";
 
 /**
  * Guided product builder — prompt-first (like the demo): a central prompt
@@ -39,6 +45,8 @@ export default function NewProjectPage() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [showFields, setShowFields] = useState(false);
+  const [presets, setPresets] = useState<StudioPreset[]>(DEFAULT_STUDIO_PRESETS);
+  const [presetId, setPresetId] = useState<string>("none");
   const [v, setV] = useState<Values>({
     client: "", product: "", goal: "", usage: "", deadline: "", references: "", scope: "",
   });
@@ -46,6 +54,34 @@ export default function NewProjectPage() {
   const [error, setError] = useState<string | null>(null);
 
   const set = (k: Field["key"], val: string) => setV((p) => ({ ...p, [k]: val }));
+  const usablePresets = useMemo(() => presets.filter((preset) => preset.modules.length > 0), [presets]);
+  const selectedPreset = usablePresets.find((preset) => preset.id === presetId) || null;
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STUDIO_PRESETS_STORAGE_KEY);
+      const parsed = cleanStudioPresets(raw ? JSON.parse(raw) : null);
+      if (parsed) {
+        setPresets(parsed);
+        if (presetId !== "none" && !parsed.some((preset) => preset.id === presetId && preset.modules.length > 0)) {
+          setPresetId("none");
+        }
+      }
+    } catch {
+      // Presets are an acceleration layer. Creation must still work without them.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function friendlyError(code: unknown): string {
+    if (code === "unauthorized") return "Bitte melde dich an, um das Projekt in deinem Studio anzulegen.";
+    if (code === "ai_not_configured") return "Die KI-Erstellung ist gerade nicht konfiguriert.";
+    if (code === "classify_failed") return "MAGYC konnte die Planung gerade nicht erstellen. Bitte versuche es erneut.";
+    if (code === "db_unavailable") return "Die Projektdatenbank ist gerade nicht erreichbar.";
+    if (code === "invalid_body") return "Die Projektdaten waren unvollständig. Bitte prüfe Preset und Eingaben.";
+    if (code === "create_failed") return "Das Projekt konnte gerade nicht gespeichert werden.";
+    return "Das Projekt konnte nicht erstellt werden. Bitte erneut versuchen.";
+  }
 
   async function submit() {
     if (busy) return;
@@ -55,11 +91,18 @@ export default function NewProjectPage() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segment: "product", prompt, ...(showFields ? v : {}) }),
+        body: JSON.stringify({
+          segment: selectedPreset?.id || "product",
+          prompt,
+          ...(showFields ? v : {}),
+          presetName: selectedPreset?.name,
+          presetModules: selectedPreset?.modules,
+          presetPromptInjections: selectedPreset?.promptInjections,
+        }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.id) {
-        setError("Das Projekt konnte nicht erstellt werden. Bitte erneut versuchen.");
+        setError(friendlyError(json?.error));
         setBusy(false);
         return;
       }
@@ -71,36 +114,91 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-12 sm:px-8 sm:py-16">
+    <div className="mx-auto w-full max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
       <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">Neues Projekt</p>
       <h1 className="mt-3 font-brand text-[28px] font-bold tracking-[-0.02em] text-white sm:text-[40px]">
-        Produkt-Projekt
+        Planung starten
       </h1>
       <p className="mt-4 text-[16px] leading-relaxed text-white/60">
-        Beschreib das Shooting in einem Satz — oder leg einfach leer los. MAGYC baut den
-        Brief (Referenzen, Shotlist, Deliverables, Freigaben), den du danach anpasst.
+        Beschreib das Shooting in einem Satz oder starte mit einem Preset. MAGYC legt das Projekt in
+        <span className="text-white"> Planung</span> an und bereitet die passenden Bausteine vor.
       </p>
 
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
-        rows={4}
-        autoFocus
-        className="mt-8 w-full resize-none rounded-2xl border border-white/12 bg-white/[0.03] px-5 py-4 text-[17px] leading-relaxed text-white outline-none transition-colors placeholder:text-white/30 focus:border-white/35"
-      />
+      <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_300px]">
+        <div>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
+            rows={5}
+            autoFocus
+            className="w-full resize-none rounded-2xl border border-white/12 bg-white/[0.03] px-5 py-4 text-[17px] leading-relaxed text-white outline-none transition-colors placeholder:text-white/30 focus:border-white/35"
+          />
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {QUICK.map((q) => (
-          <button
-            key={q}
-            type="button"
-            onClick={() => setPrompt(q)}
-            className="rounded-full border border-white/12 px-3 py-1.5 text-left text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white"
-          >
-            {q}
-          </button>
-        ))}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {QUICK.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => setPrompt(q)}
+                className="rounded-full border border-white/12 px-3 py-1.5 text-left text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <section className="rounded-2xl border border-white/12 bg-white/[0.025] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/40">Preset</p>
+            <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] text-white/35">Planung</span>
+          </div>
+          <div className="mt-4 space-y-2">
+            <button
+              type="button"
+              onClick={() => setPresetId("none")}
+              className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                presetId === "none"
+                  ? "border-white bg-white text-black"
+                  : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
+              }`}
+            >
+              Ohne Preset starten
+            </button>
+            {usablePresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setPresetId(preset.id)}
+                className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                  presetId === preset.id
+                    ? "border-white bg-white text-black"
+                    : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
+                }`}
+              >
+                <span className="block font-medium">{preset.name}</span>
+                {preset.description && <span className={`mt-1 block text-xs ${presetId === preset.id ? "text-black/55" : "text-white/35"}`}>{preset.description}</span>}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <p className="mono text-[10px] uppercase tracking-[0.2em] text-white/35">Vorbereitet</p>
+            {selectedPreset ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedPreset.modules.map((module, index) => (
+                  <span key={`${module.type}-${index}`} className="rounded-full border border-white/12 px-2.5 py-1 text-xs text-white/58">
+                    {module.microTitle || module.type.replace("_", " ")}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed text-white/42">
+                MAGYC wählt die Bausteine aus deinem Prompt.
+              </p>
+            )}
+          </div>
+        </section>
       </div>
 
       <button
