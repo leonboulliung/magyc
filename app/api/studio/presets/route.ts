@@ -12,6 +12,7 @@ type PresetRow = {
   description: string | null;
   modules: unknown[] | null;
   prompt_injections: unknown[] | null;
+  allow_context_modules: boolean | null;
 };
 
 function mapRow(row: PresetRow): StudioPreset {
@@ -21,6 +22,7 @@ function mapRow(row: PresetRow): StudioPreset {
     description: row.description ?? "",
     modules: row.modules ?? [],
     promptInjections: row.prompt_injections ?? [],
+    allowContextModules: row.allow_context_modules !== false,
   }]);
   return cleaned?.[0] ?? {
     id: row.id,
@@ -28,6 +30,7 @@ function mapRow(row: PresetRow): StudioPreset {
     description: row.description ?? "",
     modules: [],
     promptInjections: [],
+    allowContextModules: true,
   };
 }
 
@@ -38,7 +41,7 @@ export async function GET() {
   const admin = supabaseAdmin();
   const { data, error } = await admin
     .from("studio_presets")
-    .select("id, name, description, modules, prompt_injections")
+    .select("id, name, description, modules, prompt_injections, allow_context_modules")
     .eq("owner_id", userId)
     .order("position", { ascending: true });
   if (error) {
@@ -80,6 +83,7 @@ export async function PUT(req: Request) {
         description: preset.description.slice(0, 500),
         modules: preset.modules,
         prompt_injections: preset.promptInjections.slice(0, 12),
+        allow_context_modules: preset.allowContextModules !== false,
         position,
         updated_at: new Date().toISOString(),
       })),

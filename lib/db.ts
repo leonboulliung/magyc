@@ -45,6 +45,8 @@ type SpaceRow = {
   stage: string | null;
   segment: string | null;
   shared: boolean | null;
+  archived_at: string | null;
+  deleted_at: string | null;
   owner_id: string | null;
   visibility: string | null;
   created_at: string;
@@ -179,6 +181,8 @@ function mapSpace(row: SpaceRow): Space {
       : null,
     segment: row.segment ?? null,
     shared: row.shared === true,
+    archivedAt: row.archived_at ? new Date(row.archived_at).getTime() : null,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at).getTime() : null,
     modules,
     labels: mapLabels(row.labels ?? null),
     style: sanitizeStyle(row.style ?? null),
@@ -194,7 +198,7 @@ function mapSpace(row: SpaceRow): Space {
 
 const SPACE_SELECT = `
   id, input_text, title, language, vibe, modules, labels, style,
-  stage, segment, shared,
+  stage, segment, shared, archived_at, deleted_at,
   owner_id, visibility,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),

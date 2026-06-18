@@ -73,16 +73,21 @@ export async function POST(
   const nowIso = new Date().toISOString();
 
   // Flip visibility + bind owner.
-  const { error: upErr } = await admin
+  const { data: updated, error: upErr } = await admin
     .from("spaces")
     .update({
       owner_id: userId,
       visibility: "public",
       published_at: nowIso,
     })
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .select("id");
   if (upErr) {
     console.error("[publish] update failed:", upErr.message);
+    return NextResponse.json({ error: "publish_failed" }, { status: 500 });
+  }
+  if (!updated || updated.length === 0) {
+    console.error("[publish] update matched no rows:", params.id);
     return NextResponse.json({ error: "publish_failed" }, { status: 500 });
   }
 

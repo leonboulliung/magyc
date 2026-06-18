@@ -39,5 +39,5 @@ export async function isSpaceOwner(
 
 /** Standard 403 for a failed owner check — consistent across routes. */
 export function forbidden(): NextResponse {
-  return NextResponse.json({ error: "unauthorized" }, { status: 403 });
+  return NextResponse.json({ error: "forbidden" }, { status: 403 });
 }

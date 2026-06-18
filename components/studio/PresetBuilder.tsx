@@ -64,6 +64,7 @@ export function PresetBuilder() {
   const [saveError, setSaveError] = useState("");
   const [syncState, setSyncState] = useState<"loading" | "saved" | "local" | "error">("loading");
   const hydratedRef = useRef(false);
+  const remoteWritableRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -87,11 +88,13 @@ export function PresetBuilder() {
         if (!cancelled) {
           setPresets(remote);
           setSyncState("saved");
+          remoteWritableRef.current = true;
         }
       } catch {
         if (!cancelled) {
           if (local) setPresets(local);
           setSyncState("local");
+          remoteWritableRef.current = false;
         }
       } finally {
         if (!cancelled) hydratedRef.current = true;
@@ -107,6 +110,10 @@ export function PresetBuilder() {
   useEffect(() => {
     window.localStorage.setItem(STUDIO_PRESETS_STORAGE_KEY, JSON.stringify(presets));
     if (!hydratedRef.current) return;
+    if (!remoteWritableRef.current) {
+      setSyncState("local");
+      return;
+    }
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       try {
@@ -118,6 +125,7 @@ export function PresetBuilder() {
         const json = await readApiJson(res);
         if (!res.ok) {
           setSyncState("error");
+          remoteWritableRef.current = false;
           showApiError("Presets nicht gespeichert", json, {
             fallback: "Deine Presets bleiben lokal erhalten, konnten aber nicht im Account gespeichert werden.",
           });
@@ -126,6 +134,7 @@ export function PresetBuilder() {
         setSyncState("saved");
       } catch (error) {
         setSyncState("error");
+        remoteWritableRef.current = false;
         showUnknownError("Presets nicht gespeichert", error, {
           fallback: "Deine Presets bleiben lokal erhalten, konnten aber nicht im Account gespeichert werden.",
         });
@@ -177,6 +186,17 @@ export function PresetBuilder() {
     const next = editing.modules.filter((_, index) => index !== activeIndex);
     updatePreset(editing.id, { modules: next });
     setActiveIndex(Math.max(0, Math.min(activeIndex - 1, next.length - 1)));
+  }
+
+  function removeModuleAt(indexToRemove: number) {
+    if (!editing) return;
+    const next = editing.modules.filter((_, index) => index !== indexToRemove);
+    updatePreset(editing.id, { modules: next });
+    if (activeIndex === indexToRemove) {
+      setActiveIndex(Math.max(0, Math.min(indexToRemove, next.length - 1)));
+    } else if (activeIndex > indexToRemove) {
+      setActiveIndex(activeIndex - 1);
+    }
   }
 
   function updateActiveModule(module: Module) {
@@ -342,8 +362,31 @@ export function PresetBuilder() {
                   />
                 </label>
               </div>
+              <label className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3">
+                <span>
+                  <span className="block text-sm font-medium text-white">Kontext-Elemente erlauben</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-white/38">
+                    Wenn aktiv, darf MAGYC bei der Projekterstellung zusätzlich passende Elemente ergänzen.
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={editing.allowContextModules !== false}
+                  onClick={() => updatePreset(editing.id, { allowContextModules: editing.allowContextModules === false })}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                    editing.allowContextModules !== false ? "bg-white" : "bg-white/14"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 h-5 w-5 rounded-full transition-transform ${
+                      editing.allowContextModules !== false ? "translate-x-6 bg-black" : "translate-x-1 bg-white"
+                    }`}
+                  />
+                </button>
+              </label>
 
-              <div className="mt-7 grid gap-6 lg:grid-cols-[250px_1fr]">
+              <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)]">
                 <div>
                   <div className="flex items-center justify-between gap-3">
                     <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Elemente</p>
@@ -359,22 +402,35 @@ export function PresetBuilder() {
                     </button>
                   </div>
                   {editing.modules.length > 0 ? (
-                    <motion.div layout className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
+                    <motion.div layout className="mt-3 flex flex-wrap gap-2">
                       {editing.modules.map((module, index) => (
-                        <motion.button
+                        <motion.span
                           key={`${module.type}-${index}`}
                           layout
-                          type="button"
-                          onClick={() => setActiveIndex(index)}
-                          whileTap={{ scale: 0.985 }}
-                          className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                          className={`inline-flex items-center gap-1.5 rounded-full border py-1 pl-3 pr-1 text-sm transition-colors ${
                             index === activeIndex
                               ? "border-white bg-white text-black"
                               : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
                           }`}
                         >
-                          {module.microTitle || LABELS[module.type]}
-                        </motion.button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveIndex(index)}
+                            className="min-w-0 truncate"
+                          >
+                            {module.microTitle || LABELS[module.type]}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`${module.microTitle || LABELS[module.type]} entfernen`}
+                            onClick={() => removeModuleAt(index)}
+                            className={`grid h-5 w-5 place-items-center rounded-full text-[13px] leading-none transition-colors ${
+                              index === activeIndex ? "hover:bg-black/10" : "hover:bg-white/10"
+                            }`}
+                          >
+                            ×
+                          </button>
+                        </motion.span>
                       ))}
                     </motion.div>
                   ) : (
@@ -512,8 +568,12 @@ function PresetModulePreview({
       onChange(next);
       return true;
     },
-    act: async (_moduleIndex: number, _kind: ModuleStateKind, _data: Record<string, unknown>) => true,
-  }), [onChange]);
+    act: async (_moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
+      const next = applyPresetAction(module, kind, data);
+      if (next) onChange(next);
+      return true;
+    },
+  }), [module, onChange]);
 
   return (
     <WidgetContext.Provider value={context}>
@@ -557,6 +617,185 @@ function PresetModulePreview({
       </div>
     </WidgetContext.Provider>
   );
+}
+
+function applyPresetAction(
+  module: Module,
+  kind: ModuleStateKind,
+  data: Record<string, unknown>,
+): Module | null {
+  const id = textValue(data.id, 80);
+  const seed = seedIndex(id);
+
+  if (module.type === "checklist" && kind === "add") {
+    const text = textValue(data.text, 200);
+    return text ? { ...module, items: [...module.items, { text }] } : null;
+  }
+
+  if (module.type === "moodboard") {
+    if (kind === "add") {
+      const label = textValue(data.label, 140);
+      if (!label) return null;
+      return {
+        ...module,
+        directions: [...module.directions, {
+          label,
+          note: textValue(data.note, 240) || undefined,
+          status: moodboardStatus(data.status),
+        }],
+      };
+    }
+    if (kind === "edit" && seed !== null && module.directions[seed]) {
+      return {
+        ...module,
+        directions: module.directions.map((direction, index) => index === seed ? {
+          ...direction,
+          label: textValue(data.label, 140) || direction.label,
+          note: typeof data.note === "string" ? textValue(data.note, 240) || undefined : direction.note,
+          status: moodboardStatus(data.status, direction.status),
+        } : direction),
+      };
+    }
+  }
+
+  if (module.type === "shot_list") {
+    if (kind === "add") {
+      const label = textValue(data.label, 160);
+      if (!label) return null;
+      return {
+        ...module,
+        shots: [...module.shots, {
+          label,
+          purpose: textValue(data.purpose, 180) || undefined,
+          setup: textValue(data.setup, 180) || undefined,
+          location: textValue(data.location, 180) || undefined,
+          notes: textValue(data.notes, 240) || undefined,
+          priority: shotPriority(data.priority),
+          status: shotStatus(data.status),
+        }],
+      };
+    }
+    if (kind === "edit" && seed !== null && module.shots[seed]) {
+      return {
+        ...module,
+        shots: module.shots.map((shot, index) => index === seed ? {
+          ...shot,
+          label: textValue(data.label, 160) || shot.label,
+          purpose: typeof data.purpose === "string" ? textValue(data.purpose, 180) || undefined : shot.purpose,
+          setup: typeof data.setup === "string" ? textValue(data.setup, 180) || undefined : shot.setup,
+          location: typeof data.location === "string" ? textValue(data.location, 180) || undefined : shot.location,
+          notes: typeof data.notes === "string" ? textValue(data.notes, 240) || undefined : shot.notes,
+          priority: shotPriority(data.priority, shot.priority),
+          status: shotStatus(data.status, shot.status),
+        } : shot),
+      };
+    }
+  }
+
+  if (module.type === "deliverables") {
+    if (kind === "add") {
+      const label = textValue(data.label, 200);
+      if (!label) return null;
+      return {
+        ...module,
+        items: [...module.items, {
+          label,
+          details: textValue(data.details, 240) || undefined,
+          quantity: textValue(data.quantity, 80) || undefined,
+          format: textValue(data.format, 80) || undefined,
+          due: textValue(data.due, 80) || undefined,
+          status: deliverableStatus(data.status),
+        }],
+      };
+    }
+    if (kind === "edit" && seed !== null && module.items[seed]) {
+      return {
+        ...module,
+        items: module.items.map((item, index) => index === seed ? {
+          ...item,
+          label: textValue(data.label, 200) || item.label,
+          due: typeof data.due === "string" ? textValue(data.due, 80) || undefined : item.due,
+          status: deliverableStatus(data.status, item.status),
+        } : item),
+      };
+    }
+  }
+
+  if (module.type === "approvals") {
+    if (kind === "add") {
+      const text = textValue(data.text, 200);
+      if (!text) return null;
+      return {
+        ...module,
+        items: [...module.items, {
+          text,
+          description: textValue(data.description, 240) || undefined,
+          due: textValue(data.due, 80) || undefined,
+          audience: approvalAudience(data.audience),
+          status: approvalStatus(data.status),
+        }],
+      };
+    }
+    if (kind === "edit" && seed !== null && module.items[seed]) {
+      return {
+        ...module,
+        items: module.items.map((item, index) => index === seed ? {
+          ...item,
+          text: textValue(data.text, 200) || item.text,
+          due: typeof data.due === "string" ? textValue(data.due, 80) || undefined : item.due,
+          status: approvalStatus(data.status, item.status),
+        } : item),
+      };
+    }
+    if (kind === "check" && seedIndex(textValue(data.itemKey, 80)) !== null) {
+      const index = seedIndex(textValue(data.itemKey, 80));
+      if (index === null || !module.items[index]) return null;
+      return {
+        ...module,
+        items: module.items.map((item, itemIndex) => itemIndex === index ? {
+          ...item,
+          status: data.checked === false ? ("pending" as const) : ("approved" as const),
+        } : item),
+      };
+    }
+  }
+
+  return null;
+}
+
+function textValue(value: unknown, max: number): string {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "";
+}
+
+function seedIndex(id: string): number | null {
+  const match = /^seed-(\d+)$/.exec(id);
+  if (!match) return null;
+  const index = Number(match[1]);
+  return Number.isFinite(index) ? index : null;
+}
+
+function moodboardStatus(value: unknown, fallback: "reference" | "approved" | "avoid" = "reference") {
+  return value === "approved" || value === "avoid" || value === "reference" ? value : fallback;
+}
+
+function shotPriority(value: unknown, fallback: "must" | "should" | "nice" = "must") {
+  return value === "should" || value === "nice" || value === "must" ? value : fallback;
+}
+
+function shotStatus(value: unknown, fallback: "planned" | "captured" | "selected" = "planned") {
+  return value === "captured" || value === "selected" || value === "planned" ? value : fallback;
+}
+
+function deliverableStatus(value: unknown, fallback: "planned" | "in_progress" | "ready" | "delivered" = "planned") {
+  return value === "in_progress" || value === "ready" || value === "delivered" || value === "planned" ? value : fallback;
+}
+
+function approvalAudience(value: unknown, fallback: "client" | "internal" = "client") {
+  return value === "internal" || value === "client" ? value : fallback;
+}
+
+function approvalStatus(value: unknown, fallback: "pending" | "requested" | "approved" = "pending") {
+  return value === "requested" || value === "approved" || value === "pending" ? value : fallback;
 }
 
 function PresetElementPicker({

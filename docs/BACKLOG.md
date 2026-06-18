@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, account preset persistence)_
+_Last updated: 2026-06-18 (Codex, architecture audit cleanup)_
 
 ---
 
@@ -180,6 +180,38 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Architecture audit cleanup**:
+  reconciled the docs/contract with the current photographer-first Studio
+  direction. `README.md` and `AGENTS.md` no longer describe MAGYC as only a
+  generic 29-widget idea space; they now state the Studio/preset/project
+  lifecycle model and the 33-module registry. Bumped the data contract to
+  1.4.0 and documented the additive Studio project fields (`stage`, `segment`,
+  `shared`, `archivedAt`, `deletedAt`). Fixed a semantic API bug where shared
+  owner-auth failures returned 403 with `{error:"unauthorized"}` instead of
+  `{error:"forbidden"}`. Replaced the Studio project delete
+  `window.confirm()` with the app dialog layer. Added missing `.select("id")`
+  guards to project/claim/publish/resolve/version updates so Supabase zero-row
+  updates cannot look successful. Preset live previews now translate core
+  renderer state actions back into module config for Moodboard, Shotlist,
+  Checkliste, Deliverables and Freigaben; root cause was that the preview used
+  the real renderers but only persisted `saveModule`, so `ctx.act()`-driven
+  edits were visual-only except for Checkliste.
+- 2026-06-18 · **Preset reliability and project retention**:
+  stabilized the Preset sync loop so missing/unapplied backend migrations no
+  longer trigger repeated "Presets nicht gespeichert" toasts; presets keep a
+  local fallback and stop remote retries until the API is writable again.
+  Preset modules can now be temporarily empty while editing, but saving still
+  requires at least one module. The preset element row now behaves like
+  removable tags with one active module preview at a time, and unsupported
+  preset modules (`ai_summary`, `notes`, `sketch`, plus hidden wiki/gif/icon)
+  are excluded. Checklist additions in the preset preview update the module
+  config directly instead of failing with invalid input. Project creation now
+  honors the preset "Kontext-Elemente erlauben" toggle: off means only header
+  modules plus preset modules are stored; on lets MAGYC add extra contextual
+  modules. Added soft-delete and archive columns/routes/UI: dashboard active
+  projects exclude archived/deleted rows, archived projects live in Ablage,
+  deleted projects stay restorable for 30 days. Production requires running
+  migrations `012_studio_presets.sql` and `013_project_retention_and_preset_options.sql`.
 - 2026-06-18 · **Account preset persistence**:
   added `studio_presets` migration and `/api/studio/presets` so workflow
   presets are stored per Clerk user instead of only in browser localStorage.

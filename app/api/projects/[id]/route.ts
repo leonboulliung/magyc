@@ -5,10 +5,9 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { parseBody } from "@/lib/api/validate";
 
 /**
- * PATCH /api/projects/[id] — update a Creator-Suite project's lifecycle
- * stage. Owner-only (the Clerk owner bound at creation). Stage-specific
- * workspace behaviour is layered on in later phases; for now this just
- * persists the position.
+ * PATCH /api/projects/[id] — update a Creator-Suite project's lifecycle,
+ * sharing, archive, or soft-delete state. Owner-only (the Clerk owner
+ * bound at creation).
  */
 const VALID_STAGES = new Set(["brief", "production", "handoff"]);
 
@@ -22,10 +21,17 @@ export async function PATCH(
   const parsed = await parseBody(req, z.object({
     stage: z.string().optional(),
     shared: z.boolean().optional(),
+    archived: z.boolean().optional(),
+    deleted: z.boolean().optional(),
   }));
   if (!parsed.ok) return parsed.response;
 
-  const update: { stage?: string; shared?: boolean } = {};
+  const update: {
+    stage?: string;
+    shared?: boolean;
+    archived_at?: string | null;
+    deleted_at?: string | null;
+  } = {};
   if (typeof parsed.data.stage === "string") {
     if (!VALID_STAGES.has(parsed.data.stage)) {
       return NextResponse.json({ error: "bad_stage" }, { status: 400 });
@@ -34,6 +40,14 @@ export async function PATCH(
   }
   if (typeof parsed.data.shared === "boolean") {
     update.shared = parsed.data.shared;
+  }
+  if (typeof parsed.data.archived === "boolean") {
+    update.archived_at = parsed.data.archived ? new Date().toISOString() : null;
+    if (parsed.data.archived) update.deleted_at = null;
+  }
+  if (typeof parsed.data.deleted === "boolean") {
+    update.deleted_at = parsed.data.deleted ? new Date().toISOString() : null;
+    if (parsed.data.deleted) update.archived_at = null;
   }
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "nothing_to_update" }, { status: 400 });
@@ -50,9 +64,17 @@ export async function PATCH(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const { error } = await admin.from("spaces").update(update).eq("id", params.id);
+  const { data: updated, error } = await admin
+    .from("spaces")
+    .update(update)
+    .eq("id", params.id)
+    .select("id");
   if (error) {
     console.error("[projects] update failed:", error.message);
+    return NextResponse.json({ error: "update_failed" }, { status: 500 });
+  }
+  if (!updated || updated.length === 0) {
+    console.error("[projects] update matched no rows:", params.id);
     return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }
 
@@ -60,8 +82,8 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/projects/[id] — permanently delete a suite project. Owner-only.
- * module_state rows cascade (FK on delete cascade in 001).
+ * DELETE /api/projects/[id] — soft-delete a suite project. Owner-only.
+ * The Studio keeps it visible in the deleted area for recovery.
  */
 export async function DELETE(
   _req: Request,
@@ -81,9 +103,17 @@ export async function DELETE(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const { error } = await admin.from("spaces").delete().eq("id", params.id);
+  const { data: updated, error } = await admin
+    .from("spaces")
+    .update({ deleted_at: new Date().toISOString(), archived_at: null })
+    .eq("id", params.id)
+    .select("id");
   if (error) {
     console.error("[projects] delete failed:", error.message);
+    return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+  }
+  if (!updated || updated.length === 0) {
+    console.error("[projects] delete matched no rows:", params.id);
     return NextResponse.json({ error: "delete_failed" }, { status: 500 });
   }
 

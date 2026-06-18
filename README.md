@@ -1,23 +1,27 @@
 # MAGYC
 
-**Drop an idea, get a living space.** MAGYC turns a few sentences of rough
-intent into a structured, collaborative workspace — composed by AI from 29
-widget types (maps, polls, checklists, timelines, crews, sketches, galleries,
-discussions, …), themed to the idea's mood, editable in realtime with anyone
-who has the link.
+**From shoot idea to structured delivery.** MAGYC is a photographer-first
+project workspace: a prompt or reusable Studio preset becomes a planning page
+with the right modules for briefing, moodboard, shot list, locations, team,
+deliverables, approvals, and client handoff. The same 33-module engine still
+supports broader creative spaces, but the product direction is tuned for
+commercial photography work: less prompt overhead, clearer collaboration,
+cleaner delivery.
 
 **Live:** https://magyc.site
 
 ## How it works
 
-1. **Type an idea** on the home page — any language.
-2. **Clarify** — the AI asks 2-4 typed follow-ups (choices, a location pin,
-   phases, a date) only where they genuinely shape the result.
-3. **Build** — a two-stage classifier scores all widget types against the
-   input, the server deterministically selects, the AI authors content in the
-   input's language and assigns a visual style (font + palette).
-4. **Share the URL** — visitors vote, check, claim, write, and sketch without
-   an account. Publishing (Clerk sign-in) binds the space to its owner.
+1. **Start from Studio or the home prompt.** A photographer can choose a preset
+   or describe a shoot in natural language.
+2. **Prepare the workspace.** Presets inject preconfigured modules and prompt
+   rules; MAGYC may add contextual modules when the preset allows it.
+3. **Build the plan.** A two-stage classifier scores all module types, the
+   server deterministically selects, and the AI authors content in the input's
+   language.
+4. **Move through the lifecycle.** Studio projects use Planung / Auswahl /
+   Abgeschlossen, with archiving, 30-day soft delete, sharing, and client-facing
+   delivery surfaces.
 
 ## Stack
 
@@ -37,7 +41,7 @@ Key facts up front:
 - **No localhost flow.** Test against the Vercel deployment.
 - **Push = deploy.** Every push to `main` auto-deploys to production.
 - **Typecheck gate:** `npx tsc --noEmit` must be clean before every commit.
-- `/dev` is a showroom rendering all 29 widgets with fixtures.
+- `/dev` is a showroom rendering all 33 widgets with fixtures.
 
 ## History
 

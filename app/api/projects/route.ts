@@ -69,6 +69,7 @@ export async function POST(req: Request) {
     presetName: z.string().optional(),
     presetModules: z.unknown().optional(),
     presetPromptInjections: z.unknown().optional(),
+    presetAllowContextModules: z.boolean().optional(),
     client: z.string().optional(),
     product: z.string().optional(),
     goal: z.string().optional(),
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
   const segment = str(b.segment) || "product";
   const presetName = str(b.presetName);
   const presetModules = sanitizeModules(Array.isArray(b.presetModules) ? b.presetModules.slice(0, 24) : []);
+  const presetAllowContextModules = b.presetAllowContextModules !== false;
   const presetPromptInjections = Array.isArray(b.presetPromptInjections)
     ? b.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
     : [];
@@ -128,6 +130,16 @@ export async function POST(req: Request) {
   }
 
   await ensureProfile(userId);
+
+  if (presetModules.length > 0 && !presetAllowContextModules) {
+    const headerModules = result.modules.filter((module) => (
+      module.type === "heading" || module.type === "rich_text" || module.type === "tags"
+    ));
+    result.modules = [
+      ...headerModules,
+      ...presetModules,
+    ];
+  }
 
   const id = newId();
   const { error } = await admin.from("spaces").insert({
@@ -163,12 +175,14 @@ export async function POST(req: Request) {
       presetName: presetName || null,
       presetModuleTypes: presetModules.map((m) => m.type),
       presetPromptInjections,
+      presetAllowContextModules,
     },
     output: { title: result.title, moduleTypes: result.modules.map((m) => m.type) },
     metadata: {
       source: "studio_builder",
       segment,
       presetApplied: presetModules.length > 0,
+      presetAllowContextModules,
       moduleCount: result.modules.length,
     },
     latencyMs: Date.now() - aiStarted,

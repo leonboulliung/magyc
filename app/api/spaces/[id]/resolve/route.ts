@@ -48,11 +48,15 @@ export async function POST(
     return NextResponse.json({ ok: true, resolved: false });
   }
 
-  const { error: upErr } = await admin
+  const { data: updated, error: upErr } = await admin
     .from("spaces")
     .update({ modules: resolved })
-    .eq("id", params.id);
+    .eq("id", params.id)
+    .select("id");
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: "update_no_match" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true, resolved: true });
 }

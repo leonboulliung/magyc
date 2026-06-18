@@ -16,6 +16,7 @@ create table if not exists studio_presets (
   description        text not null default '',
   modules            jsonb not null default '[]'::jsonb,
   prompt_injections  jsonb not null default '[]'::jsonb,
+  allow_context_modules boolean not null default true,
   position           int not null default 0,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()

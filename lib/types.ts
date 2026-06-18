@@ -701,6 +701,10 @@ export interface Space {
   /** Suite project shared via unlisted link? (false = owner-only). Only
    *  meaningful for suite projects; anonymous/published spaces ignore it. */
   shared: boolean;
+  /** Suite project archive timestamp. Null means active or deleted. */
+  archivedAt: number | null;
+  /** Soft-delete timestamp. Deleted projects are restorable for 30 days. */
+  deletedAt: number | null;
   modules: Module[];
   /** AI-generated UI labels in `language`. May be sparsely filled;
    *  renderers fall back to symbols. */

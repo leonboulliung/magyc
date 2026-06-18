@@ -5,8 +5,10 @@ working on this repo.** Read it fully before touching code. Keep it accurate:
 if you change architecture, workflows, or conventions, update this file in the
 same commit.
 
-- Product: **MAGYC** — paste a rough idea, get a living, collaborative
-  workspace ("Space") composed by AI from 29 widget types.
+- Product: **MAGYC** — a photographer-first project workspace. A prompt or
+  reusable Studio preset becomes a structured Space for planning, selection,
+  client collaboration, delivery, and references. The underlying AI composer
+  still supports broader creative spaces through 33 module types.
 - Prod: **https://magyc.site** · Repo: github.com/leonboulliung/magyc (`main`)
 - Owner: Leon Boulliung (leon.boulliung@grabitautomaten.de)
 
@@ -54,8 +56,9 @@ same commit.
 | Maps | Leaflet + CARTO tiles; geocoding via Komoot Photon (free, no key) | |
 | Anim | motion/react · dnd-kit (grid reorder) · Radix (popover/dialog) | |
 
-Env vars live in `.env.local` (local) and the Vercel dashboard (prod) — both
-already configured. Names: `NEXT_PUBLIC_SUPABASE_URL`,
+Env vars live in `.env.local` (local) and the Vercel dashboard (prod). Treat
+the Vercel dashboard as canonical; local `.env.local` may be stale and should
+be checked before local verification. Names: `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
 `OPENAI_API_KEY`, `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 (+ Clerk URL vars). Never print or commit values.
@@ -72,17 +75,21 @@ Supabase SQL editor — there is no migration runner wired up.
    returns typed clarify steps (choice / text / module editors) →
    `/api/spaces` runs the classifier and creates the space → redirect to
    `/s/[id]`.
-2. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores all
-   29 widget types 0–10 against the input (gpt-4o-mini); the **server**
+2. **Studio (`app/studio/(shell)/`)**: signed-in photographers manage projects,
+   reusable presets, users/permissions, profile, and settings. New projects use
+   `/api/projects`, bind `owner_id` immediately, and move through
+   Planung / Auswahl / Abgeschlossen.
+3. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores all
+   30 body module types 0–10 against the input (gpt-4o-mini); the **server**
    deterministically selects (threshold + redundancy caps: max one date
    widget, max one place widget). Stage B authors content for the chosen
    types in the detected language, plus title, labels, style (font + 3
    colors). Map widgets are geocoded server-side; unresolvable ones dropped.
-3. **Space page (`app/s/[id]/`)**: SSR-seeded (`page.tsx` fetches, hands
+4. **Space page (`app/s/[id]/`)**: SSR-seeded (`page.tsx` fetches, hands
    `initialSpace` to the client `SpaceView`). Three zones: header
    (heading + rich_text + tags), **GridZone** (body widgets, masonry,
    drag-reorder), participants bar.
-4. **Ownership**: a draft space belongs to whoever holds its
+5. **Ownership**: a draft space belongs to whoever holds its
    `anonOwnerToken` (localStorage, `magyc.space_owner.<id>`). Publishing
    requires Clerk sign-in and binds `owner_id`. Published spaces: structural
    edits are owner-only; collaborative interaction is open to everyone.
@@ -124,9 +131,12 @@ app/
   api/spaces/clarify/…      clarify steps
   api/spaces/[id]/widgets…  config CRUD + regenerate (AI alternatives)
   api/spaces/[id]/state/…   collaborative actions
-  api/spaces/[id]/{publish,style,upload,resolve}/…
+  api/spaces/[id]/{claim,publish,style,upload,resolve}/…
+  api/projects/…            account-first Studio project CRUD
+  api/studio/presets/…      per-user workflow preset persistence
   api/{geocode,gif}/…       proxies (Photon, GIF search)
-  dev/page.tsx              widget showroom (all 29 widgets w/ fixtures)
+  dev/page.tsx              widget showroom (all 33 widgets w/ fixtures)
+  studio/(shell)/…          Studio dashboard, project builder, presets, settings
 components/
   GridZone.tsx              body grid: dnd-kit reorder, add/remove, full/half width
   widgets/WidgetDispatcher  type → renderer map (heavy ones via next/dynamic)
@@ -135,7 +145,7 @@ components/
   clarify/…                 typed clarify-step editors (location, phases, date…)
   StyleEditor / PublishButton / SpacePrivacy / ParticipantsBar
 lib/
-  types.ts                  Module union (29 types), Space, state kinds — START HERE
+  types.ts                  Module union (33 types), Space, state kinds — START HERE
   modules.ts                sanitizers + MODULE_META (relevantWhen, labels, icons)
   contract.ts               compile-time guards binding types ↔ DATA_CONTRACT.md
   state.ts                  optimistic state engine (client mirror of server semantics)

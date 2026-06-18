@@ -128,6 +128,7 @@ export default function NewProjectPage() {
           presetName: selectedPreset?.name,
           presetModules: selectedPreset?.modules,
           presetPromptInjections: selectedPreset?.promptInjections,
+          presetAllowContextModules: selectedPreset?.allowContextModules,
         }),
       });
       const json = await readApiJson(res);

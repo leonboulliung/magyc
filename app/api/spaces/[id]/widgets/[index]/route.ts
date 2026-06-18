@@ -109,11 +109,15 @@ export async function PUT(
 
     if (top && topAgeMs < COALESCE_MS) {
       // Fold this edit into the most recent version.
-      const { error: vErr } = await admin
+      const { data: versionUpdated, error: vErr } = await admin
         .from("space_versions")
         .update({ modules: nextModules, title: space.title || "", note })
-        .eq("id", top.id);
+        .eq("id", top.id)
+        .select("id");
       if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+      if (!versionUpdated || versionUpdated.length === 0) {
+        return NextResponse.json({ error: "version_update_no_match" }, { status: 500 });
+      }
       newVersion = top.version;
     } else {
       const nextVersion = (top?.version ?? 0) + 1;

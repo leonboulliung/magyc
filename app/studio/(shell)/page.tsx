@@ -38,16 +38,24 @@ function relTime(ts: number): string {
   return months === 1 ? "vor 1 Monat" : `vor ${months} Monaten`;
 }
 
+const DELETED_RETENTION_MS = 30 * 86_400_000;
+
 export default async function StudioDashboard() {
   const { userId } = await auth();
   if (!userId) return null; // middleware guards this; defensive.
 
   await ensureProfile(userId);
-  const projects = (await fetchSpacesByOwner(userId).catch(() => [])).filter(
+  const allProjects = (await fetchSpacesByOwner(userId).catch(() => [])).filter(
     // Only real suite projects (have a stage); legacy published spaces
     // owned by this user without a stage are not shown as projects.
     (s) => s.stage !== null,
   );
+  const now = Date.now();
+  const projects = allProjects.filter((p) => !p.deletedAt && !p.archivedAt);
+  const archivedProjects = allProjects.filter((p) => p.archivedAt && !p.deletedAt);
+  const deletedProjects = allProjects.filter((p) => (
+    p.deletedAt && now - p.deletedAt <= DELETED_RETENTION_MS
+  ));
   const counts = {
     brief: projects.filter((p) => p.stage === "brief").length,
     production: projects.filter((p) => p.stage === "production").length,
@@ -110,47 +118,98 @@ export default async function StudioDashboard() {
               </svg>
             </Link>
           </div>
-          <div className="rounded-2xl border border-white/12">
-          <table className="w-full border-collapse text-left">
-            <thead className="bg-white/[0.04]">
-              <tr className="mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                <th className="px-4 py-3 font-normal">Projekt</th>
-                <th className="px-4 py-3 font-normal">Phase</th>
-                <th className="px-4 py-3 font-normal">Typ</th>
-                <th className="px-4 py-3 font-normal">Erstellt</th>
-                <th className="px-4 py-3 text-right font-normal">Aktionen</th>
-              </tr>
-            </thead>
-            <StudioTableBodyMotion>
-              {projects.map((p) => (
-                <StudioTableRowMotion key={p.id} className="border-t border-white/10 text-white/78 hover:bg-white/[0.035]">
-                  <td className="px-4 py-4">
-                    <Link href={`/studio/${p.id}`} className="font-body text-[15px] font-medium text-white hover:underline">
-                      {p.title || "Unbenanntes Projekt"}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/55">
-                    {p.stage ? STAGE_LABEL[p.stage] : "—"}
-                  </td>
-                  <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/35">
-                    {p.segment ?? "—"}
-                  </td>
-                  <td className="px-4 py-4 mono text-[11px] tracking-widest text-white/35">
-                    {relTime(p.createdAt)}
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex justify-end">
-                      <ProjectCardActions id={p.id} title={p.title} shared={p.shared} />
-                    </div>
-                  </td>
-                </StudioTableRowMotion>
-              ))}
-            </StudioTableBodyMotion>
-          </table>
-          </div>
+          <ProjectTable projects={projects} />
+        </StudioItemMotion>
+      )}
+
+      {(archivedProjects.length > 0 || deletedProjects.length > 0) && (
+        <StudioItemMotion className="mt-12">
+          <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">
+            Ablage
+          </p>
+          {archivedProjects.length > 0 && (
+            <div className="mt-3">
+              <div className="mb-2 text-sm font-medium text-white/70">Archiviert</div>
+              <ProjectTable projects={archivedProjects} archived />
+            </div>
+          )}
+          {deletedProjects.length > 0 && (
+            <div className="mt-5">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium text-white/70">Gelöscht</span>
+                <span className="text-xs text-white/35">30 Tage wiederherstellbar</span>
+              </div>
+              <ProjectTable projects={deletedProjects} deleted />
+            </div>
+          )}
         </StudioItemMotion>
       )}
 
     </StudioPageMotion>
+  );
+}
+
+type ProjectListItem = Awaited<ReturnType<typeof fetchSpacesByOwner>>[number];
+
+function ProjectTable({
+  projects,
+  archived = false,
+  deleted = false,
+}: {
+  projects: ProjectListItem[];
+  archived?: boolean;
+  deleted?: boolean;
+}) {
+  return (
+    <div className="overflow-visible rounded-2xl border border-white/12">
+      <table className="w-full border-collapse text-left">
+        <thead className="bg-white/[0.04]">
+          <tr className="mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            <th className="px-4 py-3 font-normal">Projekt</th>
+            <th className="px-4 py-3 font-normal">Phase</th>
+            <th className="px-4 py-3 font-normal">Typ</th>
+            <th className="px-4 py-3 font-normal">{deleted ? "Gelöscht" : archived ? "Archiviert" : "Erstellt"}</th>
+            <th className="px-4 py-3 text-right font-normal">Aktionen</th>
+          </tr>
+        </thead>
+        <StudioTableBodyMotion>
+          {projects.map((p) => (
+            <StudioTableRowMotion key={p.id} className="border-t border-white/10 text-white/78 hover:bg-white/[0.035]">
+              <td className="px-4 py-4">
+                {deleted ? (
+                  <span className="font-body text-[15px] font-medium text-white/72">
+                    {p.title || "Unbenanntes Projekt"}
+                  </span>
+                ) : (
+                  <Link href={`/studio/${p.id}`} className="font-body text-[15px] font-medium text-white hover:underline">
+                    {p.title || "Unbenanntes Projekt"}
+                  </Link>
+                )}
+              </td>
+              <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/55">
+                {p.stage ? STAGE_LABEL[p.stage] : "—"}
+              </td>
+              <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/35">
+                {p.segment ?? "—"}
+              </td>
+              <td className="px-4 py-4 mono text-[11px] tracking-widest text-white/35">
+                {relTime(deleted ? (p.deletedAt ?? p.createdAt) : archived ? (p.archivedAt ?? p.createdAt) : p.createdAt)}
+              </td>
+              <td className="px-4 py-4">
+                <div className="flex justify-end">
+                  <ProjectCardActions
+                    id={p.id}
+                    title={p.title}
+                    shared={p.shared}
+                    archived={archived}
+                    deleted={deleted}
+                  />
+                </div>
+              </td>
+            </StudioTableRowMotion>
+          ))}
+        </StudioTableBodyMotion>
+      </table>
+    </div>
   );
 }

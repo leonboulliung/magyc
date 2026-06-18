@@ -54,7 +54,7 @@ export async function POST(
   await ensureProfile(userId);
 
   if (!space.owner_id || !space.stage) {
-    const { error: upErr } = await admin
+    const { data: updated, error: upErr } = await admin
       .from("spaces")
       .update({
         owner_id: userId,
@@ -63,9 +63,14 @@ export async function POST(
         segment: "product",
         shared: false,
       })
-      .eq("id", params.id);
+      .eq("id", params.id)
+      .select("id");
     if (upErr) {
       console.error("[claim] update failed:", upErr.message);
+      return NextResponse.json({ error: "claim_failed" }, { status: 500 });
+    }
+    if (!updated || updated.length === 0) {
+      console.error("[claim] update matched no rows:", params.id);
       return NextResponse.json({ error: "claim_failed" }, { status: 500 });
     }
   }

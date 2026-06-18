@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
+import { Dialog } from "@/components/ui/Dialog";
 import { ShareDialog } from "@/components/studio/ShareDialog";
 import { studioOverlay, studioPopover } from "@/lib/anim";
 import {
@@ -16,12 +17,26 @@ import {
 
 /**
  * Per-project actions on the dashboard table: open, share, duplicate,
- * delete. Rendered as a required gear button per project row.
+ * archive, restore, soft-delete. Rendered as a required gear button per
+ * project row.
  */
-export function ProjectCardActions({ id, title, shared }: { id: string; title: string; shared: boolean }) {
+export function ProjectCardActions({
+  id,
+  title,
+  shared,
+  archived = false,
+  deleted = false,
+}: {
+  id: string;
+  title: string;
+  shared: boolean;
+  archived?: boolean;
+  deleted?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const stop = (e: React.MouseEvent) => {
@@ -58,17 +73,81 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
     }
   }
 
-  async function remove(e: React.MouseEvent) {
+  async function patchProject(
+    e: React.MouseEvent,
+    body: Record<string, boolean>,
+    labels: { loading: string; success: string; error: string; fallback: string; id: string },
+  ) {
     stop(e);
     if (busy) return;
-    if (!window.confirm(`Projekt „${title || "Unbenannt"}" wirklich löschen? Das lässt sich nicht rückgängig machen.`)) return;
+    setBusy(true);
+    try {
+      showActionLoading(labels.loading, labels.id);
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await readApiJson(res);
+      if (res.ok) {
+        showActionSuccess(labels.success, { id: labels.id });
+        setOpen(false);
+        router.refresh();
+      } else {
+        showApiError(labels.error, json, {
+          id: labels.id,
+          fallback: labels.fallback,
+        });
+        setBusy(false);
+        setOpen(false);
+      }
+    } catch (error) {
+      showUnknownError(labels.error, error, {
+        id: labels.id,
+        fallback: labels.fallback,
+      });
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+
+  async function archive(e: React.MouseEvent) {
+    await patchProject(e, { archived: true }, {
+      loading: "Projekt wird archiviert …",
+      success: "Projekt archiviert",
+      error: "Archivieren fehlgeschlagen",
+      fallback: "Das Projekt konnte nicht archiviert werden.",
+      id: `archive-${id}`,
+    });
+  }
+
+  async function restore(e: React.MouseEvent) {
+    await patchProject(e, { archived: false, deleted: false }, {
+      loading: "Projekt wird wiederhergestellt …",
+      success: "Projekt wiederhergestellt",
+      error: "Wiederherstellen fehlgeschlagen",
+      fallback: "Das Projekt konnte nicht wiederhergestellt werden.",
+      id: `restore-${id}`,
+    });
+  }
+
+  function requestRemove(e: React.MouseEvent) {
+    stop(e);
+    if (busy) return;
+    setOpen(false);
+    setDeleteOpen(true);
+  }
+
+  async function confirmRemove() {
+    if (busy) return;
     setBusy(true);
     try {
       showActionLoading("Projekt wird gelöscht …", `delete-${id}`);
       const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
       const json = await readApiJson(res);
       if (res.ok) {
-        showActionSuccess("Projekt gelöscht", { id: `delete-${id}` });
+        showActionSuccess("Projekt in Gelöscht verschoben", { id: `delete-${id}` });
+        setDeleteOpen(false);
         router.refresh();
       } else {
         showApiError("Löschen fehlgeschlagen", json, {
@@ -76,7 +155,7 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
           fallback: "Das Projekt konnte nicht gelöscht werden.",
         });
         setBusy(false);
-        setOpen(false);
+        setDeleteOpen(false);
       }
     } catch (error) {
       showUnknownError("Löschen fehlgeschlagen", error, {
@@ -84,7 +163,7 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
         fallback: "Das Projekt konnte nicht gelöscht werden.",
       });
       setBusy(false);
-      setOpen(false);
+      setDeleteOpen(false);
     }
   }
 
@@ -124,25 +203,50 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
             >
               Öffnen
             </Link>
+            {!deleted && (
+              <button
+                type="button"
+                onClick={(e) => { stop(e); setOpen(false); setShareOpen(true); }}
+                className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                Teilen …
+              </button>
+            )}
+            {!deleted && (
+              <button
+                type="button"
+                onClick={duplicate}
+                disabled={busy}
+                className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+              >
+                Duplizieren
+              </button>
+            )}
+            {!archived && !deleted && (
+              <button
+                type="button"
+                onClick={archive}
+                disabled={busy}
+                className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+              >
+                Archivieren
+              </button>
+            )}
+            {(archived || deleted) && (
+              <button
+                type="button"
+                onClick={restore}
+                disabled={busy}
+                className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+              >
+                Wiederherstellen
+              </button>
+            )}
             <button
               type="button"
-              onClick={(e) => { stop(e); setOpen(false); setShareOpen(true); }}
-              className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              Teilen …
-            </button>
-            <button
-              type="button"
-              onClick={duplicate}
+              onClick={requestRemove}
               disabled={busy}
-              className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
-            >
-              Duplizieren
-            </button>
-            <button
-              type="button"
-              onClick={remove}
-              disabled={busy}
+              hidden={deleted}
               className="block w-full rounded-lg px-3 py-2 text-left font-body text-sm text-red-300/90 transition-colors hover:bg-red-500/15 disabled:opacity-50"
             >
               Löschen
@@ -153,6 +257,34 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
       </AnimatePresence>
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen} title="Projekt löschen" maxWidth={420}>
+        <div className="rounded-2xl border border-white/12 bg-[#050505] p-5 text-white shadow-2xl shadow-black/60">
+          <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Gelöscht-Bereich</p>
+          <h2 className="mt-2 text-xl font-semibold">Projekt verschieben?</h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/55">
+            {title || "Dieses Projekt"} wird aus der aktiven Liste entfernt und bleibt 30 Tage im
+            Gelöscht-Bereich wiederherstellbar.
+          </p>
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              disabled={busy}
+              className="rounded-full border border-white/12 px-4 py-2 text-sm text-white/65 transition-colors hover:border-white/30 hover:text-white disabled:opacity-45"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              onClick={confirmRemove}
+              disabled={busy}
+              className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-45"
+            >
+              In Gelöscht verschieben
+            </button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

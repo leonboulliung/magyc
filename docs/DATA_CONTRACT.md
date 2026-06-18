@@ -1,6 +1,6 @@
 # magyc.site — Data Contract
 
-**Version:** 1.3.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
+**Version:** 1.4.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
 
 This document is the stable interface of a space. The **presentation
 layer** (renderers, animations, the style system, the grid) may change
@@ -24,6 +24,12 @@ Space {
   title: string              // AI headline
   language: string           // ISO 639-1; the space's only "language"
   vibe: Vibe                 // editorial|document|dashboard|terminal|soft|minimal
+  stage: "brief" | "production" | "handoff" | null
+                              // Creator-Suite lifecycle; null for anonymous spaces
+  segment: string | null      // guided project/preset segment, e.g. "product"
+  shared: boolean             // unlisted Studio sharing flag
+  archivedAt: number | null   // archived Studio project timestamp
+  deletedAt: number | null    // soft-delete timestamp; restorable for 30 days
   modules: Module[]          // ordered; first 1-3 are the header zone
   labels: SpaceLabels        // emergent UI strings in `language`
   style: SpaceStyle | null   // font + 3 colors; auto-assigned, editable
@@ -43,6 +49,10 @@ Space {
 
 `SpaceLabels` — all optional, all in `language`. Includes
 `widgetLabels: Record<ModuleType, string>` for the add-widget menu.
+
+Creator Suite note: the internal lifecycle values remain
+`brief | production | handoff` for compatibility. The Studio UI labels
+them as **Planung / Auswahl / Abgeschlossen**.
 
 ---
 

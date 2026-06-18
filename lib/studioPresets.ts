@@ -7,6 +7,7 @@ export type StudioPreset = {
   description: string;
   modules: Module[];
   promptInjections: string[];
+  allowContextModules: boolean;
 };
 
 export const STUDIO_PRESETS_STORAGE_KEY = "magyc.studio.presets.v3";
@@ -41,6 +42,7 @@ export const DEFAULT_STUDIO_PRESETS: StudioPreset[] = [
     promptInjections: [
       "Plane wie ein kommerzieller Produktfotograf: Deliverables, Nutzungsrechte, Shotlist und Freigaben explizit machen.",
     ],
+    allowContextModules: true,
   },
   {
     id: "wedding",
@@ -61,6 +63,7 @@ export const DEFAULT_STUDIO_PRESETS: StudioPreset[] = [
       { type: "deliverables", microTitle: "Übergabe", items: [{ label: "Online-Galerie" }, { label: "Highlight-Auswahl" }] },
     ],
     promptInjections: ["Sensible Kommunikation, klare Timings und Must-have-Momente priorisieren."],
+    allowContextModules: true,
   },
 ];
 
@@ -71,6 +74,7 @@ export function createStudioPreset(): StudioPreset {
     description: "",
     modules: [],
     promptInjections: [""],
+    allowContextModules: true,
   };
 }
 
@@ -93,6 +97,7 @@ export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
         promptInjections: Array.isArray(candidate.promptInjections)
           ? candidate.promptInjections.filter((prompt): prompt is string => typeof prompt === "string")
           : [""],
+        allowContextModules: candidate.allowContextModules !== false,
       };
     })
     .filter(Boolean) as StudioPreset[];
