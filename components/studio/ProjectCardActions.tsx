@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { ShareDialog } from "@/components/studio/ShareDialog";
 import { studioOverlay, studioPopover } from "@/lib/anim";
+import {
+  readApiJson,
+  showActionLoading,
+  showActionSuccess,
+  showApiError,
+  showUnknownError,
+} from "@/lib/client/feedback";
 
 /**
  * Per-project actions on the dashboard table: open, share, duplicate,
@@ -27,11 +34,25 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
     if (busy) return;
     setBusy(true);
     try {
+      showActionLoading("Projekt wird dupliziert …", `duplicate-${id}`);
       const res = await fetch(`/api/projects/${id}/duplicate`, { method: "POST" });
-      const json = await res.json().catch(() => ({}));
-      if (res.ok && json?.id) router.push(`/studio/${json.id}`);
-      else { setBusy(false); setOpen(false); }
-    } catch {
+      const json = await readApiJson(res);
+      if (res.ok && typeof json?.id === "string") {
+        showActionSuccess("Projekt dupliziert", { id: `duplicate-${id}` });
+        router.push(`/studio/${json.id}`);
+      } else {
+        showApiError("Duplizieren fehlgeschlagen", json, {
+          id: `duplicate-${id}`,
+          fallback: "Das Projekt konnte nicht dupliziert werden.",
+        });
+        setBusy(false);
+        setOpen(false);
+      }
+    } catch (error) {
+      showUnknownError("Duplizieren fehlgeschlagen", error, {
+        id: `duplicate-${id}`,
+        fallback: "Das Projekt konnte nicht dupliziert werden.",
+      });
       setBusy(false);
       setOpen(false);
     }
@@ -43,10 +64,25 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
     if (!window.confirm(`Projekt „${title || "Unbenannt"}" wirklich löschen? Das lässt sich nicht rückgängig machen.`)) return;
     setBusy(true);
     try {
+      showActionLoading("Projekt wird gelöscht …", `delete-${id}`);
       const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
-      if (res.ok) router.refresh();
-      else { setBusy(false); setOpen(false); }
-    } catch {
+      const json = await readApiJson(res);
+      if (res.ok) {
+        showActionSuccess("Projekt gelöscht", { id: `delete-${id}` });
+        router.refresh();
+      } else {
+        showApiError("Löschen fehlgeschlagen", json, {
+          id: `delete-${id}`,
+          fallback: "Das Projekt konnte nicht gelöscht werden.",
+        });
+        setBusy(false);
+        setOpen(false);
+      }
+    } catch (error) {
+      showUnknownError("Löschen fehlgeschlagen", error, {
+        id: `delete-${id}`,
+        fallback: "Das Projekt konnte nicht gelöscht werden.",
+      });
       setBusy(false);
       setOpen(false);
     }

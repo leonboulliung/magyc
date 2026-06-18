@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { toast } from "sonner";
 import type { SpaceStyle } from "@/lib/types";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { useIsMobile } from "@/lib/hooks";
-import { apiErrorMessage, withOwnerToken } from "@/lib/client/errors";
+import { withOwnerToken } from "@/lib/client/errors";
+import { readApiJson, showApiError, showUnknownError } from "@/lib/client/feedback";
 import { MobileSheet } from "./ui/MobileSheet";
 
 /**
@@ -57,14 +57,14 @@ export function StyleEditor({
         body: JSON.stringify(withOwnerToken({ style: next }, ownerToken)),
         keepalive: immediate,
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await readApiJson(res);
       if (!res.ok) {
         setStatus("error");
         onPreview(lastSavedRef.current);
         setDraft(lastSavedRef.current);
         draftRef.current = lastSavedRef.current;
-        toast.error("Design nicht gespeichert", {
-          description: apiErrorMessage(json, "Die Design-Aenderung konnte nicht gespeichert werden."),
+        showApiError("Design nicht gespeichert", json, {
+          fallback: "Die Design-Änderung konnte nicht gespeichert werden.",
         });
         return false;
       }
@@ -72,13 +72,13 @@ export function StyleEditor({
       setStatus("saved");
       onSaved?.();
       return true;
-    } catch {
+    } catch (error) {
       setStatus("error");
       onPreview(lastSavedRef.current);
       setDraft(lastSavedRef.current);
       draftRef.current = lastSavedRef.current;
-      toast.error("Design nicht gespeichert", {
-        description: "Die Design-Aenderung konnte nicht gespeichert werden.",
+      showUnknownError("Design nicht gespeichert", error, {
+        fallback: "Die Design-Änderung konnte nicht gespeichert werden.",
       });
       return false;
     }

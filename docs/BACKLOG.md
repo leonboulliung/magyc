@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, claim flow + error feedback)_
+_Last updated: 2026-06-18 (Codex, consolidated error UX)_
 
 ---
 
@@ -40,16 +40,14 @@ the current DB enum remains `brief / production / handoff` until a
 deliberate migration is worth it.
 
 ### 6. Error UX architecture
-Decision started: Sonner is already installed and should remain the
-non-blocking action-feedback layer (loading/success/error for async work).
-Use inline validation for fixable form errors, visible alert blocks inside
-dialogs for blocking local failures, and add `react-error-boundary` in a
-separate slice for render fallbacks around risky client surfaces (SpaceView,
-WidgetDispatcher, Studio editors). Research notes: Sonner is MIT/open source,
-provides a global `<Toaster />` plus `toast()` calls from anywhere, and fits
-action/progress feedback. `react-error-boundary` is the likely render-error
-fallback layer, but it follows React boundary rules and will not catch server
-rendering, event handlers or async errors by itself.
+First consolidation shipped: Sonner is the global action-feedback layer,
+direct `toast.*` calls now go through `lib/client/feedback`, and risky module
+render surfaces use `react-error-boundary` via `RenderBoundary`. Remaining
+quality work is mostly breadth: continue replacing ad-hoc inline errors in
+new product areas as they become real (profile/users/settings) and add a
+small docs note for future agents: inline = fixable input, toast = async
+action feedback, dialog alert = blocking modal failure, boundary = render
+fallback.
 
 ### 7. Sparse spaces — observe the new tuning
 First pass shipped 2026-06-13: `MIN_SCORE` 5→4, `MIN_BODY` 2→3, per-request
@@ -182,6 +180,18 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Consolidated error UX system**:
+  finished the first complete pass on feedback architecture. Added
+  `lib/client/feedback` as the single client-side wrapper around Sonner and
+  API error mapping; direct `toast.*` calls now live only in that helper.
+  Connected Studio project creation, claim/publish, widget add/remove/reorder,
+  widget save, prompt-regeneration, style saving, sharing, phase changes,
+  project duplicate/delete, uploads and assistant failures to the shared
+  feedback path while keeping inline errors where users can fix local input.
+  Added `react-error-boundary` and `RenderBoundary` fallbacks around project
+  header widgets, grid widgets and preset preview widgets, so one broken
+  renderer no longer breaks the whole workspace. Also replaced duplicate API
+  raw DB errors with stable client-facing codes where found.
 - 2026-06-18 · **Guest draft claim and feedback pass**:
   tightened the anonymous draft → sign in → Studio save flow. Sign-in now
   returns with an explicit `claim=1` intent in addition to the existing

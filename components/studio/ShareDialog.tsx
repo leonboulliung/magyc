@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
+import {
+  readApiJson,
+  showActionError,
+  showActionSuccess,
+  showApiError,
+  showUnknownError,
+} from "@/lib/client/feedback";
 
 /**
  * ShareDialog — turn unlisted sharing on/off for a suite project and copy
@@ -43,10 +50,25 @@ export function ShareDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shared: next }),
       });
-      if (!res.ok) setShared(prev);
-      else router.refresh();
-    } catch {
+      const json = await readApiJson(res);
+      if (!res.ok) {
+        setShared(prev);
+        showApiError(next ? "Teilen fehlgeschlagen" : "Privat-Schalten fehlgeschlagen", json, {
+          fallback: next
+            ? "Der Projektlink konnte gerade nicht aktiviert werden."
+            : "Das Projekt konnte gerade nicht privat geschaltet werden.",
+        });
+      } else {
+        showActionSuccess(next ? "Projektlink aktiviert" : "Projekt ist privat");
+        router.refresh();
+      }
+    } catch (error) {
       setShared(prev);
+      showUnknownError(next ? "Teilen fehlgeschlagen" : "Privat-Schalten fehlgeschlagen", error, {
+        fallback: next
+          ? "Der Projektlink konnte gerade nicht aktiviert werden."
+          : "Das Projekt konnte gerade nicht privat geschaltet werden.",
+      });
     } finally {
       setBusy(false);
     }
@@ -56,8 +78,12 @@ export function ShareDialog({
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
+      showActionSuccess("Link kopiert");
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
+      showActionError("Kopieren nicht möglich", {
+        description: "Der Link wird deshalb zum manuellen Kopieren angezeigt.",
+      });
       window.prompt("Link", link);
     }
   }

@@ -4,6 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShareDialog } from "@/components/studio/ShareDialog";
+import {
+  readApiJson,
+  showActionLoading,
+  showActionSuccess,
+  showApiError,
+  showUnknownError,
+} from "@/lib/client/feedback";
 import type { ProjectStage } from "@/lib/types";
 
 const STAGES: { id: ProjectStage; label: string }[] = [
@@ -41,18 +48,29 @@ export function StudioProjectBar({
     setCurrent(next); // optimistic
     setBusy(true);
     try {
+      showActionLoading("Phase wird gespeichert …", `stage-${id}`);
       const res = await fetch(`/api/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stage: next }),
       });
+      const json = await readApiJson(res);
       if (!res.ok) {
         setCurrent(prev); // rollback
+        showApiError("Phase nicht gespeichert", json, {
+          id: `stage-${id}`,
+          fallback: "Die Projektphase konnte nicht gespeichert werden.",
+        });
       } else {
+        showActionSuccess("Phase gespeichert", { id: `stage-${id}` });
         router.refresh();
       }
-    } catch {
+    } catch (error) {
       setCurrent(prev);
+      showUnknownError("Phase nicht gespeichert", error, {
+        id: `stage-${id}`,
+        fallback: "Die Projektphase konnte nicht gespeichert werden.",
+      });
     } finally {
       setBusy(false);
     }

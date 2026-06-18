@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { WidgetPickerContent } from "@/components/WidgetPicker";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
+import { RenderBoundary } from "@/components/ui/RenderBoundary";
 import { WidgetContext } from "@/lib/widgetContext";
 import { studioItem, studioOverlay, studioPanel, studioPopover, studioStagger } from "@/lib/anim";
 import {
@@ -478,7 +479,9 @@ function PresetModulePreview({
           <div className="relative p-3">
             <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
               <div className="relative group/cell" style={{ borderRadius: "var(--v-radius)" }}>
-                <WidgetDispatcher module={module} index={index} state={[]} />
+                <RenderBoundary label="Preset-Element" resetKeys={[index, module.type]}>
+                  <WidgetDispatcher module={module} index={index} state={[]} />
+                </RenderBoundary>
               </div>
             </div>
           </div>

@@ -14,6 +14,11 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "save_failed") return "Speichern fehlgeschlagen. Bitte erneut versuchen.";
   if (raw === "claim_failed") return "Das Projekt konnte gerade nicht im Studio gespeichert werden.";
   if (raw === "publish_failed") return "Das Projekt konnte gerade nicht veroeffentlicht werden.";
+  if (raw === "duplicate_failed") return "Das Projekt konnte gerade nicht dupliziert werden.";
+  if (raw === "delete_failed") return "Das Projekt konnte gerade nicht geloescht werden.";
+  if (raw === "update_failed") return "Die Aenderung konnte gerade nicht gespeichert werden.";
+  if (raw === "bad_stage") return "Diese Projektphase ist nicht gueltig.";
+  if (raw === "nothing_to_update") return "Es gab keine Aenderung zum Speichern.";
   if (raw === "owner_token_required" || raw === "owner_token_mismatch") {
     return "Dieser Entwurf kann in diesem Browser nicht mehr eindeutig zugeordnet werden.";
   }

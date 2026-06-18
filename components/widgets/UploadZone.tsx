@@ -2,6 +2,13 @@
 
 import { useRef, useState } from "react";
 import { getAnonToken, getAnonDisplayName } from "@/lib/anonId";
+import {
+  readApiJson,
+  showActionLoading,
+  showActionSuccess,
+  showApiError,
+  showUnknownError,
+} from "@/lib/client/feedback";
 
 /**
  * Shared upload affordance used by Attachments, Images, and Audio
@@ -38,6 +45,8 @@ export function UploadZone({
     setBusy(true);
     setError("");
     const results: { url: string; name: string; size: number; mimeType: string }[] = [];
+    const toastId = `upload-${spaceId}-${moduleIndex}`;
+    showActionLoading(files.length === 1 ? "Datei wird hochgeladen …" : "Dateien werden hochgeladen …", toastId);
     for (const file of files) {
       const fd = new FormData();
       fd.append("file", file);
@@ -49,18 +58,36 @@ export function UploadZone({
           method: "POST",
           body: fd,
         });
-        const json = await res.json().catch(() => ({}));
+        const json = await readApiJson(res);
         if (res.ok && json.url) {
-          results.push({ url: json.url, name: json.name || file.name, size: json.size || file.size, mimeType: json.mimeType || file.type });
+          results.push({
+            url: String(json.url),
+            name: typeof json.name === "string" ? json.name : file.name,
+            size: typeof json.size === "number" ? json.size : file.size,
+            mimeType: typeof json.mimeType === "string" ? json.mimeType : file.type,
+          });
         } else {
-          setError(typeof json.error === "string" ? json.error : "upload_failed");
+          const message = showApiError("Upload fehlgeschlagen", json, {
+            id: toastId,
+            fallback: `${file.name} konnte nicht hochgeladen werden.`,
+          });
+          setError(message);
         }
-      } catch {
-        setError("upload_failed");
+      } catch (error) {
+        const message = showUnknownError("Upload fehlgeschlagen", error, {
+          id: toastId,
+          fallback: `${file.name} konnte nicht hochgeladen werden.`,
+        });
+        setError(message);
       }
     }
     setBusy(false);
-    if (results.length > 0) onDone?.(results);
+    if (results.length > 0) {
+      showActionSuccess(results.length === 1 ? "Datei hochgeladen" : "Dateien hochgeladen", {
+        id: toastId,
+      });
+      onDone?.(results);
+    }
   }
 
   return (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Module } from "@/lib/types";
 import { useWidgetContext } from "@/lib/widgetContext";
 import { Popover } from "@/components/ui/Popover";
+import { readApiJson, showApiError, showUnknownError } from "@/lib/client/feedback";
 import { useCellChrome } from "./cellChrome";
 
 /** A clear prompt placeholder in the space's language, so it's obvious
@@ -88,9 +89,20 @@ export function WidgetShell({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ anonToken: ctx.ownerToken }),
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setError("not loaded"); return; }
+      const json = await readApiJson(res);
+      if (!res.ok) {
+        const message = showApiError("Alternativen nicht geladen", json, {
+          fallback: "Für dieses Element konnten gerade keine Alternativen geladen werden.",
+        });
+        setError(message);
+        return;
+      }
       setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
+    } catch (error) {
+      const message = showUnknownError("Alternativen nicht geladen", error, {
+        fallback: "Für dieses Element konnten gerade keine Alternativen geladen werden.",
+      });
+      setError(message);
     } finally {
       setBusy(false);
     }
@@ -109,13 +121,29 @@ export function WidgetShell({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ count: 1, basePrompt: guidance, anonToken: ctx.ownerToken }),
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setError("not applied"); return; }
+      const json = await readApiJson(res);
+      if (!res.ok) {
+        const message = showApiError("Änderung nicht angewendet", json, {
+          fallback: "Die Prompt-Änderung konnte gerade nicht angewendet werden.",
+        });
+        setError(message);
+        return;
+      }
       const next = Array.isArray(json.suggestions) ? json.suggestions[0] : null;
-      if (!next) { setError("no result"); return; }
+      if (!next) {
+        const message = "MAGYC hat keine passende Variante zurückgegeben.";
+        setError(message);
+        showUnknownError("Änderung nicht angewendet", new Error(message));
+        return;
+      }
       await pick(next as Module);
       setBubbleOpen(false);
       setPrompt("");
+    } catch (error) {
+      const message = showUnknownError("Änderung nicht angewendet", error, {
+        fallback: "Die Prompt-Änderung konnte gerade nicht angewendet werden.",
+      });
+      setError(message);
     } finally {
       setBusy(false);
     }

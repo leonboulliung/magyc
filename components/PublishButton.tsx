@@ -3,9 +3,14 @@
 import { useEffect, useState } from "react";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
+import {
+  readApiJson,
+  showActionLoading,
+  showActionSuccess,
+  showActionError,
+} from "@/lib/client/feedback";
 import type { Space } from "@/lib/types";
 import { Dialog } from "./ui/Dialog";
 
@@ -52,32 +57,32 @@ export function PublishButton({
     setBusy(true);
     setError("");
     try {
-      toast.loading("Projekt wird im Studio gespeichert …", { id: `claim-${space.id}` });
+      showActionLoading("Projekt wird im Studio gespeichert …", `claim-${space.id}`);
       const res = await fetch(`/api/spaces/${space.id}/claim`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ anonOwnerToken: ownerToken }),
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await readApiJson(res);
       if (!res.ok) {
         const message = friendlyError(json?.error);
         setError(message);
-        toast.error("Speichern fehlgeschlagen", {
+        showActionError("Speichern fehlgeschlagen", {
           id: `claim-${space.id}`,
           description: message,
         });
         return;
       }
-      toast.success("Projekt gespeichert", {
+      showActionSuccess("Projekt gespeichert", {
         id: `claim-${space.id}`,
         description: "Du wirst jetzt ins Studio weitergeleitet.",
       });
       setOpen(false);
-      router.push(json?.redirectTo || `/studio/${space.id}`);
+      router.push(typeof json.redirectTo === "string" ? json.redirectTo : `/studio/${space.id}`);
     } catch {
       const message = "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
       setError(message);
-      toast.error("Speichern fehlgeschlagen", {
+      showActionError("Speichern fehlgeschlagen", {
         id: `claim-${space.id}`,
         description: message,
       });
@@ -91,29 +96,29 @@ export function PublishButton({
     setBusy(true);
     setError("");
     try {
-      toast.loading("Projekt wird veröffentlicht …", { id: `publish-${space.id}` });
+      showActionLoading("Projekt wird veröffentlicht …", `publish-${space.id}`);
       const res = await fetch(`/api/spaces/${space.id}/publish`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ anonOwnerToken: ownerToken }),
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await readApiJson(res);
       if (!res.ok) {
         const message = friendlyError(json?.error);
         setError(message);
-        toast.error("Veröffentlichen fehlgeschlagen", {
+        showActionError("Veröffentlichen fehlgeschlagen", {
           id: `publish-${space.id}`,
           description: message,
         });
         return;
       }
-      toast.success("Projekt veröffentlicht", { id: `publish-${space.id}` });
+      showActionSuccess("Projekt veröffentlicht", { id: `publish-${space.id}` });
       setOpen(false);
       onChanged();
     } catch {
       const message = "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
       setError(message);
-      toast.error("Veröffentlichen fehlgeschlagen", {
+      showActionError("Veröffentlichen fehlgeschlagen", {
         id: `publish-${space.id}`,
         description: message,
       });

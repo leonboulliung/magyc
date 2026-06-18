@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { getSelfId } from "@/lib/state";
+import { readApiJson, showActionError } from "@/lib/client/feedback";
 
 type Message = {
   role: "user" | "assistant";
@@ -53,12 +54,14 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
           history,
         }),
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await readApiJson(res);
       if (!res.ok || !json?.answer) throw new Error(errorLabel(json));
       setMessages((current) => [...current, { role: "assistant", content: String(json.answer) }]);
       window.setTimeout(() => inputRef.current?.focus(), 30);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "The assistant is unavailable.");
+      const message = err instanceof Error ? err.message : "The assistant is unavailable.";
+      setError(message);
+      showActionError("Assistant nicht erreichbar", { description: message });
     } finally {
       setBusy(false);
     }

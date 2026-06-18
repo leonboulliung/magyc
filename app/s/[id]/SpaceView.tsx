@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
 import { fetchSpaceById, fetchVersionModules, mapStateRow, type ModuleStateRow } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { apiErrorMessage, withOwnerToken } from "@/lib/client/errors";
+import { readApiJson, showActionError } from "@/lib/client/feedback";
 import {
   applyActionLocally,
   getSelfId,
@@ -34,6 +34,7 @@ import { ParticipantsBar } from "@/components/ParticipantsBar";
 import { StyleEditor } from "@/components/StyleEditor";
 import { AssistantDock } from "@/components/AssistantDock";
 import { DotField } from "@/components/DotField";
+import { RenderBoundary } from "@/components/ui/RenderBoundary";
 
 interface SpaceNotice {
   tone: "saving" | "success" | "error";
@@ -167,7 +168,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
             resolveExternal: options?.resolveExternal,
           }, ownerToken)),
         });
-        const json = await res.json().catch(() => ({}));
+        const json = await readApiJson(res);
         if (!res.ok) throw new Error(apiErrorMessage(json, options?.errorMessage ?? "save_failed"));
         const persisted = (json && typeof json === "object" && "widget" in json)
           ? (json as { widget?: Module }).widget
@@ -200,7 +201,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           tone: "error",
           message: error instanceof Error ? error.message : options?.errorMessage ?? "save_failed",
         }, 3600);
-        toast.error("Aenderung nicht gespeichert", {
+        showActionError("Änderung nicht gespeichert", {
           description: error instanceof Error ? error.message : options?.errorMessage ?? "save_failed",
         });
         return false;
@@ -523,12 +524,13 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-10 pt-24 sm:pt-24 pb-8 sm:pb-12 space-y-6">
             <motion.div initial="hidden" animate="show" variants={heroIn} className="space-y-6">
               {hero.map(({ module: m, index: i }) => (
-                <WidgetDispatcher
-                  key={`hero-${i}`}
-                  module={m}
-                  index={i}
-                  state={stateByModule.get(i) ?? []}
-                />
+                <RenderBoundary key={`hero-${i}`} label="Kopfbereich" resetKeys={[i, m.type]}>
+                  <WidgetDispatcher
+                    module={m}
+                    index={i}
+                    state={stateByModule.get(i) ?? []}
+                  />
+                </RenderBoundary>
               ))}
             </motion.div>
 
@@ -538,11 +540,13 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
               >
-                <WidgetDispatcher
-                  module={tagsModule}
-                  index={tagsIndex}
-                  state={stateByModule.get(tagsIndex) ?? []}
-                />
+                <RenderBoundary label="Tags" resetKeys={[tagsIndex]}>
+                  <WidgetDispatcher
+                    module={tagsModule}
+                    index={tagsIndex}
+                    state={stateByModule.get(tagsIndex) ?? []}
+                  />
+                </RenderBoundary>
               </motion.div>
             )}
 

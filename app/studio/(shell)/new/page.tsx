@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { studioItem, studioPage, studioStagger } from "@/lib/anim";
 import {
+  readApiJson,
+  showActionError,
+  showActionLoading,
+  showActionSuccess,
+} from "@/lib/client/feedback";
+import {
   cleanStudioPresets,
   DEFAULT_STUDIO_PRESETS,
   STUDIO_PRESETS_STORAGE_KEY,
@@ -90,6 +96,7 @@ export default function NewProjectPage() {
     setBusy(true);
     setError(null);
     try {
+      showActionLoading("Projekt wird erstellt …", "create-project");
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,15 +109,29 @@ export default function NewProjectPage() {
           presetPromptInjections: selectedPreset?.promptInjections,
         }),
       });
-      const json = await res.json().catch(() => ({}));
+      const json = await readApiJson(res);
       if (!res.ok || !json?.id) {
-        setError(friendlyError(json?.error));
+        const message = friendlyError(json?.error);
+        setError(message);
+        showActionError("Projekt nicht erstellt", {
+          id: "create-project",
+          description: message,
+        });
         setBusy(false);
         return;
       }
+      showActionSuccess("Projekt erstellt", {
+        id: "create-project",
+        description: "Die Planung wird geöffnet.",
+      });
       router.push(`/studio/${json.id}`);
     } catch {
-      setError("Netzwerkfehler. Bitte erneut versuchen.");
+      const message = "Netzwerkfehler. Bitte erneut versuchen.";
+      setError(message);
+      showActionError("Projekt nicht erstellt", {
+        id: "create-project",
+        description: message,
+      });
       setBusy(false);
     }
   }

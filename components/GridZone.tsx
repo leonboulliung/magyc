@@ -23,11 +23,20 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { Module, ModuleStateEntry } from "@/lib/types";
 import { useIsMobile } from "@/lib/hooks";
-import { apiErrorMessage, withOwnerToken } from "@/lib/client/errors";
+import { withOwnerToken } from "@/lib/client/errors";
+import {
+  apiFailureMessage,
+  readApiJson,
+  showActionError,
+  showActionLoading,
+  showActionSuccess,
+  showApiError,
+  showUnknownError,
+} from "@/lib/client/feedback";
 import { WidgetDispatcher } from "./widgets/WidgetDispatcher";
 import { CellChromeContext } from "./widgets/cellChrome";
 import { WidgetPickerContent } from "./WidgetPicker";
-import { toast } from "sonner";
+import { RenderBoundary } from "./ui/RenderBoundary";
 
 /**
  * GridZone — the body widget area of a space.
@@ -110,12 +119,21 @@ export function GridZone({
     setBusy(true);
     try {
       const modules = [...headerModules, ...next.map((it) => it.module)];
-      await fetch(`/api/spaces/${spaceId}/widgets`, {
+      const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: body({ modules }),
       });
+      const json = await readApiJson(res);
+      if (!res.ok) {
+        throw new Error(apiFailureMessage(json, "Die neue Element-Reihenfolge konnte nicht gespeichert werden."));
+      }
       onRefresh();
+    } catch (error) {
+      setOptimisticItems(null);
+      showUnknownError("Reihenfolge nicht gespeichert", error, {
+          fallback: "Die neue Element-Reihenfolge konnte nicht gespeichert werden.",
+      });
     } finally {
       setBusy(false);
     }
@@ -138,12 +156,27 @@ export function GridZone({
     if (!target) return;
     setBusy(true);
     try {
-      await fetch(`/api/spaces/${spaceId}/widgets`, {
+      showActionLoading("Element wird entfernt …", `remove-${spaceId}-${target.index}`);
+      const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
         body: body({ index: target.index }),
       });
+      const json = await readApiJson(res);
+      if (!res.ok) {
+        showApiError("Element nicht entfernt", json, {
+          id: `remove-${spaceId}-${target.index}`,
+          fallback: "Dieses Element konnte nicht entfernt werden.",
+        });
+        return;
+      }
+      showActionSuccess("Element entfernt", { id: `remove-${spaceId}-${target.index}` });
       onRefresh();
+    } catch (error) {
+      showUnknownError("Element nicht entfernt", error, {
+        id: `remove-${spaceId}-${target.index}`,
+        fallback: "Dieses Element konnte nicht entfernt werden.",
+      });
     } finally {
       setBusy(false);
     }
@@ -167,14 +200,15 @@ export function GridZone({
     setOptimisticItems([...visible, { module: widget, index: optimisticIndex }]);
     setBusy(true);
     try {
+      showActionLoading("Element wird hinzugefügt …", `add-${spaceId}`);
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: body({ widget }),
       });
-      const json = await res.json().catch(() => ({} as { index?: number }));
+      const json = await readApiJson(res) as { index?: number };
       if (!res.ok) {
-        throw new Error(apiErrorMessage(json, "Element konnte nicht hinzugefuegt werden."));
+        throw new Error(apiFailureMessage(json, "Element konnte nicht hinzugefügt werden."));
       }
       const realIndex = typeof json.index === "number" ? json.index : null;
       if (realIndex !== null && realIndex !== optimisticIndex) {
@@ -187,12 +221,16 @@ export function GridZone({
       if (realIndex !== null && AI_FILL_ON_ADD.has(widget.type)) {
         await fillFromContext(realIndex);
       }
+      showActionSuccess("Element hinzugefügt", { id: `add-${spaceId}` });
       onRefresh();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Element konnte nicht hinzugefuegt werden.";
+      const message = error instanceof Error ? error.message : "Element konnte nicht hinzugefügt werden.";
       setOptimisticItems(previous);
       setAddError(message);
-      toast.error("Element nicht hinzugefuegt", { description: message });
+      showActionError("Element nicht hinzugefügt", {
+        id: `add-${spaceId}`,
+        description: message,
+      });
     } finally {
       setBusy(false);
     }
@@ -410,10 +448,14 @@ function SortableCell({
         <CellChromeContext.Provider
           value={{ attributes, listeners, setActivatorNodeRef, onRemove, onToggleFull, isFull, busy }}
         >
-          <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
+          <RenderBoundary label="Element" resetKeys={[item.index, item.module.type]}>
+            <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
+          </RenderBoundary>
         </CellChromeContext.Provider>
       ) : (
-        <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
+        <RenderBoundary label="Element" resetKeys={[item.index, item.module.type]}>
+          <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />
+        </RenderBoundary>
       )}
     </div>
   );
