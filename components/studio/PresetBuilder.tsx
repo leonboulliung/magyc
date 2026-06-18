@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { WidgetPickerContent } from "@/components/WidgetPicker";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { RenderBoundary } from "@/components/ui/RenderBoundary";
+import { readApiJson, showActionSuccess, showApiError, showUnknownError } from "@/lib/client/feedback";
 import { WidgetContext } from "@/lib/widgetContext";
 import { studioItem, studioOverlay, studioPanel, studioPopover, studioStagger } from "@/lib/anim";
 import {
@@ -61,19 +62,75 @@ export function PresetBuilder() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [addingElement, setAddingElement] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [syncState, setSyncState] = useState<"loading" | "saved" | "local" | "error">("loading");
+  const hydratedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STUDIO_PRESETS_STORAGE_KEY);
-      const parsed = cleanStudioPresets(raw ? JSON.parse(raw) : null);
-      if (parsed) setPresets(parsed);
-    } catch {
-      // Local drafts must never block Studio.
+    let cancelled = false;
+    async function loadPresets() {
+      let local: StudioPreset[] | null = null;
+      try {
+        const raw = window.localStorage.getItem(STUDIO_PRESETS_STORAGE_KEY);
+        local = cleanStudioPresets(raw ? JSON.parse(raw) : null);
+      } catch {
+        // Local drafts must never block Studio.
+      }
+
+      try {
+        const res = await fetch("/api/studio/presets", { cache: "no-store" });
+        const json = await readApiJson(res);
+        if (!res.ok || !Array.isArray(json.presets)) {
+          throw new Error("presets_failed");
+        }
+        const remote = cleanStudioPresets(json.presets) ?? [];
+        if (!cancelled) {
+          setPresets(remote);
+          setSyncState("saved");
+        }
+      } catch {
+        if (!cancelled) {
+          if (local) setPresets(local);
+          setSyncState("local");
+        }
+      } finally {
+        if (!cancelled) hydratedRef.current = true;
+      }
     }
+    void loadPresets();
+    return () => {
+      cancelled = true;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
     window.localStorage.setItem(STUDIO_PRESETS_STORAGE_KEY, JSON.stringify(presets));
+    if (!hydratedRef.current) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/studio/presets", {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ presets }),
+        });
+        const json = await readApiJson(res);
+        if (!res.ok) {
+          setSyncState("error");
+          showApiError("Presets nicht gespeichert", json, {
+            fallback: "Deine Presets bleiben lokal erhalten, konnten aber nicht im Account gespeichert werden.",
+          });
+          return;
+        }
+        setSyncState("saved");
+      } catch (error) {
+        setSyncState("error");
+        showUnknownError("Presets nicht gespeichert", error, {
+          fallback: "Deine Presets bleiben lokal erhalten, konnten aber nicht im Account gespeichert werden.",
+        });
+      }
+    }, 650);
   }, [presets]);
 
   const editing = useMemo(
@@ -142,6 +199,11 @@ export function PresetBuilder() {
       return;
     }
     setSaveError("");
+    showActionSuccess("Preset gespeichert", {
+      description: syncState === "local"
+        ? "Lokal gesichert. Account-Sync wird versucht, sobald die Verbindung steht."
+        : undefined,
+    });
     setEditingId(null);
   }
 
@@ -160,6 +222,12 @@ export function PresetBuilder() {
           </h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-white/50">
             Presets übersetzen deine Arbeitsweise in wiederholbare Projektstarts: weniger Prompt-Arbeit, mehr klare Struktur.
+          </p>
+          <p className="mt-3 text-[12px] text-white/32">
+            {syncState === "loading" && "Presets werden geladen …"}
+            {syncState === "saved" && "Account-Presets sind synchronisiert."}
+            {syncState === "local" && "Lokaler Preset-Fallback aktiv."}
+            {syncState === "error" && "Presets lokal gesichert, Account-Sync fehlgeschlagen."}
           </p>
         </div>
         <button

@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, consolidated error UX)_
+_Last updated: 2026-06-18 (Codex, account preset persistence)_
 
 ---
 
@@ -29,15 +29,15 @@ then treat insert conflict as 409. (Manual SQL in Supabase editor.)
 ## P2 — product levers
 
 ### 5. Studio settings: profile and contacts
-Presets now have their own `/studio/presets` surface and `/studio/new`
-can apply them to new Planning projects. Remaining Studio settings should
-also be dedicated flows rather than dashboard clutter: public profile
-settings (`profilname.magyc.site` later), focus tags (Mode,
-Produktfotografie, …), profile description, and a lightweight directory
-for team members and clients (user accounts). Product decision made:
-visible project stages are **Planung / Auswahl / Abgeschlossen** while
-the current DB enum remains `brief / production / handoff` until a
-deliberate migration is worth it.
+Presets now have their own `/studio/presets` surface, are backed by the
+`studio_presets` table/API, and `/studio/new` loads the same account presets
+with local fallback. Remaining Studio settings should also be dedicated flows
+rather than dashboard clutter: public profile settings
+(`profilname.magyc.site` later), focus tags (Mode, Produktfotografie, …),
+profile description, and a lightweight directory for team members and clients
+(user accounts). Product decision made: visible project stages are **Planung /
+Auswahl / Abgeschlossen** while the current DB enum remains `brief /
+production / handoff` until a deliberate migration is worth it.
 
 ### 6. Error UX architecture
 First consolidation shipped: Sonner is the global action-feedback layer,
@@ -180,6 +180,15 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Account preset persistence**:
+  added `studio_presets` migration and `/api/studio/presets` so workflow
+  presets are stored per Clerk user instead of only in browser localStorage.
+  `PresetBuilder` now loads account presets, writes local cache for
+  resilience, debounces saves back to the API, and shows sync status plus
+  shared Sonner feedback on failures. `/studio/new` now loads the same
+  account presets before project creation, with local/default fallback if
+  the API is unavailable. Note: production requires running migration
+  `012_studio_presets.sql` before account sync is active.
 - 2026-06-18 · **Consolidated error UX system**:
   finished the first complete pass on feedback architecture. Added
   `lib/client/feedback` as the single client-side wrapper around Sonner and

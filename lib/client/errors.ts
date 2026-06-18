@@ -17,6 +17,7 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "duplicate_failed") return "Das Projekt konnte gerade nicht dupliziert werden.";
   if (raw === "delete_failed") return "Das Projekt konnte gerade nicht geloescht werden.";
   if (raw === "update_failed") return "Die Aenderung konnte gerade nicht gespeichert werden.";
+  if (raw === "presets_failed") return "Die Presets konnten gerade nicht gespeichert werden.";
   if (raw === "bad_stage") return "Diese Projektphase ist nicht gueltig.";
   if (raw === "nothing_to_update") return "Es gab keine Aenderung zum Speichern.";
   if (raw === "owner_token_required" || raw === "owner_token_mismatch") {

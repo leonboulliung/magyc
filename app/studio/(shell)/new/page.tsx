@@ -9,6 +9,7 @@ import {
   showActionError,
   showActionLoading,
   showActionSuccess,
+  showApiError,
 } from "@/lib/client/feedback";
 import {
   cleanStudioPresets,
@@ -66,20 +67,40 @@ export default function NewProjectPage() {
   const selectedPreset = usablePresets.find((preset) => preset.id === presetId) || null;
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STUDIO_PRESETS_STORAGE_KEY);
-      const parsed = cleanStudioPresets(raw ? JSON.parse(raw) : null);
-      if (parsed) {
-        setPresets(parsed);
-        if (presetId !== "none" && !parsed.some((preset) => preset.id === presetId && preset.modules.length > 0)) {
-          setPresetId("none");
-        }
+    let cancelled = false;
+    async function loadPresets() {
+      let local: StudioPreset[] | null = null;
+      try {
+        const raw = window.localStorage.getItem(STUDIO_PRESETS_STORAGE_KEY);
+        local = cleanStudioPresets(raw ? JSON.parse(raw) : null);
+      } catch {
+        // Presets are an acceleration layer. Creation must still work without them.
       }
-    } catch {
-      // Presets are an acceleration layer. Creation must still work without them.
+      try {
+        const res = await fetch("/api/studio/presets", { cache: "no-store" });
+        const json = await readApiJson(res);
+        if (!res.ok || !Array.isArray(json.presets)) {
+          showApiError("Presets nicht geladen", json, {
+            fallback: "MAGYC nutzt lokale oder Standard-Presets für diesen Projektstart.",
+          });
+          throw new Error("presets_failed");
+        }
+        const remote = cleanStudioPresets(json.presets) ?? [];
+        if (!cancelled) setPresets(remote);
+      } catch {
+        if (!cancelled && local) setPresets(local);
+      }
     }
+    void loadPresets();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (presetId !== "none" && !usablePresets.some((preset) => preset.id === presetId)) {
+      setPresetId("none");
+    }
+  }, [presetId, usablePresets]);
 
   function friendlyError(code: unknown): string {
     if (code === "unauthorized") return "Bitte melde dich an, um das Projekt in deinem Studio anzulegen.";
