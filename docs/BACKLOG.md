@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, preset-driven project start)_
+_Last updated: 2026-06-18 (Codex, Studio motion language)_
 
 ---
 
@@ -177,6 +177,16 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Studio motion language**:
+  added shared Motion variants for Studio pages, staggered operational
+  surfaces, rows, overlays, panels and popovers in `lib/anim`. The Studio
+  dashboard now lands with a calm page reveal, phase cards and project rows
+  stagger into view, the sidebar has a moving active marker, project action
+  menus animate as popovers, `/studio/new` animates preset selection and
+  optional project details, and the preset editor / element picker now open
+  with the same intent-driven panel language. Product rule for future work:
+  motion should clarify state, focus and flow; it should not be decorative
+  noise.
 - 2026-06-18 · **Preset-driven project start**:
   connected Studio presets to actual project creation. Preset definitions
   now live in a shared `lib/studioPresets` registry used by both

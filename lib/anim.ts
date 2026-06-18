@@ -99,3 +99,81 @@ export const versionBarItem: Variants = {
   hidden: { opacity: 0, scaleX: 0.4 },
   show:   { opacity: 1, scaleX: 1, transition: { duration: 0.3, ease: "easeOut" } },
 };
+
+/**
+ * Studio surfaces use motion as orientation: pages land softly, then
+ * operational rows/cards follow with a restrained stagger. This keeps the
+ * app feeling alive without making productive screens feel theatrical.
+ */
+export const studioPage: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+export const studioStagger: Variants = {
+  hidden: {},
+  show: {
+    transition: {
+      delayChildren: 0.08,
+      staggerChildren: 0.055,
+    },
+  },
+};
+
+export const studioItem: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+export const studioRow: Variants = {
+  hidden: { opacity: 0, y: 6 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+export const studioOverlay: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } },
+  exit: { opacity: 0, transition: { duration: 0.16, ease: "easeIn" } },
+};
+
+export const studioPanel: Variants = {
+  hidden: { opacity: 0, x: 28 },
+  show: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.36, ease: [0.22, 1, 0.36, 1] },
+  },
+  exit: {
+    opacity: 0,
+    x: 20,
+    transition: { duration: 0.22, ease: "easeIn" },
+  },
+};
+
+export const studioPopover: Variants = {
+  hidden: { opacity: 0, y: 6, scale: 0.98 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
+  },
+  exit: {
+    opacity: 0,
+    y: 4,
+    scale: 0.98,
+    transition: { duration: 0.12, ease: "easeIn" },
+  },
+};

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { WidgetPickerContent } from "@/components/WidgetPicker";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { WidgetContext } from "@/lib/widgetContext";
+import { studioItem, studioOverlay, studioPanel, studioPopover, studioStagger } from "@/lib/anim";
 import {
   cleanStudioPresets,
   createStudioPreset,
@@ -143,8 +145,13 @@ export function PresetBuilder() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={studioStagger}
+      className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14"
+    >
+      <motion.div variants={studioItem} className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/40">Presets</p>
           <h1 className="mt-3 font-brand text-[32px] font-bold tracking-[-0.02em] text-white sm:text-[42px]">
@@ -161,9 +168,9 @@ export function PresetBuilder() {
         >
           Neues Preset
         </button>
-      </div>
+      </motion.div>
 
-      <section className="mt-8 overflow-hidden rounded-2xl border border-white/12 bg-black/45">
+      <motion.section variants={studioItem} className="mt-8 overflow-hidden rounded-2xl border border-white/12 bg-black/45">
         <table className="w-full border-collapse text-left">
           <thead className="bg-white/[0.04]">
             <tr className="mono text-[10px] uppercase tracking-[0.2em] text-white/40">
@@ -173,9 +180,14 @@ export function PresetBuilder() {
               <th className="px-4 py-3 text-right font-normal">Aktionen</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody variants={studioStagger}>
             {presets.map((preset) => (
-              <tr key={preset.id} className="border-t border-white/10 text-white/75 transition-colors hover:bg-white/[0.03]">
+              <motion.tr
+                key={preset.id}
+                variants={studioItem}
+                layout
+                className="border-t border-white/10 text-white/75 transition-colors hover:bg-white/[0.03]"
+              >
                 <td className="px-4 py-4">
                   <span className="block text-[15px] font-semibold text-white">{preset.name || "Unbenannt"}</span>
                   {preset.description && <span className="mt-1 block text-[12px] text-white/40">{preset.description}</span>}
@@ -197,21 +209,32 @@ export function PresetBuilder() {
                     </button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
-          </tbody>
+          </motion.tbody>
         </table>
-      </section>
+      </motion.section>
 
+      <AnimatePresence>
       {editing && (
-        <div className="fixed inset-0 z-50 bg-black/72 backdrop-blur-md">
+        <motion.div
+          key="preset-editor"
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          variants={studioOverlay}
+          className="fixed inset-0 z-50 bg-black/72 backdrop-blur-md"
+        >
           <button
             type="button"
             aria-label="Preset-Editor schließen"
             className="absolute inset-0 cursor-default"
             onClick={() => setEditingId(null)}
           />
-          <section className="absolute bottom-0 right-0 top-0 flex w-full flex-col border-l border-white/12 bg-[#050505] shadow-2xl shadow-black/70 sm:w-[min(1040px,calc(100vw-176px))]">
+          <motion.section
+            variants={studioPanel}
+            className="absolute bottom-0 right-0 top-0 flex w-full flex-col border-l border-white/12 bg-[#050505] shadow-2xl shadow-black/70 sm:w-[min(1040px,calc(100vw-176px))]"
+          >
             <div className="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-white/10 bg-white/[0.025] px-5 py-5 sm:px-7">
               <div>
                 <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Preset bearbeiten</p>
@@ -267,12 +290,14 @@ export function PresetBuilder() {
                     </button>
                   </div>
                   {editing.modules.length > 0 ? (
-                    <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
+                    <motion.div layout className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
                       {editing.modules.map((module, index) => (
-                        <button
+                        <motion.button
                           key={`${module.type}-${index}`}
+                          layout
                           type="button"
                           onClick={() => setActiveIndex(index)}
+                          whileTap={{ scale: 0.985 }}
                           className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
                             index === activeIndex
                               ? "border-white bg-white text-black"
@@ -280,21 +305,23 @@ export function PresetBuilder() {
                           }`}
                         >
                           {module.microTitle || LABELS[module.type]}
-                        </button>
+                        </motion.button>
                       ))}
-                    </div>
+                    </motion.div>
                   ) : (
                     <div className="mt-3 rounded-xl border border-dashed border-white/12 px-3 py-5 text-sm leading-relaxed text-white/38">
                       Noch keine Elemente. Füge die Bausteine hinzu, die dieses Preset vorbereiten soll.
                     </div>
                   )}
 
+                  <AnimatePresence>
                   {addingElement && (
                     <PresetElementPicker
                       onClose={() => setAddingElement(false)}
                       onPick={addModule}
                     />
                   )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="min-w-0">
@@ -314,11 +341,21 @@ export function PresetBuilder() {
                     )}
                   </div>
                   {activeModule ? (
-                    <PresetModulePreview
-                      module={activeModule}
-                      index={activeIndex}
-                      onChange={updateActiveModule}
-                    />
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`${activeModule.type}-${activeIndex}`}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        <PresetModulePreview
+                          module={activeModule}
+                          index={activeIndex}
+                          onChange={updateActiveModule}
+                        />
+                      </motion.div>
+                    </AnimatePresence>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-white/12 px-5 py-16 text-center">
                       <p className="text-[15px] font-medium text-white">Noch keine Element-Vorschau</p>
@@ -339,9 +376,10 @@ export function PresetBuilder() {
                         Hinzufügen
                       </button>
                     </div>
-                    <div className="mt-3 space-y-2">
+                    <motion.div layout className="mt-3 space-y-2">
                       {editing.promptInjections.map((prompt, index) => (
-                        <textarea
+                        <motion.textarea
+                          layout
                           key={index}
                           value={prompt}
                           onChange={(event) => updatePrompt(index, event.target.value)}
@@ -350,7 +388,7 @@ export function PresetBuilder() {
                           placeholder="Regel, die beim Erstellen automatisch in den Prompt geht."
                         />
                       ))}
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
               </div>
@@ -375,10 +413,11 @@ export function PresetBuilder() {
                 Fertig
               </button>
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
       )}
-    </div>
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -472,18 +511,26 @@ function PresetElementPicker({
   return (
     <WidgetContext.Provider value={context}>
       <div className="vibe-root vibe-terminal">
-        <button
+        <motion.button
           type="button"
           aria-label="Element-Auswahl schließen"
           className="fixed inset-0 z-[60] cursor-default bg-black/45"
           onClick={onClose}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          variants={studioOverlay}
         />
         <div className="fixed inset-0 z-[61] flex items-center justify-center p-5 pointer-events-none">
-          <div
+          <motion.div
             role="dialog"
             aria-modal="true"
             aria-label="Element hinzufügen"
             className="pointer-events-auto flex w-full max-w-[560px] flex-col overflow-hidden rounded-[var(--v-radius)]"
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            variants={studioPopover}
             style={{
               maxHeight: "min(78dvh, 640px)",
               background: "var(--v-bg)",
@@ -517,7 +564,7 @@ function PresetElementPicker({
                 }}
               />
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </WidgetContext.Provider>

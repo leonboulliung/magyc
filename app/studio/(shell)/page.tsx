@@ -3,6 +3,13 @@ import { auth } from "@clerk/nextjs/server";
 import { fetchSpacesByOwner } from "@/lib/db";
 import { ensureProfile } from "@/lib/server/profile";
 import { ProjectCardActions } from "@/components/studio/ProjectCardActions";
+import {
+  StudioItemMotion,
+  StudioPageMotion,
+  StudioStaggerMotion,
+  StudioTableBodyMotion,
+  StudioTableRowMotion,
+} from "@/components/studio/StudioMotion";
 import type { ProjectStage } from "@/lib/types";
 
 // Projects are mutable; never serve a stale dashboard from the data cache.
@@ -48,32 +55,32 @@ export default async function StudioDashboard() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <StudioPageMotion className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
+      <StudioItemMotion className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">Studio</p>
           <h1 className="mt-3 font-brand text-[30px] font-bold tracking-[-0.02em] text-white sm:text-[42px]">
             Deine Projekte
           </h1>
         </div>
-      </div>
+      </StudioItemMotion>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-3">
+      <StudioStaggerMotion className="mt-8 grid gap-3 sm:grid-cols-3">
         {([
           ["brief", "Planung"],
           ["production", "Auswahl"],
           ["handoff", "Abgeschlossen"],
         ] as const).map(([key, text]) => (
-          <div key={key} className="rounded-2xl border border-white/12 bg-white/[0.035] p-4">
+          <StudioItemMotion key={key} className="rounded-2xl border border-white/12 bg-white/[0.035] p-4">
             <div className="mono text-[10px] uppercase tracking-[0.22em] text-white/40">{text}</div>
             <div className="mt-3 font-brand text-[28px] font-bold text-white">{counts[key]}</div>
             <p className="mt-2 text-[12px] leading-relaxed text-white/45">{STAGE_HELP[key]}</p>
-          </div>
+          </StudioItemMotion>
         ))}
-      </div>
+      </StudioStaggerMotion>
 
       {projects.length === 0 ? (
-        <div className="mt-12 rounded-2xl border border-dashed border-white/15 p-10 text-center">
+        <StudioItemMotion className="mt-12 rounded-2xl border border-dashed border-white/15 p-10 text-center">
           <p className="font-brand text-[20px] font-bold text-white">Noch kein Projekt</p>
           <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-white/60">
             Starte mit einer geführten Planung — Referenzen, Shotlist, Deliverables
@@ -85,9 +92,9 @@ export default async function StudioDashboard() {
           >
             Erstes Projekt anlegen
           </Link>
-        </div>
+        </StudioItemMotion>
       ) : (
-        <div className="mt-10">
+        <StudioItemMotion className="mt-10">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">
               Projektliste
@@ -114,9 +121,9 @@ export default async function StudioDashboard() {
                 <th className="px-4 py-3 text-right font-normal">Aktionen</th>
               </tr>
             </thead>
-            <tbody>
+            <StudioTableBodyMotion>
               {projects.map((p) => (
-                <tr key={p.id} className="border-t border-white/10 text-white/78 hover:bg-white/[0.035]">
+                <StudioTableRowMotion key={p.id} className="border-t border-white/10 text-white/78 hover:bg-white/[0.035]">
                   <td className="px-4 py-4">
                     <Link href={`/studio/${p.id}`} className="font-body text-[15px] font-medium text-white hover:underline">
                       {p.title || "Unbenanntes Projekt"}
@@ -136,14 +143,14 @@ export default async function StudioDashboard() {
                       <ProjectCardActions id={p.id} title={p.title} shared={p.shared} />
                     </div>
                   </td>
-                </tr>
+                </StudioTableRowMotion>
               ))}
-            </tbody>
+            </StudioTableBodyMotion>
           </table>
           </div>
-        </div>
+        </StudioItemMotion>
       )}
 
-    </div>
+    </StudioPageMotion>
   );
 }

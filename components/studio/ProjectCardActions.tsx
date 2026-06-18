@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { ShareDialog } from "@/components/studio/ShareDialog";
+import { studioOverlay, studioPopover } from "@/lib/anim";
 
 /**
  * Per-project actions on the dashboard table: open, share, duplicate,
@@ -65,11 +67,20 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
         </svg>
       </button>
 
+      <AnimatePresence>
       {open && (
-        <>
+        <motion.div
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          variants={studioOverlay}
+        >
           {/* click-away backdrop */}
           <div className="fixed inset-0 z-40" onClick={(e) => { stop(e); setOpen(false); }} />
-          <div className="absolute bottom-10 right-0 z-50 w-44 overflow-hidden rounded-xl border border-white/12 bg-black/95 p-1 shadow-2xl shadow-black/60 backdrop-blur-md">
+          <motion.div
+            variants={studioPopover}
+            className="absolute bottom-10 right-0 z-50 w-44 overflow-hidden rounded-xl border border-white/12 bg-black/95 p-1 shadow-2xl shadow-black/60 backdrop-blur-md"
+          >
             <Link
               href={`/studio/${id}`}
               onClick={(e) => { e.stopPropagation(); setOpen(false); }}
@@ -100,9 +111,10 @@ export function ProjectCardActions({ id, title, shared }: { id: string; title: s
             >
               Löschen
             </button>
-          </div>
-        </>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
     </div>

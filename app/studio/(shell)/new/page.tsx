@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { studioItem, studioPage, studioStagger } from "@/lib/anim";
 import {
   cleanStudioPresets,
   DEFAULT_STUDIO_PRESETS,
@@ -114,18 +116,25 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
-      <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">Neues Projekt</p>
-      <h1 className="mt-3 font-brand text-[28px] font-bold tracking-[-0.02em] text-white sm:text-[40px]">
-        Planung starten
-      </h1>
-      <p className="mt-4 text-[16px] leading-relaxed text-white/60">
-        Beschreib das Shooting in einem Satz oder starte mit einem Preset. MAGYC legt das Projekt in
-        <span className="text-white"> Planung</span> an und bereitet die passenden Bausteine vor.
-      </p>
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={studioPage}
+      className="mx-auto w-full max-w-4xl px-5 py-12 sm:px-8 sm:py-16"
+    >
+      <motion.div variants={studioItem}>
+        <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">Neues Projekt</p>
+        <h1 className="mt-3 font-brand text-[28px] font-bold tracking-[-0.02em] text-white sm:text-[40px]">
+          Planung starten
+        </h1>
+        <p className="mt-4 text-[16px] leading-relaxed text-white/60">
+          Beschreib das Shooting in einem Satz oder starte mit einem Preset. MAGYC legt das Projekt in
+          <span className="text-white"> Planung</span> an und bereitet die passenden Bausteine vor.
+        </p>
+      </motion.div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_300px]">
-        <div>
+      <motion.div variants={studioStagger} className="mt-8 grid gap-5 lg:grid-cols-[1fr_300px]">
+        <motion.div variants={studioItem}>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -137,27 +146,30 @@ export default function NewProjectPage() {
 
           <div className="mt-4 flex flex-wrap gap-2">
             {QUICK.map((q) => (
-              <button
+              <motion.button
                 key={q}
                 type="button"
                 onClick={() => setPrompt(q)}
+                whileTap={{ scale: 0.98 }}
                 className="rounded-full border border-white/12 px-3 py-1.5 text-left text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white"
               >
                 {q}
-              </button>
+              </motion.button>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        <section className="rounded-2xl border border-white/12 bg-white/[0.025] p-4">
+        <motion.section variants={studioItem} className="rounded-2xl border border-white/12 bg-white/[0.025] p-4">
           <div className="flex items-center justify-between gap-3">
             <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/40">Preset</p>
             <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] text-white/35">Planung</span>
           </div>
           <div className="mt-4 space-y-2">
-            <button
+            <motion.button
               type="button"
               onClick={() => setPresetId("none")}
+              layout
+              whileTap={{ scale: 0.985 }}
               className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
                 presetId === "none"
                   ? "border-white bg-white text-black"
@@ -165,12 +177,14 @@ export default function NewProjectPage() {
               }`}
             >
               Ohne Preset starten
-            </button>
+            </motion.button>
             {usablePresets.map((preset) => (
-              <button
+              <motion.button
                 key={preset.id}
                 type="button"
                 onClick={() => setPresetId(preset.id)}
+                layout
+                whileTap={{ scale: 0.985 }}
                 className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
                   presetId === preset.id
                     ? "border-white bg-white text-black"
@@ -179,38 +193,62 @@ export default function NewProjectPage() {
               >
                 <span className="block font-medium">{preset.name}</span>
                 {preset.description && <span className={`mt-1 block text-xs ${presetId === preset.id ? "text-black/55" : "text-white/35"}`}>{preset.description}</span>}
-              </button>
+              </motion.button>
             ))}
           </div>
           <div className="mt-4 border-t border-white/10 pt-4">
             <p className="mono text-[10px] uppercase tracking-[0.2em] text-white/35">Vorbereitet</p>
-            {selectedPreset ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {selectedPreset.modules.map((module, index) => (
-                  <span key={`${module.type}-${index}`} className="rounded-full border border-white/12 px-2.5 py-1 text-xs text-white/58">
-                    {module.microTitle || module.type.replace("_", " ")}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm leading-relaxed text-white/42">
-                MAGYC wählt die Bausteine aus deinem Prompt.
-              </p>
-            )}
+            <AnimatePresence mode="wait">
+              {selectedPreset ? (
+                <motion.div
+                  key={selectedPreset.id}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-3 flex flex-wrap gap-2"
+                >
+                  {selectedPreset.modules.map((module, index) => (
+                    <span key={`${module.type}-${index}`} className="rounded-full border border-white/12 px-2.5 py-1 text-xs text-white/58">
+                      {module.microTitle || module.type.replace("_", " ")}
+                    </span>
+                  ))}
+                </motion.div>
+              ) : (
+                <motion.p
+                  key="none"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-3 text-sm leading-relaxed text-white/42"
+                >
+                  MAGYC wählt die Bausteine aus deinem Prompt.
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
 
-      <button
+      <motion.button
         type="button"
         onClick={() => setShowFields((s) => !s)}
+        variants={studioItem}
         className="mono mt-6 text-[11px] uppercase tracking-widest text-white/45 hover:text-white/80"
       >
         {showFields ? "Eckdaten ausblenden" : "Eckdaten hinzufügen (optional)"}
-      </button>
+      </motion.button>
 
+      <AnimatePresence>
       {showFields && (
-        <div className="mt-5 space-y-4">
+        <motion.div
+          initial={{ opacity: 0, height: 0, y: -6 }}
+          animate={{ opacity: 1, height: "auto", y: 0 }}
+          exit={{ opacity: 0, height: 0, y: -6 }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-5 space-y-4 overflow-hidden"
+        >
           {FIELDS.map((f) => (
             <div key={f.key}>
               <label className="mb-1.5 block text-[13px] text-white/70">{f.label}</label>
@@ -232,12 +270,24 @@ export default function NewProjectPage() {
               )}
             </div>
           ))}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {error && <p className="mt-5 text-[14px] text-red-300/90">{error}</p>}
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="mt-5 text-[14px] text-red-300/90"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
 
-      <div className="mt-8 flex items-center gap-4">
+      <motion.div variants={studioItem} className="mt-8 flex items-center gap-4">
         <button
           type="button"
           onClick={submit}
@@ -247,7 +297,7 @@ export default function NewProjectPage() {
           {busy ? "Projekt wird erstellt …" : "Projekt erstellen"}
         </button>
         <span className="mono text-[11px] uppercase tracking-widest text-white/35">dauert ein paar Sekunden</span>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
