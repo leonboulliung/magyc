@@ -32,7 +32,18 @@ a signed-in identity bridge (`setSelfUser`, set by `SpaceView` from the Clerk
 user) feeding `getSelfId`/`getMyColor`/optimistic actor; `/state` + `/upload`
 resolve `display_name` from the profile for signed-in contributors.
 
-### Q3 — Element bugs (Herzstück)
+### Q3 — Element bugs (Herzstück) — partially ✅
+✅ Done (commits `10b3468`, `fd7f0bb`, `c2b00f9`): Poll/Crew/WorkPackages now
+owner-configurable (inline edit + add/remove via shared `InlineText`);
+Notes + Q&A entries deletable (soft-delete via `edit{deleted}`); Phases is a
+vertical timeline showing all phases; Attachments reworked (grouped by kind,
+image thumbnails, per-file remove). **Still open:** Moodboard (border-radius
+overflow, more images + per-image text), Shotlist (faster/clearer add),
+Images (empty placeholder, border-radius, large-set behaviour), Selection
+(border-radius; consider merge with Moodboard), Appointment centering, Range
+hide, Table +col-with-one-column. (Border-radius/centering/hide/table → Q4.)
+
+#### Original Q3 list
 - **Moodboard:** images overflow the border-radius (missing overflow-hidden on
   the rounded frame); support MORE images + per-image text notes (not only the
   separate direction list). The no-go/ref/ok toggle is good — keep.
