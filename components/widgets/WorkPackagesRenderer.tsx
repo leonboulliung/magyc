@@ -7,6 +7,7 @@ import { getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, WorkPackagesWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
+import { InlineText } from "./InlineText";
 
 /**
  * Arbeitspakete — Apple-Wallet-style stacked cards, one per work
@@ -60,6 +61,18 @@ export function WorkPackagesRenderer({
     try { await navigator.clipboard.writeText(url); } catch { /* no-op */ }
   }
 
+  // Owner config edits (label/description + add/remove) via saveModule.
+  function save(next: WorkPackagesWidget) { ctx.saveModule(index, next); }
+  function setPkg(i: number, patch: Partial<{ label: string; description: string }>) {
+    const packages = m.packages.map((p, j) => (j === i ? { ...p, ...patch } : p));
+    save({ ...m, packages });
+  }
+  function addPkg() { save({ ...m, packages: [...m.packages, { label: "Neues Paket" }] }); }
+  function removePkg(i: number) {
+    if (m.packages.length <= 1) return;
+    save({ ...m, packages: m.packages.filter((_, j) => j !== i) });
+  }
+
   const [hover, setHover] = useState<string | null>(null);
 
   return (
@@ -79,12 +92,12 @@ export function WorkPackagesRenderer({
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         <div className="space-y-2">
           <AnimatePresence initial={false}>
-            {m.packages.map((pkg) => {
+            {m.packages.map((pkg, i) => {
               const claimers = buckets.get(pkg.label) || [];
               const mine = iClaimed(pkg.label);
               return (
                 <motion.div
-                  key={pkg.label}
+                  key={i}
                   layout
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -122,12 +135,23 @@ export function WorkPackagesRenderer({
                       )}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] leading-snug" style={{ color: "var(--v-fg)" }}>
-                        {pkg.label}
-                      </div>
-                      {pkg.description && (
-                        <div className="text-[12px] leading-snug mt-0.5" style={{ color: "var(--v-muted)" }}>
-                          {pkg.description}
+                      <InlineText
+                        value={pkg.label}
+                        isOwner={ctx.isOwner}
+                        onSave={(v) => setPkg(i, { label: v })}
+                        placeholder="Paket …"
+                        className="block text-[13px] leading-snug"
+                      />
+                      {(pkg.description || ctx.isOwner) && (
+                        <div className="text-[12px] leading-snug mt-0.5">
+                          <InlineText
+                            value={pkg.description ?? ""}
+                            isOwner={ctx.isOwner}
+                            onSave={(v) => setPkg(i, { description: v })}
+                            placeholder="Beschreibung …"
+                            multiline
+                            className="text-[12px] leading-snug"
+                          />
                         </div>
                       )}
                       {claimers.length > 0 && (
@@ -155,19 +179,35 @@ export function WorkPackagesRenderer({
 
                     <AnimatePresence>
                       {hover === pkg.label && (
-                        <motion.button
+                        <motion.div
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           transition={{ duration: 0.12 }}
-                          onClick={() => sharePkg(pkg.label)}
-                          aria-label="share package"
-                          title="copy share link"
-                          className="mono text-[11px] opacity-60 hover:opacity-100 shrink-0"
-                          style={{ color: "var(--v-fg)" }}
+                          className="flex items-center gap-1 shrink-0"
                         >
-                          ⎘
-                        </motion.button>
+                          <button
+                            type="button"
+                            onClick={() => sharePkg(pkg.label)}
+                            aria-label="share package"
+                            title="copy share link"
+                            className="mono text-[11px] opacity-60 hover:opacity-100"
+                            style={{ color: "var(--v-fg)" }}
+                          >
+                            ⎘
+                          </button>
+                          {ctx.isOwner && m.packages.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removePkg(i)}
+                              aria-label="Paket entfernen"
+                              className="mono text-[13px] opacity-50 hover:opacity-100"
+                              style={{ color: "var(--v-muted)" }}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </motion.div>
                       )}
                     </AnimatePresence>
                   </div>

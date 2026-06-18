@@ -7,6 +7,7 @@ import { getSelfId } from "@/lib/state";
 import type { CrewWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
+import { InlineText } from "./InlineText";
 
 /**
  * Crew — roles the team needs. Each role can be claimed by collaborators.
@@ -65,6 +66,18 @@ export function CrewRenderer({
     }
   }
 
+  // Owner config edits (role names + add/remove) via saveModule.
+  function save(next: CrewWidget) { ctx.saveModule(index, next); }
+  function setRole(i: number, name: string) {
+    const roles = m.roles.map((r, j) => (j === i ? { ...r, name } : r));
+    save({ ...m, roles });
+  }
+  function addRole() { save({ ...m, roles: [...m.roles, { name: "Neue Rolle" }] }); }
+  function removeRole(i: number) {
+    if (m.roles.length <= 1) return;
+    save({ ...m, roles: m.roles.filter((_, j) => j !== i) });
+  }
+
   // Hover state for per-row affordance reveal.
   const [hoverRow, setHoverRow] = useState<string | null>(null);
 
@@ -86,12 +99,12 @@ export function CrewRenderer({
         </p>
         <ul className="space-y-1.5">
           <AnimatePresence initial={false}>
-            {m.roles.map((role) => {
+            {m.roles.map((role, i) => {
               const claimers = buckets.get(role.name) || [];
               const mine = iClaimed(role.name);
               return (
                 <motion.li
-                  key={role.name}
+                  key={i}
                   layout
                   initial={{ opacity: 0, y: 3 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -105,28 +118,27 @@ export function CrewRenderer({
                   <button
                     type="button"
                     onClick={() => toggleClaim(role.name)}
-                    className="flex-1 text-left flex items-center gap-2.5 group/btn"
+                    aria-label={mine ? "release" : "claim"}
+                    className="inline-flex items-center justify-center shrink-0 transition-all"
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "9999px",
+                      border: `1.5px solid ${mine ? "var(--v-fg)" : "var(--v-rule)"}`,
+                      background: mine ? "var(--v-fg)" : "transparent",
+                    }}
                   >
-                    <span
-                      className="inline-flex items-center justify-center shrink-0 transition-all"
-                      style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: "9999px",
-                        border: `1.5px solid ${mine ? "var(--v-fg)" : "var(--v-rule)"}`,
-                        background: mine ? "var(--v-fg)" : "transparent",
-                      }}
-                    >
-                      {mine && (
-                        <span className="mono text-[8px]" style={{ color: "var(--v-bg)" }}>
-                          ●
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-[13px]" style={{ color: "var(--v-fg)" }}>
-                      {role.name}
-                    </span>
+                    {mine && (
+                      <span className="mono text-[8px]" style={{ color: "var(--v-bg)" }}>●</span>
+                    )}
                   </button>
+                  <InlineText
+                    value={role.name}
+                    isOwner={ctx.isOwner}
+                    onSave={(v) => setRole(i, v)}
+                    placeholder="Rolle …"
+                    className="flex-1 text-[13px]"
+                  />
 
                   {claimers.length > 0 && (
                     <div className="flex -space-x-1.5">
@@ -155,19 +167,35 @@ export function CrewRenderer({
 
                   <AnimatePresence>
                     {hoverRow === role.name && (
-                      <motion.button
+                      <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.12 }}
-                        onClick={() => shareRole(role.name)}
-                        aria-label="share role"
-                        title="copy share link"
-                        className="mono text-[11px] px-2 opacity-60 hover:opacity-100"
-                        style={{ color: "var(--v-fg)" }}
+                        className="flex items-center gap-1"
                       >
-                        ⎘
-                      </motion.button>
+                        <button
+                          type="button"
+                          onClick={() => shareRole(role.name)}
+                          aria-label="share role"
+                          title="copy share link"
+                          className="mono text-[11px] px-1.5 opacity-60 hover:opacity-100"
+                          style={{ color: "var(--v-fg)" }}
+                        >
+                          ⎘
+                        </button>
+                        {ctx.isOwner && m.roles.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeRole(i)}
+                            aria-label="Rolle entfernen"
+                            className="mono text-[13px] px-1 opacity-50 hover:opacity-100"
+                            style={{ color: "var(--v-muted)" }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </motion.div>
                     )}
                   </AnimatePresence>
                 </motion.li>
@@ -175,6 +203,17 @@ export function CrewRenderer({
             })}
           </AnimatePresence>
         </ul>
+
+        {ctx.isOwner && (
+          <button
+            type="button"
+            onClick={addRole}
+            className="mono mt-2 rounded-full px-2.5 py-1 text-[10px] tracking-widest opacity-60 hover:opacity-100"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+          >
+            + Rolle
+          </button>
+        )}
       </WidgetCard>
     </WidgetShell>
   );

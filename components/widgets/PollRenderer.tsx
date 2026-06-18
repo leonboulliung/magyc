@@ -6,6 +6,7 @@ import { getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, PollWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
+import { InlineText } from "./InlineText";
 
 /**
  * Umfrage — multiple-choice poll.
@@ -52,6 +53,19 @@ export function PollRenderer({
     await ctx.act(index, "vote", { option: next });
   }
 
+  // Owner config edits (question + options) — persisted via saveModule.
+  function save(next: PollWidget) { ctx.saveModule(index, next); }
+  function setOption(i: number, v: string) {
+    const options = [...m.options];
+    options[i] = v;
+    save({ ...m, options });
+  }
+  function addOption() { save({ ...m, options: [...m.options, "Neue Option"] }); }
+  function removeOption(i: number) {
+    if (m.options.length <= 2) return; // a poll needs at least two
+    save({ ...m, options: m.options.filter((_, j) => j !== i) });
+  }
+
   return (
     <WidgetShell
       module={m}
@@ -69,7 +83,14 @@ export function PollRenderer({
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         <div className="text-[13px] mb-3 leading-snug" style={{ color: "var(--v-fg)" }}>
-          {m.question}
+          <InlineText
+            value={m.question}
+            isOwner={ctx.isOwner}
+            onSave={(v) => save({ ...m, question: v })}
+            placeholder="Frage …"
+            multiline
+            className="text-[13px] leading-snug"
+          />
         </div>
 
         <ul className="space-y-2">
@@ -146,6 +167,42 @@ export function PollRenderer({
             );
           })}
         </ul>
+
+        {ctx.isOwner && (
+          <div className="mt-3 space-y-1.5 rounded-[var(--v-radius)] p-2" style={{ border: "1px dashed var(--v-rule)" }}>
+            <p className="mono text-[9px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>OPTIONEN</p>
+            {m.options.map((opt, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <InlineText
+                  value={opt}
+                  isOwner
+                  onSave={(v) => setOption(i, v)}
+                  placeholder="Option …"
+                  className="flex-1 text-[12px]"
+                />
+                {m.options.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => removeOption(i)}
+                    aria-label="Option entfernen"
+                    className="mono shrink-0 text-[12px] opacity-40 hover:opacity-100"
+                    style={{ color: "var(--v-muted)" }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addOption}
+              className="mono mt-1 rounded-full px-2.5 py-1 text-[10px] tracking-widest opacity-60 hover:opacity-100"
+              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+            >
+              + Option
+            </button>
+          </div>
+        )}
 
         {totalVotes > 0 && (
           <div className="mono text-[10px] mt-3 opacity-60" style={{ color: "var(--v-muted)" }}>
