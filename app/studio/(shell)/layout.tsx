@@ -32,9 +32,11 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
           </div>
         </div>
       </header>
-      <div className="sm:grid sm:grid-cols-[176px_1fr]">
+      <div className="min-h-[calc(100vh-57px)] bg-black sm:grid sm:grid-cols-[176px_1fr]">
         <StudioSidebar />
-        <main className="min-w-0">{children}</main>
+        <main className="min-h-[calc(100vh-57px)] min-w-0 border-white/8 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.035),transparent_34%)] sm:border-l">
+          {children}
+        </main>
       </div>
     </>
   );

@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-17 (Codex, preset module renderer alignment)_
+_Last updated: 2026-06-18 (Codex, studio intent UI pass)_
 
 ---
 
@@ -176,6 +176,16 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Studio intent UI pass**:
+  reframed Studio UI as product logic rather than decoration. The Studio
+  sidebar now explains each area through concise purpose hints without a
+  hard white active state, the Studio shell has a clearer work-surface
+  transition, and preset editing no longer opens as a blunt inline block
+  below the table. Create/edit intent opens a focused right-side workflow
+  panel with its own scroll region and footer actions, keeping the preset
+  table as an overview surface. Preset module previews now sit inside a
+  controlled project-preview frame so project renderers do not collide
+  visually with the settings chrome.
 - 2026-06-17 · **Preset module renderer alignment**:
   corrected the preset architecture so preset elements store real `Module`
   configs and render through the same `WidgetDispatcher` / `WidgetContext`

@@ -221,12 +221,15 @@ export function PresetBuilder() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">Presets</p>
+          <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/40">Presets</p>
           <h1 className="mt-3 font-brand text-[32px] font-bold tracking-[-0.02em] text-white sm:text-[42px]">
             Wiederkehrende Projekte vorbereiten
           </h1>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-white/50">
+            Presets übersetzen deine Arbeitsweise in wiederholbare Projektstarts: weniger Prompt-Arbeit, mehr klare Struktur.
+          </p>
         </div>
         <button
           type="button"
@@ -237,7 +240,7 @@ export function PresetBuilder() {
         </button>
       </div>
 
-      <section className="mt-8 overflow-hidden rounded-2xl border border-white/12">
+      <section className="mt-8 overflow-hidden rounded-2xl border border-white/12 bg-black/45">
         <table className="w-full border-collapse text-left">
           <thead className="bg-white/[0.04]">
             <tr className="mono text-[10px] uppercase tracking-[0.2em] text-white/40">
@@ -249,7 +252,7 @@ export function PresetBuilder() {
           </thead>
           <tbody>
             {presets.map((preset) => (
-              <tr key={preset.id} className="border-t border-white/10 text-white/75 hover:bg-white/[0.03]">
+              <tr key={preset.id} className="border-t border-white/10 text-white/75 transition-colors hover:bg-white/[0.03]">
                 <td className="px-4 py-4">
                   <span className="block text-[15px] font-semibold text-white">{preset.name || "Unbenannt"}</span>
                   {preset.description && <span className="mt-1 block text-[12px] text-white/40">{preset.description}</span>}
@@ -278,144 +281,170 @@ export function PresetBuilder() {
       </section>
 
       {editing && activeModule && (
-        <section className="mt-8 rounded-2xl border border-white/12 bg-white/[0.025] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Preset bearbeiten</p>
-              <h2 className="mt-2 text-[22px] font-semibold text-white">{editing.name}</h2>
+        <div className="fixed inset-0 z-50 bg-black/72 backdrop-blur-md">
+          <button
+            type="button"
+            aria-label="Preset-Editor schließen"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setEditingId(null)}
+          />
+          <section className="absolute bottom-0 right-0 top-0 flex w-full flex-col border-l border-white/12 bg-[#050505] shadow-2xl shadow-black/70 sm:w-[min(1040px,calc(100vw-176px))]">
+            <div className="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-white/10 bg-white/[0.025] px-5 py-5 sm:px-7">
+              <div>
+                <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Preset bearbeiten</p>
+                <h2 className="mt-2 text-[24px] font-semibold text-white">{editing.name}</h2>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-white/45">
+                  Workflow, Elemente und Vorgaben für neue Projekte. Links wählst du den Baustein, rechts bearbeitest du ihn so, wie er später im Projekt startet.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingId(null)}
+                className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/55 hover:border-white/35 hover:text-white"
+              >
+                Schließen
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setEditingId(null)}
-              className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/55 hover:border-white/35 hover:text-white"
-            >
-              Schließen
-            </button>
-          </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-[12px] text-white/45">Name</span>
-              <input
-                value={editing.name}
-                onChange={(event) => updatePreset(editing.id, { name: event.target.value })}
-                className="mt-2 w-full rounded-xl border border-white/12 bg-black/35 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/35"
-                placeholder="z. B. Hochzeit"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[12px] text-white/45">Kurzbeschreibung</span>
-              <input
-                value={editing.description}
-                onChange={(event) => updatePreset(editing.id, { description: event.target.value })}
-                className="mt-2 w-full rounded-xl border border-white/12 bg-black/35 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/35"
-                placeholder="Wann nutzt du dieses Preset?"
-              />
-            </label>
-          </div>
-
-          <div className="mt-7 grid gap-5 lg:grid-cols-[260px_1fr]">
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Elemente</p>
-                <button
-                  type="button"
-                  onClick={() => setAddingElement((value) => !value)}
-                  className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/55 hover:border-white/35 hover:text-white"
-                >
-                  +
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {editing.modules.map((module, index) => (
-                  <button
-                    key={`${module.type}-${index}`}
-                    type="button"
-                    onClick={() => setActiveIndex(index)}
-                    className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                      index === activeIndex
-                        ? "border-white bg-white text-black"
-                        : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
-                    }`}
-                  >
-                    {module.microTitle || LABELS[module.type]}
-                  </button>
-                ))}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-[12px] text-white/45">Name</span>
+                  <input
+                    value={editing.name}
+                    onChange={(event) => updatePreset(editing.id, { name: event.target.value })}
+                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.035] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/35"
+                    placeholder="z. B. Hochzeit"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[12px] text-white/45">Kurzbeschreibung</span>
+                  <input
+                    value={editing.description}
+                    onChange={(event) => updatePreset(editing.id, { description: event.target.value })}
+                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.035] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/35"
+                    placeholder="Wann nutzt du dieses Preset?"
+                  />
+                </label>
               </div>
 
-              {addingElement && (
-                <div className="mt-4 max-h-[300px] overflow-auto rounded-xl border border-white/10 bg-black/40">
-                  {ELEMENT_TYPES.map((type) => (
+              <div className="mt-7 grid gap-6 lg:grid-cols-[250px_1fr]">
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Elemente</p>
                     <button
-                      key={type}
                       type="button"
-                      onClick={() => addModule(type)}
-                      className="flex w-full items-center justify-between border-b border-white/10 px-3 py-2.5 text-left text-sm text-white/60 last:border-b-0 hover:bg-white/[0.06] hover:text-white"
+                      onClick={() => setAddingElement((value) => !value)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-white/55 hover:border-white/35 hover:text-white"
+                      aria-label="Element hinzufügen"
                     >
-                      <span>{LABELS[type]}</span>
-                      <span className="mono text-[10px] uppercase tracking-widest text-white/35">hinzufügen</span>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+                        <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                      </svg>
                     </button>
-                  ))}
+                  </div>
+                  <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
+                    {editing.modules.map((module, index) => (
+                      <button
+                        key={`${module.type}-${index}`}
+                        type="button"
+                        onClick={() => setActiveIndex(index)}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                          index === activeIndex
+                            ? "border-white bg-white text-black"
+                            : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
+                        }`}
+                      >
+                        {module.microTitle || LABELS[module.type]}
+                      </button>
+                    ))}
+                  </div>
+
+                  {addingElement && (
+                    <div className="mt-4 max-h-[300px] overflow-auto rounded-xl border border-white/10 bg-white/[0.025]">
+                      {ELEMENT_TYPES.map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => addModule(type)}
+                          className="flex w-full items-center justify-between border-b border-white/10 px-3 py-2.5 text-left text-sm text-white/60 last:border-b-0 hover:bg-white/[0.06] hover:text-white"
+                        >
+                          <span>{LABELS[type]}</span>
+                          <span className="mono text-[10px] uppercase tracking-widest text-white/35">hinzufügen</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="min-w-0">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Element-Vorgabe</p>
+                      <p className="mt-1 text-[12px] text-white/35">So startet dieses Element später im Projekt.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeActiveModule}
+                      disabled={editing.modules.length === 1}
+                      className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      Entfernen
+                    </button>
+                  </div>
+                  <PresetModulePreview
+                    module={activeModule}
+                    index={activeIndex}
+                    onChange={updateActiveModule}
+                  />
+
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Prompt-Regeln</p>
+                      <button
+                        type="button"
+                        onClick={() => updatePreset(editing.id, { promptInjections: [...editing.promptInjections, ""] })}
+                        className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/55 hover:border-white/35 hover:text-white"
+                      >
+                        Hinzufügen
+                      </button>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {editing.promptInjections.map((prompt, index) => (
+                        <textarea
+                          key={index}
+                          value={prompt}
+                          onChange={(event) => updatePrompt(index, event.target.value)}
+                          rows={2}
+                          className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-sm leading-relaxed text-white outline-none placeholder:text-white/25 focus:border-white/35"
+                          placeholder="Regel, die beim Erstellen automatisch in den Prompt geht."
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Element-Vorgabe</p>
-                <button
-                  type="button"
-                  onClick={removeActiveModule}
-                  disabled={editing.modules.length === 1}
-                  className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  Element entfernen
-                </button>
-              </div>
-              <PresetModulePreview
-                module={activeModule}
-                index={activeIndex}
-                onChange={updateActiveModule}
-              />
-
-              <div className="mt-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Prompt-Regeln</p>
-                  <button
-                    type="button"
-                    onClick={() => updatePreset(editing.id, { promptInjections: [...editing.promptInjections, ""] })}
-                    className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/55 hover:border-white/35 hover:text-white"
-                  >
-                    Hinzufügen
-                  </button>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {editing.promptInjections.map((prompt, index) => (
-                    <textarea
-                      key={index}
-                      value={prompt}
-                      onChange={(event) => updatePrompt(index, event.target.value)}
-                      rows={2}
-                      className="w-full resize-none rounded-xl border border-white/10 bg-black/35 px-3 py-2.5 text-sm leading-relaxed text-white outline-none placeholder:text-white/25 focus:border-white/35"
-                      placeholder="Regel, die beim Erstellen automatisch in den Prompt geht."
-                    />
-                  ))}
-                </div>
-              </div>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/10 px-5 py-4 sm:px-7">
+              <button
+                type="button"
+                onClick={() => deletePreset(editing.id)}
+                disabled={presets.length === 1}
+                className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Preset löschen
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingId(null)}
+                className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/85"
+              >
+                Fertig
+              </button>
             </div>
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={() => deletePreset(editing.id)}
-              disabled={presets.length === 1}
-              className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              Preset löschen
-            </button>
-          </div>
-        </section>
+          </section>
+        </div>
       )}
     </div>
   );
@@ -448,8 +477,14 @@ function PresetModulePreview({
 
   return (
     <WidgetContext.Provider value={context}>
-      <div className="vibe-root vibe-terminal rounded-2xl border border-white/10 bg-black p-4">
-        <WidgetDispatcher module={module} index={index} state={[]} />
+      <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+        <div className="mb-3 flex items-center justify-between px-1">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/30">Projektseiten-Vorschau</span>
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/25">Live Element</span>
+        </div>
+        <div className="vibe-root vibe-terminal max-h-[520px] overflow-auto rounded-xl border border-white/10 bg-black p-4">
+          <WidgetDispatcher module={module} index={index} state={[]} />
+        </div>
       </div>
     </WidgetContext.Provider>
   );
