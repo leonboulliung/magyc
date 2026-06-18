@@ -227,18 +227,30 @@ export function defaultWidget(type: ModuleType): Module | null {
 // ── Content ──────────────────────────────────────────────────────────
 // Just the grouped grid of widget types. Dismissal / positioning /
 // focus are owned by the Radix Popover this is rendered inside.
-export function WidgetPickerContent({ onPick }: { onPick: (widget: Module) => void }) {
+export function WidgetPickerContent({
+  onPick,
+  allowedTypes,
+}: {
+  onPick: (widget: Module) => void;
+  allowedTypes?: ReadonlySet<ModuleType>;
+}) {
   const ctx = useWidgetContext();
   const lang = ctx.language || "en";
   const emergent = ctx.labels.widgetLabels;
+  const groups = allowedTypes
+    ? GROUPS.map((group) => ({
+        ...group,
+        entries: group.entries.filter((entry) => allowedTypes.has(entry.type)),
+      })).filter((group) => group.entries.length > 0)
+    : GROUPS;
 
   return (
     // Width and scrolling are owned by the container (desktop popover /
     // mobile sheet). Keeping this layer unscrollable prevents nested
     // scroll areas, which felt sticky and unnatural in the picker.
     <div style={{ width: "100%" }}>
-      {GROUPS.map((group, gi) => (
-        <div key={gi} style={{ borderBottom: gi < GROUPS.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
+      {groups.map((group, gi) => (
+        <div key={gi} style={{ borderBottom: gi < groups.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
           <div
             className="grid gap-0.5 p-1.5"
             style={{ gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))" }}

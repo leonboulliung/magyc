@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, preset project-preview parity)_
+_Last updated: 2026-06-18 (Codex, preset draft and picker logic)_
 
 ---
 
@@ -176,6 +176,14 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Preset draft and picker logic**:
+  changed presets from forced Moodboard defaults to true drafts: new and
+  edited presets may temporarily have zero elements, but closing/saving
+  the editor requires at least one selected element. All presets can now
+  be deleted, including the last one. Removed AI summary, notes and sketch
+  from the preset element pool, and reused the project-page
+  `WidgetPickerContent` for preset element selection with a preset-specific
+  allowed-type filter instead of the old inline list.
 - 2026-06-18 · **Preset project-preview parity**:
   changed the preset element preview from a custom scrollable settings
   frame into a miniature project-grid surface using the same terminal

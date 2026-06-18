@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { defaultWidget } from "@/components/WidgetPicker";
+import { defaultWidget, WidgetPickerContent } from "@/components/WidgetPicker";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { WidgetContext } from "@/lib/widgetContext";
 import { bodyTypes } from "@/lib/modules";
@@ -15,8 +15,9 @@ type Preset = {
   promptInjections: string[];
 };
 
-const HIDDEN_IN_PRESETS = new Set<ModuleType>(["wikipedia", "gif", "icon"]);
+const HIDDEN_IN_PRESETS = new Set<ModuleType>(["wikipedia", "gif", "icon", "ai_summary", "notes", "sketch"]);
 const ELEMENT_TYPES = bodyTypes().filter((type) => !HIDDEN_IN_PRESETS.has(type));
+const ELEMENT_TYPE_SET = new Set(ELEMENT_TYPES);
 
 const LABELS: Record<ModuleType, string> = {
   heading: "Titel",
@@ -110,7 +111,7 @@ function createPreset(): Preset {
     id: `preset-${Date.now()}`,
     name: "Neues Preset",
     description: "",
-    modules: [{ ...widget("moodboard"), microTitle: "Moodboard" }],
+    modules: [],
     promptInjections: [""],
   };
 }
@@ -138,7 +139,7 @@ function cleanPresets(raw: unknown): Preset[] | null {
       };
     })
     .filter(Boolean) as Preset[];
-  return parsed.length > 0 ? parsed : null;
+  return parsed;
 }
 
 export function PresetBuilder() {
@@ -146,6 +147,7 @@ export function PresetBuilder() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [addingElement, setAddingElement] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     try {
@@ -177,6 +179,7 @@ export function PresetBuilder() {
     setEditingId(id);
     setActiveIndex(0);
     setAddingElement(false);
+    setSaveError("");
   }
 
   function addPreset() {
@@ -186,24 +189,24 @@ export function PresetBuilder() {
   }
 
   function deletePreset(id: string) {
-    if (presets.length === 1) return;
     setPresets((items) => items.filter((preset) => preset.id !== id));
     if (editingId === id) setEditingId(null);
   }
 
-  function addModule(type: ModuleType) {
+  function addModule(module: Module) {
     if (!editing) return;
-    const next = { ...widget(type), microTitle: LABELS[type] };
+    const next = { ...module, microTitle: module.microTitle || LABELS[module.type] };
     updatePreset(editing.id, { modules: [...editing.modules, next] });
     setActiveIndex(editing.modules.length);
     setAddingElement(false);
+    setSaveError("");
   }
 
   function removeActiveModule() {
-    if (!editing || !activeModule || editing.modules.length === 1) return;
+    if (!editing || !activeModule) return;
     const next = editing.modules.filter((_, index) => index !== activeIndex);
     updatePreset(editing.id, { modules: next });
-    setActiveIndex(Math.max(0, activeIndex - 1));
+    setActiveIndex(Math.max(0, Math.min(activeIndex - 1, next.length - 1)));
   }
 
   function updateActiveModule(module: Module) {
@@ -217,6 +220,16 @@ export function PresetBuilder() {
     updatePreset(editing.id, {
       promptInjections: editing.promptInjections.map((prompt, i) => (i === index ? value : prompt)),
     });
+  }
+
+  function finishEditing() {
+    if (!editing) return;
+    if (editing.modules.length === 0) {
+      setSaveError("Wähle mindestens ein Element, damit dieses Preset später einen Projektstart vorbereiten kann.");
+      return;
+    }
+    setSaveError("");
+    setEditingId(null);
   }
 
   return (
@@ -280,7 +293,7 @@ export function PresetBuilder() {
         </table>
       </section>
 
-      {editing && activeModule && (
+      {editing && (
         <div className="fixed inset-0 z-50 bg-black/72 backdrop-blur-md">
           <button
             type="button"
@@ -343,37 +356,34 @@ export function PresetBuilder() {
                       </svg>
                     </button>
                   </div>
-                  <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
-                    {editing.modules.map((module, index) => (
-                      <button
-                        key={`${module.type}-${index}`}
-                        type="button"
-                        onClick={() => setActiveIndex(index)}
-                        className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                          index === activeIndex
-                            ? "border-white bg-white text-black"
-                            : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
-                        }`}
-                      >
-                        {module.microTitle || LABELS[module.type]}
-                      </button>
-                    ))}
-                  </div>
-
-                  {addingElement && (
-                    <div className="mt-4 max-h-[300px] overflow-auto rounded-xl border border-white/10 bg-white/[0.025]">
-                      {ELEMENT_TYPES.map((type) => (
+                  {editing.modules.length > 0 ? (
+                    <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
+                      {editing.modules.map((module, index) => (
                         <button
-                          key={type}
+                          key={`${module.type}-${index}`}
                           type="button"
-                          onClick={() => addModule(type)}
-                          className="flex w-full items-center justify-between border-b border-white/10 px-3 py-2.5 text-left text-sm text-white/60 last:border-b-0 hover:bg-white/[0.06] hover:text-white"
+                          onClick={() => setActiveIndex(index)}
+                          className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                            index === activeIndex
+                              ? "border-white bg-white text-black"
+                              : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
+                          }`}
                         >
-                          <span>{LABELS[type]}</span>
-                          <span className="mono text-[10px] uppercase tracking-widest text-white/35">hinzufügen</span>
+                          {module.microTitle || LABELS[module.type]}
                         </button>
                       ))}
                     </div>
+                  ) : (
+                    <div className="mt-3 rounded-xl border border-dashed border-white/12 px-3 py-5 text-sm leading-relaxed text-white/38">
+                      Noch keine Elemente. Füge die Bausteine hinzu, die dieses Preset vorbereiten soll.
+                    </div>
+                  )}
+
+                  {addingElement && (
+                    <PresetElementPicker
+                      onClose={() => setAddingElement(false)}
+                      onPick={addModule}
+                    />
                   )}
                 </div>
 
@@ -383,20 +393,30 @@ export function PresetBuilder() {
                       <p className="mono text-[10px] uppercase tracking-[0.22em] text-white/35">Element-Vorgabe</p>
                       <p className="mt-1 text-[12px] text-white/35">So startet dieses Element später im Projekt.</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={removeActiveModule}
-                      disabled={editing.modules.length === 1}
-                      className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      Entfernen
-                    </button>
+                    {activeModule && (
+                      <button
+                        type="button"
+                        onClick={removeActiveModule}
+                        className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200"
+                      >
+                        Entfernen
+                      </button>
+                    )}
                   </div>
-                  <PresetModulePreview
-                    module={activeModule}
-                    index={activeIndex}
-                    onChange={updateActiveModule}
-                  />
+                  {activeModule ? (
+                    <PresetModulePreview
+                      module={activeModule}
+                      index={activeIndex}
+                      onChange={updateActiveModule}
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-white/12 px-5 py-16 text-center">
+                      <p className="text-[15px] font-medium text-white">Noch keine Element-Vorschau</p>
+                      <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-white/42">
+                        Öffne die Element-Auswahl und wähle mindestens einen Baustein, um die Projektseiten-Vorschau zu konfigurieren.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="mt-6">
                     <div className="flex items-center justify-between gap-3">
@@ -430,14 +450,16 @@ export function PresetBuilder() {
               <button
                 type="button"
                 onClick={() => deletePreset(editing.id)}
-                disabled={presets.length === 1}
-                className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30"
+                className="rounded-full border border-white/12 px-3 py-1.5 text-sm text-white/45 hover:border-red-300/40 hover:text-red-200"
               >
                 Preset löschen
               </button>
+              {saveError && (
+                <p className="max-w-md text-center text-sm leading-relaxed text-red-200/80">{saveError}</p>
+              )}
               <button
                 type="button"
-                onClick={() => setEditingId(null)}
+                onClick={finishEditing}
                 className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/85"
               >
                 Fertig
@@ -509,6 +531,81 @@ function PresetModulePreview({
               <div className="relative group/cell" style={{ borderRadius: "var(--v-radius)" }}>
                 <WidgetDispatcher module={module} index={index} state={[]} />
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </WidgetContext.Provider>
+  );
+}
+
+function PresetElementPicker({
+  onClose,
+  onPick,
+}: {
+  onClose: () => void;
+  onPick: (module: Module) => void;
+}) {
+  const context = useMemo(() => ({
+    spaceId: "preset-picker",
+    title: "Preset",
+    language: "de",
+    labels: EMPTY_LABELS,
+    isOwner: true,
+    ownerToken: null,
+    refresh: () => {},
+    patchModule: () => {},
+    saveModule: async () => true,
+    act: async () => true,
+  }), []);
+
+  return (
+    <WidgetContext.Provider value={context}>
+      <div className="vibe-root vibe-terminal">
+        <button
+          type="button"
+          aria-label="Element-Auswahl schließen"
+          className="fixed inset-0 z-[60] cursor-default bg-black/45"
+          onClick={onClose}
+        />
+        <div className="fixed inset-0 z-[61] flex items-center justify-center p-5 pointer-events-none">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Element hinzufügen"
+            className="pointer-events-auto flex w-full max-w-[560px] flex-col overflow-hidden rounded-[var(--v-radius)]"
+            style={{
+              maxHeight: "min(78dvh, 640px)",
+              background: "var(--v-bg)",
+              border: "1px solid var(--v-rule)",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.36)",
+            }}
+          >
+            <div
+              className="flex shrink-0 items-center justify-between gap-3 px-4 py-3"
+              style={{ borderBottom: "1px solid var(--v-rule)" }}
+            >
+              <div className="mono text-[10px] uppercase tracking-[0.22em]" style={{ color: "var(--v-muted)" }}>
+                Element hinzufügen
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Auswahl schließen"
+                className="mono rounded-full px-2 py-1 text-[11px]"
+                style={{ color: "var(--v-muted)", border: "1px solid var(--v-rule)" }}
+              >
+                x
+              </button>
+            </div>
+            <div className="min-h-0 overflow-y-auto overscroll-contain">
+              <WidgetPickerContent
+                allowedTypes={ELEMENT_TYPE_SET}
+                onPick={(module) => {
+                  onPick(module);
+                  onClose();
+                }}
+              />
             </div>
           </div>
         </div>
