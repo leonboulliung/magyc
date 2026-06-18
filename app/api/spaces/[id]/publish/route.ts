@@ -48,7 +48,10 @@ export async function POST(
     .select("id, anon_owner_token, owner_id, visibility, modules, title")
     .eq("id", params.id)
     .maybeSingle();
-  if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+  if (fetchErr) {
+    console.error("[publish] fetch failed:", fetchErr.message);
+    return NextResponse.json({ error: "publish_failed" }, { status: 500 });
+  }
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   // Authorise: the anon token must match unless this user is already
@@ -78,7 +81,10 @@ export async function POST(
       published_at: nowIso,
     })
     .eq("id", params.id);
-  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  if (upErr) {
+    console.error("[publish] update failed:", upErr.message);
+    return NextResponse.json({ error: "publish_failed" }, { status: 500 });
+  }
 
   // Snapshot v1.
   const { error: vErr } = await admin.from("space_versions").insert({
@@ -89,7 +95,10 @@ export async function POST(
     modules: space.modules || [],
     note: null,
   });
-  if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+  if (vErr) {
+    console.error("[publish] version snapshot failed:", vErr.message);
+    return NextResponse.json({ error: "publish_failed" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

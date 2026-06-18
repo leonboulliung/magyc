@@ -12,6 +12,11 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "widget_invalid") return "Dieses Element konnte nicht angelegt werden.";
   if (raw === "not_found") return "Das Projekt wurde nicht gefunden.";
   if (raw === "save_failed") return "Speichern fehlgeschlagen. Bitte erneut versuchen.";
+  if (raw === "claim_failed") return "Das Projekt konnte gerade nicht im Studio gespeichert werden.";
+  if (raw === "publish_failed") return "Das Projekt konnte gerade nicht veroeffentlicht werden.";
+  if (raw === "owner_token_required" || raw === "owner_token_mismatch") {
+    return "Dieser Entwurf kann in diesem Browser nicht mehr eindeutig zugeordnet werden.";
+  }
   return raw.replace(/_/g, " ");
 }
 

@@ -25,9 +25,6 @@ export async function POST(
   const anonToken = typeof parsed.data.anonOwnerToken === "string"
     ? parsed.data.anonOwnerToken.trim()
     : "";
-  if (anonToken.length < 16) {
-    return NextResponse.json({ error: "owner_token_required" }, { status: 401 });
-  }
 
   const admin = supabaseAdmin();
   const { data: space, error: fetchErr } = await admin
@@ -43,6 +40,9 @@ export async function POST(
 
   if (space.owner_id && space.owner_id !== userId) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  if (!space.owner_id && anonToken.length < 16) {
+    return NextResponse.json({ error: "owner_token_required" }, { status: 401 });
   }
   if (!space.owner_id && space.anon_owner_token !== anonToken) {
     return NextResponse.json({ error: "owner_token_mismatch" }, { status: 403 });

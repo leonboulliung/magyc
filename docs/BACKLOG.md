@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Codex, Studio motion language)_
+_Last updated: 2026-06-18 (Codex, claim flow + error feedback)_
 
 ---
 
@@ -40,11 +40,16 @@ the current DB enum remains `brief / production / handoff` until a
 deliberate migration is worth it.
 
 ### 6. Error UX architecture
-Current visible errors use Sonner toasts in selected flows, but the product
-needs a deliberate error system: inline validation for fixable form errors,
-toast/dialog treatment for recoverable action failures, and React error
-boundaries for rendering failures. Candidate open-source pieces researched:
-Sonner for action feedback and `react-error-boundary` for component fallbacks.
+Decision started: Sonner is already installed and should remain the
+non-blocking action-feedback layer (loading/success/error for async work).
+Use inline validation for fixable form errors, visible alert blocks inside
+dialogs for blocking local failures, and add `react-error-boundary` in a
+separate slice for render fallbacks around risky client surfaces (SpaceView,
+WidgetDispatcher, Studio editors). Research notes: Sonner is MIT/open source,
+provides a global `<Toaster />` plus `toast()` calls from anywhere, and fits
+action/progress feedback. `react-error-boundary` is the likely render-error
+fallback layer, but it follows React boundary rules and will not catch server
+rendering, event handlers or async errors by itself.
 
 ### 7. Sparse spaces — observe the new tuning
 First pass shipped 2026-06-13: `MIN_SCORE` 5→4, `MIN_BODY` 2→3, per-request
@@ -177,6 +182,18 @@ step renderers; lowers cognitive load, no behaviour change.
 
 ## Done
 
+- 2026-06-18 · **Guest draft claim and feedback pass**:
+  tightened the anonymous draft → sign in → Studio save flow. Sign-in now
+  returns with an explicit `claim=1` intent in addition to the existing
+  session flag, so the app can resume the save action after Clerk completes.
+  Claim API no longer requires the browser owner token when the space is
+  already owned by the signed-in user, making legitimate retries safe.
+  Claimed private Studio projects no longer expose the publish/save control
+  from `SpaceView`, avoiding the confusing "only publish remains" state.
+  Publish/claim actions now show Sonner loading, success and error feedback,
+  and blocking dialog errors render as visible alert blocks instead of tiny
+  inline text. Publish API now returns stable `publish_failed` errors instead
+  of raw database messages.
 - 2026-06-18 · **Studio motion language**:
   added shared Motion variants for Studio pages, staggered operational
   surfaces, rows, overlays, panels and popovers in `lib/anim`. The Studio

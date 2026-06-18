@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { label } from "@/lib/labels";
 import type { Space } from "@/lib/types";
@@ -21,18 +22,19 @@ export function PublishButton({
   onChanged: () => void;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const L = space.labels;
-
-  if (space.visibility !== null) return null;
-  const ownerToken = getSpaceOwnerToken(space.id);
-  if (!ownerToken) return null;
+  const ownerToken = space.visibility === null ? getSpaceOwnerToken(space.id) : null;
   const signedOut = !user;
   const isAnonymousDraft = !space.owner;
+  const isStudioProject = !!space.owner && space.stage !== null;
   const claimIntentKey = `magyc.claim_after_signin.${space.id}`;
+  const claimRequested = searchParams.get("claim") === "1";
+  const claimRedirectUrl = `/s/${space.id}?claim=1`;
 
   function friendlyError(code: unknown): string {
     if (code === "owner_token_required" || code === "owner_token_mismatch") {
@@ -40,6 +42,7 @@ export function PublishButton({
     }
     if (code === "already_published") return "Dieses Projekt wurde bereits veröffentlicht.";
     if (code === "claim_failed") return "Das Projekt konnte gerade nicht im Studio gespeichert werden.";
+    if (code === "publish_failed") return "Das Projekt konnte gerade nicht veröffentlicht werden.";
     if (code === "unauthorized") return "Bitte melde dich an, um das Projekt zu speichern.";
     return "Die Aktion konnte gerade nicht abgeschlossen werden.";
   }
@@ -49,6 +52,7 @@ export function PublishButton({
     setBusy(true);
     setError("");
     try {
+      toast.loading("Projekt wird im Studio gespeichert …", { id: `claim-${space.id}` });
       const res = await fetch(`/api/spaces/${space.id}/claim`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -56,11 +60,27 @@ export function PublishButton({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(friendlyError(json?.error));
+        const message = friendlyError(json?.error);
+        setError(message);
+        toast.error("Speichern fehlgeschlagen", {
+          id: `claim-${space.id}`,
+          description: message,
+        });
         return;
       }
+      toast.success("Projekt gespeichert", {
+        id: `claim-${space.id}`,
+        description: "Du wirst jetzt ins Studio weitergeleitet.",
+      });
       setOpen(false);
       router.push(json?.redirectTo || `/studio/${space.id}`);
+    } catch {
+      const message = "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
+      setError(message);
+      toast.error("Speichern fehlgeschlagen", {
+        id: `claim-${space.id}`,
+        description: message,
+      });
     } finally {
       setBusy(false);
     }
@@ -71,6 +91,7 @@ export function PublishButton({
     setBusy(true);
     setError("");
     try {
+      toast.loading("Projekt wird veröffentlicht …", { id: `publish-${space.id}` });
       const res = await fetch(`/api/spaces/${space.id}/publish`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -78,11 +99,24 @@ export function PublishButton({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(friendlyError(json?.error));
+        const message = friendlyError(json?.error);
+        setError(message);
+        toast.error("Veröffentlichen fehlgeschlagen", {
+          id: `publish-${space.id}`,
+          description: message,
+        });
         return;
       }
+      toast.success("Projekt veröffentlicht", { id: `publish-${space.id}` });
       setOpen(false);
       onChanged();
+    } catch {
+      const message = "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
+      setError(message);
+      toast.error("Veröffentlichen fehlgeschlagen", {
+        id: `publish-${space.id}`,
+        description: message,
+      });
     } finally {
       setBusy(false);
     }
@@ -90,11 +124,13 @@ export function PublishButton({
 
   useEffect(() => {
     if (!user || !isAnonymousDraft || !ownerToken || busy) return;
-    if (window.sessionStorage.getItem(claimIntentKey) !== "1") return;
+    if (!claimRequested && window.sessionStorage.getItem(claimIntentKey) !== "1") return;
     window.sessionStorage.removeItem(claimIntentKey);
     void saveToStudio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isAnonymousDraft, ownerToken, claimIntentKey, busy]);
+  }, [user, isAnonymousDraft, ownerToken, claimIntentKey, claimRequested, busy]);
+
+  if (space.visibility !== null || isStudioProject || !ownerToken) return null;
 
   return (
     <>
@@ -134,7 +170,12 @@ export function PublishButton({
                 </div>
               )}
               {error && (
-                <p className="mono text-[10px] tracking-widest opacity-80">{error}</p>
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-950/15 bg-red-950/[0.06] px-3 py-2 text-[13px] leading-relaxed text-red-950/80"
+                >
+                  {error}
+                </div>
               )}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <button
@@ -164,10 +205,10 @@ export function PublishButton({
                 </button>
                 <SignInButton
                   mode="modal"
-                  forceRedirectUrl={`/s/${space.id}`}
-                  fallbackRedirectUrl={`/s/${space.id}`}
-                  signUpForceRedirectUrl={`/s/${space.id}`}
-                  signUpFallbackRedirectUrl={`/s/${space.id}`}
+                  forceRedirectUrl={claimRedirectUrl}
+                  fallbackRedirectUrl={claimRedirectUrl}
+                  signUpForceRedirectUrl={claimRedirectUrl}
+                  signUpFallbackRedirectUrl={claimRedirectUrl}
                 >
                   <button
                     onClick={() => window.sessionStorage.setItem(claimIntentKey, "1")}
