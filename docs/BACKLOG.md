@@ -155,6 +155,32 @@ Decisions taken from a live review:
   Poll, Tasks …) — still open.
 - Static objects on the project page are acceptable (Leon).
 
+## Backend + MVP build — 2026-06-19/20 (Leon)
+
+✅ Done:
+- **Studio backend pages** to life in a compact, standardized language: Profil
+  (name/headline/specialties/bio, autosave), Einstellungen (working-style rules
+  + Fast-Prompts + default language + "shared by default" toggle, autosave),
+  Nutzer (structured Team & Kunden), compact dashboard pipeline strip. Backed by
+  migration 014 (profiles: headline/bio/specialties/settings) + `/api/studio/profile`.
+  Settings rules + default-shared are wired into `/api/projects` creation.
+- **Fast-Prompts** (commit `275b781`): account-configured click-to-insert
+  snippets below the prompt on `/studio/new`; managed in Einstellungen.
+- **Prompt field unified** (commit `45452dd`): shared `PromptComposer` on the
+  marketing homepage + `/studio/new`.
+- **Sidebar** tightened (commit `e4aa397`) — backend UI/UX direction sample, OK'd.
+- **HEIC→JPEG** (commit `4a833b0`): iPhone photos convert via heic2any before
+  compression so they upload + display everywhere.
+
+Still open (mostly need Leon's keys / decisions, or a fresh design pass):
+- **UI/UX**: Leon not yet happy with the overall look — needs a detailed pass
+  when he has energy (he flagged it's "too bulky" in places). Header + Presets
+  page still to align to the new language.
+- **Stripe + plans** (needs keys + plan decisions), **MCP connect**, **Mail-
+  forward** (needs an external mail service), **Media library** (per-user,
+  guests blocked) — the big workstreams, each its own session.
+- **"Brief schärfen"** AI (the studio clarify step) — still open.
+
 ## P1 — correctness
 
 ### 3. Lost-update races on module config
