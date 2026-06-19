@@ -124,14 +124,11 @@ export function MoodboardRenderer({
           </p>
         )}
 
-        {/* Reference contact-sheet: uniform square thumbnails that wrap
-            cleanly at any count. Click to view large; caption editing
-            happens in the full-screen view where there is room. */}
+        {/* Horizontal reference gallery: a single row of uniform thumbnails
+            that scrolls sideways, so the board never grows tall. Click to
+            view large; caption editing happens in the full-screen view. */}
         {images.length > 0 && (
-          <div
-            className="grid gap-2"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))" }}
-          >
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1.5">
             <AnimatePresence initial={false}>
               {images.map((img) => (
                 <motion.figure
@@ -141,8 +138,8 @@ export function MoodboardRenderer({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.18 }}
-                  className="group/img relative m-0 overflow-hidden rounded-[var(--v-radius)]"
-                  style={{ border: "1px solid var(--v-rule)", aspectRatio: "1 / 1" }}
+                  className="group/img relative m-0 h-32 w-32 shrink-0 overflow-hidden rounded-[var(--v-radius)]"
+                  style={{ border: "1px solid var(--v-rule)" }}
                 >
                   <button
                     type="button"
@@ -158,7 +155,6 @@ export function MoodboardRenderer({
                       aria-hidden
                       className="pointer-events-none absolute bottom-1.5 left-1.5 h-1.5 w-1.5 rounded-full"
                       style={{ background: "var(--v-accent, #fff)", boxShadow: "0 0 0 2px rgba(0,0,0,0.45)" }}
-                      title="Hat eine Notiz"
                     />
                   )}
                   <button
@@ -207,30 +203,33 @@ export function MoodboardRenderer({
           </div>
         )}
 
-        {/* Compact action row. */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        {/* Action row — three deliberately distinct affordances:
+            · upload  = dashed drop box (add image files)
+            · richtung = bare text link (add a written direction)
+            · vollbild = filled pill on the right (switch the view) */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
           <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
-            <span className="mono tracking-widest opacity-70">▧ Bilder</span>
+            <span className="mono tracking-widest opacity-80">▧ Bilder hochladen</span>
           </UploadZone>
           {!adding && (
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="mono rounded-[var(--v-radius)] px-3 py-2 text-[11px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
-              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+              className="mono inline-flex items-center gap-1 text-[11px] tracking-widest opacity-75 transition-opacity hover:opacity-100"
+              style={{ color: "var(--v-accent, var(--v-fg))" }}
             >
-              + Richtung
+              <span className="text-[14px] leading-none">+</span> Richtung notieren
             </button>
           )}
           {!empty && (
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              title="Vollbild"
-              className="mono ml-auto rounded-[var(--v-radius)] px-3 py-2 text-[11px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
-              style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+              title="Im Vollbild ansehen"
+              className="mono ml-auto inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] tracking-widest transition-colors hover:brightness-110"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
             >
-              ⤢ Vollbild
+              <span aria-hidden>⤢</span> Vollbild
             </button>
           )}
         </div>
@@ -351,27 +350,20 @@ function DirectionRow({
 
   return (
     <div
-      className="group relative rounded-[var(--v-radius)] p-3 pr-9"
+      className="group rounded-[var(--v-radius)] p-3"
       style={{ border: "1px solid var(--v-rule)", background: expanded ? "var(--v-bg)" : "rgba(255,255,255,0.02)" }}
     >
-      <button
-        type="button"
-        onClick={onDelete}
-        aria-label="entfernen"
-        className="mono absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-[11px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-60 hover:!opacity-100"
-        style={{ color: "var(--v-muted)" }}
-      >
-        ×
-      </button>
       <div className="flex items-start gap-2.5">
         <button
           type="button"
           onClick={() => onSave({ status: nextStatus(direction.status) })}
-          className="mono mt-0.5 shrink-0 rounded-full px-2 py-1 text-[9px] uppercase tracking-widest"
+          title="Status wechseln"
+          className="mono mt-px shrink-0 rounded-full px-2 py-1 text-[9px] uppercase tracking-widest"
           style={{ border: `1px solid ${tone.border}`, background: tone.background, color: "var(--v-fg)" }}
         >
           {statusLabel(direction.status)}
         </button>
+
         <div className="min-w-0 flex-1">
           {labelEdit.editing ? (
             <textarea
@@ -379,14 +371,14 @@ function DirectionRow({
               rows={1}
               maxLength={140}
               placeholder="Richtung benennen …"
-              className="w-full resize-none bg-transparent text-[13px] leading-relaxed outline-none"
+              className="w-full resize-none bg-transparent text-[13px] leading-snug outline-none placeholder:opacity-50"
               style={{ color: "var(--v-fg)" }}
             />
           ) : (
             <button
               type="button"
               onClick={() => labelEdit.setEditing(true)}
-              className="block w-full whitespace-pre-wrap break-words text-left text-[13px] leading-relaxed"
+              className={`block w-full whitespace-pre-wrap break-words text-left text-[13px] leading-snug ${direction.label ? "" : "opacity-50"}`}
               style={{ color: direction.label ? "var(--v-fg)" : "var(--v-muted)" }}
             >
               {direction.label || "Richtung benennen …"}
@@ -399,20 +391,30 @@ function DirectionRow({
               rows={1}
               maxLength={400}
               placeholder="URL oder Notiz …"
-              className="mt-1 w-full resize-none bg-transparent text-[12px] leading-relaxed outline-none"
+              className="mt-1.5 w-full resize-none bg-transparent text-[12px] leading-snug outline-none placeholder:opacity-50"
               style={{ color: "var(--v-muted)" }}
             />
           ) : (
             <button
               type="button"
               onClick={() => noteEdit.setEditing(true)}
-              className="mt-0.5 block w-full whitespace-pre-wrap break-words text-left text-[12px] leading-relaxed opacity-80"
-              style={{ color: direction.note ? "var(--v-muted)" : "var(--v-rule)" }}
+              className={`mt-1 block w-full whitespace-pre-wrap break-words text-left text-[12px] leading-snug ${direction.note ? "" : "opacity-50"}`}
+              style={{ color: "var(--v-muted)" }}
             >
               {direction.note || "URL oder Notiz …"}
             </button>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label="entfernen"
+          className="mono mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-50 hover:!opacity-100"
+          style={{ color: "var(--v-muted)" }}
+        >
+          ×
+        </button>
       </div>
     </div>
   );
