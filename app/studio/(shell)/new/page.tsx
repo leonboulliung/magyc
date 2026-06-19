@@ -54,7 +54,9 @@ export default function NewProjectPage() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const [showFields, setShowFields] = useState(false);
-  const [presets, setPresets] = useState<StudioPreset[]>(DEFAULT_STUDIO_PRESETS);
+  // Start empty so default presets don't flash as quick-starts during the
+  // load; fall back to the defaults only once we know the account has none.
+  const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState<string>("none");
   const [v, setV] = useState<Values>({
     client: "", product: "", goal: "", usage: "", deadline: "", references: "", scope: "",
@@ -86,9 +88,9 @@ export default function NewProjectPage() {
           throw new Error("presets_failed");
         }
         const remote = cleanStudioPresets(json.presets) ?? [];
-        if (!cancelled) setPresets(remote);
+        if (!cancelled) setPresets(remote.length ? remote : DEFAULT_STUDIO_PRESETS);
       } catch {
-        if (!cancelled && local) setPresets(local);
+        if (!cancelled) setPresets(local && local.length ? local : DEFAULT_STUDIO_PRESETS);
       }
     }
     void loadPresets();

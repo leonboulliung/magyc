@@ -11,7 +11,6 @@ import { studioItem, studioOverlay, studioPanel, studioPopover, studioStagger } 
 import {
   cleanStudioPresets,
   createStudioPreset,
-  DEFAULT_STUDIO_PRESETS,
   PRESET_ELEMENT_TYPE_SET,
   STUDIO_PRESETS_STORAGE_KEY,
   type StudioPreset,
@@ -58,7 +57,10 @@ const LABELS: Record<ModuleType, string> = {
 const EMPTY_LABELS: SpaceLabels = {};
 
 export function PresetBuilder() {
-  const [presets, setPresets] = useState<StudioPreset[]>(DEFAULT_STUDIO_PRESETS);
+  // Start empty and only render real presets once loaded — seeding the view
+  // with the default starter presets made them flash as if they were saved
+  // account presets, then get replaced by the real ones.
+  const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [addingElement, setAddingElement] = useState(false);
@@ -109,8 +111,10 @@ export function PresetBuilder() {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STUDIO_PRESETS_STORAGE_KEY, JSON.stringify(presets));
+    // Never touch storage before the initial load resolved, otherwise the
+    // empty starting state would overwrite the user's saved presets.
     if (!hydratedRef.current) return;
+    window.localStorage.setItem(STUDIO_PRESETS_STORAGE_KEY, JSON.stringify(presets));
     if (!remoteWritableRef.current) {
       setSyncState("local");
       return;
@@ -271,7 +275,23 @@ export function PresetBuilder() {
             </tr>
           </thead>
           <motion.tbody variants={studioStagger}>
-            {presets.map((preset) => (
+            {syncState === "loading" && (
+              [0, 1].map((i) => (
+                <tr key={`skeleton-${i}`} className="border-t border-white/10">
+                  <td className="px-4 py-5" colSpan={4}>
+                    <div className="h-4 w-48 animate-pulse rounded bg-white/10" />
+                  </td>
+                </tr>
+              ))
+            )}
+            {syncState !== "loading" && presets.length === 0 && (
+              <tr className="border-t border-white/10">
+                <td className="px-4 py-10 text-center text-[13px] text-white/40" colSpan={4}>
+                  Noch keine Presets — leg mit „Neues Preset“ dein erstes an.
+                </td>
+              </tr>
+            )}
+            {syncState !== "loading" && presets.map((preset) => (
               <motion.tr
                 key={preset.id}
                 variants={studioItem}
