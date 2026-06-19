@@ -143,6 +143,7 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
   {
     symbol: "●",
     entries: [
+      { type: "crew",          symbol: "●" },
       { type: "work_packages", symbol: "□" },
       { type: "deliverables",  symbol: "≣" },
       { type: "approvals",     symbol: "✓" },
