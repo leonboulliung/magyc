@@ -110,15 +110,28 @@ export function MoodboardRenderer({
   const removeImage = (key: string) => ctx.act(index, "edit", { id: key, deleted: true });
   const deleteDirection = (key: string) => ctx.act(index, "edit", { id: key, deleted: true });
 
-  const hasContent = images.length > 0 || directions.length > 0;
+  const empty = images.length === 0 && directions.length === 0;
 
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
-      <WidgetCard microTitle={m.microTitle} description={m.description} bare>
-        {/* Image grid (square crops for a tidy board; click to view true
-            format). Top padding clears the hover toolbar. */}
-        {images.length > 0 ? (
-          <div className="grid grid-cols-2 gap-1 p-1 pt-10 sm:grid-cols-3">
+      <WidgetCard microTitle={m.microTitle} description={m.description}>
+        {/* Reserve a strip for the hover toolbar (owner only, no title). */}
+        {ctx.isOwner && !m.microTitle && <div aria-hidden className="h-5" />}
+
+        {empty && (
+          <p className="mono pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>
+            {m.placeholder ?? "Noch keine Referenzen — lade Bilder hoch oder ergänze Richtungen."}
+          </p>
+        )}
+
+        {/* Reference contact-sheet: uniform square thumbnails that wrap
+            cleanly at any count. Click to view large; caption editing
+            happens in the full-screen view where there is room. */}
+        {images.length > 0 && (
+          <div
+            className="grid gap-2"
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))" }}
+          >
             <AnimatePresence initial={false}>
               {images.map((img) => (
                 <motion.figure
@@ -128,19 +141,26 @@ export function MoodboardRenderer({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.18 }}
-                  className="group/img relative m-0 flex flex-col overflow-hidden rounded-[var(--v-radius)]"
-                  style={{ border: "1px solid var(--v-rule)" }}
+                  className="group/img relative m-0 overflow-hidden rounded-[var(--v-radius)]"
+                  style={{ border: "1px solid var(--v-rule)", aspectRatio: "1 / 1" }}
                 >
                   <button
                     type="button"
                     onClick={() => setExpanded(true)}
-                    className="block overflow-hidden"
-                    style={{ aspectRatio: "1 / 1" }}
-                    title="Groß ansehen"
+                    className="block h-full w-full"
+                    title={img.caption || "Groß ansehen"}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
                   </button>
+                  {img.caption && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute bottom-1.5 left-1.5 h-1.5 w-1.5 rounded-full"
+                      style={{ background: "var(--v-accent, #fff)", boxShadow: "0 0 0 2px rgba(0,0,0,0.45)" }}
+                      title="Hat eine Notiz"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => removeImage(img.key)}
@@ -150,66 +170,64 @@ export function MoodboardRenderer({
                   >
                     ×
                   </button>
-                  <ImageCaption value={img.caption} onSave={(c) => setCaption(img.key, c)} />
                 </motion.figure>
               ))}
             </AnimatePresence>
           </div>
-        ) : (
-          <p className="mono px-4 pb-1 pt-10 pr-24 text-[11px] opacity-50" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "Noch keine Referenzen — lade Bilder hoch oder ergänze Richtungen."}
-          </p>
         )}
 
         {/* Directions: status pill + short label + optional note/URL. */}
-        <div className="space-y-2 px-4 py-3">
-          {directions.map((direction) => (
-            <DirectionRow
-              key={direction.key}
-              direction={direction}
-              onSave={(patch) => updateDirection(direction.key, patch)}
-              onDelete={() => deleteDirection(direction.key)}
-            />
-          ))}
+        {(directions.length > 0 || adding) && (
+          <div className="mt-3 space-y-2">
+            {directions.map((direction) => (
+              <DirectionRow
+                key={direction.key}
+                direction={direction}
+                onSave={(patch) => updateDirection(direction.key, patch)}
+                onDelete={() => deleteDirection(direction.key)}
+              />
+            ))}
 
-          {adding ? (
-            <input
-              autoFocus
-              value={pending}
-              onChange={(e) => setPending(e.target.value)}
-              onBlur={() => addDirection(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); addDirection(true); }
-                else if (e.key === "Escape") { setPending(""); setAdding(false); }
-              }}
-              maxLength={140}
-              placeholder="z. B. Warmes, gerichtetes Seitenlicht — Enter für weitere"
-              className="w-full rounded-[var(--v-radius)] bg-transparent px-2 py-1 text-[13px] outline-none"
-              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
-            />
-          ) : (
+            {adding && (
+              <input
+                autoFocus
+                value={pending}
+                onChange={(e) => setPending(e.target.value)}
+                onBlur={() => addDirection(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); addDirection(true); }
+                  else if (e.key === "Escape") { setPending(""); setAdding(false); }
+                }}
+                maxLength={140}
+                placeholder="z. B. Warmes, gerichtetes Seitenlicht — Enter für weitere"
+                className="w-full rounded-[var(--v-radius)] bg-transparent px-3 py-2 text-[13px] outline-none"
+                style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Compact action row. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
+            <span className="mono tracking-widest opacity-70">▧ Bilder</span>
+          </UploadZone>
+          {!adding && (
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-60 transition-opacity hover:opacity-100"
+              className="mono rounded-[var(--v-radius)] px-3 py-2 text-[11px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
               + Richtung
             </button>
           )}
-        </div>
-
-        {/* Compact actions: upload + (when there's content) a fullscreen view. */}
-        <div className="flex items-center gap-2 px-3 pb-3">
-          <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
-            <span className="mono tracking-widest opacity-70">▧ Bilder</span>
-          </UploadZone>
-          {hasContent && (
+          {!empty && (
             <button
               type="button"
               onClick={() => setExpanded(true)}
               title="Vollbild"
-              className="mono flex h-9 items-center rounded-[var(--v-radius)] px-3 text-[11px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
+              className="mono ml-auto rounded-[var(--v-radius)] px-3 py-2 text-[11px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
               style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
             >
               ⤢ Vollbild
@@ -220,31 +238,26 @@ export function MoodboardRenderer({
 
       {expanded && (
         <FullscreenOverlay title={(m.microTitle as string) || "Moodboard"} onClose={() => setExpanded(false)}>
-          <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8">
-            {images.length > 0 && (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                {images.map((img) => (
-                  <figure
-                    key={img.key}
-                    className="m-0 overflow-hidden rounded-[var(--v-radius)]"
-                    style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)" }}
-                  >
-                    <a href={img.url} target="_blank" rel="noreferrer noopener" className="block">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={img.url}
-                        alt={img.name}
-                        className="mx-auto block max-h-[70vh] w-full object-contain"
-                      />
-                    </a>
-                    <ImageCaption value={img.caption} onSave={(c) => setCaption(img.key, c)} expanded />
-                  </figure>
-                ))}
-              </div>
-            )}
+          <div className="mx-auto w-full max-w-3xl space-y-12 px-4 py-10 sm:px-6">
+            {images.map((img) => (
+              <figure key={img.key} className="m-0">
+                <a href={img.url} target="_blank" rel="noreferrer noopener" className="block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={img.name}
+                    className="mx-auto block max-h-[72vh] w-auto max-w-full rounded-[var(--v-radius)] object-contain"
+                    style={{ border: "1px solid var(--v-rule)" }}
+                  />
+                </a>
+                <div className="mx-auto mt-3 max-w-2xl">
+                  <ImageCaption value={img.caption} onSave={(c) => setCaption(img.key, c)} />
+                </div>
+              </figure>
+            ))}
 
             {directions.length > 0 && (
-              <div className="mt-6 space-y-2">
+              <div className="mx-auto max-w-2xl space-y-2">
                 {directions.map((direction) => (
                   <DirectionRow
                     key={direction.key}
@@ -257,7 +270,7 @@ export function MoodboardRenderer({
               </div>
             )}
 
-            <div className="mt-6">
+            <div className="mx-auto max-w-2xl">
               <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
                 <span className="mono tracking-widest opacity-70">▧ Bilder hinzufügen</span>
               </UploadZone>
@@ -269,19 +282,18 @@ export function MoodboardRenderer({
   );
 }
 
+/** Full-screen image caption — click to edit, wraps, capped length. */
 function ImageCaption({
   value,
   onSave,
-  expanded = false,
 }: {
   value: string;
   onSave: (text: string) => void;
-  expanded?: boolean;
 }) {
   const edit = useInlineEdit<HTMLTextAreaElement>({
     value,
     onSave,
-    submitOn: expanded ? "modEnter" : "enter",
+    submitOn: "modEnter",
     trim: true,
     autoGrow: true,
   });
@@ -293,8 +305,8 @@ function ImageCaption({
         rows={1}
         maxLength={CAPTION_MAX}
         placeholder="Notiz zum Bild …"
-        className="w-full resize-none bg-[#181818] px-2 py-1.5 text-[11px] leading-relaxed outline-none"
-        style={{ color: "var(--v-fg)", borderTop: "1px solid var(--v-rule)" }}
+        className="w-full resize-none rounded-[var(--v-radius)] px-3 py-2 text-center text-[13px] leading-relaxed outline-none"
+        style={{ color: "var(--v-fg)", background: "var(--v-bg)", border: "1px solid var(--v-rule)" }}
       />
     );
   }
@@ -303,12 +315,8 @@ function ImageCaption({
     <button
       type="button"
       onClick={() => edit.setEditing(true)}
-      className={`block w-full px-2 py-1.5 text-left text-[11px] leading-relaxed ${expanded ? "whitespace-pre-wrap" : "truncate"}`}
-      style={{
-        color: value ? "var(--v-fg)" : "var(--v-muted)",
-        background: "#181818",
-        borderTop: "1px solid var(--v-rule)",
-      }}
+      className="block w-full whitespace-pre-wrap break-words px-3 py-1 text-center text-[13px] leading-relaxed"
+      style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}
     >
       {value || "+ Notiz"}
     </button>
@@ -343,19 +351,19 @@ function DirectionRow({
 
   return (
     <div
-      className="group relative rounded-[var(--v-radius)] p-2.5 pr-9"
-      style={{ border: "1px solid var(--v-rule)", background: expanded ? "var(--v-bg)" : "#181818" }}
+      className="group relative rounded-[var(--v-radius)] p-3 pr-9"
+      style={{ border: "1px solid var(--v-rule)", background: expanded ? "var(--v-bg)" : "rgba(255,255,255,0.02)" }}
     >
       <button
         type="button"
         onClick={onDelete}
         aria-label="entfernen"
-        className="mono absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-60 hover:!opacity-100"
+        className="mono absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-[11px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-60 hover:!opacity-100"
         style={{ color: "var(--v-muted)" }}
       >
         ×
       </button>
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2.5">
         <button
           type="button"
           onClick={() => onSave({ status: nextStatus(direction.status) })}
@@ -370,6 +378,7 @@ function DirectionRow({
               {...labelEdit.editProps}
               rows={1}
               maxLength={140}
+              placeholder="Richtung benennen …"
               className="w-full resize-none bg-transparent text-[13px] leading-relaxed outline-none"
               style={{ color: "var(--v-fg)" }}
             />
@@ -378,9 +387,9 @@ function DirectionRow({
               type="button"
               onClick={() => labelEdit.setEditing(true)}
               className="block w-full whitespace-pre-wrap break-words text-left text-[13px] leading-relaxed"
-              style={{ color: "var(--v-fg)" }}
+              style={{ color: direction.label ? "var(--v-fg)" : "var(--v-muted)" }}
             >
-              {direction.label}
+              {direction.label || "Richtung benennen …"}
             </button>
           )}
 
@@ -397,7 +406,7 @@ function DirectionRow({
             <button
               type="button"
               onClick={() => noteEdit.setEditing(true)}
-              className="mt-1 block min-h-[16px] w-full whitespace-pre-wrap break-words text-left text-[12px] leading-relaxed"
+              className="mt-0.5 block w-full whitespace-pre-wrap break-words text-left text-[12px] leading-relaxed opacity-80"
               style={{ color: direction.note ? "var(--v-muted)" : "var(--v-rule)" }}
             >
               {direction.note || "URL oder Notiz …"}
