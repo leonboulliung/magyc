@@ -67,7 +67,17 @@ hide, Table +col-with-one-column. (Border-radius/centering/hide/table → Q4.)
 - **Phases:** make bigger + vertical; show all phases.
 - **Table:** "+ col" button does nothing when there's only one column (A).
 
-### Q4 — Studio / creation UX
+### Q4 — visible quick-wins — ✅ done (commits `11bbc37`, `f1b185b`)
+Dashboard rows fully clickable; WidgetCard clips bare media (border-radius);
+Table "+ col" works on empty/one-column tables; Range hidden from the picker;
+Appointment centered; Style popover closes on outside-click/Escape; masonry
+vertical spacing made constant. **Still open (bigger, separate):** the
+creation-centric redesign + Fast-Prompts; Moodboard more-images + per-image
+text; Shotlist faster add; Images large-set behaviour; Selection↔Moodboard
+merge decision; "Brief schärfen" AI; the studio stub pages (Team/Settings/
+Profile).
+
+### Q4 — Studio / creation UX (original notes)
 - Dashboard: open a project by clicking anywhere on its row (not only the
   name). (Done? see card-actions; make the whole card the open target.)
 - New-project UX: presets closer to / inside the prompt field (like the
