@@ -26,29 +26,49 @@ export interface CompressOptions {
   maxWidthOrHeight?: number;
 }
 
+export function isHeic(file: File): boolean {
+  const t = file.type.toLowerCase();
+  return t === "image/heic" || t === "image/heif" || /\.(heic|heif)$/i.test(file.name);
+}
+
 export async function compressImageFile(
   file: File,
   opts: CompressOptions = {},
 ): Promise<File> {
-  if (!file.type.startsWith("image/") || PASSTHROUGH.has(file.type)) return file;
+  let working = file;
+
+  // iPhone-native HEIC/HEIF can't be canvas-decoded by most browsers (and
+  // won't display in an <img> on Chrome), so convert it to JPEG up front.
+  if (isHeic(file)) {
+    try {
+      const heic2any = (await import("heic2any")).default;
+      const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+      const blob = Array.isArray(converted) ? converted[0] : converted;
+      working = new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), { type: "image/jpeg" });
+    } catch {
+      return file; // conversion failed — fall back to the original
+    }
+  }
+
+  if (!working.type.startsWith("image/") || PASSTHROUGH.has(working.type)) return working;
 
   try {
     const { default: imageCompression } = await import("browser-image-compression");
-    const out = await imageCompression(file, {
+    const out = await imageCompression(working, {
       maxSizeMB: opts.maxSizeMB ?? 1.6,
       maxWidthOrHeight: opts.maxWidthOrHeight ?? 2560,
       useWebWorker: true,
       initialQuality: 0.82,
     });
     // Only adopt the compressed result if it actually shrank the file; keep
-    // the original name so the stored filename stays meaningful.
-    if (out.size > 0 && out.size < file.size) {
-      return new File([out], file.name, { type: out.type || file.type, lastModified: Date.now() });
+    // the (possibly converted) name so the stored filename stays meaningful.
+    if (out.size > 0 && out.size < working.size) {
+      return new File([out], working.name, { type: out.type || working.type, lastModified: Date.now() });
     }
-    return file;
+    return working;
   } catch {
-    // Decode/compression failed (e.g. HEIC on Chrome) — upload the original
-    // and let the size guard handle anything still too large.
-    return file;
+    // Compression failed — upload the (converted) file and let the size guard
+    // handle anything still too large.
+    return working;
   }
 }

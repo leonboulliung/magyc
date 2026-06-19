@@ -69,7 +69,7 @@ export function UploadZone({
     // Compress images first (downscale + re-encode off the main thread). This
     // shrinks large camera files under the platform body limit and makes
     // multi-image uploads reliable. Non-images / undecodable files pass through.
-    const hasImage = incoming.some((f) => f.type.startsWith("image/"));
+    const hasImage = incoming.some((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
     if (hasImage) {
       showActionLoading(incoming.length === 1 ? "Bild wird vorbereitet …" : "Bilder werden vorbereitet …", toastId);
       const { compressImageFile } = await import("@/lib/client/imageCompress");
