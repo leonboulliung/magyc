@@ -4,11 +4,20 @@ import { useRef, useState } from "react";
 import { getAnonToken, getAnonDisplayName } from "@/lib/anonId";
 import {
   readApiJson,
+  showActionError,
   showActionLoading,
   showActionSuccess,
   showApiError,
   showUnknownError,
 } from "@/lib/client/feedback";
+
+/**
+ * Hard client-side ceiling. The API allows 50 MB, but the deploy platform
+ * rejects request bodies above ~4.5 MB *before* the handler runs — which
+ * surfaced as a reasonless "upload failed". We check here so the user gets
+ * a concrete reason (and which file) instead.
+ */
+const DEFAULT_MAX_MB = 4.5;
 
 /**
  * Shared upload affordance used by Attachments, Images, and Audio
@@ -23,6 +32,8 @@ export function UploadZone({
   moduleIndex,
   accept,
   multiple = true,
+  maxSizeMb = DEFAULT_MAX_MB,
+  compact = false,
   onDone,
   children,
 }: {
@@ -31,6 +42,12 @@ export function UploadZone({
   /** MIME type string for <input accept> and validation. */
   accept: string;
   multiple?: boolean;
+  /** Per-file ceiling in MB. Files above this are rejected client-side
+   *  with a concrete message before the request is sent. */
+  maxSizeMb?: number;
+  /** Compact: a small inline pill instead of the large full-width drop
+   *  field. Used where the gallery already carries the visual weight. */
+  compact?: boolean;
   onDone?: (files: { url: string; name: string; size: number; mimeType: string }[]) => void;
   /** Slot for custom idle UI inside the zone. */
   children?: React.ReactNode;
@@ -40,12 +57,26 @@ export function UploadZone({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function uploadFiles(files: File[]) {
-    if (!files.length || busy) return;
-    setBusy(true);
-    setError("");
-    const results: { url: string; name: string; size: number; mimeType: string }[] = [];
+  async function uploadFiles(incoming: File[]) {
+    if (!incoming.length || busy) return;
     const toastId = `upload-${spaceId}-${moduleIndex}`;
+
+    // Reject oversized files up front with a concrete reason, then upload
+    // whatever is within the limit.
+    const limit = maxSizeMb * 1024 * 1024;
+    const tooBig = incoming.filter((f) => f.size > limit);
+    const files = incoming.filter((f) => f.size <= limit);
+    if (tooBig.length) {
+      const names = tooBig.map((f) => `${f.name} (${fmtSize(f.size)})`).join(", ");
+      const message = `Zu groß: ${names}. Maximal ${maxSizeMb} MB pro Datei.`;
+      showActionError("Datei zu groß", { id: toastId, description: message });
+      setError(message);
+    }
+    if (!files.length) return;
+
+    setBusy(true);
+    if (!tooBig.length) setError("");
+    const results: { url: string; name: string; size: number; mimeType: string }[] = [];
     showActionLoading(files.length === 1 ? "Datei wird hochgeladen …" : "Dateien werden hochgeladen …", toastId);
     for (const file of files) {
       const fd = new FormData();
@@ -118,10 +149,12 @@ export function UploadZone({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        className="w-full rounded-[var(--v-radius)] transition-colors flex flex-col items-center justify-center gap-2 py-5"
+        className={`rounded-[var(--v-radius)] transition-colors flex items-center justify-center gap-2 ${
+          compact ? "px-3 py-2 text-[11px]" : "w-full flex-col py-5"
+        }`}
         style={{
           border: `1px dashed ${dragging ? "var(--v-fg)" : "var(--v-rule)"}`,
-          background: dragging ? "rgba(0,0,0,0.02)" : "transparent",
+          background: dragging ? "rgba(255,255,255,0.04)" : "transparent",
           cursor: busy ? "wait" : "pointer",
           color: "var(--v-muted)",
         }}

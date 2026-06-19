@@ -175,25 +175,29 @@ function ShotRow({
   onSave: (patch: Partial<Pick<ShotView, "label" | "purpose" | "setup" | "location" | "notes" | "priority" | "status">>) => void;
   onDelete: () => void;
 }) {
-  const titleEdit = useInlineEdit<HTMLInputElement>({
+  const titleEdit = useInlineEdit<HTMLTextAreaElement>({
     value: shot.label,
     onSave: (label) => onSave({ label }),
     submitOn: "enter",
+    autoGrow: true,
   });
-  const purposeEdit = useInlineEdit<HTMLInputElement>({
+  const purposeEdit = useInlineEdit<HTMLTextAreaElement>({
     value: shot.purpose ?? "",
     onSave: (purpose) => onSave({ purpose }),
     submitOn: "enter",
+    autoGrow: true,
   });
-  const setupEdit = useInlineEdit<HTMLInputElement>({
+  const setupEdit = useInlineEdit<HTMLTextAreaElement>({
     value: shot.setup ?? "",
     onSave: (setup) => onSave({ setup }),
     submitOn: "enter",
+    autoGrow: true,
   });
-  const locationEdit = useInlineEdit<HTMLInputElement>({
+  const locationEdit = useInlineEdit<HTMLTextAreaElement>({
     value: shot.location ?? "",
     onSave: (location) => onSave({ location }),
     submitOn: "enter",
+    autoGrow: true,
   });
   const tone = statusTone(shot.status);
 
@@ -223,7 +227,7 @@ function ShotRow({
           {String(order + 1).padStart(2, "0")}
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pr-6">
           <div className="flex flex-wrap items-start gap-2">
             <button
               type="button"
@@ -246,14 +250,14 @@ function ShotRow({
           <InlineField
             edit={titleEdit}
             value={shot.label}
-            placeholder="..."
+            placeholder="Motiv benennen …"
             className="mt-2 text-[14px] font-medium"
           />
 
-          <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
-            <InlineField edit={purposeEdit} value={shot.purpose ?? ""} placeholder="purpose" mono />
-            <InlineField edit={setupEdit} value={shot.setup ?? ""} placeholder="setup" mono />
-            <InlineField edit={locationEdit} value={shot.location ?? ""} placeholder="location" mono />
+          <div className="mt-2 grid gap-x-3 gap-y-1.5 sm:grid-cols-3">
+            <InlineField edit={purposeEdit} value={shot.purpose ?? ""} label="Zweck" mono />
+            <InlineField edit={setupEdit} value={shot.setup ?? ""} label="Setup / Licht" mono />
+            <InlineField edit={locationEdit} value={shot.location ?? ""} label="Ort" mono />
           </div>
         </div>
       </div>
@@ -265,34 +269,48 @@ function InlineField({
   edit,
   value,
   placeholder,
+  label,
   className = "text-[12px]",
   mono = false,
 }: {
-  edit: ReturnType<typeof useInlineEdit<HTMLInputElement>>;
+  edit: ReturnType<typeof useInlineEdit<HTMLTextAreaElement>>;
   value: string;
-  placeholder: string;
+  /** Placeholder when there is no label (e.g. the title field). */
+  placeholder?: string;
+  /** Small caption above the field; doubles as the placeholder. */
+  label?: string;
   className?: string;
   mono?: boolean;
 }) {
-  if (edit.editing) {
-    return (
-      <input
-        {...edit.editProps}
-        maxLength={180}
-        className={`w-full bg-transparent outline-none ${mono ? "mono text-[10px] tracking-widest" : className}`}
-        style={{ color: "var(--v-fg)" }}
-      />
-    );
-  }
+  const ph = placeholder ?? (label ? `${label} …` : "…");
+  const fieldClass = mono ? "mono text-[11px]" : className;
   return (
-    <button
-      type="button"
-      onClick={() => edit.setEditing(true)}
-      className={`block min-h-[18px] w-full truncate text-left ${mono ? "mono text-[10px] tracking-widest" : className}`}
-      style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}
-    >
-      {value || placeholder}
-    </button>
+    <div className="min-w-0">
+      {label && (
+        <div className="mono mb-0.5 text-[8px] uppercase tracking-widest opacity-40" style={{ color: "var(--v-muted)" }}>
+          {label}
+        </div>
+      )}
+      {edit.editing ? (
+        <textarea
+          {...edit.editProps}
+          rows={1}
+          maxLength={400}
+          placeholder={ph}
+          className={`w-full resize-none bg-transparent leading-relaxed outline-none ${fieldClass}`}
+          style={{ color: "var(--v-fg)" }}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => edit.setEditing(true)}
+          className={`block min-h-[16px] w-full whitespace-pre-wrap break-words text-left leading-relaxed ${fieldClass}`}
+          style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}
+        >
+          {value || (label ? "—" : ph)}
+        </button>
+      )}
+    </div>
   );
 }
 
