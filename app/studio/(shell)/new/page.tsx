@@ -59,6 +59,7 @@ export default function NewProjectPage() {
   // load; fall back to the defaults only once we know the account has none.
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState<string>("none");
+  const [fastPrompts, setFastPrompts] = useState<string[]>([]);
   const [v, setV] = useState<Values>({
     client: "", product: "", goal: "", usage: "", deadline: "", references: "", scope: "",
   });
@@ -97,6 +98,24 @@ export default function NewProjectPage() {
     void loadPresets();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load the account's configured fast-prompts (click-to-insert snippets).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/studio/profile", { cache: "no-store" });
+        const json = await readApiJson(res) as { profile?: { settings?: { fastPrompts?: unknown } } };
+        const fps = json?.profile?.settings?.fastPrompts;
+        if (!cancelled && res.ok && Array.isArray(fps)) {
+          setFastPrompts(fps.filter((x: unknown): x is string => typeof x === "string"));
+        }
+      } catch {
+        // Fast-prompts are optional; creation works without them.
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -203,6 +222,25 @@ export default function NewProjectPage() {
               </div>
             }
           />
+
+          {/* Fast-Prompts — account-configured snippets, click to drop into
+              the prompt. Sit BELOW the field (presets sit above/aside). */}
+          {fastPrompts.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {fastPrompts.map((fp, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setPrompt((p) => (p.trim() ? `${p.trimEnd()}\n${fp}` : fp))}
+                  title={fp}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.03] px-3 py-1.5 text-[12.5px] text-white/65 transition-colors hover:border-white/30 hover:text-white"
+                >
+                  <span className="mono text-[11px] opacity-50">⌁</span>
+                  <span className="max-w-[260px] truncate">{fp}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         <motion.section variants={studioItem} className="rounded-2xl border border-white/12 bg-white/[0.025] p-4">

@@ -11,6 +11,7 @@ const cardClass = "rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6
 export default function StudioSettingsPage() {
   const { profile, status, update } = useStudioProfile();
   const [ruleInput, setRuleInput] = useState("");
+  const [fpInput, setFpInput] = useState("");
 
   const settings = profile?.settings;
 
@@ -29,6 +30,18 @@ export default function StudioSettingsPage() {
   function removeRule(i: number) {
     if (!settings) return;
     setSettings({ rules: settings.rules.filter((_, j) => j !== i) });
+  }
+
+  function addFast() {
+    const v = fpInput.trim();
+    setFpInput("");
+    if (!v || !settings) return;
+    setSettings({ fastPrompts: [...settings.fastPrompts, v].slice(0, 20) });
+  }
+
+  function removeFast(i: number) {
+    if (!settings) return;
+    setSettings({ fastPrompts: settings.fastPrompts.filter((_, j) => j !== i) });
   }
 
   return (
@@ -92,6 +105,58 @@ export default function StudioSettingsPage() {
                 type="button"
                 onClick={addRule}
                 disabled={!ruleInput.trim()}
+                className="shrink-0 rounded-xl bg-white px-4 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-40"
+              >
+                Hinzufügen
+              </button>
+            </div>
+          </section>
+
+          {/* Fast-Prompts */}
+          <section className={cardClass}>
+            <h2 className="text-[15px] font-medium text-white">Fast-Prompts</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-white/45">
+              Wiederkehrende Textbausteine, die beim Anlegen unter dem Prompt-Feld
+              erscheinen und sich per Klick einfügen lassen (z. B. „Location: 92 Rue
+              Victor Hugo, Ivry-sur-Seine").
+            </p>
+
+            <div className="mt-4 space-y-2">
+              {settings.fastPrompts.length === 0 && (
+                <p className="text-[13px] text-white/35">Noch keine Fast-Prompts.</p>
+              )}
+              {settings.fastPrompts.map((fp, i) => (
+                <div
+                  key={i}
+                  className="group flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3.5 py-2.5"
+                >
+                  <span className="mono mt-0.5 text-[12px] leading-none text-white/30">⌁</span>
+                  <span className="flex-1 text-[14px] leading-snug text-white/85">{fp}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFast(i)}
+                    aria-label="Fast-Prompt entfernen"
+                    className="text-white/30 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <input
+                value={fpInput}
+                onChange={(e) => setFpInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addFast(); } }}
+                placeholder="Baustein hinzufügen + Enter"
+                maxLength={200}
+                className="flex-1 rounded-xl border border-white/12 bg-white/[0.03] px-3.5 py-2.5 text-[14px] text-white outline-none placeholder:text-white/30 focus:border-white/35"
+              />
+              <button
+                type="button"
+                onClick={addFast}
+                disabled={!fpInput.trim()}
                 className="shrink-0 rounded-xl bg-white px-4 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-40"
               >
                 Hinzufügen

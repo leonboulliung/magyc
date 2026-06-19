@@ -8,6 +8,9 @@
 export interface StudioSettings {
   /** Working-style rules applied to every new project (prompt injections). */
   rules: string[];
+  /** Reusable snippets the photographer can click to drop into the prompt
+   *  field (e.g. a frequent shoot address). Free-form, account-configured. */
+  fastPrompts: string[];
   /** Default language for new projects. */
   defaultLanguage: string;
   /** New projects start shared (link-accessible) instead of private. */
@@ -37,6 +40,7 @@ export const LANGUAGE_OPTIONS = [
 
 export const DEFAULT_SETTINGS: StudioSettings = {
   rules: [],
+  fastPrompts: [],
   defaultLanguage: "de",
   defaultShared: false,
 };
@@ -55,6 +59,7 @@ export function cleanSettings(raw: unknown): StudioSettings {
   const lang = typeof o.defaultLanguage === "string" ? o.defaultLanguage : DEFAULT_SETTINGS.defaultLanguage;
   return {
     rules: asStringArray(o.rules, 12),
+    fastPrompts: asStringArray(o.fastPrompts, 20),
     defaultLanguage: LANGUAGE_OPTIONS.some((l) => l.value === lang) ? lang : DEFAULT_SETTINGS.defaultLanguage,
     defaultShared: o.defaultShared === true,
   };
