@@ -107,6 +107,28 @@ LocationSuggestions, Sketch (empty hints) and Checklist, Deliverables, Tags,
 Discussion, Appointments (add-field placeholders). Visual style was already
 uniform (`mono text-[11px] opacity-50 var(--v-muted)`); this was a copy pass.
 
+## Element-Iteration 2 — 2026-06-19 (Leon, Moodboard/Shotlist/Images) — ✅ done (commit `e23100e`)
+
+- **Shared:** `FullscreenOverlay` (portal + scroll-lock + Escape, like Sketch);
+  `UploadZone` now does a **client-side per-file size check** (default 4.5 MB =
+  platform body ceiling) with a concrete reason — the old ">5 MB" failures were
+  rejected by the platform before the 50 MB API check, so the toast had no
+  reason. Added a `compact` upload pill.
+- **Moodboard:** guiding placeholders (label = lighting example, note = "URL
+  oder Notiz") instead of literal "…"; per-image caption capped at 280 chars
+  and wrapping (auto-grow textarea); **fullscreen mode** showing images in true
+  aspect ratio + full captions/directions; removed the oversized drop field;
+  fixed text/control overlaps (top padding clears the hover toolbar, rows get
+  right padding, directions wrap).
+- **Shotlist:** all fields are auto-growing textareas (wrap + grow) so long
+  entries stay readable; German placeholders + small field labels (Zweck /
+  Setup·Licht / Ort); right padding so content clears the × control.
+- **Images:** removable (hover ×); click → true-format lightbox; compact upload
+  pill; figure border + overflow clip so edges align with the frame.
+
+**Still open (next):** the creation-centric redesign + Fast-Prompts; "Brief
+schärfen" AI; studio stub pages.
+
 ## P1 — correctness
 
 ### 3. Lost-update races on module config
