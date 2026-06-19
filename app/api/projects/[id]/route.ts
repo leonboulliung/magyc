@@ -65,24 +65,9 @@ export async function PATCH(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Entering the selection stage seeds a selection widget once, so the
-  // "Auswahl" phase has real behaviour instead of showing the same brief.
-  if (update.stage === "production") {
-    const modules = Array.isArray(space.modules) ? space.modules : [];
-    const hasSelection = modules.some(
-      (mod) => mod && typeof mod === "object" && (mod as { type?: unknown }).type === "selection",
-    );
-    if (!hasSelection) {
-      update.modules = [
-        ...modules,
-        {
-          type: "selection",
-          microTitle: "Auswahl",
-          description: "Wähle Favoriten aus und hinterlasse Kommentare.",
-        },
-      ];
-    }
-  }
+  // Note: the "Auswahl" stage no longer auto-seeds a selection/proofing
+  // widget. Per the product direction we focus on collaborative exploration
+  // + structuring, not image selection / result galleries.
 
   const { data: updated, error } = await admin
     .from("spaces")

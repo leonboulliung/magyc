@@ -127,7 +127,6 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
       { type: "moodboard",   symbol: "▧" },
       { type: "shot_list",   symbol: "▤" },
       { type: "images",      symbol: "▨" },
-      { type: "selection",   symbol: "▥" },
       { type: "attachments", symbol: "□" },
       { type: "parts_list",  symbol: "≡" },
     ],

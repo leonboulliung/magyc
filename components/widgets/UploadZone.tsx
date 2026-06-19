@@ -64,9 +64,21 @@ export function UploadZone({
   async function uploadFiles(incoming: File[]) {
     if (!incoming.length || busy) return;
     const toastId = `upload-${spaceId}-${moduleIndex}`;
+    setBusy(true);
 
-    // Reject oversized files up front with a concrete reason, then upload
-    // whatever is within the limit.
+    // Compress images first (downscale + re-encode off the main thread). This
+    // shrinks large camera files under the platform body limit and makes
+    // multi-image uploads reliable. Non-images / undecodable files pass through.
+    const hasImage = incoming.some((f) => f.type.startsWith("image/"));
+    if (hasImage) {
+      showActionLoading(incoming.length === 1 ? "Bild wird vorbereitet …" : "Bilder werden vorbereitet …", toastId);
+      const { compressImageFile } = await import("@/lib/client/imageCompress");
+      const prepared: File[] = [];
+      for (const f of incoming) prepared.push(await compressImageFile(f));
+      incoming = prepared;
+    }
+
+    // Reject anything still oversized with a concrete reason, then upload the rest.
     const limit = maxSizeMb * 1024 * 1024;
     const tooBig = incoming.filter((f) => f.size > limit);
     const files = incoming.filter((f) => f.size <= limit);
@@ -76,9 +88,8 @@ export function UploadZone({
       showActionError("Datei zu groß", { id: toastId, description: message });
       setError(message);
     }
-    if (!files.length) return;
+    if (!files.length) { setBusy(false); return; }
 
-    setBusy(true);
     if (!tooBig.length) setError("");
     const results: { url: string; name: string; size: number; mimeType: string }[] = [];
     showActionLoading(files.length === 1 ? "Datei wird hochgeladen …" : "Dateien werden hochgeladen …", toastId);

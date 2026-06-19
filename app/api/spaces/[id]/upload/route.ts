@@ -50,8 +50,27 @@ function isMimeAllowed(mime: string): boolean {
   return ALLOWED_MIME_PREFIXES.some((p) => mime.startsWith(p));
 }
 
-const lastUploadAt = new Map<string, number>();
-const RATE_MS = 2_000;
+// Token-bucket rate limit: a burst of BUCKET_CAP uploads is allowed (so
+// dropping a dozen images at once works), refilling one token every REFILL_MS.
+// This replaces the old hard one-per-2s gate that made multi-image uploads
+// fail with "rate limited".
+const BUCKET_CAP = 12;
+const REFILL_MS = 1_500;
+const buckets = new Map<string, { tokens: number; last: number }>();
+
+function takeToken(key: string): boolean {
+  const now = Date.now();
+  const b = buckets.get(key) ?? { tokens: BUCKET_CAP, last: now };
+  b.tokens = Math.min(BUCKET_CAP, b.tokens + (now - b.last) / REFILL_MS);
+  b.last = now;
+  if (b.tokens < 1) {
+    buckets.set(key, b);
+    return false;
+  }
+  b.tokens -= 1;
+  buckets.set(key, b);
+  return true;
+}
 
 export async function POST(
   req: Request,
@@ -108,12 +127,9 @@ export async function POST(
 
   // Rate limit.
   const rateKey = `${actorId}:${params.id}`;
-  const now = Date.now();
-  const last = lastUploadAt.get(rateKey) || 0;
-  if (now - last < RATE_MS) {
+  if (!takeToken(rateKey)) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
-  lastUploadAt.set(rateKey, now);
 
   const admin = supabaseAdmin();
 
