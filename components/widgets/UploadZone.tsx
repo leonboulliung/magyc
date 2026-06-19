@@ -34,6 +34,7 @@ export function UploadZone({
   multiple = true,
   maxSizeMb = DEFAULT_MAX_MB,
   compact = false,
+  tile = false,
   onDone,
   children,
 }: {
@@ -48,6 +49,9 @@ export function UploadZone({
   /** Compact: a small inline pill instead of the large full-width drop
    *  field. Used where the gallery already carries the visual weight. */
   compact?: boolean;
+  /** Tile: a square drop target sized like a gallery thumbnail, so it can
+   *  sit inline next to images as an "add" cell. */
+  tile?: boolean;
   onDone?: (files: { url: string; name: string; size: number; mimeType: string }[]) => void;
   /** Slot for custom idle UI inside the zone. */
   children?: React.ReactNode;
@@ -150,7 +154,11 @@ export function UploadZone({
         onClick={() => inputRef.current?.click()}
         disabled={busy}
         className={`rounded-[var(--v-radius)] transition-colors flex items-center justify-center gap-2 ${
-          compact ? "px-3 py-2 text-[11px]" : "w-full flex-col py-5"
+          tile
+            ? "h-32 w-32 shrink-0 flex-col text-[11px]"
+            : compact
+              ? "px-3 py-2 text-[11px]"
+              : "w-full flex-col py-5"
         }`}
         style={{
           border: `1px dashed ${dragging ? "var(--v-fg)" : "var(--v-rule)"}`,

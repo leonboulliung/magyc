@@ -119,61 +119,63 @@ export function MoodboardRenderer({
         {ctx.isOwner && !m.microTitle && <div aria-hidden className="h-5" />}
 
         {empty && (
-          <p className="mono pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "Noch keine Referenzen — lade Bilder hoch oder ergänze Richtungen."}
+          <p className="mono mb-2 pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>
+            {m.placeholder ?? "Lade Referenzen hoch oder notiere eine Richtung."}
           </p>
         )}
 
-        {/* Horizontal reference gallery: a single row of uniform thumbnails
-            that scrolls sideways, so the board never grows tall. Click to
-            view large; caption editing happens in the full-screen view. */}
-        {images.length > 0 && (
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1.5">
-            <AnimatePresence initial={false}>
-              {images.map((img) => (
-                <motion.figure
-                  key={img.key}
-                  layout
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.18 }}
-                  className="group/img relative m-0 h-32 w-32 shrink-0 overflow-hidden rounded-[var(--v-radius)]"
-                  style={{ border: "1px solid var(--v-rule)" }}
+        {/* Horizontal gallery: thumbnails + an inline upload tile, so adding
+            an image feels like dropping it right next to the others. The row
+            scrolls sideways — the board never grows tall. */}
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1.5">
+          <AnimatePresence initial={false}>
+            {images.map((img) => (
+              <motion.figure
+                key={img.key}
+                layout
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.18 }}
+                className="group/img relative m-0 h-32 w-32 shrink-0 overflow-hidden rounded-[var(--v-radius)]"
+                style={{ border: "1px solid var(--v-rule)" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="block h-full w-full"
+                  title={img.caption || "Groß ansehen"}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setExpanded(true)}
-                    className="block h-full w-full"
-                    title={img.caption || "Groß ansehen"}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
-                  </button>
-                  {img.caption && (
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute bottom-1.5 left-1.5 h-1.5 w-1.5 rounded-full"
-                      style={{ background: "var(--v-accent, #fff)", boxShadow: "0 0 0 2px rgba(0,0,0,0.45)" }}
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeImage(img.key)}
-                    aria-label="Bild entfernen"
-                    className="mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
-                    style={{ background: "rgba(0,0,0,0.55)" }}
-                  >
-                    ×
-                  </button>
-                </motion.figure>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
+                </button>
+                {img.caption && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute bottom-1.5 left-1.5 h-1.5 w-1.5 rounded-full"
+                    style={{ background: "var(--v-accent, #fff)", boxShadow: "0 0 0 2px rgba(0,0,0,0.45)" }}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeImage(img.key)}
+                  aria-label="Bild entfernen"
+                  className="mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
+                  style={{ background: "rgba(0,0,0,0.55)" }}
+                >
+                  ×
+                </button>
+              </motion.figure>
+            ))}
+          </AnimatePresence>
+          <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
+            <span className="text-[20px] leading-none opacity-60">＋</span>
+            <span className="mono tracking-widest opacity-60">Bilder</span>
+          </UploadZone>
+        </div>
 
-        {/* Directions: status pill + short label + optional note/URL. */}
-        {(directions.length > 0 || adding) && (
+        {/* Directions list. */}
+        {directions.length > 0 && (
           <div className="mt-3 space-y-2">
             {directions.map((direction) => (
               <DirectionRow
@@ -183,35 +185,27 @@ export function MoodboardRenderer({
                 onDelete={() => deleteDirection(direction.key)}
               />
             ))}
-
-            {adding && (
-              <input
-                autoFocus
-                value={pending}
-                onChange={(e) => setPending(e.target.value)}
-                onBlur={() => addDirection(false)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); addDirection(true); }
-                  else if (e.key === "Escape") { setPending(""); setAdding(false); }
-                }}
-                maxLength={140}
-                placeholder="z. B. Warmes, gerichtetes Seitenlicht — Enter für weitere"
-                className="w-full rounded-[var(--v-radius)] bg-transparent px-3 py-2 text-[13px] outline-none"
-                style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
-              />
-            )}
           </div>
         )}
 
-        {/* Action row — three deliberately distinct affordances:
-            · upload  = dashed drop box (add image files)
-            · richtung = bare text link (add a written direction)
-            · vollbild = filled pill on the right (switch the view) */}
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
-            <span className="mono tracking-widest opacity-80">▧ Bilder hochladen</span>
-          </UploadZone>
-          {!adding && (
+        {/* Add a direction — directly under the list. */}
+        {adding ? (
+          <input
+            autoFocus
+            value={pending}
+            onChange={(e) => setPending(e.target.value)}
+            onBlur={() => addDirection(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); addDirection(true); }
+              else if (e.key === "Escape") { setPending(""); setAdding(false); }
+            }}
+            maxLength={140}
+            placeholder="z. B. Warmes, gerichtetes Seitenlicht — Enter für weitere"
+            className="mt-2 w-full rounded-[var(--v-radius)] bg-transparent px-3 py-2 text-[13px] outline-none"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+          />
+        ) : (
+          <div className="mt-2.5 flex items-center gap-3">
             <button
               type="button"
               onClick={() => setAdding(true)}
@@ -220,43 +214,69 @@ export function MoodboardRenderer({
             >
               <span className="text-[14px] leading-none">+</span> Richtung notieren
             </button>
-          )}
-          {!empty && (
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              title="Im Vollbild ansehen"
-              className="mono ml-auto inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] tracking-widest transition-colors hover:brightness-110"
-              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
-            >
-              <span aria-hidden>⤢</span> Vollbild
-            </button>
-          )}
-        </div>
+            {!empty && (
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                title="Im Vollbild ansehen"
+                className="mono ml-auto inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] tracking-widest transition-colors hover:brightness-110"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+              >
+                <span aria-hidden>⤢</span> Vollbild
+              </button>
+            )}
+          </div>
+        )}
       </WidgetCard>
 
       {expanded && (
         <FullscreenOverlay title={(m.microTitle as string) || "Moodboard"} onClose={() => setExpanded(false)}>
-          <div className="mx-auto w-full max-w-3xl space-y-12 px-4 py-10 sm:px-6">
-            {images.map((img) => (
-              <figure key={img.key} className="m-0">
-                <a href={img.url} target="_blank" rel="noreferrer noopener" className="block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt={img.name}
-                    className="mx-auto block max-h-[72vh] w-auto max-w-full rounded-[var(--v-radius)] object-contain"
-                    style={{ border: "1px solid var(--v-rule)" }}
-                  />
-                </a>
-                <div className="mx-auto mt-3 max-w-2xl">
-                  <ImageCaption value={img.caption} onSave={(c) => setCaption(img.key, c)} />
+          <div className="flex h-full flex-col">
+            {/* Gallery — a single horizontal row that fills the height; all
+                images are visible side by side, scrolling only sideways. */}
+            <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="flex h-full items-stretch gap-6 px-6 py-6 sm:px-10">
+                {images.length === 0 && (
+                  <div className="mono flex items-center text-[12px] opacity-50" style={{ color: "var(--v-muted)" }}>
+                    Noch keine Bilder — lade welche hoch.
+                  </div>
+                )}
+                {images.map((img) => (
+                  <figure key={img.key} className="m-0 flex h-full min-w-0 flex-col">
+                    <a
+                      href={img.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="flex min-h-0 flex-1 items-center justify-center"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        className="max-h-full w-auto rounded-[var(--v-radius)] object-contain"
+                        style={{ border: "1px solid var(--v-rule)" }}
+                      />
+                    </a>
+                    <div className="mx-auto mt-3 w-full" style={{ maxWidth: 520 }}>
+                      <ImageCaption value={img.caption} onSave={(c) => setCaption(img.key, c)} />
+                    </div>
+                  </figure>
+                ))}
+                <div className="flex h-full items-center">
+                  <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
+                    <span className="text-[20px] leading-none opacity-60">＋</span>
+                    <span className="mono tracking-widest opacity-60">Bilder</span>
+                  </UploadZone>
                 </div>
-              </figure>
-            ))}
+              </div>
+            </div>
 
-            {directions.length > 0 && (
-              <div className="mx-auto max-w-2xl space-y-2">
+            {/* Refs / directions listed below the gallery. */}
+            <div
+              className="shrink-0 overflow-y-auto px-6 py-4 sm:px-10"
+              style={{ borderTop: "1px solid var(--v-rule)", maxHeight: "34vh" }}
+            >
+              <div className="mx-auto max-w-3xl space-y-2">
                 {directions.map((direction) => (
                   <DirectionRow
                     key={direction.key}
@@ -266,13 +286,32 @@ export function MoodboardRenderer({
                     onDelete={() => deleteDirection(direction.key)}
                   />
                 ))}
+                {adding ? (
+                  <input
+                    autoFocus
+                    value={pending}
+                    onChange={(e) => setPending(e.target.value)}
+                    onBlur={() => addDirection(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addDirection(true); }
+                      else if (e.key === "Escape") { setPending(""); setAdding(false); }
+                    }}
+                    maxLength={140}
+                    placeholder="z. B. Warmes, gerichtetes Seitenlicht — Enter für weitere"
+                    className="w-full rounded-[var(--v-radius)] bg-transparent px-3 py-2 text-[13px] outline-none"
+                    style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAdding(true)}
+                    className="mono inline-flex items-center gap-1 pt-1 text-[11px] tracking-widest opacity-75 transition-opacity hover:opacity-100"
+                    style={{ color: "var(--v-accent, var(--v-fg))" }}
+                  >
+                    <span className="text-[14px] leading-none">+</span> Richtung notieren
+                  </button>
+                )}
               </div>
-            )}
-
-            <div className="mx-auto max-w-2xl">
-              <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
-                <span className="mono tracking-widest opacity-70">▧ Bilder hinzufügen</span>
-              </UploadZone>
             </div>
           </div>
         </FullscreenOverlay>
