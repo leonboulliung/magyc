@@ -40,7 +40,7 @@ export function AudioRenderer({
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {tracks.length === 0 && (
           <p className="mono text-[11px] opacity-50 mb-3" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "…"}
+            {m.placeholder ?? "Noch keine Audiodatei — lade eine hoch."}
           </p>
         )}
 

@@ -233,7 +233,7 @@ function SketchCanvas({
       {strokes.length === 0 && !drawing && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span className="mono text-[11px] tracking-widest opacity-30" style={{ color: "var(--v-muted)" }}>
-            {placeholder ?? "○"}
+            {placeholder ?? "Leere Fläche — zeichne los."}
           </span>
         </div>
       )}

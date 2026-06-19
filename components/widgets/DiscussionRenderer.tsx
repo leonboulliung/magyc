@@ -109,7 +109,7 @@ export function DiscussionRenderer({
               }}
               rows={2}
               maxLength={1500}
-              placeholder="…"
+              placeholder="Schreib etwas …"
               className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -122,7 +122,7 @@ export function DiscussionRenderer({
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
             >
               <span aria-hidden>↩</span>
-              <span className="opacity-70">{m.placeholder || "…"}</span>
+              <span className="opacity-70">{m.placeholder || "Kommentar schreiben …"}</span>
             </button>
           )}
         </div>
@@ -196,7 +196,7 @@ function MessageNode({
               }}
               rows={2}
               maxLength={1000}
-              placeholder="…"
+              placeholder="Antworten …"
               className="mt-2 w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />

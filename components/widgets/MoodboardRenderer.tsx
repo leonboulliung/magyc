@@ -151,7 +151,7 @@ export function MoodboardRenderer({
         ) : (
           <div className="px-4 pb-2">
             <p className="mono text-[11px] opacity-50" style={{ color: "var(--v-muted)" }}>
-              {m.placeholder ?? "..."}
+              {m.placeholder ?? "Noch keine Referenzen — lade Bilder hoch oder ergänze Richtungen."}
             </p>
           </div>
         )}

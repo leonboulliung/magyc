@@ -39,7 +39,7 @@ export function ImagesRenderer({
         {images.length === 0 && (
           <div className="p-4">
             <p className="mono text-[11px] opacity-50" style={{ color: "var(--v-muted)" }}>
-              {m.placeholder ?? "…"}
+              {m.placeholder ?? "Noch keine Bilder — lade welche hoch."}
             </p>
           </div>
         )}

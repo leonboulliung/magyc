@@ -32,16 +32,24 @@ a signed-in identity bridge (`setSelfUser`, set by `SpaceView` from the Clerk
 user) feeding `getSelfId`/`getMyColor`/optimistic actor; `/state` + `/upload`
 resolve `display_name` from the profile for signed-in contributors.
 
-### Q3 — Element bugs (Herzstück) — partially ✅
+### Q3 — Element bugs (Herzstück) — ✅ done
 ✅ Done (commits `10b3468`, `fd7f0bb`, `c2b00f9`): Poll/Crew/WorkPackages now
 owner-configurable (inline edit + add/remove via shared `InlineText`);
 Notes + Q&A entries deletable (soft-delete via `edit{deleted}`); Phases is a
 vertical timeline showing all phases; Attachments reworked (grouped by kind,
-image thumbnails, per-file remove). **Still open:** Moodboard (border-radius
-overflow, more images + per-image text), Shotlist (faster/clearer add),
-Images (empty placeholder, border-radius, large-set behaviour), Selection
-(border-radius; consider merge with Moodboard), Appointment centering, Range
-hide, Table +col-with-one-column. (Border-radius/centering/hide/table → Q4.)
+image thumbnails, per-file remove).
+✅ Done (commit `dda82d2`): **Shotlist** add field stays open after Enter for
+rapid multi-add + per-shot remove (soft-delete + deleted-filter). **Moodboard**
+per-image click-to-edit caption (`edit{id,caption}`) + per-image remove
+(`edit{id,deleted}`), uniform 2/3-col grid (was hero span), directions get
+multi-add + per-row remove. **Images** large-set reads cleanly in the 2-col
+grid (placeholder + radius already done in Q4).
+✅ **Selection↔Moodboard — decided: keep separate, do NOT merge.** They look
+alike (both image grids) but serve different lifecycle stages: Moodboard =
+*pre-shoot* references + direction tags (ref/ok/no-go) + per-image notes;
+Selection = *post-shoot* proofing (favorite/select + per-photo comments on a
+photographer-provided set). Same visual language is intentional; the verbs
+differ. No code change.
 
 #### Original Q3 list
 - **Moodboard:** images overflow the border-radius (missing overflow-hidden on
@@ -71,11 +79,11 @@ hide, Table +col-with-one-column. (Border-radius/centering/hide/table → Q4.)
 Dashboard rows fully clickable; WidgetCard clips bare media (border-radius);
 Table "+ col" works on empty/one-column tables; Range hidden from the picker;
 Appointment centered; Style popover closes on outside-click/Escape; masonry
-vertical spacing made constant. **Still open (bigger, separate):** the
-creation-centric redesign + Fast-Prompts; Moodboard more-images + per-image
-text; Shotlist faster add; Images large-set behaviour; Selection↔Moodboard
-merge decision; "Brief schärfen" AI; the studio stub pages (Team/Settings/
-Profile).
+vertical spacing made constant. The element-level Q3 reste (Moodboard
+captions, Shotlist add, Images large-set, Selection↔Moodboard decision) are
+now done too — see Q3/Q5 above. **Still open (bigger, separate):** the
+creation-centric redesign + Fast-Prompts; "Brief schärfen" AI; the studio
+stub pages (Team/Settings/Profile).
 
 ### Q4 — Studio / creation UX (original notes)
 - Dashboard: open a project by clicking anywhere on its row (not only the
@@ -91,8 +99,13 @@ Profile).
 - Colour/font popover doesn't close on outside click (it should).
 - Inconsistent spacing between elements (see Bild-1) — normalise the grid gap.
 
-### Q5 — cross-cutting
-- Element-level help text / empty states are inconsistent (some missing).
+### Q5 — cross-cutting — ✅ done (commit pending)
+Empty-states + add-field hints were a grab-bag of cryptic glyphs ("…", "?",
+"○", "..."). Replaced with consistent, helpful German microcopy across the
+collaborative collection widgets: Images, Moodboard, Notes, Q&A, Audio,
+LocationSuggestions, Sketch (empty hints) and Checklist, Deliverables, Tags,
+Discussion, Appointments (add-field placeholders). Visual style was already
+uniform (`mono text-[11px] opacity-50 var(--v-muted)`); this was a copy pass.
 
 ## P1 — correctness
 

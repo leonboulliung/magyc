@@ -180,7 +180,7 @@ function EntryRow({
               if (e.key === "Enter") { e.preventDefault(); onChange({ label: (e.target as HTMLInputElement).value }); setEditingLabel(false); }
               else if (e.key === "Escape") setEditingLabel(false);
             }}
-            placeholder="…"
+            placeholder="Titel …"
             maxLength={120}
             className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
             style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}

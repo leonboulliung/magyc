@@ -155,7 +155,7 @@ export function ChecklistRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={200}
-              placeholder="…"
+              placeholder="Punkt hinzufügen …"
               className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />

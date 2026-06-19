@@ -113,7 +113,7 @@ export function TagsRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={40}
-              placeholder="…"
+              placeholder="Tag …"
               className="mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full bg-transparent outline-none"
               style={{
                 border: "1px solid var(--v-fg)",

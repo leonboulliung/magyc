@@ -54,7 +54,7 @@ export function NotesRenderer({
             className="mono text-[11px] opacity-50 mb-3"
             style={{ color: "var(--v-muted)" }}
           >
-            {m.placeholder ?? "…"}
+            {m.placeholder ?? "Noch keine Notiz — schreib die erste."}
           </p>
         )}
 
