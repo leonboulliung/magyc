@@ -129,6 +129,32 @@ uniform (`mono text-[11px] opacity-50 var(--v-muted)`); this was a copy pass.
 **Still open (next):** the creation-centric redesign + Fast-Prompts; "Brief
 schärfen" AI; studio stub pages.
 
+## Product direction — 2026-06-19 (Leon, elements review round 3)
+
+Decisions taken from a live review:
+- **Image pipeline** ✅ (commit `991b0de`): client-side compression via
+  `browser-image-compression` (downscale 2560px / ~1.6 MB, Web-Worker) in
+  `lib/client/imageCompress.ts`, wired into `UploadZone`. Upload route rate
+  limit changed from one-per-2s to a **token bucket** (burst 12, refill 1/1.5s)
+  so multi-image uploads no longer hit "rate limited". HEIC still falls back to
+  original (Chrome can't canvas-decode it) — **follow-up: HEIC→JPEG** (heic2any)
+  if iPhone-native files become common.
+- **Selection / proofing widget retired** ✅ (`991b0de`): out of the picker and
+  the production-stage auto-seed. Per Leon's market read, **no further work on
+  image selection / result galleries** — focus is collaborative exploration +
+  structuring. Renderer/types kept for back-compat only.
+- **Crew → Team header** ✅ (`0b7ef9e`): crew pulled out of the grid into the
+  header under the participant dots; removed from the picker. Tighter single
+  "Team" panel (roles + un-roled contributors in one component) is a possible
+  refinement.
+- **Discussion → Ask-MAGYC chat** — PLANNED, not started. Turn the bottom-right
+  dock into a persistent collaborative chat (realtime, persisted) → phase 1;
+  then `@magyc` for AI advice → phase 2; then agentic actions (configure an
+  element, owner-gated) → phase 3. Discussion widget retires from the grid.
+- **Look & feel polish pass** over the remaining elements (Notes, Shotlist, Q&A,
+  Poll, Tasks …) — still open.
+- Static objects on the project page are acceptable (Leon).
+
 ## P1 — correctness
 
 ### 3. Lost-update races on module config
