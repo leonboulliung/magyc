@@ -325,10 +325,16 @@ export function GridZone({
             >
               <SortableContext items={items.map((it) => String(it.index))} strategy={rectSortingStrategy}>
                 <div
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start"
+                  className="grid grid-cols-1 sm:grid-cols-2 items-start"
                   style={{
                     gridAutoRows: `${MASONRY_ROW_PX}px`,
                     gridAutoFlow: "row dense",
+                    // Column gap is real; row spacing is baked into each
+                    // cell's rowSpan (a fixed block of empty rows) so the
+                    // vertical gap is constant instead of varying with the
+                    // 1px-row/12px-gap quantization slack.
+                    columnGap: `${MASONRY_GAP_PX}px`,
+                    rowGap: 0,
                   }}
                 >
                   {items.map((item) => (
@@ -410,9 +416,11 @@ function SortableCell({
 
     const measure = () => {
       const height = el.getBoundingClientRect().height;
+      // Rows are 1px with no row-gap, so the cell's own height needs
+      // ceil(height) rows; add a fixed block for a constant vertical gap.
       const next = Math.max(
         1,
-        Math.ceil((height + MASONRY_GAP_PX) / (MASONRY_ROW_PX + MASONRY_GAP_PX)),
+        Math.ceil(height / MASONRY_ROW_PX) + MASONRY_GAP_PX,
       );
       setRowSpan((prev) => (prev === next ? prev : next));
     };
