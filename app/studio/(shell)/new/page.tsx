@@ -17,6 +17,7 @@ import {
   STUDIO_PRESETS_STORAGE_KEY,
   type StudioPreset,
 } from "@/lib/studioPresets";
+import { PromptComposer } from "@/components/PromptComposer";
 
 /**
  * Guided product builder — prompt-first (like the demo): a central prompt
@@ -180,28 +181,28 @@ export default function NewProjectPage() {
 
       <motion.div variants={studioStagger} className="mt-8 grid gap-5 lg:grid-cols-[1fr_300px]">
         <motion.div variants={studioItem}>
-          <textarea
+          <PromptComposer
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
-            rows={5}
+            onChange={setPrompt}
+            onSubmit={submit}
             autoFocus
-            className="w-full resize-none rounded-2xl border border-white/12 bg-white/[0.03] px-5 py-4 text-[17px] leading-relaxed text-white outline-none transition-colors placeholder:text-white/30 focus:border-white/35"
+            rows={4}
+            placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
+            chips={
+              <div className="flex flex-wrap gap-2">
+                {QUICK.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setPrompt(q)}
+                    className="rounded-full border border-white/12 px-3 py-1.5 text-left text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            }
           />
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {QUICK.map((q) => (
-              <motion.button
-                key={q}
-                type="button"
-                onClick={() => setPrompt(q)}
-                whileTap={{ scale: 0.98 }}
-                className="rounded-full border border-white/12 px-3 py-1.5 text-left text-[13px] text-white/70 transition-colors hover:border-white/30 hover:text-white"
-              >
-                {q}
-              </motion.button>
-            ))}
-          </div>
         </motion.div>
 
         <motion.section variants={studioItem} className="rounded-2xl border border-white/12 bg-white/[0.025] p-4">

@@ -9,6 +9,7 @@ import { getAnonToken, rememberSpaceOwnerToken } from "@/lib/anonId";
 import { stagePage, chipGrid, clarifyItem } from "@/lib/anim";
 import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
+import { PromptComposer } from "@/components/PromptComposer";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
 import { EnterKey } from "@/components/EnterKey";
 import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
@@ -448,16 +449,19 @@ export default function HomePage() {
                   mounted ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
                 }`}
               >
-                <div
+                <PromptComposer
                   id="start"
-                  className="liquid-glass-strong w-full scroll-mt-20 rounded-[34px] p-5 transition-shadow duration-300 sm:rounded-[42px] sm:p-7"
-                  style={{
-                    boxShadow: promptNudge
-                      ? "0 0 0 1px rgba(255,255,255,0.62), 0 18px 60px rgba(0,0,0,0.22), 0 0 38px rgba(255,255,255,0.13), inset 0 1px 1px rgba(255,255,255,0.15)"
-                      : "0 18px 60px rgba(0,0,0,0.22), inset 0 1px 1px rgba(255,255,255,0.15)",
-                  }}
-                >
-                  <div className="mb-5 flex flex-col gap-3">
+                  ref={inputRef}
+                  className="scroll-mt-20"
+                  value={text}
+                  onChange={(v) => { setPromptNudge(false); setText(v); }}
+                  onSubmit={submitInput}
+                  disabled={busy}
+                  autoFocus
+                  rows={2}
+                  highlight={promptNudge}
+                  placeholder={selectedMode?.placeholder ?? "Describe a rough idea, project, or plan."}
+                  topSlot={
                     <div className="flex flex-wrap gap-2">
                       {PROJECT_MODES.map((mode) => {
                         const picked = projectMode === mode.id;
@@ -480,77 +484,40 @@ export default function HomePage() {
                         );
                       })}
                     </div>
-                  </div>
-
-                  <textarea
-                    ref={inputRef}
-                    autoFocus
-                    value={text}
-                    onChange={(e) => {
-                      setPromptNudge(false);
-                      setText(e.target.value);
-                    }}
-                    rows={2}
-                    maxLength={1200}
-                    placeholder={selectedMode?.placeholder ?? "Describe a rough idea, project, or plan."}
-                    className="w-full resize-none border-0 bg-transparent text-[20px] leading-relaxed text-white outline-none placeholder:text-white/32 sm:text-[24px]"
-                    disabled={busy}
-                    onKeyDown={(e) => {
-                      // Enter submits; Shift+Enter (or ⌘/Ctrl+Enter) = newline.
-                      if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
-                        e.preventDefault();
-                        submitInput();
-                      }
-                    }}
-                  />
-                  <div className="mt-3 flex justify-end">
-                    <span className="mono text-[10px] tracking-widest opacity-40 tabular-nums">
-                      {text.length > 0 ? `${text.length}/1200` : ""}
-                    </span>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {text.trim().length === 0 ? (
-                      promptExamples.map((example) => (
-                        <button
-                          key={`${example.mode ?? "free"}:${example.prompt}`}
-                          type="button"
-                          onClick={() => applyExample(example.prompt, example.mode)}
-                          disabled={busy}
-                          className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded transition-all disabled:opacity-30 hover:bg-white/10"
-                          style={{
-                            border: "1px solid rgba(255,255,255,0.14)",
-                            background: "rgba(255,255,255,0.035)",
-                            color: "rgba(255,255,255,0.72)",
-                          }}
-                        >
-                          {example.prompt}
-                        </button>
-                      ))
-                    ) : (
-                      assistChips.map((chip) => (
-                        <button
-                          key={chip.label}
-                          type="button"
-                          onClick={() => addPromptHint(chip.text)}
-                          disabled={busy}
-                          className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded transition-opacity disabled:opacity-30"
-                          style={{
-                            border: "1px dashed rgba(255,255,255,0.22)",
-                            background: "transparent",
-                            color: "rgba(255,255,255,0.64)",
-                          }}
-                        >
-                          {chip.label}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                  {!busy && (
-                    <p className="mt-4 text-[13px] opacity-55 leading-relaxed">
-                      Start with a rough idea, a plan, or a prompt.
-                    </p>
-                  )}
-                </div>
+                  }
+                  chips={
+                    <div className="flex flex-wrap gap-2">
+                      {text.trim().length === 0
+                        ? promptExamples.map((example) => (
+                            <button
+                              key={`${example.mode ?? "free"}:${example.prompt}`}
+                              type="button"
+                              onClick={() => applyExample(example.prompt, example.mode)}
+                              disabled={busy}
+                              className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded transition-all disabled:opacity-30 hover:bg-white/10"
+                              style={{ border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.035)", color: "rgba(255,255,255,0.72)" }}
+                            >
+                              {example.prompt}
+                            </button>
+                          ))
+                        : assistChips.map((chip) => (
+                            <button
+                              key={chip.label}
+                              type="button"
+                              onClick={() => addPromptHint(chip.text)}
+                              disabled={busy}
+                              className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded transition-opacity disabled:opacity-30"
+                              style={{ border: "1px dashed rgba(255,255,255,0.22)", background: "transparent", color: "rgba(255,255,255,0.64)" }}
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                    </div>
+                  }
+                  footer={!busy ? (
+                    <p className="text-[13px] opacity-55 leading-relaxed">Start with a rough idea, a plan, or a prompt.</p>
+                  ) : null}
+                />
 
                 {/* Enter key — simply bottom-right, below the card. */}
                 <div className="flex flex-col items-end gap-3">
