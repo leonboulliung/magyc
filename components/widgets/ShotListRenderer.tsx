@@ -79,17 +79,24 @@ export function ShotListRenderer({
     await ctx.act(index, "edit", { id: key, ...patch });
   }
 
-  async function addShot() {
+  async function addShot(keepOpen = false) {
     const label = pending.trim();
     setPending("");
-    setAdding(false);
-    if (!label) return;
+    if (!label) {
+      if (!keepOpen) setAdding(false);
+      return;
+    }
+    if (!keepOpen) setAdding(false);
     await ctx.act(index, "add", {
       id: newLocalId("shot"),
       label,
       priority: "must",
       status: "planned",
     });
+  }
+
+  async function deleteShot(key: string) {
+    await ctx.act(index, "edit", { id: key, deleted: true });
   }
 
   return (
@@ -115,6 +122,7 @@ export function ShotListRenderer({
                   order={order}
                   language={ctx.language}
                   onSave={(patch) => updateShot(shot.key, patch)}
+                  onDelete={() => deleteShot(shot.key)}
                 />
               </motion.div>
             ))}
@@ -127,13 +135,13 @@ export function ShotListRenderer({
               autoFocus
               value={pending}
               onChange={(e) => setPending(e.target.value)}
-              onBlur={addShot}
+              onBlur={() => addShot(false)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); addShot(); }
+                if (e.key === "Enter") { e.preventDefault(); addShot(true); }
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={160}
-              placeholder="..."
+              placeholder="Motiv eingeben, Enter für weiteres …"
               className="w-full bg-transparent px-2 py-1 text-[13px] outline-none rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -159,11 +167,13 @@ function ShotRow({
   order,
   language,
   onSave,
+  onDelete,
 }: {
   shot: ShotView;
   order: number;
   language: string;
   onSave: (patch: Partial<Pick<ShotView, "label" | "purpose" | "setup" | "location" | "notes" | "priority" | "status">>) => void;
+  onDelete: () => void;
 }) {
   const titleEdit = useInlineEdit<HTMLInputElement>({
     value: shot.label,
@@ -189,13 +199,22 @@ function ShotRow({
 
   return (
     <div
-      className="rounded-[var(--v-radius)] p-3"
+      className="group relative rounded-[var(--v-radius)] p-3"
       style={{
         border: "1px solid var(--v-rule)",
         background: "#181818",
         boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08)",
       }}
     >
+      <button
+        type="button"
+        onClick={onDelete}
+        aria-label="remove"
+        className="mono absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-60 hover:!opacity-100"
+        style={{ color: "var(--v-muted)" }}
+      >
+        ×
+      </button>
       <div className="flex items-start gap-3">
         <div
           className="mono flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] tabular-nums"
@@ -279,6 +298,12 @@ function InlineField({
 
 function buildShots(module: ShotListWidget, state: ModuleStateEntry[]): ShotView[] {
   const byId = new Map<string, ShotView>();
+  const deleted = new Set<string>();
+  for (const e of state) {
+    if (e.kind === "edit" && e.data.deleted === true && typeof e.data.id === "string") {
+      deleted.add(e.data.id);
+    }
+  }
 
   module.shots.forEach((shot, i) => {
     byId.set(`seed-${i}`, {
@@ -327,7 +352,7 @@ function buildShots(module: ShotListWidget, state: ModuleStateEntry[]): ShotView
     });
   }
 
-  return Array.from(byId.values());
+  return Array.from(byId.values()).filter((shot) => !deleted.has(shot.key));
 }
 
 function asPriority(value: unknown, fallback: ShotPriority = "must"): ShotPriority {

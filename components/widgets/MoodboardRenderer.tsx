@@ -53,6 +53,17 @@ export function MoodboardRenderer({
 }) {
   const ctx = useWidgetContext();
   const directions = buildDirections(m, state);
+
+  // Per-image overlays live in the same module_state as edit-entries keyed by
+  // the upload id: { id, caption } for a note, { id, deleted } to remove it.
+  const captions = new Map<string, string>();
+  const imgDeleted = new Set<string>();
+  for (const e of state) {
+    if (e.kind !== "edit" || typeof e.data.id !== "string") continue;
+    if (typeof e.data.caption === "string") captions.set(e.data.id, e.data.caption);
+    if (e.data.deleted === true) imgDeleted.add(e.data.id);
+  }
+
   const images = state
     .filter((e) => e.kind === "upload" && typeof e.data.mimeType === "string" && (e.data.mimeType as string).startsWith("image/"))
     .sort((a, b) => a.createdAt - b.createdAt)
@@ -60,8 +71,9 @@ export function MoodboardRenderer({
       key: e.id,
       url: typeof e.data.url === "string" ? (e.data.url as string) : "",
       name: typeof e.data.name === "string" ? (e.data.name as string) : "",
+      caption: captions.get(e.id) ?? "",
     }))
-    .filter((img) => img.url);
+    .filter((img) => img.url && !imgDeleted.has(img.key));
 
   const [adding, setAdding] = useState(false);
   const [pending, setPending] = useState("");
@@ -73,11 +85,14 @@ export function MoodboardRenderer({
     await ctx.act(index, "edit", { id: key, ...patch });
   }
 
-  async function addDirection() {
+  async function addDirection(keepOpen = false) {
     const label = pending.trim();
     setPending("");
-    setAdding(false);
-    if (!label) return;
+    if (!label) {
+      if (!keepOpen) setAdding(false);
+      return;
+    }
+    if (!keepOpen) setAdding(false);
     await ctx.act(index, "add", {
       id: newLocalId("mood"),
       label,
@@ -85,29 +100,51 @@ export function MoodboardRenderer({
     });
   }
 
+  async function deleteDirection(key: string) {
+    await ctx.act(index, "edit", { id: key, deleted: true });
+  }
+
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description} bare>
         {images.length > 0 ? (
-          <div className="grid grid-cols-3 gap-0.5 p-0.5">
+          <div className="grid grid-cols-2 gap-1 p-1 sm:grid-cols-3">
             <AnimatePresence initial={false}>
-              {images.map((img, i) => (
-                <motion.a
+              {images.map((img) => (
+                <motion.figure
                   key={img.key}
                   layout
-                  href={img.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
                   initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.18 }}
-                  className={i === 0 ? "col-span-2 row-span-2 block overflow-hidden" : "block overflow-hidden"}
-                  style={{ aspectRatio: "1 / 1" }}
+                  className="group/img relative m-0 overflow-hidden rounded-[var(--v-radius)]"
+                  style={{ border: "1px solid var(--v-rule)" }}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
-                </motion.a>
+                  <a
+                    href={img.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="block overflow-hidden"
+                    style={{ aspectRatio: "1 / 1" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => ctx.act(index, "edit", { id: img.key, deleted: true })}
+                    aria-label="remove image"
+                    className="mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
+                    style={{ background: "rgba(0,0,0,0.55)" }}
+                  >
+                    ×
+                  </button>
+                  <ImageCaption
+                    value={img.caption}
+                    onSave={(caption) => ctx.act(index, "edit", { id: img.key, caption })}
+                  />
+                </motion.figure>
               ))}
             </AnimatePresence>
           </div>
@@ -126,6 +163,7 @@ export function MoodboardRenderer({
               direction={direction}
               language={ctx.language}
               onSave={(patch) => updateDirection(direction.key, patch)}
+              onDelete={() => deleteDirection(direction.key)}
             />
           ))}
 
@@ -134,13 +172,13 @@ export function MoodboardRenderer({
               autoFocus
               value={pending}
               onChange={(e) => setPending(e.target.value)}
-              onBlur={addDirection}
+              onBlur={() => addDirection(false)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); addDirection(); }
+                if (e.key === "Enter") { e.preventDefault(); addDirection(true); }
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={140}
-              placeholder="..."
+              placeholder="Richtung eingeben, Enter für weitere …"
               className="w-full bg-transparent px-2 py-1 text-[13px] outline-none rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -173,14 +211,58 @@ export function MoodboardRenderer({
   );
 }
 
+function ImageCaption({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (text: string) => void;
+}) {
+  const edit = useInlineEdit<HTMLInputElement>({
+    value,
+    onSave,
+    submitOn: "enter",
+    trim: true,
+  });
+
+  if (edit.editing) {
+    return (
+      <input
+        {...edit.editProps}
+        maxLength={160}
+        placeholder="Notiz zum Bild …"
+        className="w-full bg-[#181818] px-2 py-1.5 text-[11px] outline-none"
+        style={{ color: "var(--v-fg)", borderTop: "1px solid var(--v-rule)" }}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => edit.setEditing(true)}
+      className="block w-full truncate px-2 py-1.5 text-left text-[11px]"
+      style={{
+        color: value ? "var(--v-fg)" : "var(--v-muted)",
+        background: "#181818",
+        borderTop: "1px solid var(--v-rule)",
+      }}
+    >
+      {value || "+ Notiz"}
+    </button>
+  );
+}
+
 function DirectionRow({
   direction,
   language,
   onSave,
+  onDelete,
 }: {
   direction: DirectionView;
   language: string;
   onSave: (patch: Partial<Pick<DirectionView, "label" | "note" | "status">>) => void;
+  onDelete: () => void;
 }) {
   const labelEdit = useInlineEdit<HTMLInputElement>({
     value: direction.label,
@@ -197,9 +279,18 @@ function DirectionRow({
 
   return (
     <div
-      className="rounded-[var(--v-radius)] p-2.5"
+      className="group relative rounded-[var(--v-radius)] p-2.5"
       style={{ border: "1px solid var(--v-rule)", background: "#181818" }}
     >
+      <button
+        type="button"
+        onClick={onDelete}
+        aria-label="remove"
+        className="mono absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-60 hover:!opacity-100"
+        style={{ color: "var(--v-muted)" }}
+      >
+        ×
+      </button>
       <div className="flex items-start gap-2">
         <button
           type="button"
@@ -253,6 +344,12 @@ function DirectionRow({
 
 function buildDirections(module: MoodboardWidget, state: ModuleStateEntry[]): DirectionView[] {
   const byId = new Map<string, DirectionView>();
+  const deleted = new Set<string>();
+  for (const e of state) {
+    if (e.kind === "edit" && e.data.deleted === true && typeof e.data.id === "string") {
+      deleted.add(e.data.id);
+    }
+  }
 
   module.directions.forEach((direction, i) => {
     byId.set(`seed-${i}`, {
@@ -291,5 +388,5 @@ function buildDirections(module: MoodboardWidget, state: ModuleStateEntry[]): Di
     });
   }
 
-  return Array.from(byId.values());
+  return Array.from(byId.values()).filter((d) => !deleted.has(d.key));
 }
