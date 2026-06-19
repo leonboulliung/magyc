@@ -22,10 +22,13 @@ interface Participant {
 export function ParticipantsBar({
   state,
   owner,
+  self,
   label,
 }: {
   state: ModuleStateEntry[];
   owner: Profile | null;
+  /** The current viewer, shown immediately (before their first edit). */
+  self?: { id: string; name: string; color?: string } | null;
   /** AI-generated heading ("people", "Beteiligte", …). Optional. */
   label?: string;
 }) {
@@ -39,6 +42,10 @@ export function ParticipantsBar({
       name: owner.displayName,
       color: owner.color ?? undefined,
     });
+  }
+
+  if (self && !byId.has(self.id)) {
+    byId.set(self.id, { id: self.id, name: self.name, color: self.color });
   }
 
   for (const e of state) {
@@ -65,14 +72,13 @@ export function ParticipantsBar({
           {label}
         </span>
       )}
-      <div className="flex items-center -space-x-1.5">
+      <div className="flex items-center gap-1.5">
         {participants.slice(0, 12).map((p, i) => (
           <motion.span
             key={p.id}
             initial={{ opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring", stiffness: 500, damping: 22, delay: i * 0.03 }}
-            style={{ border: "2px solid var(--v-page, #fff)", borderRadius: "9999px" }}
             title={p.name}
           >
             <ActorDot color={p.color} displayName={p.name} size={24} />

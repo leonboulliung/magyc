@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { newLocalId } from "@/lib/id";
 import { useWidgetContext } from "@/lib/widgetContext";
@@ -88,6 +88,21 @@ export function MoodboardRenderer({
   const [pending, setPending] = useState("");
   const [expanded, setExpanded] = useState(false);
 
+  // Side-scroll affordance: only show the right-edge fade hint when the
+  // gallery actually overflows and isn't scrolled to the end.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const updateScrollHint = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+  }, []);
+  useEffect(() => {
+    updateScrollHint();
+    window.addEventListener("resize", updateScrollHint);
+    return () => window.removeEventListener("resize", updateScrollHint);
+  }, [updateScrollHint, images.length]);
+
   async function updateDirection(
     key: string,
     patch: Partial<Pick<DirectionView, "label" | "note" | "status">>,
@@ -127,51 +142,69 @@ export function MoodboardRenderer({
         {/* Horizontal gallery: thumbnails + an inline upload tile, so adding
             an image feels like dropping it right next to the others. The row
             scrolls sideways — the board never grows tall. */}
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1.5">
-          <AnimatePresence initial={false}>
-            {images.map((img) => (
-              <motion.figure
-                key={img.key}
-                layout
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.18 }}
-                className="group/img relative m-0 h-32 w-32 shrink-0 overflow-hidden rounded-[var(--v-radius)]"
-                style={{ border: "1px solid var(--v-rule)" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setExpanded(true)}
-                  className="block h-full w-full"
-                  title={img.caption || "Groß ansehen"}
+        <div className="relative">
+          <div
+            ref={scrollerRef}
+            onScroll={updateScrollHint}
+            className="-mx-1 flex items-start gap-2 overflow-x-auto px-1 pb-1.5"
+          >
+            <AnimatePresence initial={false}>
+              {images.map((img) => (
+                <motion.figure
+                  key={img.key}
+                  layout
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.18 }}
+                  className="group/img relative m-0 h-32 w-32 shrink-0 overflow-hidden rounded-[var(--v-radius)]"
+                  style={{ border: "1px solid var(--v-rule)" }}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
-                </button>
-                {img.caption && (
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute bottom-1.5 left-1.5 h-1.5 w-1.5 rounded-full"
-                    style={{ background: "var(--v-accent, #fff)", boxShadow: "0 0 0 2px rgba(0,0,0,0.45)" }}
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeImage(img.key)}
-                  aria-label="Bild entfernen"
-                  className="mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
-                  style={{ background: "rgba(0,0,0,0.55)" }}
-                >
-                  ×
-                </button>
-              </motion.figure>
-            ))}
-          </AnimatePresence>
-          <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
-            <span className="text-[20px] leading-none opacity-60">＋</span>
-            <span className="mono tracking-widest opacity-60">Bilder</span>
-          </UploadZone>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(true)}
+                    className="block h-full w-full"
+                    title={img.caption || "Groß ansehen"}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
+                  </button>
+                  {img.caption && (
+                    <span
+                      className="pointer-events-none absolute bottom-1.5 left-1.5 flex h-5 w-5 items-center justify-center rounded-md text-[11px] leading-none text-white"
+                      style={{ background: "rgba(0,0,0,0.6)" }}
+                      title="Notiz vorhanden"
+                    >
+                      ✎
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(img.key)}
+                    aria-label="Bild entfernen"
+                    className="mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
+                    style={{ background: "rgba(0,0,0,0.55)" }}
+                  >
+                    ×
+                  </button>
+                </motion.figure>
+              ))}
+            </AnimatePresence>
+            <div className="shrink-0">
+              <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
+                <span className="text-[20px] leading-none opacity-60">＋</span>
+                <span className="mono tracking-widest opacity-60">Bilder</span>
+              </UploadZone>
+            </div>
+          </div>
+          {/* Right-edge fade hints that the row scrolls. */}
+          {canScrollRight && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[var(--v-radius)]"
+              style={{ background: "linear-gradient(to right, transparent, var(--v-widget, var(--v-bg)))" }}
+            />
+          )}
         </div>
 
         {/* Directions list. */}

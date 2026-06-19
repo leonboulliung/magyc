@@ -17,6 +17,7 @@ import {
 } from "@/lib/state";
 import { bodyContainer, heroIn } from "@/lib/anim";
 import { getSpaceOwnerToken } from "@/lib/anonId";
+import { colorForId } from "@/lib/palette";
 import { label } from "@/lib/labels";
 import { useIsOwner } from "@/lib/hooks";
 import { useDevMode } from "@/lib/devFlag";
@@ -445,6 +446,18 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     space.versions.length > 0 &&
     currentVersionNumber < space.versions[space.versions.length - 1].version;
 
+  // The floating top-right pill should only appear when it actually holds a
+  // control — otherwise non-owners saw a lonely empty dot. Style edit and
+  // publish are owner-only; the back-to-current button is historical-only.
+  const showTopControls = isOwner || isHistorical;
+
+  // The current viewer is a participant the moment they open the space —
+  // surface them immediately (don't wait for their first edit). The owner
+  // profile may be missing, so this also covers "owner not yet in the bar".
+  const selfParticipant = user
+    ? { id: user.id, name: user.username ?? user.fullName ?? "Du", color: colorForId(user.id) }
+    : null;
+
   return (
     <WidgetContext.Provider
       value={{
@@ -467,7 +480,8 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         <DotField color="255,255,255" className="pointer-events-none fixed inset-0 z-0 opacity-[0.13]" />
         <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.09),transparent_34%),linear-gradient(to_bottom,rgba(0,0,0,0),rgba(0,0,0,0.64))]" />
 
-        {/* Floating top-right controls */}
+        {/* Floating top-right controls — only when there is one to show. */}
+        {showTopControls && (
         <div
           className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 px-1.5 py-1 rounded-full"
           style={{
@@ -497,6 +511,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           )}
           <PublishButton space={space} onChanged={refreshEverywhere} />
         </div>
+        )}
 
         {notice && (
           <div className="fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-40">
@@ -570,6 +585,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
               <ParticipantsBar
                 state={liveState}
                 owner={space.owner}
+                self={selfParticipant}
                 label={label(space.labels, "participants")}
               />
             </motion.div>
