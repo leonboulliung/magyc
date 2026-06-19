@@ -93,7 +93,7 @@ function RailArrow({
       type="button"
       onClick={onClick}
       aria-label={dir === 1 ? "weiter" : "zurück"}
-      className={`absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[15px] leading-none text-white shadow-lg transition-transform hover:scale-105 ${dir === 1 ? "right-1.5" : "left-1.5"}`}
+      className={`absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[15px] leading-none text-white opacity-90 shadow-lg transition-opacity hover:opacity-100 ${dir === 1 ? "right-1.5" : "left-1.5"}`}
       style={{ background: "rgba(0,0,0,0.62)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(6px)" }}
     >
       {dir === 1 ? "›" : "‹"}
@@ -185,7 +185,7 @@ export function MoodboardRenderer({
           <div
             ref={compactRail.ref}
             onScroll={compactRail.update}
-            className="no-scrollbar -mx-1 flex items-start gap-2 overflow-x-auto px-1 pb-1.5"
+            className="no-scrollbar -mx-1 flex items-start gap-2 overflow-x-auto px-1 py-0.5"
           >
             <AnimatePresence initial={false}>
               {images.map((img) => (
@@ -308,12 +308,12 @@ export function MoodboardRenderer({
               >
               <div className="flex h-full items-stretch gap-6 px-6 py-6 sm:px-10">
                 {images.length === 0 && (
-                  <div className="mono flex items-center text-[12px] opacity-50" style={{ color: "var(--v-muted)" }}>
+                  <div className="mono flex shrink-0 items-center text-[12px] opacity-50" style={{ color: "var(--v-muted)" }}>
                     Noch keine Bilder — lade welche hoch.
                   </div>
                 )}
                 {images.map((img) => (
-                  <figure key={img.key} className="m-0 flex h-full min-w-0 flex-col">
+                  <figure key={img.key} className="m-0 flex h-full shrink-0 flex-col">
                     <a
                       href={img.url}
                       target="_blank"
@@ -333,7 +333,7 @@ export function MoodboardRenderer({
                     </div>
                   </figure>
                 ))}
-                <div className="flex h-full items-center">
+                <div className="flex h-full shrink-0 items-center">
                   <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
                     <span className="text-[20px] leading-none opacity-60">＋</span>
                     <span className="mono tracking-widest opacity-60">Bilder</span>
