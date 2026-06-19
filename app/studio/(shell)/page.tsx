@@ -7,7 +7,6 @@ import { ProjectCardActions } from "@/components/studio/ProjectCardActions";
 import {
   StudioItemMotion,
   StudioPageMotion,
-  StudioStaggerMotion,
   StudioTableBodyMotion,
   StudioTableRowMotion,
 } from "@/components/studio/StudioMotion";
@@ -74,19 +73,18 @@ export default async function StudioDashboard() {
         </div>
       </StudioItemMotion>
 
-      <StudioStaggerMotion className="mt-8 grid gap-3 sm:grid-cols-3">
+      <StudioItemMotion className="mt-7 grid grid-cols-3 overflow-hidden rounded-2xl border border-white/12 bg-white/[0.025] divide-x divide-white/10">
         {([
           ["brief", "Planung"],
           ["production", "Auswahl"],
           ["handoff", "Abgeschlossen"],
         ] as const).map(([key, text]) => (
-          <StudioItemMotion key={key} className="rounded-2xl border border-white/12 bg-white/[0.035] p-4">
-            <div className="mono text-[10px] uppercase tracking-[0.22em] text-white/40">{text}</div>
-            <div className="mt-3 font-brand text-[28px] font-bold text-white">{counts[key]}</div>
-            <p className="mt-2 text-[12px] leading-relaxed text-white/45">{STAGE_HELP[key]}</p>
-          </StudioItemMotion>
+          <div key={key} className="px-4 py-3.5 sm:px-5" title={STAGE_HELP[key]}>
+            <span className="font-brand text-[22px] font-bold leading-none text-white sm:text-[26px]">{counts[key]}</span>
+            <span className="mono mt-2 block text-[10px] uppercase tracking-[0.18em] text-white/45">{text}</span>
+          </div>
         ))}
-      </StudioStaggerMotion>
+      </StudioItemMotion>
 
       {projects.length === 0 ? (
         <StudioItemMotion className="mt-12 rounded-2xl border border-dashed border-white/15 p-10 text-center">

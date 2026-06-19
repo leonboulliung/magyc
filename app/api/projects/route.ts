@@ -8,6 +8,7 @@ import { recordAiEvent } from "@/lib/server/aiEvents";
 import { sanitizeModules } from "@/lib/modules";
 import { newId, newAnonToken } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
+import { cleanSettings } from "@/lib/studioProfile";
 
 // The classifier makes two gpt-4o-mini calls + geocoding — give headroom.
 export const maxDuration = 30;
@@ -100,6 +101,28 @@ export async function POST(req: Request) {
   const presetPromptInjections = Array.isArray(b.presetPromptInjections)
     ? b.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
     : [];
+  let admin;
+  try {
+    admin = supabaseAdmin();
+  } catch {
+    return NextResponse.json({ error: "db_unavailable" }, { status: 503 });
+  }
+  await ensureProfile(userId);
+
+  // Account-level Studio settings shape every new project: the working-style
+  // rules are woven into the brief, and the default share state is applied so
+  // the photographer's preferences don't have to be re-prompted each time.
+  let studioRules: string[] = [];
+  let defaultShared = false;
+  try {
+    const { data: prof } = await admin.from("profiles").select("settings").eq("id", userId).maybeSingle();
+    const s = cleanSettings(prof?.settings ?? {});
+    studioRules = s.rules;
+    defaultShared = s.defaultShared;
+  } catch {
+    // Settings are an enhancement; creation must still work without them.
+  }
+
   // Create works with a prompt, with structured fields, or with NOTHING
   // (an empty "just give me a starter project" path).
   const inputBase = buildBriefInput(str(b.prompt), fields);
@@ -107,6 +130,7 @@ export async function POST(req: Request) {
     inputBase,
     presetName ? `Preset: ${presetName}.` : "",
     presetPromptInjections.length ? `Preset-Regeln: ${presetPromptInjections.join(" ")}` : "",
+    studioRules.length ? `Studio-Regeln: ${studioRules.join(" ")}` : "",
   ].filter(Boolean).join(" ").slice(0, 1200);
 
   let result;
@@ -121,15 +145,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
     return NextResponse.json({ error: "classify_failed", detail: msg.slice(0, 120) }, { status: 502 });
   }
-
-  let admin;
-  try {
-    admin = supabaseAdmin();
-  } catch {
-    return NextResponse.json({ error: "db_unavailable" }, { status: 503 });
-  }
-
-  await ensureProfile(userId);
 
   if (presetModules.length > 0 && !presetAllowContextModules) {
     const headerModules = result.modules.filter((module) => (
@@ -158,6 +173,7 @@ export async function POST(req: Request) {
     visibility: null,
     stage: "brief",
     segment,
+    shared: defaultShared,
   });
   if (error) {
     console.error("[projects] insert failed:", error.message);
