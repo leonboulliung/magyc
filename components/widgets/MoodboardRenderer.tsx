@@ -51,6 +51,56 @@ interface ImageView {
   caption: string;
 }
 
+/**
+ * Horizontal rail helper — tracks whether the row can scroll left/right and
+ * scrolls by ~a screenful, so the gallery navigates with arrows instead of a
+ * native scrollbar (which overlapped the images).
+ */
+function useRail(deps: unknown[]) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = useState({ left: false, right: false });
+  const update = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setEdge({
+      left: el.scrollLeft > 4,
+      right: el.scrollWidth - el.clientWidth - el.scrollLeft > 4,
+    });
+  }, []);
+  useEffect(() => {
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  const by = useCallback((dir: 1 | -1) => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(220, el.clientWidth * 0.8), behavior: "smooth" });
+  }, []);
+  return { ref, edge, update, by };
+}
+
+function RailArrow({
+  dir,
+  onClick,
+}: {
+  dir: 1 | -1;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={dir === 1 ? "weiter" : "zurück"}
+      className={`absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[15px] leading-none text-white shadow-lg transition-transform hover:scale-105 ${dir === 1 ? "right-1.5" : "left-1.5"}`}
+      style={{ background: "rgba(0,0,0,0.62)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(6px)" }}
+    >
+      {dir === 1 ? "›" : "‹"}
+    </button>
+  );
+}
+
 export function MoodboardRenderer({
   module: m,
   index,
@@ -88,20 +138,9 @@ export function MoodboardRenderer({
   const [pending, setPending] = useState("");
   const [expanded, setExpanded] = useState(false);
 
-  // Side-scroll affordance: only show the right-edge fade hint when the
-  // gallery actually overflows and isn't scrolled to the end.
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const updateScrollHint = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
-  }, []);
-  useEffect(() => {
-    updateScrollHint();
-    window.addEventListener("resize", updateScrollHint);
-    return () => window.removeEventListener("resize", updateScrollHint);
-  }, [updateScrollHint, images.length]);
+  // Side-scroll navigation for the galleries (compact + fullscreen).
+  const compactRail = useRail([images.length]);
+  const fullRail = useRail([images.length, expanded]);
 
   async function updateDirection(
     key: string,
@@ -144,9 +183,9 @@ export function MoodboardRenderer({
             scrolls sideways — the board never grows tall. */}
         <div className="relative">
           <div
-            ref={scrollerRef}
-            onScroll={updateScrollHint}
-            className="-mx-1 flex items-start gap-2 overflow-x-auto px-1 pb-1.5"
+            ref={compactRail.ref}
+            onScroll={compactRail.update}
+            className="no-scrollbar -mx-1 flex items-start gap-2 overflow-x-auto px-1 pb-1.5"
           >
             <AnimatePresence initial={false}>
               {images.map((img) => (
@@ -197,14 +236,8 @@ export function MoodboardRenderer({
               </UploadZone>
             </div>
           </div>
-          {/* Right-edge fade hints that the row scrolls. */}
-          {canScrollRight && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[var(--v-radius)]"
-              style={{ background: "linear-gradient(to right, transparent, var(--v-widget, var(--v-bg)))" }}
-            />
-          )}
+          {compactRail.edge.left && <RailArrow dir={-1} onClick={() => compactRail.by(-1)} />}
+          {compactRail.edge.right && <RailArrow dir={1} onClick={() => compactRail.by(1)} />}
         </div>
 
         {/* Directions list. */}
@@ -267,7 +300,12 @@ export function MoodboardRenderer({
           <div className="flex h-full flex-col">
             {/* Gallery — a single horizontal row that fills the height; all
                 images are visible side by side, scrolling only sideways. */}
-            <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+            <div className="relative min-h-0 flex-1">
+              <div
+                ref={fullRail.ref}
+                onScroll={fullRail.update}
+                className="no-scrollbar h-full overflow-x-auto overflow-y-hidden"
+              >
               <div className="flex h-full items-stretch gap-6 px-6 py-6 sm:px-10">
                 {images.length === 0 && (
                   <div className="mono flex items-center text-[12px] opacity-50" style={{ color: "var(--v-muted)" }}>
@@ -302,6 +340,9 @@ export function MoodboardRenderer({
                   </UploadZone>
                 </div>
               </div>
+              </div>
+              {fullRail.edge.left && <RailArrow dir={-1} onClick={() => fullRail.by(-1)} />}
+              {fullRail.edge.right && <RailArrow dir={1} onClick={() => fullRail.by(1)} />}
             </div>
 
             {/* Refs / directions listed below the gallery. */}

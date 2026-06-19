@@ -165,6 +165,9 @@ export function UploadZone({
           background: dragging ? "rgba(255,255,255,0.04)" : "transparent",
           cursor: busy ? "wait" : "pointer",
           color: "var(--v-muted)",
+          // Force the square thumbnail shape so the tile can never collapse
+          // into a small rounded pill (which read as a circle next to images).
+          ...(tile ? { width: "8rem", height: "8rem", borderRadius: "var(--v-radius)" } : null),
         }}
       >
         {busy ? (

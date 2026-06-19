@@ -378,3 +378,13 @@ body {
   color: #000 !important;
   border: 1px solid rgba(255,255,255,0.2) !important;
 }
+
+/* Hide the native scrollbar on horizontal rails (galleries) — they
+   overlapped image content. Navigation is provided by arrow buttons. */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari/Chrome */
+}
