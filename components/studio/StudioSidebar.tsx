@@ -16,15 +16,15 @@ export function StudioSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="border-b border-white/8 bg-black/55 px-5 py-3 sm:border-b-0 sm:px-4 sm:py-8">
+    <aside className="border-b border-white/8 bg-black/55 px-4 py-2.5 sm:border-b-0 sm:px-3 sm:py-6">
       <motion.nav
         initial="hidden"
         animate="show"
         variants={{
           hidden: {},
-          show: { transition: { staggerChildren: 0.045, delayChildren: 0.08 } },
+          show: { transition: { staggerChildren: 0.04, delayChildren: 0.06 } },
         }}
-        className="mx-auto flex max-w-6xl gap-2 overflow-x-auto sm:sticky sm:top-20 sm:mx-0 sm:w-36 sm:flex-col sm:gap-1 sm:overflow-visible"
+        className="mx-auto flex max-w-6xl gap-1 overflow-x-auto sm:sticky sm:top-20 sm:mx-0 sm:w-40 sm:flex-col sm:gap-0.5 sm:overflow-visible"
       >
         {ITEMS.map((item) => {
           const active = item.href === "/studio"
@@ -34,30 +34,31 @@ export function StudioSidebar() {
             <motion.div
               key={item.href}
               variants={{
-                hidden: { opacity: 0, x: -6 },
-                show: { opacity: 1, x: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } },
+                hidden: { opacity: 0, x: -5 },
+                show: { opacity: 1, x: 0, transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] } },
               }}
               className="shrink-0"
             >
               <Link
                 href={item.href}
-                className={`relative block overflow-hidden rounded-full border px-3 py-2 text-sm transition-colors sm:rounded-xl sm:px-3.5 sm:py-3 ${
-                  active
-                    ? "border-white/15 text-white"
-                    : "border-transparent text-white/42 hover:border-white/10 hover:bg-white/[0.04] hover:text-white/75"
+                title={item.hint}
+                className={`relative flex items-center gap-2.5 overflow-hidden rounded-full px-3 py-1.5 text-[13px] transition-colors sm:rounded-lg sm:px-2.5 sm:py-2 ${
+                  active ? "text-white" : "text-white/45 hover:bg-white/[0.04] hover:text-white/80"
                 }`}
               >
                 {active && (
                   <motion.span
                     layoutId="studio-sidebar-active"
-                    className="absolute inset-0 bg-white/[0.07]"
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 rounded-full bg-white/[0.08] sm:rounded-lg"
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   />
                 )}
-                <span className="relative block leading-none">{item.label}</span>
-                <span className={`relative mt-1 hidden text-[11px] leading-none sm:block ${active ? "text-white/45" : "text-white/22"}`}>
-                  {item.hint}
-                </span>
+                <span
+                  aria-hidden
+                  className="relative hidden h-1 w-1 shrink-0 rounded-full sm:block"
+                  style={{ background: active ? "#fff" : "rgba(255,255,255,0.28)" }}
+                />
+                <span className="relative leading-none">{item.label}</span>
               </Link>
             </motion.div>
           );
