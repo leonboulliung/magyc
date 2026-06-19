@@ -41,7 +41,11 @@ export function TableRenderer({
   }
 
   function addColumn() {
-    save({ ...m, columns: [...m.columns, ""], rows: m.rows.map((r) => [...r, ""]) });
+    const columns = [...m.columns, ""];
+    // With no rows yet (e.g. a one-column table), the new column would have
+    // no editable cell and "+ col" would appear to do nothing — seed a row.
+    const rows = m.rows.length ? m.rows.map((r) => [...r, ""]) : [new Array(columns.length).fill("")];
+    save({ ...m, columns, rows });
   }
 
   function addRow() {

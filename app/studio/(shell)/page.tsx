@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { fetchSpacesByOwner } from "@/lib/db";
@@ -149,6 +150,23 @@ export default async function StudioDashboard() {
   );
 }
 
+/** A cell-filling link to the project, so clicking anywhere on a row
+ *  (except the actions cell) opens it. Deleted rows are not clickable. */
+function RowLink({
+  id,
+  deleted,
+  className,
+  children,
+}: {
+  id: string;
+  deleted: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (deleted) return <span className={className}>{children}</span>;
+  return <Link href={`/studio/${id}`} className={className}>{children}</Link>;
+}
+
 type ProjectListItem = Awaited<ReturnType<typeof fetchSpacesByOwner>>[number];
 
 function ProjectTable({
@@ -186,14 +204,20 @@ function ProjectTable({
                   </Link>
                 )}
               </td>
-              <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/55">
-                {p.stage ? STAGE_LABEL[p.stage] : "—"}
+              <td className="p-0">
+                <RowLink id={p.id} deleted={deleted} className="block px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/55">
+                  {p.stage ? STAGE_LABEL[p.stage] : "—"}
+                </RowLink>
               </td>
-              <td className="px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/35">
-                {p.segment ?? "—"}
+              <td className="p-0">
+                <RowLink id={p.id} deleted={deleted} className="block px-4 py-4 mono text-[11px] uppercase tracking-widest text-white/35">
+                  {p.segment ?? "—"}
+                </RowLink>
               </td>
-              <td className="px-4 py-4 mono text-[11px] tracking-widest text-white/35">
-                {relTime(deleted ? (p.deletedAt ?? p.createdAt) : archived ? (p.archivedAt ?? p.createdAt) : p.createdAt)}
+              <td className="p-0">
+                <RowLink id={p.id} deleted={deleted} className="block px-4 py-4 mono text-[11px] tracking-widest text-white/35">
+                  {relTime(deleted ? (p.deletedAt ?? p.createdAt) : archived ? (p.archivedAt ?? p.createdAt) : p.createdAt)}
+                </RowLink>
               </td>
               <td className="px-4 py-4">
                 <div className="flex justify-end">

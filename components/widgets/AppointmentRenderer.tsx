@@ -33,7 +33,7 @@ export function AppointmentRenderer({
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        <div className="flex items-center gap-4 py-1">
+        <div className="flex items-center justify-center gap-4 py-3">
           {editing ? (
             <input
               autoFocus

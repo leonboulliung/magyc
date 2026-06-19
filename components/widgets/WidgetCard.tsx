@@ -23,7 +23,7 @@ export function WidgetCard({
 }) {
   return (
     <motion.div
-      className={`rounded-[var(--v-radius)] ${bare ? "" : "p-4"}`}
+      className={`rounded-[var(--v-radius)] ${bare ? "overflow-hidden" : "p-4"}`}
       style={{
         border: "1px solid var(--v-widget-border, var(--v-rule))",
         background: "var(--v-widget, var(--v-bg))",

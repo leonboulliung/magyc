@@ -157,7 +157,6 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
       { type: "date",         symbol: "▤" },
       { type: "appointment",  symbol: "◷" },
       { type: "appointments", symbol: "▦" },
-      { type: "range",        symbol: "↔" },
       { type: "phases",       symbol: "→" },
     ],
   },

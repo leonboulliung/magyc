@@ -114,7 +114,29 @@ export function StyleEditor({
     return acc;
   }, {});
 
-  const close = () => { flushPending(true); setOpen(false); };
+  const close = useCallback(() => { flushPending(true); setOpen(false); }, [flushPending]);
+
+  // Robust close-on-outside-click + Escape. The plain `fixed inset-0`
+  // backdrop fails when an ancestor is transformed (the workspace toolbar),
+  // because `fixed` then anchors to that ancestor instead of the viewport —
+  // so a document-level listener scoped to this container is the reliable
+  // way to dismiss the popover.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) close();
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") close();
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, close]);
 
   // Shared panel body — rendered inside a bottom sheet on phones and an
   // anchored popover on desktop.
@@ -153,7 +175,7 @@ export function StyleEditor({
   );
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
         onClick={() => {
