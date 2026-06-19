@@ -411,11 +411,15 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     return out;
   }, [liveState]);
 
-  // Split into header zones + body.
-  const { hero, tagsModule, tagsIndex, body } = useMemo(() => {
+  // Split into header zones + body. Crew is pulled into the header too, so
+  // roles live with the participants ("Team") instead of colliding with the
+  // participants bar as a separate grid element.
+  const { hero, tagsModule, tagsIndex, crewModule, crewIndex, body } = useMemo(() => {
     const heroItems: { module: Module; index: number }[] = [];
     let tagsM: Module | null = null;
     let tagsI = -1;
+    let crewM: Module | null = null;
+    let crewI = -1;
     const bodyItems: { module: Module; index: number }[] = [];
     displayedModules.forEach((m, i) => {
       if (m.type === "heading" || m.type === "rich_text") {
@@ -423,11 +427,14 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
       } else if (m.type === "tags") {
         tagsM = m;
         tagsI = i;
+      } else if (m.type === "crew" && !crewM) {
+        crewM = m;
+        crewI = i;
       } else {
         bodyItems.push({ module: m, index: i });
       }
     });
-    return { hero: heroItems, tagsModule: tagsM, tagsIndex: tagsI, body: bodyItems };
+    return { hero: heroItems, tagsModule: tagsM, tagsIndex: tagsI, crewModule: crewM, crewIndex: crewI, body: bodyItems };
   }, [displayedModules]);
 
   if (!loaded) return <div className="min-h-screen bg-white" />;
@@ -576,11 +583,13 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
               </motion.div>
             )}
 
-            {/* Participants strip — owner + everyone who has contributed. */}
+            {/* Team — participant dots + crew roles, consolidated so roles
+                live with the people instead of as a separate grid element. */}
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
+              className="space-y-4"
             >
               <ParticipantsBar
                 state={liveState}
@@ -588,6 +597,17 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
                 self={selfParticipant}
                 label={label(space.labels, "participants")}
               />
+              {crewModule && (
+                <RenderBoundary label="Team" resetKeys={[crewIndex]}>
+                  <div className="max-w-xl">
+                    <WidgetDispatcher
+                      module={crewModule}
+                      index={crewIndex}
+                      state={stateByModule.get(crewIndex) ?? []}
+                    />
+                  </div>
+                </RenderBoundary>
+              )}
             </motion.div>
           </div>
         </header>
