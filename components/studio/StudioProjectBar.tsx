@@ -15,8 +15,8 @@ import type { ProjectStage } from "@/lib/types";
 
 const STAGES: { id: ProjectStage; label: string }[] = [
   { id: "brief", label: "Planung" },
-  { id: "production", label: "Auswahl" },
-  { id: "handoff", label: "Abgeschlossen" },
+  { id: "production", label: "Absegnung" },
+  { id: "handoff", label: "Abschluss" },
 ];
 
 /**

@@ -443,6 +443,14 @@ export function sanitizeModule(raw: unknown): Module | null {
       const placeholder = clean(r.placeholder, 200) || undefined;
       return { type, ...b, placeholder };
     }
+    case "agreement": {
+      const photographer = clean(r.photographer, 120) || undefined;
+      const client = clean(r.client, 120) || undefined;
+      const intro = clean(r.intro, 300) || undefined;
+      const terms = clean(r.terms, 4000) || undefined;
+      const placeholder = clean(r.placeholder, 200) || undefined;
+      return { type, ...b, photographer, client, intro, terms, placeholder };
+    }
     case "audio": {
       const placeholder = clean(r.placeholder, 200) || undefined;
       return { type, ...b, placeholder };
@@ -934,6 +942,18 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     requiresAttribution: false,
     hasSignals: true,
     hasUploads: true,
+    hasThread: false,
+  },
+  agreement: {
+    partOfHeader: false,
+    alwaysInserted: false,
+    relevantWhen:
+      "a binding sign-off between photographer and client (parties + conditions/terms text + a name-and-toggle approval). Added in the Absegnung stage, never at briefing.",
+    requiresMandatoryConfig: false,
+    externalSource: null,
+    requiresAttribution: false,
+    hasSignals: true,
+    hasUploads: false,
     hasThread: false,
   },
   selection: {

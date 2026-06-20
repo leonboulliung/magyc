@@ -45,6 +45,7 @@ const AttachmentsRenderer = dynamic(() => import("./AttachmentsRenderer").then((
 const ImagesRenderer = dynamic(() => import("./ImagesRenderer").then((mod) => mod.ImagesRenderer), { loading: () => <LoadingPlaceholder type="images" /> });
 const MoodboardRenderer = dynamic(() => import("./MoodboardRenderer").then((mod) => mod.MoodboardRenderer), { loading: () => <LoadingPlaceholder type="moodboard" /> });
 const SelectionRenderer = dynamic(() => import("./SelectionRenderer").then((mod) => mod.SelectionRenderer), { loading: () => <LoadingPlaceholder type="selection" /> });
+const AgreementRenderer = dynamic(() => import("./AgreementRenderer").then((mod) => mod.AgreementRenderer), { loading: () => <LoadingPlaceholder type="agreement" /> });
 const AudioRenderer = dynamic(() => import("./AudioRenderer").then((mod) => mod.AudioRenderer), { loading: () => <LoadingPlaceholder type="audio" /> });
 const GifRenderer = dynamic(() => import("./GifRenderer").then((mod) => mod.GifRenderer), { loading: () => <LoadingPlaceholder type="gif" /> });
 const SketchRenderer = dynamic(() => import("./SketchRenderer").then((mod) => mod.SketchRenderer), { loading: () => <LoadingPlaceholder type="sketch" /> });
@@ -143,6 +144,8 @@ export function WidgetDispatcher({
       return <MoodboardRenderer module={m} index={index} state={s} />;
     case "selection":
       return <SelectionRenderer module={m} index={index} state={s} />;
+    case "agreement":
+      return <AgreementRenderer module={m} index={index} state={s} />;
     case "audio":
       return <AudioRenderer module={m} index={index} state={s} />;
 

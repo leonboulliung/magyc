@@ -17,14 +17,14 @@ export const dynamic = "force-dynamic";
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
   brief: "Planung",
-  production: "Auswahl",
-  handoff: "Abgeschlossen",
+  production: "Absegnung",
+  handoff: "Abschluss",
 };
 
 const STAGE_HELP: Record<ProjectStage, string> = {
   brief: "Moodboard, Shotlist, Team, Orte und Ablauf vorbereiten.",
-  production: "Medien auswählen, Feedback sammeln und Freigaben klären.",
-  handoff: "Fertige Projekte, Kundenseiten und Referenzen sammeln.",
+  production: "Plan und Konditionen mit dem Kunden verbindlich absegnen.",
+  handoff: "Abgeschlossene Projekte als Andenken und Referenz sammeln.",
 };
 
 function relTime(ts: number): string {

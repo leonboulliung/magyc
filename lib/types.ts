@@ -359,6 +359,28 @@ export interface SelectionWidget extends WidgetBase {
   placeholder?: string;
 }
 
+/**
+ * Agreement — the sign-off artifact for the "Absegnung" phase. The owner
+ * configures the parties (photographer/client) + the conditions/terms text;
+ * a collaborator (typically the client, via the share link) confirms with
+ * their name + a binding toggle, recorded in module_state as an append-only
+ * `add` { kind: "signoff", name, terms (snapshot), agreed } — so the agreed
+ * version is preserved with actor + server timestamp even if config later
+ * changes. NOT authored by the classifier; added in the Absegnung stage.
+ */
+export interface AgreementWidget extends WidgetBase {
+  type: "agreement";
+  /** Photographer / studio name. */
+  photographer?: string;
+  /** Client name (owner may pre-fill). */
+  client?: string;
+  /** One-line summary of what is being agreed. */
+  intro?: string;
+  /** Conditions / contract terms (free, multi-line). */
+  terms?: string;
+  placeholder?: string;
+}
+
 // ----- Specialty -----
 
 /**
@@ -443,6 +465,7 @@ export type Module =
   | ImagesWidget
   | MoodboardWidget
   | SelectionWidget
+  | AgreementWidget
   | AudioWidget
   | SketchWidget
   | TableWidget
@@ -483,6 +506,7 @@ export const ALL_MODULE_TYPES: readonly ModuleType[] = [
   "images",
   "moodboard",
   "selection",
+  "agreement",
   "audio",
   "sketch",
   "table",
