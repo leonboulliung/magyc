@@ -1,0 +1,94 @@
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { createHash } from "crypto";
+import { z } from "zod";
+import { supabaseAdmin } from "@/lib/supabase";
+import { parseBody } from "@/lib/api/validate";
+
+/**
+ * GET/PUT /api/projects/[id]/contract — the Absegnung contract record.
+ *
+ * GET  — owner always; a non-owner only when the space is shared (the client
+ *        with the link). Returns the contract row or null.
+ * PUT  — owner only. Freezes the reviewed draft into the contract (status
+ *        "sent", ready for signatures). Rejected once the contract is locked.
+ */
+
+function contentHash(payload: unknown): string {
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  const admin = supabaseAdmin();
+  const { data: space } = await admin
+    .from("spaces")
+    .select("id, owner_id, shared, title")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  const { userId } = await auth();
+  const isOwner = !!userId && userId === space.owner_id;
+  if (!isOwner && !space.shared) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const { data: contract } = await admin
+    .from("project_contracts")
+    .select("*")
+    .eq("space_id", params.id)
+    .maybeSingle();
+
+  return NextResponse.json({ contract: contract ?? null, isOwner, spaceTitle: space.title });
+}
+
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const admin = supabaseAdmin();
+  const { data: space } = await admin
+    .from("spaces")
+    .select("id, owner_id")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (space.owner_id !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+  const parsed = await parseBody(req, z.object({
+    parties: z.unknown(),
+    clauses: z.array(z.unknown()).max(20),
+    conditionsSnapshot: z.unknown().optional(),
+    draftMeta: z.unknown().optional(),
+  }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
+
+  // Don't overwrite a signed/locked contract.
+  const { data: existing } = await admin
+    .from("project_contracts")
+    .select("locked")
+    .eq("space_id", params.id)
+    .maybeSingle();
+  if (existing?.locked) return NextResponse.json({ error: "locked" }, { status: 409 });
+
+  const hash = contentHash({ parties: body.parties, clauses: body.clauses });
+  const { error } = await admin.from("project_contracts").upsert(
+    {
+      space_id: params.id,
+      parties: body.parties ?? {},
+      clauses: body.clauses ?? [],
+      conditions_snapshot: body.conditionsSnapshot ?? {},
+      draft_meta: body.draftMeta ?? null,
+      status: "sent",
+      content_hash: hash,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "space_id" },
+  );
+  if (error) {
+    console.error("[contract] save failed:", error.message);
+    return NextResponse.json({ error: "save_failed", detail: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
+}

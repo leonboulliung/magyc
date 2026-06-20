@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import { useUser } from "@clerk/nextjs";
 import { fetchSpaceById, fetchVersionModules, mapStateRow, type ModuleStateRow } from "@/lib/db";
@@ -591,6 +592,27 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
             </motion.div>
           </div>
         </header>
+
+        {/* Absegnung transition — a clear bridge from the planning environment
+            into the dedicated contract environment (which links back here). */}
+        {space.stage === "production" && (
+          <div className="relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-10">
+            <Link
+              href={`/s/${space.id}/vertrag`}
+              className="group flex items-center justify-between gap-4 rounded-2xl px-5 py-4 transition-colors"
+              style={{ border: "1px solid var(--v-rule)", background: "rgba(255,255,255,0.04)" }}
+            >
+              <span>
+                <span className="mono block text-[10px] uppercase tracking-[0.22em]" style={{ color: "var(--v-muted)" }}>Absegnung</span>
+                <span className="mt-1 block text-[15px] font-medium" style={{ color: "var(--v-fg)" }}>Dieser Plan ist bereit zur Absegnung</span>
+                <span className="mt-0.5 block text-[13px]" style={{ color: "var(--v-muted)" }}>Aus dem Plan + deinen Konditionen wird ein Vertrag — prüfen, freigeben, unterschreiben.</span>
+              </span>
+              <span className="mono shrink-0 rounded-full px-4 py-2 text-[12px] tracking-widest transition-transform group-hover:translate-x-0.5" style={{ background: "var(--v-fg)", color: "var(--v-bg)" }}>
+                Zum Vertrag →
+              </span>
+            </Link>
+          </div>
+        )}
 
         {/* Historical banner. */}
         {isHistorical && (
