@@ -1,6 +1,6 @@
 # magyc.site — Data Contract
 
-**Version:** 1.6.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
+**Version:** 1.5.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
 
 This document is the stable interface of a space. The **presentation
 layer** (renderers, animations, the style system, the grid) may change
@@ -119,11 +119,6 @@ widget may carry optional `microTitle`, `description`, `attribution`.
   owner `upload`s; collaborators select via `check` (itemKey = upload id) and
   comment via `voice` (parentId = upload id). Added in the Auswahl stage, not
   authored by the classifier.
-- `agreement` — `{ photographer?, client?, intro?, terms?, placeholder? }` —
-  the Absegnung sign-off. Owner configures parties + conditions; a collaborator
-  confirms via an append-only `add` `{ kind: "signoff", name, agreed, terms }`
-  (terms is a snapshot; actor + server timestamp come from the row). Auto-seeded
-  on the Absegnung stage; not authored by the classifier.
 
 ### Specialty
 - `sketch` — `{ placeholder? }`

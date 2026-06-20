@@ -65,25 +65,8 @@ export async function PATCH(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Entering the Absegnung stage seeds an agreement (sign-off) widget once,
-  // so the phase has real behaviour: parties + conditions + a binding,
-  // documented client approval. (Replaces the retired selection seed.)
-  if (update.stage === "production") {
-    const modules = Array.isArray(space.modules) ? space.modules : [];
-    const hasAgreement = modules.some(
-      (mod) => mod && typeof mod === "object" && (mod as { type?: unknown }).type === "agreement",
-    );
-    if (!hasAgreement) {
-      update.modules = [
-        ...modules,
-        {
-          type: "agreement",
-          microTitle: "Absegnung",
-          description: "Plan und Konditionen verbindlich mit dem Kunden absegnen.",
-        },
-      ];
-    }
-  }
+  // The Absegnung stage no longer seeds a grid widget — the sign-off lives on
+  // a dedicated contract page (see docs/CONTRACT_PHASE.md), built separately.
 
   const { data: updated, error } = await admin
     .from("spaces")

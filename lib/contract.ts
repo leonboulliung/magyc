@@ -20,7 +20,7 @@ import type { ModuleStateKind, ModuleType } from "./types";
 /** Bump on any breaking change to a module data shape, the state
  *  vocabulary, or the space shape. Minor (additive, back-compatible)
  *  changes bump the minor; breaking changes bump the major. */
-export const CONTRACT_VERSION = "1.6.0";
+export const CONTRACT_VERSION = "1.5.0";
 
 /**
  * The frozen set of widget types. Order is the canonical order.
@@ -42,7 +42,7 @@ export const CONTRACT_MODULE_TYPES = [
   // Visualisation
   "phases", "checklist",
   // Uploads
-  "attachments", "images", "moodboard", "selection", "agreement", "audio",
+  "attachments", "images", "moodboard", "selection", "audio",
   // Specialty
   "sketch", "table", "shot_list", "parts_list", "gif",
 ] as const satisfies readonly ModuleType[];
