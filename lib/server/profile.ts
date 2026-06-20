@@ -9,11 +9,15 @@ import { colorForId } from "@/lib/palette";
  */
 export async function ensureProfile(userId: string): Promise<void> {
   const admin = supabaseAdmin();
-  const { data: existing } = await admin
+  const { data: existing, error: fetchErr } = await admin
     .from("profiles")
     .select("id")
     .eq("id", userId)
     .maybeSingle();
+  if (fetchErr) {
+    console.error("[profile] ensure fetch failed:", fetchErr.message);
+    throw new Error("profile_fetch_failed");
+  }
   if (existing) return;
 
   let displayName = "";
@@ -36,7 +40,7 @@ export async function ensureProfile(userId: string): Promise<void> {
   // something to render and each person keeps the same accent forever.
   const color = colorForId(userId);
 
-  await admin.from("profiles").upsert(
+  const { error: upsertErr } = await admin.from("profiles").upsert(
     {
       id: userId,
       display_name: displayName,
@@ -45,4 +49,8 @@ export async function ensureProfile(userId: string): Promise<void> {
     },
     { onConflict: "id" },
   );
+  if (upsertErr) {
+    console.error("[profile] ensure upsert failed:", upsertErr.message);
+    throw new Error("profile_upsert_failed");
+  }
 }

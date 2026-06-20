@@ -18,6 +18,12 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "delete_failed") return "Das Projekt konnte gerade nicht geloescht werden.";
   if (raw === "update_failed") return "Die Aenderung konnte gerade nicht gespeichert werden.";
   if (raw === "presets_failed") return "Die Presets konnten gerade nicht gespeichert werden.";
+  if (raw === "upload_failed") return "Der Upload konnte gerade nicht vorbereitet werden.";
+  if (raw === "upload_state_failed") return "Die Datei wurde nicht vollstaendig im Projekt gespeichert. Bitte erneut versuchen.";
+  if (raw === "module_out_of_range") return "Dieses Element existiert nicht mehr. Bitte die Seite neu laden.";
+  if (raw === "state_cleanup_failed" || raw === "state_check_failed") {
+    return "Die Aenderung konnte nicht konsistent gespeichert werden. Bitte erneut versuchen.";
+  }
   if (raw === "bad_stage") return "Diese Projektphase ist nicht gueltig.";
   if (raw === "nothing_to_update") return "Es gab keine Aenderung zum Speichern.";
   if (raw === "owner_token_required" || raw === "owner_token_mismatch") {

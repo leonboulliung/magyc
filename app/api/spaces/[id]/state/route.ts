@@ -136,7 +136,7 @@ export async function POST(
   if (kind === "vote") {
     const option = typeof data.option === "string" ? (data.option as string).trim().slice(0, 80) : "";
     // Always delete any prior vote for this actor+module.
-    await admin
+    const { error: deleteErr } = await admin
       .from("module_state")
       .delete()
       .eq("space_id", params.id)
@@ -144,6 +144,10 @@ export async function POST(
       .eq("kind", "vote")
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId);
+    if (deleteErr) {
+      console.error("[state] vote cleanup failed:", deleteErr.message);
+      return NextResponse.json({ error: "state_cleanup_failed" }, { status: 500 });
+    }
     // Empty option = toggle off (just delete).
     if (!option) return NextResponse.json({ ok: true });
     const { error } = await admin.from("module_state").insert({
@@ -171,7 +175,7 @@ export async function POST(
     const checked = !!data.checked;
 
     // Delete prior check for this (actor, item).
-    await admin
+    const { error: deleteErr } = await admin
       .from("module_state")
       .delete()
       .eq("space_id", params.id)
@@ -180,6 +184,10 @@ export async function POST(
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId)
       .filter("data->>itemKey", "eq", itemKey);
+    if (deleteErr) {
+      console.error("[state] check cleanup failed:", deleteErr.message);
+      return NextResponse.json({ error: "state_cleanup_failed" }, { status: 500 });
+    }
 
     if (checked) {
       const { error } = await admin.from("module_state").insert({
@@ -204,7 +212,7 @@ export async function POST(
     const claiming = data.claimed !== false; // default true; false = unclaim
 
     // Delete existing claim for this (actor, slot).
-    await admin
+    const { error: deleteErr } = await admin
       .from("module_state")
       .delete()
       .eq("space_id", params.id)
@@ -213,17 +221,25 @@ export async function POST(
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId)
       .filter("data->>slotLabel", "eq", slotLabel);
+    if (deleteErr) {
+      console.error("[state] claim cleanup failed:", deleteErr.message);
+      return NextResponse.json({ error: "state_cleanup_failed" }, { status: 500 });
+    }
 
     if (!claiming) return NextResponse.json({ ok: true }); // unclaim = just delete
 
     // Check if another actor already holds this slot.
-    const { data: holders } = await admin
+    const { data: holders, error: holdersErr } = await admin
       .from("module_state")
       .select("actor_kind, actor_id")
       .eq("space_id", params.id)
       .eq("module_index", moduleIndex)
       .eq("kind", "claim")
       .filter("data->>slotLabel", "eq", slotLabel);
+    if (holdersErr) {
+      console.error("[state] claim holder check failed:", holdersErr.message);
+      return NextResponse.json({ error: "state_check_failed" }, { status: 500 });
+    }
     const takenByOther = (holders || []).some(
       (h) => !(h.actor_kind === actorKind && h.actor_id === actorId),
     );

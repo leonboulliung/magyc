@@ -40,6 +40,7 @@ const DEMO_MODULES: Module[] = [
     { label: "Warme Hauttöne", note: "Editorial, aber nicht orange.", status: "reference" },
     { label: "Keine Stock-Ästhetik", note: "Nichts zu glatt oder generisch.", status: "avoid" },
   ] },
+  { type: "selection", microTitle: "Auswahl", placeholder: "Finale Bildauswahl hochladen…" },
   { type: "shot_list", microTitle: "Shotlist", description: "Motive, Prioritäten und Produktionsstatus.", shots: [
     { label: "Hero-Porträt", purpose: "Website", setup: "Fensterlicht", location: "Studio", priority: "must", status: "planned" },
     { label: "Detail Hände / Prozess", purpose: "Social", setup: "Arbeitstisch", priority: "should", status: "captured" },

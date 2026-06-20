@@ -1,4 +1,4 @@
-import { bodyTypes } from "@/lib/modules";
+import { bodyTypes, sanitizeModule } from "@/lib/modules";
 import type { Module, ModuleType } from "@/lib/types";
 
 export type StudioPreset = {
@@ -78,28 +78,59 @@ export function createStudioPreset(): StudioPreset {
   };
 }
 
+function cleanPresetId(raw: unknown, fallbackIndex: number): string {
+  const source = typeof raw === "string" ? raw : `preset-${fallbackIndex}`;
+  const cleaned = source
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+  return cleaned || `preset-${fallbackIndex}`;
+}
+
+function uniquePresetIds(presets: StudioPreset[]): StudioPreset[] {
+  const seen = new Set<string>();
+  return presets.map((preset, index) => {
+    const base = cleanPresetId(preset.id, index);
+    let id = base;
+    let suffix = 2;
+    while (seen.has(id)) {
+      id = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    seen.add(id);
+    return id === preset.id ? preset : { ...preset, id };
+  });
+}
+
 export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
   if (!Array.isArray(raw)) return null;
   const parsed = raw
-    .map((item) => {
+    .map((item, index) => {
       const candidate = item as Partial<StudioPreset>;
       const modules = Array.isArray(candidate.modules)
-        ? candidate.modules.filter((module): module is Module =>
-            !!module && typeof module === "object" && PRESET_ELEMENT_TYPE_SET.has((module as Module).type),
-          )
+        ? candidate.modules
+            .map(sanitizeModule)
+            .filter((module): module is Module => !!module && PRESET_ELEMENT_TYPE_SET.has(module.type))
         : [];
-      if (!candidate.id || !candidate.name) return null;
+      const id = cleanPresetId(candidate.id, index);
+      const name = typeof candidate.name === "string"
+        ? candidate.name.replace(/\s+/g, " ").trim().slice(0, 120)
+        : "";
       return {
-        id: String(candidate.id),
-        name: String(candidate.name),
-        description: typeof candidate.description === "string" ? candidate.description : "",
+        id,
+        name: name || "Unbenanntes Preset",
+        description: typeof candidate.description === "string" ? candidate.description.slice(0, 500) : "",
         modules,
         promptInjections: Array.isArray(candidate.promptInjections)
-          ? candidate.promptInjections.filter((prompt): prompt is string => typeof prompt === "string")
+          ? candidate.promptInjections
+              .filter((prompt): prompt is string => typeof prompt === "string")
+              .map((prompt) => prompt.slice(0, 500))
           : [""],
         allowContextModules: candidate.allowContextModules !== false,
       };
     })
     .filter(Boolean) as StudioPreset[];
-  return parsed;
+  return uniquePresetIds(parsed);
 }

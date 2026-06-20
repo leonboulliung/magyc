@@ -23,7 +23,7 @@ import { newId } from "@/lib/id";
  * Constraints:
  *   - Max file size: 50 MB
  *   - Allowed MIME types: images, audio, PDF, Office docs, text
- *   - Rate: one upload per 2s per actor
+ *   - Rate: token bucket per actor/space for reliable multi-file drops
  *
  * The "space_assets" bucket must be created in your Supabase project
  * with public access (or RLS policy matching your auth setup). If the
@@ -145,12 +145,19 @@ export async function POST(
   }
 
   // Verify space exists.
-  const { data: space } = await admin
+  const { data: space, error: spaceErr } = await admin
     .from("spaces")
     .select("id, anon_owner_token, modules, stage, shared, owner_id")
     .eq("id", params.id)
     .maybeSingle();
+  if (spaceErr) {
+    console.error("[upload] space fetch failed:", spaceErr.message);
+    return NextResponse.json({ error: "upload_failed" }, { status: 500 });
+  }
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!Array.isArray(space.modules) || moduleIndex >= space.modules.length) {
+    return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
+  }
   // Private suite project (stage set, not shared): only the owner may
   // upload. Once shared, anyone with the link can, as today.
   if (space.stage && !space.shared && (actorKind !== "user" || actorId !== space.owner_id)) {
@@ -194,8 +201,10 @@ export async function POST(
     },
   });
   if (stateErr) {
-    // Non-fatal: file is stored, just the state record failed.
-    return NextResponse.json({ ok: true, url, name: file.name, size: file.size, mimeType: file.type, stateError: stateErr.message });
+    console.error("[upload] state insert failed:", stateErr.message);
+    const { error: removeErr } = await admin.storage.from("space_assets").remove([path]);
+    if (removeErr) console.error("[upload] orphan cleanup failed:", removeErr.message);
+    return NextResponse.json({ error: "upload_state_failed", detail: stateErr.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, url, name: file.name, size: file.size, mimeType: file.type });

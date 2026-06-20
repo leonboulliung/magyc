@@ -69,10 +69,18 @@ export async function PUT(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const { error } = await admin.from("profiles").update(update).eq("id", userId);
+  const { data: updated, error } = await admin
+    .from("profiles")
+    .update(update)
+    .eq("id", userId)
+    .select("id");
   if (error) {
     console.error("[studio-profile] update failed:", error.message);
     return NextResponse.json({ error: "save_failed", detail: error.message }, { status: 500 });
+  }
+  if (!updated || updated.length === 0) {
+    console.error("[studio-profile] update matched no rows:", userId);
+    return NextResponse.json({ error: "save_failed" }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }
