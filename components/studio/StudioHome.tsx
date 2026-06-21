@@ -167,19 +167,9 @@ export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
             </div>
           ) : undefined}
           footer={
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={create}
-                disabled={busy}
-                className="rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-50"
-              >
-                {busy ? "Wird erstellt …" : "Projekt erstellen"}
-              </button>
-              <Link href="/studio/new" className="mono text-[11px] uppercase tracking-widest text-white/45 transition-colors hover:text-white/80">
-                Mehr Optionen
-              </Link>
-            </div>
+            <Link href="/studio/new" className="mono text-[11px] uppercase tracking-widest text-white/45 transition-colors hover:text-white/80">
+              Mehr Optionen
+            </Link>
           }
         />
       </div>
@@ -210,7 +200,7 @@ export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
               <div key={p.id} className="group relative">
                 <Link
                   href={`/studio/${p.id}`}
-                  className="block h-44 overflow-hidden rounded-2xl border border-white/10 transition-transform hover:-translate-y-0.5"
+                  className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-white/10 transition-transform hover:-translate-y-0.5"
                 >
                   <MoodGradient seed={p.id} className="absolute inset-0 transition-transform duration-500 group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />

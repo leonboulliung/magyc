@@ -66,12 +66,27 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
         className="w-full resize-none border-0 bg-transparent text-[18px] leading-relaxed text-white outline-none placeholder:text-white/32 sm:text-[21px]"
       />
 
-      {(chips || value.length > 0) && (
+      {(chips || value.length > 0 || onSubmit) && (
         <div className="mt-3 flex items-end justify-between gap-3">
           <div className="min-w-0 flex-1">{chips}</div>
-          <span className="mono shrink-0 text-[10px] tracking-widest tabular-nums opacity-40">
-            {value.length > 0 ? `${value.length}/${maxLength}` : ""}
-          </span>
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="mono text-[10px] tracking-widest tabular-nums opacity-40">
+              {value.length > 0 ? `${value.length}/${maxLength}` : ""}
+            </span>
+            {onSubmit && (
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={disabled}
+                aria-label="Senden"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-white/85 disabled:opacity-40"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path d="M8 13V3.5M8 3.5 4 7.5M8 3.5l4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       )}
 

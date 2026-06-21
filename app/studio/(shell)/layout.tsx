@@ -28,8 +28,8 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
         className="sticky top-0 z-30 border-b border-white/8 backdrop-blur-md"
         style={{ background: "rgba(15,16,18,0.8)" }}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-5 py-3 sm:px-8">
-          <div className="flex min-w-0 items-center gap-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-6 sm:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-6">
             <Link href="/studio" aria-label="MAGYC" className="flex shrink-0 items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/magyc-logo.png" alt="MAGYC" className="h-[16px] w-auto" style={{ filter: "invert(1) brightness(2)" }} />

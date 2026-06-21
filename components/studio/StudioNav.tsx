@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation";
 const ITEMS = [
   { href: "/studio", label: "Studio" },
   { href: "/studio/presets", label: "Presets" },
+  { href: "/studio/fast-prompts", label: "Fast-Prompts" },
+  { href: "/studio/vertragsinhalte", label: "Vertragsinhalte" },
+  { href: "/studio/konnektoren", label: "Konnektoren" },
   { href: "/studio/users", label: "Nutzer" },
   { href: "/studio/profile", label: "Profil" },
   { href: "/studio/settings", label: "Einstellungen" },
@@ -14,7 +17,7 @@ const ITEMS = [
 export function StudioNav() {
   const pathname = usePathname();
   return (
-    <nav className="flex items-center gap-1 overflow-x-auto">
+    <nav className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
       {ITEMS.map((item) => {
         const active = item.href === "/studio" ? pathname === "/studio" : pathname.startsWith(item.href);
         return (
