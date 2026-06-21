@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { PromptComposer } from "@/components/PromptComposer";
 import { MoodGradient } from "@/components/MoodGradient";
+import { ProjectCardActions } from "@/components/studio/ProjectCardActions";
 import {
   readApiJson,
   showActionError,
@@ -24,6 +25,7 @@ export interface StudioProjectCard {
   title: string;
   stage: "brief" | "production" | "handoff" | null;
   createdAt: number;
+  shared: boolean;
 }
 
 const STAGE_LABEL: Record<"brief" | "production" | "handoff", string> = {
@@ -205,23 +207,27 @@ export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((p) => (
-              <Link
-                key={p.id}
-                href={`/studio/${p.id}`}
-                className="group relative block h-44 overflow-hidden rounded-2xl border border-white/10 transition-transform hover:-translate-y-0.5"
-              >
-                <MoodGradient seed={p.id} className="absolute inset-0 transition-transform duration-500 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-                <div className="relative flex h-full flex-col justify-end p-4">
-                  <span className="mono text-[10px] uppercase tracking-widest text-white/70">
-                    {p.stage ? STAGE_LABEL[p.stage] : "Projekt"}
-                  </span>
-                  <span className="mt-1 line-clamp-2 text-[16px] font-medium leading-snug text-white">
-                    {p.title || "Unbenanntes Projekt"}
-                  </span>
-                  <span className="mt-1 text-[12px] text-white/55">{relTime(p.createdAt)}</span>
+              <div key={p.id} className="group relative">
+                <Link
+                  href={`/studio/${p.id}`}
+                  className="block h-44 overflow-hidden rounded-2xl border border-white/10 transition-transform hover:-translate-y-0.5"
+                >
+                  <MoodGradient seed={p.id} className="absolute inset-0 transition-transform duration-500 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+                  <div className="relative flex h-full flex-col justify-end p-4">
+                    <span className="mono text-[10px] uppercase tracking-widest text-white/70">
+                      {p.stage ? STAGE_LABEL[p.stage] : "Projekt"}
+                    </span>
+                    <span className="mt-1 line-clamp-2 text-[16px] font-medium leading-snug text-white">
+                      {p.title || "Unbenanntes Projekt"}
+                    </span>
+                    <span className="mt-1 text-[12px] text-white/55">{relTime(p.createdAt)}</span>
+                  </div>
+                </Link>
+                <div className="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                  <ProjectCardActions id={p.id} shared={p.shared} />
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
