@@ -1,14 +1,24 @@
+import { auth } from "@clerk/nextjs/server";
+import { fetchSpacesByOwner } from "@/lib/db";
+import { ensureProfile } from "@/lib/server/profile";
+import { StudioHome, type StudioProjectCard } from "@/components/studio/StudioHome";
+
+// Projects are mutable; never serve a stale dashboard from the data cache.
+export const dynamic = "force-dynamic";
+
 /**
- * Studio dashboard — placeholder during the account-area UI rebuild.
- * Function/data (projects, APIs) untouched; the surface is being redesigned.
+ * Studio home — prompt-first. The create field is the centre; active projects
+ * render below as mood-gradient cards. (New account-area UI.)
  */
-export default function StudioDashboard() {
-  return (
-    <main className="flex min-h-[60vh] items-center justify-center p-10 text-center">
-      <div>
-        <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/40">Studio · Projekte</p>
-        <p className="mt-3 text-[15px] text-white/50">Dieser Bereich wird neu aufgebaut.</p>
-      </div>
-    </main>
-  );
+export default async function StudioDashboard() {
+  const { userId } = await auth();
+  if (!userId) return null; // middleware guards this; defensive.
+
+  await ensureProfile(userId);
+  const all = (await fetchSpacesByOwner(userId).catch(() => [])).filter((s) => s.stage !== null);
+  const projects: StudioProjectCard[] = all
+    .filter((p) => !p.deletedAt && !p.archivedAt)
+    .map((p) => ({ id: p.id, title: p.title, stage: p.stage, createdAt: p.createdAt }));
+
+  return <StudioHome projects={projects} />;
 }
