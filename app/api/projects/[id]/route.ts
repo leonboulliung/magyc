@@ -65,6 +65,25 @@ export async function PATCH(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  // Signed projects can be archived but never trashed — the agreement is a
+  // record. Block a delete when a locked (signed) contract exists.
+  if (parsed.data.deleted === true) {
+    const { data: contract } = await admin
+      .from("project_contracts")
+      .select("locked")
+      .eq("space_id", params.id)
+      .maybeSingle();
+    if (contract?.locked) {
+      return NextResponse.json({ error: "contract_signed" }, { status: 409 });
+    }
+  }
+
+  // Completed projects auto-archive (they leave the active list, stay findable
+  // in the archive).
+  if (update.stage === "handoff" && update.archived_at === undefined && update.deleted_at === undefined) {
+    update.archived_at = new Date().toISOString();
+  }
+
   // The Absegnung stage no longer seeds a grid widget — the sign-off lives on
   // a dedicated contract page (see docs/CONTRACT_PHASE.md), built separately.
 

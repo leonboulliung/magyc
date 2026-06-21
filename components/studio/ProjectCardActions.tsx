@@ -15,7 +15,15 @@ import {
  * Duplizieren, Archivieren, Löschen. Rendered as a sibling of the card link
  * so its clicks don't navigate. Wired to the existing project APIs.
  */
-export function ProjectCardActions({ id, shared }: { id: string; shared: boolean }) {
+export function ProjectCardActions({
+  id,
+  shared,
+  context = "active",
+}: {
+  id: string;
+  shared: boolean;
+  context?: "active" | "archived" | "deleted";
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -31,9 +39,14 @@ export function ProjectCardActions({ id, shared }: { id: string; shared: boolean
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      const json = await readApiJson(res);
-      if (!res.ok) { showActionError(fail, { description: "Bitte erneut versuchen." }); return; }
-      void json;
+      const json = await readApiJson(res) as { error?: string };
+      if (!res.ok) {
+        const msg = json.error === "contract_signed"
+          ? "Unterschriebene Projekte können nur archiviert werden."
+          : "Bitte erneut versuchen.";
+        showActionError(fail, { description: msg });
+        return;
+      }
       showActionSuccess(ok);
       router.refresh();
     } catch (e) { showUnknownError(fail, e); }
@@ -81,11 +94,24 @@ export function ProjectCardActions({ id, shared }: { id: string; shared: boolean
             className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl border border-white/12 py-1 shadow-2xl"
             style={{ background: "#16181b" }}
           >
-            <button type="button" disabled={busy} className={itemClass} onClick={() => { setOpen(false); setShareOpen(true); }}>Teilen …</button>
-            <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>Duplizieren</button>
-            <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: true }, "Archiviert", "Nicht archiviert")}>Archivieren</button>
-            <div className="my-1 h-px bg-white/10" />
-            <button type="button" disabled={busy} className={`${itemClass} hover:!text-red-300`} onClick={remove}>Löschen</button>
+            {context === "deleted" ? (
+              <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ deleted: false }, "Wiederhergestellt", "Nicht wiederhergestellt")}>Wiederherstellen</button>
+            ) : context === "archived" ? (
+              <>
+                <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: false }, "Wiederhergestellt", "Nicht wiederhergestellt")}>Wiederherstellen</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>Duplizieren</button>
+                <div className="my-1 h-px bg-white/10" />
+                <button type="button" disabled={busy} className={`${itemClass} hover:!text-red-300`} onClick={remove}>Löschen</button>
+              </>
+            ) : (
+              <>
+                <button type="button" disabled={busy} className={itemClass} onClick={() => { setOpen(false); setShareOpen(true); }}>Teilen …</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>Duplizieren</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: true }, "Archiviert", "Nicht archiviert")}>Archivieren</button>
+                <div className="my-1 h-px bg-white/10" />
+                <button type="button" disabled={busy} className={`${itemClass} hover:!text-red-300`} onClick={remove}>Löschen</button>
+              </>
+            )}
           </div>
         </>
       )}

@@ -45,7 +45,15 @@ function relTime(ts: number): string {
   return months === 1 ? "vor 1 Monat" : `vor ${months} Monaten`;
 }
 
-export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
+export function StudioHome({
+  projects,
+  archived = [],
+  deleted = [],
+}: {
+  projects: StudioProjectCard[];
+  archived?: StudioProjectCard[];
+  deleted?: StudioProjectCard[];
+}) {
   const router = useRouter();
   const { user } = useUser();
   const [prompt, setPrompt] = useState("");
@@ -53,6 +61,7 @@ export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState("none");
   const [fastPrompts, setFastPrompts] = useState<string[]>([]);
+  const [fpOpen, setFpOpen] = useState(false);
 
   const usablePresets = useMemo(() => presets.filter((p) => p.modules.length > 0), [presets]);
   const selectedPreset = usablePresets.find((p) => p.id === presetId) || null;
@@ -131,7 +140,8 @@ export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
         {greetingName ? `Was planen wir, ${greetingName}?` : "Was planen wir?"}
       </h1>
       <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-white/55">
-        Beschreib dein Shooting in einem Satz. MAGYC baut daraus den Plan — du musst nichts ausfüllen.
+        Beschreib dein Shooting in einem Satz. MAGYC macht aus deiner Idee einen klaren,
+        greifbaren Plan — den Rest schärfst du gemeinsam.
       </p>
 
       <div className="mt-7">
@@ -150,28 +160,44 @@ export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
               ))}
             </div>
           }
-          chips={fastPrompts.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {fastPrompts.map((fp, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setPrompt((p) => (p.trim() ? `${p.trimEnd()}\n${fp}` : fp))}
-                  title={fp}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.03] px-3 py-1.5 text-[12.5px] text-white/65 transition-colors hover:border-white/30 hover:text-white"
-                >
-                  <span className="mono text-[11px] opacity-50">⌁</span>
-                  <span className="max-w-[240px] truncate">{fp}</span>
-                </button>
-              ))}
-            </div>
-          ) : undefined}
           footer={
             <Link href="/studio/new" className="mono text-[11px] uppercase tracking-widest text-white/45 transition-colors hover:text-white/80">
               Mehr Optionen
             </Link>
           }
         />
+
+        {/* Fast-Prompts — collapsible so many snippets stay fully readable
+            without crowding the field. Click to drop into the prompt. */}
+        {fastPrompts.length > 0 && (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+            <button
+              type="button"
+              onClick={() => setFpOpen((o) => !o)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+            >
+              <span className="mono text-[11px] uppercase tracking-widest text-white/50">
+                Schnellbausteine <span className="text-white/30">({fastPrompts.length})</span>
+              </span>
+              <span className="text-white/40 transition-transform" style={{ transform: fpOpen ? "rotate(180deg)" : "none" }}>⌄</span>
+            </button>
+            {fpOpen && (
+              <div className="max-h-72 overflow-y-auto border-t border-white/10">
+                {fastPrompts.map((fp, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setPrompt((p) => (p.trim() ? `${p.trimEnd()}\n${fp}` : fp))}
+                    className="flex w-full items-start gap-2.5 border-b border-white/[0.06] px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-white/[0.04]"
+                  >
+                    <span className="mono mt-0.5 text-[12px] leading-none text-white/30">⌁</span>
+                    <span className="text-[13.5px] leading-snug text-white/75">{fp}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Projects */}
@@ -196,32 +222,81 @@ export function StudioHome({ projects }: { projects: StudioProjectCard[] }) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p) => (
-              <div key={p.id} className="group relative">
-                <Link
-                  href={`/studio/${p.id}`}
-                  className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-white/10 transition-transform hover:-translate-y-0.5"
-                >
-                  <MoodGradient seed={p.id} className="absolute inset-0 transition-transform duration-500 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-                  <div className="relative flex h-full flex-col justify-end p-4">
-                    <span className="mono text-[10px] uppercase tracking-widest text-white/70">
-                      {p.stage ? STAGE_LABEL[p.stage] : "Projekt"}
-                    </span>
-                    <span className="mt-1 line-clamp-2 text-[16px] font-medium leading-snug text-white">
-                      {p.title || "Unbenanntes Projekt"}
-                    </span>
-                    <span className="mt-1 text-[12px] text-white/55">{relTime(p.createdAt)}</span>
-                  </div>
-                </Link>
-                <div className="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                  <ProjectCardActions id={p.id} shared={p.shared} />
-                </div>
-              </div>
-            ))}
+            {projects.map((p) => <ProjectCard key={p.id} p={p} context="active" />)}
           </div>
         )}
+
+        {/* Archive + trash — collapsible so they never crowd the active work. */}
+        {archived.length > 0 && (
+          <Accordion title="Archiviert" count={archived.length} items={archived} context="archived" />
+        )}
+        {deleted.length > 0 && (
+          <Accordion title="Papierkorb" count={deleted.length} items={deleted} context="deleted" note="30 Tage wiederherstellbar" />
+        )}
       </div>
+    </div>
+  );
+}
+
+function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" | "archived" | "deleted" }) {
+  const dim = context !== "active";
+  return (
+    <div className={`group relative ${dim ? "opacity-75" : ""}`}>
+      <Link
+        href={`/studio/${p.id}`}
+        className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-white/10 transition-transform hover:-translate-y-0.5"
+      >
+        <MoodGradient seed={p.id} className={`absolute inset-0 transition-transform duration-500 group-hover:scale-105 ${dim ? "saturate-[0.6]" : ""}`} />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+        <div className="relative flex h-full flex-col justify-end p-4">
+          <span className="mono text-[10px] uppercase tracking-widest text-white/70">
+            {p.stage ? STAGE_LABEL[p.stage] : "Projekt"}
+          </span>
+          <span className="mt-1 line-clamp-2 text-[16px] font-medium leading-snug text-white">
+            {p.title || "Unbenanntes Projekt"}
+          </span>
+          <span className="mt-1 text-[12px] text-white/55">{relTime(p.createdAt)}</span>
+        </div>
+      </Link>
+      <div className="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+        <ProjectCardActions id={p.id} shared={p.shared} context={context} />
+      </div>
+    </div>
+  );
+}
+
+function Accordion({
+  title,
+  count,
+  note,
+  items,
+  context,
+}: {
+  title: string;
+  count: number;
+  note?: string;
+  items: StudioProjectCard[];
+  context: "archived" | "deleted";
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+      >
+        <span className="mono text-[11px] uppercase tracking-widest text-white/50">
+          {title} <span className="text-white/30">({count})</span>
+          {note && <span className="ml-2 normal-case tracking-normal text-white/25">· {note}</span>}
+        </span>
+        <span className="text-white/40 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+      </button>
+      {open && (
+        <div className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((p) => <ProjectCard key={p.id} p={p} context={context} />)}
+        </div>
+      )}
     </div>
   );
 }

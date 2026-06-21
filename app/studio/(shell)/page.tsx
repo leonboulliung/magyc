@@ -16,9 +16,13 @@ export default async function StudioDashboard() {
 
   await ensureProfile(userId);
   const all = (await fetchSpacesByOwner(userId).catch(() => [])).filter((s) => s.stage !== null);
-  const projects: StudioProjectCard[] = all
-    .filter((p) => !p.deletedAt && !p.archivedAt)
-    .map((p) => ({ id: p.id, title: p.title, stage: p.stage, createdAt: p.createdAt, shared: !!p.shared }));
+  const now = Date.now();
+  const card = (p: (typeof all)[number]): StudioProjectCard =>
+    ({ id: p.id, title: p.title, stage: p.stage, createdAt: p.createdAt, shared: !!p.shared });
 
-  return <StudioHome projects={projects} />;
+  const projects = all.filter((p) => !p.deletedAt && !p.archivedAt).map(card);
+  const archived = all.filter((p) => p.archivedAt && !p.deletedAt).map(card);
+  const deleted = all.filter((p) => p.deletedAt && now - p.deletedAt <= 30 * 86_400_000).map(card);
+
+  return <StudioHome projects={projects} archived={archived} deleted={deleted} />;
 }
