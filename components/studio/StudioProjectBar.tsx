@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShareDialog } from "@/components/studio/ShareDialog";
+import { Dialog } from "@/components/ui/Dialog";
 import {
   readApiJson,
   showActionLoading,
@@ -41,6 +42,18 @@ export function StudioProjectBar({
   const [current, setCurrent] = useState<ProjectStage>(stage ?? "brief");
   const [busy, setBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Moving into Absegnung locks the project page for good. Gate that one
+  // transition behind a confirmation; every other transition applies at once.
+  function requestStage(next: ProjectStage) {
+    if (next === current || busy) return;
+    if (next === "production") {
+      setConfirmOpen(true);
+      return;
+    }
+    void setStage(next);
+  }
 
   async function setStage(next: ProjectStage) {
     if (next === current || busy) return;
@@ -94,7 +107,7 @@ export function StudioProjectBar({
             <button
               key={s.id}
               type="button"
-              onClick={() => setStage(s.id)}
+              onClick={() => requestStage(s.id)}
               disabled={busy}
               className={`mono rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest transition-colors disabled:opacity-60 ${
                 active ? "bg-white text-black" : "text-white/55 hover:text-white"
@@ -122,6 +135,38 @@ export function StudioProjectBar({
       )}
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen} title="In die Absegnung verschieben" maxWidth={420}>
+        <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#16181b] text-left shadow-2xl">
+          <div className="space-y-3 p-5">
+            <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">Plan wird gesperrt</div>
+            <h2 className="text-[17px] font-semibold text-white">In die Absegnung verschieben?</h2>
+            <p className="text-[13px] leading-relaxed text-white/65">
+              Danach ist die Projektseite gesperrt — am Plan sind keine Änderungen
+              mehr möglich. Du arbeitest ab dann am Vertragsentwurf und gibst ihn
+              selbst zur Unterschrift frei.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-2 border-t border-white/10 bg-black/30 px-5 py-3.5">
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(false)}
+              disabled={busy}
+              className="rounded-full px-4 py-2 text-[13px] text-white/65 transition-colors hover:text-white disabled:opacity-50"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              onClick={() => { setConfirmOpen(false); void setStage("production"); }}
+              disabled={busy}
+              className="rounded-full bg-white px-4 py-2 text-[13px] font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              Sperren & fortfahren
+            </button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

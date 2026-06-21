@@ -321,6 +321,10 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
   const act = useCallback(
     async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
       if (!space?.id) return false;
+      if (space.stage === "production" || space.stage === "handoff") {
+        showActionError("Projekt in Absegnung", { description: "Die Projektseite ist gesperrt — Änderungen sind nicht mehr möglich." });
+        return false;
+      }
       const snapshot = liveStateRef.current;
       const entry = makeOptimisticEntry(space.id, moduleIndex, kind, data, {
         kind: user ? "user" : "anon",
@@ -447,10 +451,14 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
     space.versions.length > 0 &&
     currentVersionNumber < space.versions[space.versions.length - 1].version;
 
+  // Once a project leaves the Planung stage it is locked: the plan is frozen
+  // (it becomes the contract), so the page is read-only for everyone.
+  const locked = space.stage === "production" || space.stage === "handoff";
+  const editable = isOwner && !locked;
+
   // The floating top-right pill should only appear when it actually holds a
-  // control — otherwise non-owners saw a lonely empty dot. Style edit and
-  // publish are owner-only; the back-to-current button is historical-only.
-  const showTopControls = isOwner || isHistorical;
+  // control. Style edit + publish are owner-only AND only while editable.
+  const showTopControls = editable || isHistorical;
 
   // The current viewer is a participant the moment they open the space —
   // surface them immediately (don't wait for their first edit). The owner
@@ -466,7 +474,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         title: space.title || "",
         language: space.language,
         labels: space.labels,
-        isOwner,
+        isOwner: editable,
         ownerToken,
         refresh: refreshEverywhere,
         patchModule,
@@ -593,22 +601,21 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
           </div>
         </header>
 
-        {/* Absegnung transition — a clear bridge from the planning environment
-            into the dedicated contract environment (which links back here). */}
-        {space.stage === "production" && (
+        {/* Locked: a slim status line (no bulky banner) with a link to the
+            contract environment. Plan is frozen once it leaves Planung. */}
+        {locked && (
           <div className="relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-10">
             <Link
               href={`/s/${space.id}/vertrag`}
-              className="group flex items-center justify-between gap-4 rounded-2xl px-5 py-4 transition-colors"
-              style={{ border: "1px solid var(--v-rule)", background: "rgba(255,255,255,0.04)" }}
+              className="group flex items-center justify-between gap-3 rounded-full px-4 py-2 transition-colors hover:bg-white/[0.03]"
+              style={{ border: "1px solid var(--v-rule)" }}
             >
-              <span>
-                <span className="mono block text-[10px] uppercase tracking-[0.22em]" style={{ color: "var(--v-muted)" }}>Absegnung</span>
-                <span className="mt-1 block text-[15px] font-medium" style={{ color: "var(--v-fg)" }}>Dieser Plan ist bereit zur Absegnung</span>
-                <span className="mt-0.5 block text-[13px]" style={{ color: "var(--v-muted)" }}>Aus dem Plan + deinen Konditionen wird ein Vertrag — prüfen, freigeben, unterschreiben.</span>
+              <span className="mono flex items-center gap-2 text-[11px] tracking-widest" style={{ color: "var(--v-muted)" }}>
+                <span aria-hidden>⟡</span>
+                {space.stage === "handoff" ? "ABGESCHLOSSEN · PLAN GESPERRT" : "IN ABSEGNUNG · PLAN GESPERRT"}
               </span>
-              <span className="mono shrink-0 rounded-full px-4 py-2 text-[12px] tracking-widest transition-transform group-hover:translate-x-0.5" style={{ background: "var(--v-fg)", color: "var(--v-bg)" }}>
-                Zum Vertrag →
+              <span className="mono text-[11px] tracking-widest transition-transform group-hover:translate-x-0.5" style={{ color: "var(--v-fg)" }}>
+                Vertrag ansehen →
               </span>
             </Link>
           </div>
@@ -640,7 +647,7 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
                   headerModules={[...hero.map(h => h.module), ...(tagsModule ? [tagsModule] : [])]}
                   spaceId={space.id}
                   ownerToken={ownerToken}
-                  isOwner={isOwner}
+                  isOwner={editable}
                   labels={{ emptyGrid: space.labels.emptyGrid, emptyGridHint: space.labels.emptyGridHint }}
                   onRefresh={refreshEverywhere}
                 />

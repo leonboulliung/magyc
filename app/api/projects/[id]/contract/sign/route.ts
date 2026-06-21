@@ -36,6 +36,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     .maybeSingle();
   if (!contract) return NextResponse.json({ error: "no_contract" }, { status: 409 });
   if (contract.locked) return NextResponse.json({ error: "locked" }, { status: 409 });
+  // Signing only opens once the owner has released the prepared contract.
+  // "sent"/"draft" mean still in preparation; everything past that is signable.
+  const signable = new Set(["released", "owner_signed", "client_signed"]);
+  if (!signable.has(contract.status)) {
+    return NextResponse.json({ error: "not_released" }, { status: 409 });
+  }
 
   const now = new Date().toISOString();
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
@@ -59,7 +65,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     audit,
     owner_signed_at: ownerSignedAt,
     client_signed_at: clientSignedAt,
-    status: bothSigned ? "signed" : "owner_signed",
+    status: bothSigned ? "signed" : (role === "photographer" ? "owner_signed" : "client_signed"),
     updated_at: now,
   };
   if (bothSigned) {

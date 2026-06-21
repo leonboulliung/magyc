@@ -78,6 +78,33 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
     setDraft((d) => d ? { ...d, parties: { ...d.parties, client: { ...d.parties.client, [field]: value } } } : d);
   }
 
+  // Re-open an already-saved (but not yet released) contract for further edits.
+  function editSaved() {
+    if (!contract) return;
+    setDraft({
+      language: "de",
+      title: spaceTitle,
+      parties: contract.parties,
+      sections: contract.clauses,
+      gaps: [],
+      generatedAt: Date.now(),
+      model: "",
+    });
+  }
+
+  async function release() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/contract/release`, { method: "POST" });
+      const json = await readApiJson(res);
+      if (!res.ok) { showApiError("Freigabe fehlgeschlagen", json, { fallback: "Der Vertrag konnte nicht freigegeben werden." }); return; }
+      showActionSuccess("Vertrag zur Unterschrift freigegeben");
+      await load();
+    } catch (e) { showUnknownError("Freigabe fehlgeschlagen", e); }
+    finally { setBusy(false); }
+  }
+
   async function finalize() {
     if (!draft) return;
     setBusy(true);
@@ -120,6 +147,13 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
   const sections = draft ? draft.sections : contract?.clauses ?? [];
   const parties = draft ? draft.parties : contract?.parties;
   const editing = !!draft && !contract?.locked;
+  // Lifecycle: "sent"/"draft" = owner still preparing; "released" and the
+  // partial-sign statuses = open for signatures; locked = done.
+  const status = contract?.status ?? "";
+  const preparing = !!contract && !contract.locked && (status === "sent" || status === "draft");
+  const released = !!contract && !contract.locked && !preparing;
+  // The client never sees the document while it is still being prepared.
+  const clientWaiting = !isOwner && (!contract || preparing) && !draft;
 
   return (
     <div className="min-h-screen text-white" style={{ background: "radial-gradient(circle at 50% -10%, #14171c, #050505 60%)" }}>
@@ -147,24 +181,31 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
 
         {loading ? (
           <div className="mt-8 space-y-4">{[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-white/[0.04]" />)}</div>
-        ) : !contract && !draft ? (
-          // Empty state
-          isOwner ? (
-            <div className="mt-8 rounded-2xl border border-white/12 bg-white/[0.02] p-6 sm:p-8 print:hidden">
-              <p className="text-[15px] leading-relaxed text-white/70">
-                MAGYC erstellt aus deinem Plan und deinen hinterlegten Konditionen
-                automatisch einen Vertragsentwurf. Du prüfst ihn, ergänzt das Honorar
-                und gibst ihn frei.
-              </p>
-              <button type="button" onClick={generate} disabled={busy} className="mt-5 rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-50">
-                {busy ? "Entwurf wird erzeugt …" : "Vertragsentwurf erzeugen"}
-              </button>
-            </div>
-          ) : (
-            <p className="mt-8 text-[15px] leading-relaxed text-white/55">
-              Der Vertrag wird gerade vom Fotografen vorbereitet. Du erhältst ihn hier zur Freigabe.
+        ) : clientWaiting ? (
+          // Client, contract not yet released — show only a "wird vorbereitet" page.
+          <div className="mt-8 rounded-2xl border border-white/12 bg-white/[0.02] p-6 sm:p-8 print:hidden">
+            <div className="mono text-[10px] uppercase tracking-widest text-white/40">In Vorbereitung</div>
+            <h2 className="mt-2 text-[18px] font-semibold">Dein Vertrag wird gerade vorbereitet</h2>
+            <p className="mt-2 text-[14px] leading-relaxed text-white/60">
+              Die Fotograf:in stellt den Vertrag zu diesem Projekt fertig. Sobald er
+              freigegeben ist, kannst du ihn hier in Ruhe lesen und verbindlich freigeben.
             </p>
-          )
+            <Link href={`/s/${id}`} className="mono mt-5 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+              Zum Projektplan →
+            </Link>
+          </div>
+        ) : !contract && !draft ? (
+          // Owner empty state — no contract yet.
+          <div className="mt-8 rounded-2xl border border-white/12 bg-white/[0.02] p-6 sm:p-8 print:hidden">
+            <p className="text-[15px] leading-relaxed text-white/70">
+              MAGYC erstellt aus deinem Plan und deinen hinterlegten Konditionen
+              automatisch einen Vertragsentwurf. Du prüfst ihn, ergänzt das Honorar
+              und gibst ihn frei.
+            </p>
+            <button type="button" onClick={generate} disabled={busy} className="mt-5 rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-50">
+              {busy ? "Entwurf wird erzeugt …" : "Vertragsentwurf erzeugen"}
+            </button>
+          </div>
         ) : (
           <>
             {/* Locked banner */}
@@ -176,6 +217,20 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
                     <div key={i}>{s.role === "photographer" ? "Fotograf:in" : "Kunde"}: <span className="text-white/85">{s.name}</span> · {fmt(s.signedAt)}</div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Client, after signing — the project is now in production. */}
+            {contract?.locked && !isOwner && (
+              <div className="mt-4 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
+                <div className="text-[15px] font-medium">Dein Projekt ist in Arbeit</div>
+                <p className="mt-1 text-[13px] leading-relaxed text-white/60">
+                  Der Vertrag ist verbindlich abgeschlossen. Den unterschriebenen
+                  Vertrag und den Projektplan kannst du jederzeit hier einsehen.
+                </p>
+                <Link href={`/s/${id}`} className="mono mt-4 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+                  Zum Projektplan →
+                </Link>
               </div>
             )}
 
@@ -246,8 +301,27 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
               </div>
             )}
 
-            {/* Sign-off (when finalized, not locked, and this viewer hasn't signed) */}
-            {contract && !contract.locked && !editing && !iSigned && (
+            {/* Owner, contract prepared but not released — edit further or release for signing. */}
+            {isOwner && preparing && !editing && (
+              <div className="mt-6 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
+                <div className="text-[14px] font-medium">Bereit zur Freigabe</div>
+                <p className="mt-1 text-[13px] leading-relaxed text-white/60">
+                  Solange du nicht freigibst, sieht dein Kunde nur eine Vorbereitungs-Seite.
+                  Mit der Freigabe wird der Vertrag für beide zur Unterschrift geöffnet.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button type="button" onClick={release} disabled={busy} className="rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-50">
+                    {busy ? "…" : "Zur Unterschrift freigeben"}
+                  </button>
+                  <button type="button" onClick={editSaved} disabled={busy} className="mono rounded-full border border-white/15 px-4 py-2.5 text-[12px] tracking-widest text-white/55 hover:text-white disabled:opacity-50">
+                    Bearbeiten
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Sign-off (released, not locked, and this viewer hasn't signed) */}
+            {released && !editing && !iSigned && (
               <div className="mt-6 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
                 <div className="text-[14px] font-medium">Verbindlich freigeben ({myRole === "photographer" ? "Fotograf:in" : "Kunde"})</div>
                 <input value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Dein vollständiger Name" maxLength={120} className={`${fieldClass} mt-3`} />
@@ -263,7 +337,7 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
             )}
 
             {/* Waiting note */}
-            {contract && !contract.locked && !editing && iSigned && (
+            {released && !editing && iSigned && (
               <p className="mt-6 text-[14px] text-white/55 print:hidden">
                 Deine Freigabe ist erfasst. {myRole === "photographer" ? "Warten auf die Freigabe des Kunden." : "Warten auf die Freigabe der Fotograf:in."}
               </p>
