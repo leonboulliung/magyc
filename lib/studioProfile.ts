@@ -5,12 +5,24 @@
  * "rules" that get woven into every new project's brief.
  */
 
+/** A reusable click-to-insert snippet, optionally tinted for quick scanning. */
+export interface FastPrompt {
+  text: string;
+  /** Optional accent hex (#rrggbb) from FAST_PROMPT_COLORS, or undefined. */
+  color?: string;
+}
+
+/** The optional tint palette offered in the Fast-Prompts editor. */
+export const FAST_PROMPT_COLORS = [
+  "#8b7bff", "#4aa8ff", "#39d2b4", "#f5b740", "#f4719b", "#7bd88f",
+] as const;
+
 export interface StudioSettings {
   /** Working-style rules applied to every new project (prompt injections). */
   rules: string[];
   /** Reusable snippets the photographer can click to drop into the prompt
    *  field (e.g. a frequent shoot address). Free-form, account-configured. */
-  fastPrompts: string[];
+  fastPrompts: FastPrompt[];
   /** Default language for new projects. */
   defaultLanguage: string;
   /** New projects start shared (link-accessible) instead of private. */
@@ -228,12 +240,35 @@ function asStringArray(value: unknown, max = 24): string[] {
     .slice(0, max);
 }
 
+/** Parse fast-prompts. Accepts legacy plain strings AND the {text,color} shape
+ *  so old accounts keep working after the colour upgrade. */
+export function cleanFastPrompts(value: unknown): FastPrompt[] {
+  if (!Array.isArray(value)) return [];
+  const palette = new Set<string>(FAST_PROMPT_COLORS);
+  const out: FastPrompt[] = [];
+  for (const item of value) {
+    let text = "";
+    let color: string | undefined;
+    if (typeof item === "string") {
+      text = item.trim();
+    } else if (item && typeof item === "object") {
+      const o = item as Record<string, unknown>;
+      text = typeof o.text === "string" ? o.text.trim() : "";
+      if (typeof o.color === "string" && palette.has(o.color)) color = o.color;
+    }
+    if (!text) continue;
+    out.push(color ? { text: text.slice(0, 200), color } : { text: text.slice(0, 200) });
+    if (out.length >= 20) break;
+  }
+  return out;
+}
+
 export function cleanSettings(raw: unknown): StudioSettings {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const lang = typeof o.defaultLanguage === "string" ? o.defaultLanguage : DEFAULT_SETTINGS.defaultLanguage;
   return {
     rules: asStringArray(o.rules, 12),
-    fastPrompts: asStringArray(o.fastPrompts, 20),
+    fastPrompts: cleanFastPrompts(o.fastPrompts),
     defaultLanguage: LANGUAGE_OPTIONS.some((l) => l.value === lang) ? lang : DEFAULT_SETTINGS.defaultLanguage,
     defaultShared: o.defaultShared === true,
     business: cleanBusiness(o.business),

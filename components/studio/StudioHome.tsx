@@ -19,6 +19,7 @@ import {
   STUDIO_PRESETS_STORAGE_KEY,
   type StudioPreset,
 } from "@/lib/studioPresets";
+import { cleanFastPrompts, type FastPrompt } from "@/lib/studioProfile";
 
 export interface StudioProjectCard {
   id: string;
@@ -60,7 +61,7 @@ export function StudioHome({
   const [busy, setBusy] = useState(false);
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState("none");
-  const [fastPrompts, setFastPrompts] = useState<string[]>([]);
+  const [fastPrompts, setFastPrompts] = useState<FastPrompt[]>([]);
   const [fpOpen, setFpOpen] = useState(true);
 
   const usablePresets = useMemo(() => presets.filter((p) => p.modules.length > 0), [presets]);
@@ -94,8 +95,8 @@ export function StudioHome({
       try {
         const res = await fetch("/api/studio/profile", { cache: "no-store" });
         const json = await readApiJson(res) as { profile?: { settings?: { fastPrompts?: unknown } } };
-        const fps = json?.profile?.settings?.fastPrompts;
-        if (!cancelled && Array.isArray(fps)) setFastPrompts(fps.filter((x): x is string => typeof x === "string"));
+        const fps = cleanFastPrompts(json?.profile?.settings?.fastPrompts);
+        if (!cancelled) setFastPrompts(fps);
       } catch { /* optional */ }
     })();
     return () => { cancelled = true; };
@@ -182,11 +183,12 @@ export function StudioHome({
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setPrompt((p) => (p.trim() ? `${p.trimEnd()}\n${fp}` : fp))}
+                    onClick={() => setPrompt((p) => (p.trim() ? `${p.trimEnd()}\n${fp.text}` : fp.text))}
                     className="flex w-full items-start gap-2.5 border-b border-white/[0.06] px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-white/[0.04]"
+                    style={fp.color ? { borderLeft: `3px solid ${fp.color}` } : undefined}
                   >
-                    <span className="mono mt-0.5 text-[12px] leading-none text-white/30">⌁</span>
-                    <span className="text-[13.5px] leading-snug text-white/75">{fp}</span>
+                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: fp.color ?? "rgba(255,255,255,0.25)" }} />
+                    <span className="text-[13.5px] leading-snug text-white/75">{fp.text}</span>
                   </button>
                 ))}
               </div>
