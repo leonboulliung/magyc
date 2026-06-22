@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { RangeWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
+import { useInlineEdit } from "./useInlineEdit";
 
 /**
  * Range (Von-Bis) — two parameters with an icon hint per `unit`.
@@ -69,34 +69,20 @@ function RangeField({
   onSave: (next: string) => Promise<void>;
   isOwner: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { setDraft(value); }, [value]);
-  useEffect(() => {
-    if (editing && ref.current) {
-      ref.current.focus();
-      ref.current.select();
-    }
-  }, [editing]);
-
-  async function commit() {
-    const next = draft.trim();
-    setEditing(false);
-    if (next && next !== value) await onSave(next);
-  }
+  // Shared click-to-edit wiring. The `if (next)` guard preserves RangeField's
+  // original "never save an emptied field" behaviour (the hook itself would
+  // save an empty value); focusMode "all" + submitOn "enter" match the prior
+  // select-on-focus / Enter-saves feel.
+  const { editing, setEditing, editProps } = useInlineEdit<HTMLInputElement>({
+    value,
+    onSave: (next) => { if (next) return onSave(next); },
+    submitOn: "enter",
+    focusMode: "all",
+  });
 
   return editing ? (
     <input
-      ref={ref}
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") { e.preventDefault(); commit(); }
-        else if (e.key === "Escape") { setDraft(value); setEditing(false); }
-      }}
+      {...editProps}
       maxLength={120}
       className="text-[16px] bg-transparent border-0 outline-none flex-1 min-w-0"
       style={{ color: "var(--v-fg)" }}

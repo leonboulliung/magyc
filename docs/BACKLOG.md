@@ -319,22 +319,34 @@ Full read-through for leanness / architecture / inconsistencies. #17, #19,
 ### 18. Inline-edit hook adoption — finish the single-line editors
 The `useInlineEdit` hook shipped (`components/widgets/useInlineEdit.ts`) and
 Heading / AiSummary / RichText now use it (three `autoResize` copies gone).
-**Remaining:** the single-line `<input>` editors that still hand-roll the
-same draft/Enter/Escape/blur wiring — RangeRenderer, DateRenderer,
-TableRenderer (cells), TagsRenderer, AppointmentRenderer/AppointmentsRenderer,
-QaRenderer (ask/answer fields). Adopt the hook incrementally (mostly
-`submitOn:"enter"`, no autoGrow); verify each widget edits after conversion.
+**RangeRenderer done (2026-06-22)** — converted behaviour-identically (an
+`if (next)` onSave guard preserves its "never save an emptied field" rule;
+`focusMode:"all"` + `submitOn:"enter"`).
+**Deliberately deferred** (these touch the exempt, well-iterated project-page
+widgets and can't be click-tested without a live authed session, so the dedup
+benefit isn't worth a blind regression):
+- *DateRenderer*, *AppointmentRenderer/AppointmentsRenderer* — native
+  `<input type="date"/time>` read the value directly with no draft state; the
+  hook makes them controlled + select-on-focus, which can change picker feel.
+- *TableRenderer* — a grid of cells with navigation; multi-field, higher risk.
+- *TagsRenderer*, *QaRenderer* — these are *add-new-entry* fields with
+  normalization/dedup (lowercase+slug for tags), not edit-of-one-value; the
+  hook's `value↔onSave` model doesn't fit without forcing it.
+Revisit when a prod click-test is available.
 
-### 20. `applyActionLocally` mirrors server state semantics
-`lib/state.ts` re-implements the vote/check/claim dedup rules that
-`state/route.ts` enforces server-side. AGENTS.md already warns "change one,
-change the other" — a structural coupling hazard. **Fix (low-cost):**
-co-locate the dedup keys / a shared spec so the two can't drift silently.
+### 20. `applyActionLocally` mirrors server state semantics — ✅ done (2026-06-22)
+The vote/check/claim dedup keys + retraction rule now live in
+`lib/stateDedup.ts` (`SINGLE_ACTIVE_RULES`). `applyActionLocally` (lib/state.ts)
+consumes the spec; `state/route.ts` references the same scope-field constants in
+its `.filter()` calls. Behaviour unchanged; the two can no longer drift.
 
-### 22. `app/page.tsx` is 668 lines (whole clarify flow inline)
-The home component holds input + clarify steps + build orchestration in one
-client file. **Fix (optional):** extract a `ClarifyFlow` component and the
-step renderers; lowers cognitive load, no behaviour change.
+### 22. `app/page.tsx` (whole clarify flow inline) — ◑ partly done (2026-06-22)
+Conservative extraction shipped: `BuildingScreen` →
+`components/home/BuildingScreen.tsx`, and `apiError`/`fetchJsonWithTimeout`/
+`formatFlowError` → `lib/home/flow.ts` (975→841 lines, no behaviour change).
+**Still open (optional):** lifting the clarify state machine itself into a
+`ClarifyFlow` component — deferred because it's the core create path and not
+locally click-testable; only worth it with a live session.
 
 ---
 
