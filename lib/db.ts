@@ -3,7 +3,7 @@ import { sanitizeModules } from "./modules";
 import { AI_LABEL_KEYS } from "./labels";
 import { sanitizeStyle } from "./style";
 import type {
-  Actor, Module, ModuleStateEntry, ModuleStateKind, Profile, ProjectStage, Space, SpaceLabels, SpaceVersion, Vibe, Visibility,
+  Actor, HandoffInfo, Module, ModuleStateEntry, ModuleStateKind, Profile, ProjectStage, Space, SpaceLabels, SpaceVersion, Vibe, Visibility,
 } from "./types";
 import { ALL_VIBES } from "./types";
 
@@ -47,6 +47,7 @@ type SpaceRow = {
   shared: boolean | null;
   archived_at: string | null;
   deleted_at: string | null;
+  handoff: unknown;
   owner_id: string | null;
   visibility: string | null;
   created_at: string;
@@ -127,6 +128,22 @@ function mapVisibility(raw: string | null): Visibility {
   return null;
 }
 
+export function mapHandoff(raw: unknown): HandoffInfo {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const note = typeof o.note === "string" ? o.note.slice(0, 2000) : "";
+  const links = Array.isArray(o.links)
+    ? o.links
+        .map((l) => (l && typeof l === "object" ? l as Record<string, unknown> : {}))
+        .map((l) => ({
+          label: typeof l.label === "string" ? l.label.slice(0, 120) : "",
+          url: typeof l.url === "string" ? l.url.slice(0, 600) : "",
+        }))
+        .filter((l) => l.url)
+        .slice(0, 20)
+    : [];
+  return { note, links };
+}
+
 function mapLabels(raw: Record<string, unknown> | null): SpaceLabels {
   const out: SpaceLabels = {};
   if (!raw || typeof raw !== "object") return out;
@@ -183,6 +200,7 @@ function mapSpace(row: SpaceRow): Space {
     shared: row.shared === true,
     archivedAt: row.archived_at ? new Date(row.archived_at).getTime() : null,
     deletedAt: row.deleted_at ? new Date(row.deleted_at).getTime() : null,
+    handoff: mapHandoff(row.handoff ?? null),
     modules,
     labels: mapLabels(row.labels ?? null),
     style: sanitizeStyle(row.style ?? null),
@@ -218,6 +236,26 @@ export async function fetchSpaceById(id: string): Promise<Space | null> {
     .maybeSingle();
   if (error) throw error;
   return data ? mapSpace(data as unknown as SpaceRow) : null;
+}
+
+/**
+ * Abschluss info, fetched on its own and tolerantly: the `handoff` column was
+ * added in migration 016, so a deploy that lands before the migration must not
+ * break — any error (incl. "column does not exist") falls back to empty. Kept
+ * OUT of SPACE_SELECT so the main space read never depends on the new column.
+ */
+export async function fetchHandoff(id: string): Promise<HandoffInfo> {
+  try {
+    const { data, error } = await supabase
+      .from("spaces")
+      .select("handoff")
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !data) return { note: "", links: [] };
+    return mapHandoff((data as { handoff?: unknown }).handoff);
+  } catch {
+    return { note: "", links: [] };
+  }
 }
 
 /** Load ONE historical version's modules on demand — the space query no

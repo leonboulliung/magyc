@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { mapHandoff } from "@/lib/db";
 import { parseBody } from "@/lib/api/validate";
 
 /**
@@ -23,6 +24,7 @@ export async function PATCH(
     shared: z.boolean().optional(),
     archived: z.boolean().optional(),
     deleted: z.boolean().optional(),
+    handoff: z.unknown().optional(),
   }));
   if (!parsed.ok) return parsed.response;
 
@@ -31,8 +33,12 @@ export async function PATCH(
     shared?: boolean;
     archived_at?: string | null;
     deleted_at?: string | null;
+    handoff?: unknown;
     modules?: unknown[];
   } = {};
+  if (parsed.data.handoff !== undefined) {
+    update.handoff = mapHandoff(parsed.data.handoff);
+  }
   if (typeof parsed.data.stage === "string") {
     if (!VALID_STAGES.has(parsed.data.stage)) {
       return NextResponse.json({ error: "bad_stage" }, { status: 400 });

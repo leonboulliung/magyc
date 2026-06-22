@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { fetchSpaceById } from "@/lib/db";
+import { fetchSpaceById, fetchHandoff } from "@/lib/db";
 import { StudioWorkspace } from "@/components/studio/StudioWorkspace";
 
 // The workspace is the live project; never serve it from the data cache.
@@ -19,6 +19,9 @@ export default async function StudioProjectPage({ params }: { params: { id: stri
 
   // Owner-only: a suite project is a private draft owned by a Clerk user.
   if (!space || !userId || space.owner?.id !== userId) notFound();
+
+  // handoff lives behind a separate, migration-tolerant read (see fetchHandoff).
+  space.handoff = await fetchHandoff(space.id);
 
   return <StudioWorkspace space={space} />;
 }

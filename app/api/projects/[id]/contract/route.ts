@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createHash } from "crypto";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
+import { mapHandoff } from "@/lib/db";
 import { parseBody } from "@/lib/api/validate";
 
 /**
@@ -22,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, owner_id, shared, title")
+    .select("id, owner_id, shared, title, stage")
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -39,7 +40,21 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .eq("space_id", params.id)
     .maybeSingle();
 
-  return NextResponse.json({ contract: contract ?? null, isOwner, spaceTitle: space.title });
+  // handoff column (migration 016) read tolerantly so a pre-migration deploy
+  // doesn't break the contract page.
+  let handoff = { note: "", links: [] as { label: string; url: string }[] };
+  try {
+    const { data: h, error } = await admin.from("spaces").select("handoff").eq("id", params.id).maybeSingle();
+    if (!error && h) handoff = mapHandoff((h as { handoff?: unknown }).handoff);
+  } catch { /* column not present yet */ }
+
+  return NextResponse.json({
+    contract: contract ?? null,
+    isOwner,
+    spaceTitle: space.title,
+    stage: space.stage ?? null,
+    handoff,
+  });
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {

@@ -703,6 +703,12 @@ export interface SpaceStyle {
 /** Creator-Suite project lifecycle stage. Null for anonymous spaces. */
 export type ProjectStage = "brief" | "production" | "handoff";
 
+/** Abschluss info: a closing note + reference links the photographer attaches. */
+export interface HandoffInfo {
+  note: string;
+  links: { label: string; url: string }[];
+}
+
 export interface Space {
   id: string;
   inputText: string;
@@ -720,6 +726,8 @@ export interface Space {
   archivedAt: number | null;
   /** Soft-delete timestamp. Deleted projects are restorable for 30 days. */
   deletedAt: number | null;
+  /** Abschluss info — closing note + links; client sees it via the shared link. */
+  handoff: HandoffInfo;
   modules: Module[];
   /** AI-generated UI labels in `language`. May be sparsely filled;
    *  renderers fall back to symbols. */

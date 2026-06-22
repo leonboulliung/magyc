@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SpaceView } from "@/app/s/[id]/SpaceView";
 import { ContractView } from "@/app/s/[id]/vertrag/ContractView";
+import { AbschlussPanel } from "@/components/studio/AbschlussPanel";
 import { StudioProjectBar } from "@/components/studio/StudioProjectBar";
 import type { ProjectStage, Space } from "@/lib/types";
 
@@ -38,7 +39,11 @@ export function StudioWorkspace({ space }: { space: Space }) {
           style={{ background: "radial-gradient(circle at 50% -10%, #14171c, #050505 60%)" }}
         >
           <div className="pt-14 sm:pt-16">
-            <ContractView id={space.id} spaceTitle={space.title} embedded />
+            {view === "handoff" ? (
+              <AbschlussPanel id={space.id} isOwner initial={space.handoff} onView={setView} />
+            ) : (
+              <ContractView id={space.id} spaceTitle={space.title} embedded />
+            )}
           </div>
         </div>
       )}

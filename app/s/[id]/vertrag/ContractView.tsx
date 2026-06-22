@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { ContractDraft, ContractSection } from "@/lib/contractDraft";
+import type { HandoffInfo, ProjectStage } from "@/lib/types";
 import {
   readApiJson,
   showApiError,
@@ -34,15 +35,19 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   const [busy, setBusy] = useState(false);
   const [signName, setSignName] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [stage, setStage] = useState<ProjectStage | null>(null);
+  const [handoff, setHandoff] = useState<HandoffInfo>({ note: "", links: [] });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/projects/${id}/contract`, { cache: "no-store" });
-      const json = await readApiJson(res) as { isOwner?: boolean; contract?: SavedContract | null };
+      const json = await readApiJson(res) as { isOwner?: boolean; contract?: SavedContract | null; stage?: ProjectStage | null; handoff?: HandoffInfo };
       if (res.ok) {
         setIsOwner(!!json.isOwner);
         setContract(json.contract ?? null);
+        setStage(json.stage ?? null);
+        if (json.handoff) setHandoff(json.handoff);
       }
     } catch {
       // best-effort; the empty state covers a failed load
@@ -208,14 +213,26 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
               </div>
             )}
 
-            {/* Client, after signing — the project is now in production. */}
+            {/* Client, after signing — project in production, or closed (handoff). */}
             {contract?.locked && !isOwner && (
               <div className="mt-4 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
-                <div className="text-[15px] font-medium">Dein Projekt ist in Arbeit</div>
+                <div className="text-[15px] font-medium">{stage === "handoff" ? "Projekt abgeschlossen" : "Dein Projekt ist in Arbeit"}</div>
                 <p className="mt-1 text-[13px] leading-relaxed text-white/60">
-                  Der Vertrag ist verbindlich abgeschlossen. Den unterschriebenen
-                  Vertrag und den Projektplan kannst du jederzeit hier einsehen.
+                  {stage === "handoff"
+                    ? "Das Projekt ist abgeschlossen. Unten findest du die finalen Referenzen; Vertrag und Projektplan bleiben einsehbar."
+                    : "Der Vertrag ist verbindlich abgeschlossen. Den unterschriebenen Vertrag und den Projektplan kannst du jederzeit hier einsehen."}
                 </p>
+                {(handoff.note || handoff.links.length > 0) && (
+                  <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                    {handoff.note && <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/85">{handoff.note}</p>}
+                    {handoff.links.map((l, i) => (
+                      <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.02] px-3.5 py-2.5 text-[14px] text-white/85 transition-colors hover:border-white/25 hover:text-white">
+                        <span aria-hidden className="text-white/30">↗</span>
+                        <span className="truncate">{l.label}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
                 <Link href={planHref} className="mono mt-4 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
                   Zum Projektplan →
                 </Link>
