@@ -66,8 +66,10 @@ export async function PATCH(
   }
 
   // Signed projects can be archived but never trashed — the agreement is a
-  // record. Block a delete when a locked (signed) contract exists.
-  if (parsed.data.deleted === true) {
+  // record. And once signed, the plan stays frozen: reverting the stage to
+  // "brief" would re-open the locked project page. Block both when a locked
+  // (signed) contract exists.
+  if (parsed.data.deleted === true || update.stage === "brief") {
     const { data: contract } = await admin
       .from("project_contracts")
       .select("locked")

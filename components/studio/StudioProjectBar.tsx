@@ -42,16 +42,24 @@ export function StudioProjectBar({
   const [current, setCurrent] = useState<ProjectStage>(stage ?? "brief");
   const [busy, setBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingStage, setPendingStage] = useState<ProjectStage | null>(null);
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
   const currentLabel = STAGES.find((s) => s.id === current)?.label ?? "Planung";
 
-  // Moving into Absegnung locks the project page for good. Gate that one
-  // transition behind a confirmation; every other transition applies at once.
+  // The project page is locked once it leaves Planung (production/handoff).
+  // Two transitions change that lock state and must be deliberate:
+  //  - entering a locked stage from Planung → confirm (plan gets frozen)
+  //  - returning to Planung from a locked stage → confirm (plan re-opens)
+  // Transitions between the two locked stages apply immediately.
+  const lockedStage = (s: ProjectStage) => s === "production" || s === "handoff";
+  const reopening = pendingStage === "brief";
+
   function requestStage(next: ProjectStage) {
     if (next === current || busy) return;
-    if (next === "production") {
-      setConfirmOpen(true);
+    const entersLock = lockedStage(next) && current === "brief";
+    const reopens = next === "brief" && lockedStage(current);
+    if (entersLock || reopens) {
+      setPendingStage(next);
       return;
     }
     void setStage(next);
@@ -173,21 +181,21 @@ export function StudioProjectBar({
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen} title="In die Absegnung verschieben" maxWidth={420}>
+      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={reopening ? "Zurück zur Planung" : "Projektseite sperren"} maxWidth={420}>
         <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#16181b] text-left shadow-2xl">
           <div className="space-y-3 p-5">
-            <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">Plan wird gesperrt</div>
-            <h2 className="text-[17px] font-semibold text-white">In die Absegnung verschieben?</h2>
+            <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">{reopening ? "Plan wird wieder bearbeitbar" : "Plan wird gesperrt"}</div>
+            <h2 className="text-[17px] font-semibold text-white">{reopening ? "Zurück zur Planung?" : "Projektseite sperren?"}</h2>
             <p className="text-[13px] leading-relaxed text-white/65">
-              Danach ist die Projektseite gesperrt — am Plan sind keine Änderungen
-              mehr möglich. Du arbeitest ab dann am Vertragsentwurf und gibst ihn
-              selbst zur Unterschrift frei.
+              {reopening
+                ? "Die Projektseite wird wieder bearbeitbar. Ein bereits erstellter Vertragsentwurf bleibt erhalten, ist aber nicht mehr abgesichert, solange der Plan offen ist."
+                : "Danach ist die Projektseite gesperrt — am Plan sind keine Änderungen mehr möglich. Du arbeitest ab dann am Vertragsentwurf und gibst ihn selbst zur Unterschrift frei."}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-white/10 bg-black/30 px-5 py-3.5">
             <button
               type="button"
-              onClick={() => setConfirmOpen(false)}
+              onClick={() => setPendingStage(null)}
               disabled={busy}
               className="rounded-full px-4 py-2 text-[13px] text-white/65 transition-colors hover:text-white disabled:opacity-50"
             >
@@ -195,11 +203,11 @@ export function StudioProjectBar({
             </button>
             <button
               type="button"
-              onClick={() => { setConfirmOpen(false); void setStage("production"); }}
+              onClick={() => { const next = pendingStage; setPendingStage(null); if (next) void setStage(next); }}
               disabled={busy}
               className="rounded-full bg-white px-4 py-2 text-[13px] font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Sperren & fortfahren
+              {reopening ? "Plan wieder öffnen" : "Sperren & fortfahren"}
             </button>
           </div>
         </div>
