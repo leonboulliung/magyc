@@ -12,9 +12,19 @@ import { parseBody } from "@/lib/api/validate";
  * When BOTH parties have signed, the contract is locked (immutable).
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const parsed = await parseBody(req, z.object({ name: z.string().min(1).max(120) }));
+  const parsed = await parseBody(req, z.object({
+    name: z.string().min(1).max(120),
+    // Optional drawn-signature mode (photographer can opt in): a place + an
+    // image data URL of the hand-drawn signature. Date is the server timestamp.
+    place: z.string().max(160).optional(),
+    signature: z.string().max(200_000).optional(),
+  }));
   if (!parsed.ok) return parsed.response;
   const name = parsed.data.name.trim().slice(0, 120);
+  const place = parsed.data.place?.trim().slice(0, 160) || "";
+  const signature = typeof parsed.data.signature === "string" && parsed.data.signature.startsWith("data:image/")
+    ? parsed.data.signature.slice(0, 200_000)
+    : "";
 
   const admin = supabaseAdmin();
   const { data: space } = await admin
@@ -52,9 +62,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   // One signature per role — replace an earlier one from the same role.
   const nextSigners = [
     ...signers.filter((s: { role?: string }) => s?.role !== role),
-    { role, name, ip, ua, signedAt: now, contentHash: contract.content_hash ?? null },
+    { role, name, place, signature, ip, ua, signedAt: now, contentHash: contract.content_hash ?? null },
   ];
-  audit.push({ event: `${role}_signed`, role, name, ts: now, ip, ua, contentHash: contract.content_hash ?? null });
+  audit.push({ event: `${role}_signed`, role, name, place, mode: signature ? "drawn" : "click", ts: now, ip, ua, contentHash: contract.content_hash ?? null });
 
   const ownerSignedAt = role === "photographer" ? now : contract.owner_signed_at;
   const clientSignedAt = role === "client" ? now : contract.client_signed_at;

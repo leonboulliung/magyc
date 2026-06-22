@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { ContractDraft, ContractSection } from "@/lib/contractDraft";
 import type { HandoffInfo, ProjectStage } from "@/lib/types";
+import { SignaturePad } from "@/components/studio/SignaturePad";
 import {
   readApiJson,
   showApiError,
@@ -11,7 +12,7 @@ import {
   showUnknownError,
 } from "@/lib/client/feedback";
 
-interface Signer { role: string; name: string; signedAt: string }
+interface Signer { role: string; name: string; signedAt: string; place?: string; signature?: string }
 interface SavedContract {
   parties: ContractDraft["parties"];
   clauses: ContractSection[];
@@ -35,6 +36,9 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   const [busy, setBusy] = useState(false);
   const [signName, setSignName] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [sigMode, setSigMode] = useState<"click" | "draw">("click");
+  const [sigPlace, setSigPlace] = useState("");
+  const [sigData, setSigData] = useState<string | null>(null);
   const [stage, setStage] = useState<ProjectStage | null>(null);
   const [handoff, setHandoff] = useState<HandoffInfo>({ note: "", links: [] });
 
@@ -127,19 +131,27 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
     finally { setBusy(false); }
   }
 
+  // The photographer may opt into a hand-drawn signature (+ place); the client
+  // always uses click-consent. Drawn mode needs ink instead of the checkbox.
+  const drawMode = isOwner && sigMode === "draw";
+  const canSign = !!signName.trim() && !busy && (drawMode ? !!sigData : agreed);
+
   async function sign() {
+    if (!canSign) return;
     const n = signName.trim();
-    if (!n || !agreed || busy) return;
     setBusy(true);
     try {
+      const body = drawMode
+        ? { name: n, place: sigPlace.trim(), signature: sigData }
+        : { name: n };
       const res = await fetch(`/api/projects/${id}/contract/sign`, {
-        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: n }),
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
       });
       const json = await readApiJson(res);
       if (!res.ok) { showApiError("Freigabe fehlgeschlagen", json, { fallback: "Die Freigabe konnte nicht erfasst werden." }); return; }
       const locked = (json as { locked?: boolean }).locked;
       showActionSuccess(locked ? "Vertrag verbindlich abgeschlossen" : "Freigabe erfasst");
-      setAgreed(false); setSignName("");
+      setAgreed(false); setSignName(""); setSigData(null); setSigPlace("");
       await load();
     } catch (e) { showUnknownError("Freigabe fehlgeschlagen", e); }
     finally { setBusy(false); }
@@ -205,9 +217,18 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {contract?.locked && (
               <div className="mt-6 rounded-2xl p-4" style={{ border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.08)" }}>
                 <div className="text-[15px] font-medium">✓ Verbindlich abgeschlossen</div>
-                <div className="mt-1 space-y-0.5 text-[13px] text-white/60">
+                <div className="mt-2 space-y-2 text-[13px] text-white/60">
                   {(contract.signers || []).map((s, i) => (
-                    <div key={i}>{s.role === "photographer" ? "Fotograf:in" : "Kunde"}: <span className="text-white/85">{s.name}</span> · {fmt(s.signedAt)}</div>
+                    <div key={i}>
+                      <div>
+                        {s.role === "photographer" ? "Fotograf:in" : "Kunde"}: <span className="text-white/85">{s.name}</span>
+                        {s.place ? ` · ${s.place}` : ""} · {fmt(s.signedAt)}
+                      </div>
+                      {s.signature && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.signature} alt="Signatur" className="mt-1 h-12 rounded bg-white/90 px-1" />
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -328,16 +349,37 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {/* Sign-off (released, not locked, and this viewer hasn't signed) */}
             {released && !editing && !iSigned && (
               <div className="mt-6 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
-                <div className="text-[14px] font-medium">Verbindlich freigeben ({myRole === "photographer" ? "Fotograf:in" : "Kunde"})</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[14px] font-medium">Verbindlich freigeben ({myRole === "photographer" ? "Fotograf:in" : "Kunde"})</div>
+                  {isOwner && (
+                    <div className="inline-flex rounded-full border border-white/12 bg-white/[0.03] p-0.5 text-[11px]">
+                      <button type="button" onClick={() => setSigMode("click")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "click" ? "bg-white text-black" : "text-white/55 hover:text-white"}`}>Klick</button>
+                      <button type="button" onClick={() => setSigMode("draw")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "draw" ? "bg-white text-black" : "text-white/55 hover:text-white"}`}>Signatur</button>
+                    </div>
+                  )}
+                </div>
                 <input value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Dein vollständiger Name" maxLength={120} className={`${fieldClass} mt-3`} />
-                <button type="button" onClick={() => setAgreed((a) => !a)} className="mt-3 flex w-full items-start gap-2.5 text-left">
-                  <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "#fff" : "rgba(255,255,255,0.3)"}`, background: agreed ? "#fff" : "transparent", color: "#000" }}>{agreed ? "✓" : ""}</span>
-                  <span className="text-[13px] leading-snug text-white/60">Ich habe den Vertrag gelesen und stimme ihm verbindlich zu.</span>
-                </button>
-                <button type="button" onClick={sign} disabled={!signName.trim() || !agreed || busy} className="mt-3 w-full rounded-full bg-white px-4 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-40">
+
+                {drawMode ? (
+                  <div className="mt-3 space-y-3">
+                    <SignaturePad onChange={setSigData} />
+                    <input value={sigPlace} onChange={(e) => setSigPlace(e.target.value)} placeholder="Ort (z. B. Köln)" maxLength={160} className={fieldClass} />
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setAgreed((a) => !a)} className="mt-3 flex w-full items-start gap-2.5 text-left">
+                    <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "#fff" : "rgba(255,255,255,0.3)"}`, background: agreed ? "#fff" : "transparent", color: "#000" }}>{agreed ? "✓" : ""}</span>
+                    <span className="text-[13px] leading-snug text-white/60">Ich habe den Vertrag gelesen und stimme ihm verbindlich zu.</span>
+                  </button>
+                )}
+
+                <button type="button" onClick={sign} disabled={!canSign} className="mt-3 w-full rounded-full bg-white px-4 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-40">
                   {busy ? "…" : "Verbindlich zustimmen"}
                 </button>
-                <p className="mono mt-2 text-[10px] leading-relaxed text-white/40">Deine Zustimmung wird mit Name und Zeitstempel dokumentiert (verbindliche Freigabe, Textform).</p>
+                <p className="mono mt-2 text-[10px] leading-relaxed text-white/40">
+                  {drawMode
+                    ? "Deine gezeichnete Signatur, Ort und Zeitstempel werden dokumentiert (verbindliche Freigabe, Textform)."
+                    : "Deine Zustimmung wird mit Name und Zeitstempel dokumentiert (verbindliche Freigabe, Textform)."}
+                </p>
               </div>
             )}
 
