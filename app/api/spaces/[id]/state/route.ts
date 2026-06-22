@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
+import { SINGLE_ACTIVE_RULES } from "@/lib/stateDedup";
 import type { ModuleStateKind } from "@/lib/types";
 
 /**
@@ -183,7 +184,7 @@ export async function POST(
       .eq("kind", "check")
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId)
-      .filter("data->>itemKey", "eq", itemKey);
+      .filter(`data->>${SINGLE_ACTIVE_RULES.check.scopeField}`, "eq", itemKey);
     if (deleteErr) {
       console.error("[state] check cleanup failed:", deleteErr.message);
       return NextResponse.json({ error: "state_cleanup_failed" }, { status: 500 });
@@ -220,7 +221,7 @@ export async function POST(
       .eq("kind", "claim")
       .eq("actor_kind", actorKind)
       .eq("actor_id", actorId)
-      .filter("data->>slotLabel", "eq", slotLabel);
+      .filter(`data->>${SINGLE_ACTIVE_RULES.claim.scopeField}`, "eq", slotLabel);
     if (deleteErr) {
       console.error("[state] claim cleanup failed:", deleteErr.message);
       return NextResponse.json({ error: "state_cleanup_failed" }, { status: 500 });
@@ -235,7 +236,7 @@ export async function POST(
       .eq("space_id", params.id)
       .eq("module_index", moduleIndex)
       .eq("kind", "claim")
-      .filter("data->>slotLabel", "eq", slotLabel);
+      .filter(`data->>${SINGLE_ACTIVE_RULES.claim.scopeField}`, "eq", slotLabel);
     if (holdersErr) {
       console.error("[state] claim holder check failed:", holdersErr.message);
       return NextResponse.json({ error: "state_check_failed" }, { status: 500 });

@@ -3,6 +3,7 @@
 import { getAnonDisplayName, getAnonToken } from "./anonId";
 import { getActivePersona } from "./personas";
 import { PALETTE, colorForId } from "./palette";
+import { singleActiveRule, scopeValue } from "./stateDedup";
 import type { ModuleStateEntry, ModuleStateKind } from "./types";
 
 /**
@@ -130,38 +131,22 @@ export function applyActionLocally(
 ): ModuleStateEntry[] {
   const me = entry.actor.id;
   const { moduleIndex, kind, data } = entry;
-  let next = entries;
 
-  if (kind === "vote") {
-    next = next.filter(
-      (e) => !(e.kind === "vote" && e.moduleIndex === moduleIndex && e.actor.id === me),
+  // vote / check / claim keep one active row per actor (per scope). The dedup
+  // keys + retraction rule live in lib/stateDedup.ts so the client and the
+  // server (state/route.ts) can't drift. Everything else is a plain append.
+  const rule = singleActiveRule(kind);
+  if (rule) {
+    const scoped = scopeValue(rule, data);
+    const field = rule.scopeField;
+    const next = entries.filter(
+      (e) => !(e.kind === kind && e.moduleIndex === moduleIndex && e.actor.id === me &&
+        (field ? e.data[field] === scoped : true)),
     );
-    const option = typeof data.option === "string" ? data.option : "";
-    if (!option) return next; // retraction — delete only
-    return [...next, entry];
+    return rule.isRetraction(data) ? next : [...next, entry];
   }
 
-  if (kind === "check") {
-    const itemKey = typeof data.itemKey === "string" ? data.itemKey : "";
-    next = next.filter(
-      (e) => !(e.kind === "check" && e.moduleIndex === moduleIndex && e.actor.id === me &&
-        e.data.itemKey === itemKey),
-    );
-    if (!data.checked) return next;
-    return [...next, entry];
-  }
-
-  if (kind === "claim") {
-    const slotLabel = typeof data.slotLabel === "string" ? data.slotLabel : "";
-    next = next.filter(
-      (e) => !(e.kind === "claim" && e.moduleIndex === moduleIndex && e.actor.id === me &&
-        e.data.slotLabel === slotLabel),
-    );
-    if (data.claimed === false) return next; // release — delete only
-    return [...next, entry];
-  }
-
-  return [...next, entry];
+  return [...entries, entry];
 }
 
 /**
