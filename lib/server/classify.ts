@@ -74,8 +74,9 @@ const PLACE_GROUP: ReadonlySet<ModuleType> = new Set([
 // threshold must not be: MIN_SCORE 5 + MIN_BODY 2 produced bare
 // 2-widget pages for rich inputs (see docs/BACKLOG.md #6).
 const MIN_SCORE = 4;     // a module must score at least this to be considered
-const MAX_BODY = 6;      // never more than this many body widgets
+const MAX_BODY = 6;      // score-based body cap
 const MIN_BODY = 3;      // try to land at least this many so a page isn't bare
+const HARD_MAX = 8;      // absolute ceiling once explicit-forced types are added
 
 // ── Stage A: analyze + score ──────────────────────────────────────────
 
@@ -84,6 +85,11 @@ interface AnalyzeResult {
   title: string;
   vibe: Vibe;
   scores: Record<string, number>;
+  /** Widget types the user EXPLICITLY named concrete content for (e.g. named
+   *  gear → parts_list, ≥2 named venues → locations_multi). These are forced
+   *  into the page so a clearly-stated need can't be crowded out by the
+   *  score cap. Evidence-based, not preference-based. */
+  explicit: ModuleType[];
 }
 
 function buildScoringCatalog(): string {
@@ -118,8 +124,18 @@ Return STRICT JSON, no preamble:
   "vibe": "<editorial | document | dashboard | terminal | soft | minimal>",
   "scores": {
     "<every widget type below>": <integer 0-10>
-  }
+  },
+  "explicit": ["<types the user EXPLICITLY named concrete content for>"]
 }
+
+EXPLICIT (evidence, not preference) — list ONLY widget types for which the
+input (or clarifications) names concrete, real content that belongs in that
+exact widget. This is a conservative, factual signal — an empty list is fine.
+Examples: named camera/lens/equipment → parts_list; two or more named,
+geocodable venues → locations_multi; one named venue → location_single;
+explicitly named team roles → crew; an explicit date/time → date or
+appointment; explicitly listed deliverables → deliverables. Do NOT list a type
+just because it would be nice — only when the user actually stated the content.
 
 SCORING RULES — read carefully, this is the important part:
 - Output a score for EVERY widget type listed below. All ${AI_SCORABLE_TYPES.length}
@@ -227,49 +243,65 @@ async function analyze(
     scores[t] = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : 0;
   }
 
-  return { language, title, vibe, scores: applyProjectModeScoreBias(scores, context) };
+  const scorable = new Set<string>(AI_SCORABLE_TYPES);
+  const explicit = Array.isArray(parsed.explicit)
+    ? (parsed.explicit.filter((t): t is ModuleType => typeof t === "string" && scorable.has(t)))
+    : [];
+
+  return { language, title, vibe, scores: applyProjectModeScoreBias(scores, context), explicit };
 }
 
 // ── Server-side selection (the anti-bias core) ────────────────────────
 
-export function selectModuleTypes(scores: Record<string, number>): ModuleType[] {
+export function selectModuleTypes(
+  scores: Record<string, number>,
+  /** Types the user explicitly named content for — forced in first, ahead of
+   *  the score cap, so a clearly-stated need is never crowded out. */
+  forced: ModuleType[] = [],
+): ModuleType[] {
+  const chosen: ModuleType[] = [];
+  let dateUsed = false;
+  let placeUsed = false;
+
+  // One widget per redundancy group; the FIRST candidate offered wins (forced
+  // types are offered first, so an explicit place/date beats a scored one).
+  const tryAdd = (type: ModuleType): boolean => {
+    if (chosen.includes(type)) return false;
+    if (DATE_GROUP.has(type)) { if (dateUsed) return false; dateUsed = true; }
+    if (PLACE_GROUP.has(type)) { if (placeUsed) return false; placeUsed = true; }
+    chosen.push(type);
+    return true;
+  };
+
+  // 1. Forced explicit types first — never dropped (may exceed MAX_BODY, hard
+  //    cap at HARD_MAX so a noisy model can't blow the page up).
+  for (const type of forced) {
+    if (chosen.length >= HARD_MAX) break;
+    tryAdd(type);
+  }
+
   const ranked = AI_SCORABLE_TYPES
     .map((type) => ({ type, score: scores[type] ?? 0 }))
     // Sort by score desc; stable tie-break by registry order keeps it
     // deterministic without privileging any single module.
     .sort((a, b) => b.score - a.score);
 
-  const chosen: ModuleType[] = [];
-  let dateUsed = false;
-  let placeUsed = false;
-
+  // 2. Score-based fill up to MAX_BODY (forced count never reduces the page).
+  const target = Math.max(MAX_BODY, chosen.length);
   for (const { type, score } of ranked) {
-    if (chosen.length >= MAX_BODY) break;
+    if (chosen.length >= target) break;
     if (score < MIN_SCORE) break; // ranked desc — nothing below passes
-    if (DATE_GROUP.has(type)) {
-      if (dateUsed) continue; // keep only the highest-scoring date widget
-      dateUsed = true;
-    }
-    if (PLACE_GROUP.has(type)) {
-      if (placeUsed) continue; // keep only the highest-scoring place widget
-      placeUsed = true;
-    }
-    chosen.push(type);
+    tryAdd(type);
   }
 
-  // Fallback: if too few cleared the threshold, take the next-best
-  // candidates (even below threshold) so the page isn't bare — but
-  // never anything that scored a flat 0.
+  // 3. Fallback: if too few cleared the threshold, take the next-best
+  //    candidates (even below threshold) so the page isn't bare — but
+  //    never anything that scored a flat 0.
   if (chosen.length < MIN_BODY) {
     for (const { type, score } of ranked) {
       if (chosen.length >= MIN_BODY) break;
-      if (chosen.includes(type)) continue;
       if (score <= 0) continue;
-      if (DATE_GROUP.has(type) && dateUsed) continue;
-      if (PLACE_GROUP.has(type) && placeUsed) continue;
-      if (DATE_GROUP.has(type)) dateUsed = true;
-      if (PLACE_GROUP.has(type)) placeUsed = true;
-      chosen.push(type);
+      tryAdd(type);
     }
   }
 
@@ -406,11 +438,18 @@ CONTENT RULES:
   names only a city/area and no specific venue, emit
   location_suggestions (a text list of candidate venues) instead of a
   coordinate map.
-- Seed-content widgets (poll, checklist, crew, work_packages,
-  deliverables, approvals, phases, table, shot_list, parts_list,
-  location_suggestions) must contain real, concrete starter content
-  drawn from the input — never empty arrays, never placeholder text
-  like "Option 1".
+- GROUNDING — the most important rule. Seed a widget's items/values ONLY
+  from what the input (plus clarifications and preset/studio rules) actually
+  states or directly implies. If the user named concrete content (places,
+  gear, roles, deliverables, shots, dates), seed exactly those. If the input
+  gives NO basis for an item or field, leave it out and rely on the widget's
+  "description"/"placeholder" to invite the user to fill it — do NOT invent
+  items, values, palettes, lighting, setups, colours, dates, quantities, or
+  any specifics just to make the page look complete. A near-empty widget with
+  a helpful placeholder is correct; fabricated detail is a failure. Three
+  grounded items beat ten invented ones. Always author microTitle,
+  description and placeholder (framing, not facts) so empty widgets read as
+  clear invitations.
 - Collaboration / upload widgets (notes, qa, discussion, attachments,
   images, audio, sketch) may use microTitle plus optional description
   and placeholder guidance. The qa widget may optionally seed question
@@ -547,13 +586,16 @@ export async function classifyInput(
   // Stage A — analyze + score.
   const a = await analyze(client, input, answers, context);
 
-  // Server-side deterministic selection.
-  let chosen = selectModuleTypes(a.scores);
+  // Server-side deterministic selection. Explicit-named types are forced in so
+  // a clearly-stated need (named gear → parts_list, two venues → map) can't be
+  // crowded out by the score cap — but never duplicate a pre-configured type.
+  const forced = a.explicit.filter((t) => !configuredModules.some((m) => m.type === t));
+  let chosen = selectModuleTypes(a.scores, forced);
 
   // One observability line per request (Vercel function logs) — the
   // basis for tuning MIN_SCORE/MIN_BODY against real inputs.
   console.log(
-    `[classify] mode=${String(context.projectMode || "-")} lang=${a.language} chosen=[${chosen.join(",")}] scores=` +
+    `[classify] mode=${String(context.projectMode || "-")} lang=${a.language} forced=[${forced.join(",")}] chosen=[${chosen.join(",")}] scores=` +
     Object.entries(a.scores)
       .filter(([, v]) => v > 0)
       .sort(([, x], [, y]) => y - x)
