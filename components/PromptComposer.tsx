@@ -1,6 +1,11 @@
 "use client";
 
-import { forwardRef, useState, type ReactNode } from "react";
+import { forwardRef, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+
+// Grow with content up to this height, then scroll (keeping the newest line in
+// view). Without this, programmatic appends (clicking a Schnellbaustein) land
+// below the fold and the field still shows the top — you can't tell it worked.
+const MAX_H = 320;
 
 /**
  * Shared prompt field — the single source of truth for the "describe your
@@ -43,6 +48,23 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
   const [focused, setFocused] = useState(false);
   const lit = focused || highlight;
 
+  // Auto-grow the textarea so the latest text is always visible (incl. after
+  // programmatic appends). min-height (Tailwind) keeps the resting size.
+  const innerRef = useRef<HTMLTextAreaElement | null>(null);
+  useLayoutEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, MAX_H)}px`;
+    el.style.overflowY = el.scrollHeight > MAX_H ? "auto" : "hidden";
+    if (el.scrollHeight > MAX_H) el.scrollTop = el.scrollHeight;
+  }, [value]);
+  function assignRef(el: HTMLTextAreaElement | null) {
+    innerRef.current = el;
+    if (typeof ref === "function") ref(el);
+    else if (ref) (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+  }
+
   return (
     <div
       id={id}
@@ -61,7 +83,7 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
         {topSlot && <div className="mb-4">{topSlot}</div>}
 
         <textarea
-          ref={ref}
+          ref={assignRef}
           autoFocus={autoFocus}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -77,7 +99,8 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
               onSubmit();
             }
           }}
-          className="w-full resize-none border-0 bg-transparent text-[18px] leading-relaxed text-white outline-none placeholder:text-white/32 sm:text-[21px]"
+          className="block w-full resize-none border-0 bg-transparent text-[18px] leading-relaxed text-white outline-none placeholder:text-white/32 sm:text-[21px]"
+          style={{ minHeight: `${rows * 1.65 + 0.5}em` }}
         />
 
         {(chips || value.length > 0 || onSubmit) && (
