@@ -1,28 +1,27 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { getSelfId } from "@/lib/state";
-import { readApiJson, showActionError } from "@/lib/client/feedback";
+import { readApiJson } from "@/lib/client/feedback";
 
-type Message = {
-  role: "user" | "assistant";
-  content: string;
-};
+type Message = { role: "user" | "assistant"; content: string };
 
 const STARTERS = [
-  "Find missing information in this project.",
-  "Suggest the next 5 concrete steps.",
-  "Make this plan sharper for collaborators.",
+  "Was fehlt noch in diesem Plan?",
+  "Schlage die nächsten 5 konkreten Schritte vor.",
+  "Wie könnte ich diesen Plan für meinen Kunden schärfer formulieren?",
 ];
 
-function errorLabel(value: unknown) {
-  if (!value || typeof value !== "object") return "The assistant is unavailable.";
+function errorLabel(value: unknown): string {
+  if (!value || typeof value !== "object") return "Der Assistent ist gerade nicht erreichbar.";
   const error = (value as { error?: unknown }).error;
-  if (error === "rate_limited") return "Please wait a moment before asking again.";
-  if (error === "ai_not_configured") return "The AI backend is not configured yet.";
+  if (error === "rate_limited") return "Kurz warten, dann erneut versuchen.";
+  if (error === "ai_not_configured") return "KI-Backend nicht konfiguriert.";
   if (typeof error === "string" && error.trim()) return error;
-  return "The assistant is unavailable.";
+  return "Der Assistent ist gerade nicht erreichbar.";
 }
+
+const RING_GRADIENT = "linear-gradient(135deg, #8b7bff 0%, #4f9eff 50%, #39d2b4 100%)";
 
 export function AssistantDock({ spaceId }: { spaceId: string }) {
   const [open, setOpen] = useState(false);
@@ -31,9 +30,12 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   const trimmed = draft.trim();
-  const history = useMemo(() => messages.slice(-8), [messages]);
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, open]);
 
   async function send(text = trimmed) {
     const question = text.trim();
@@ -41,6 +43,7 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
     setOpen(true);
     setDraft("");
     setError(null);
+    const history = messages.slice(-8);
     const nextMessages: Message[] = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
     setBusy(true);
@@ -48,139 +51,136 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
       const res = await fetch(`/api/spaces/${spaceId}/assistant`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          question,
-          anonToken: getSelfId(),
-          history,
-        }),
+        body: JSON.stringify({ question, anonToken: getSelfId(), history }),
       });
       const json = await readApiJson(res);
       if (!res.ok || !json?.answer) throw new Error(errorLabel(json));
-      setMessages((current) => [...current, { role: "assistant", content: String(json.answer) }]);
-      window.setTimeout(() => inputRef.current?.focus(), 30);
+      setMessages((cur) => [...cur, { role: "assistant", content: String(json.answer) }]);
+      setTimeout(() => inputRef.current?.focus(), 30);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "The assistant is unavailable.";
-      setError(message);
-      showActionError("Assistant nicht erreichbar", { description: message });
+      setError(err instanceof Error ? err.message : "Nicht erreichbar.");
     } finally {
       setBusy(false);
     }
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
     void send();
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
   }
 
   return (
     <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3 sm:bottom-5 sm:right-5">
       {open && (
         <section
-          className="w-[calc(100vw-2rem)] max-w-[420px] overflow-hidden rounded-[var(--v-radius)] border shadow-[0_18px_60px_rgba(0,0,0,0.14)]"
-          style={{
-            background: "color-mix(in srgb, var(--v-bg) 94%, white)",
-            borderColor: "var(--v-rule)",
-            color: "var(--v-fg)",
-          }}
+          className="flex w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden rounded-2xl shadow-2xl"
+          style={{ background: "#0f1012", border: "1px solid rgba(255,255,255,0.10)" }}
         >
-          <header
-            className="flex items-center justify-between gap-3 border-b px-4 py-3"
-            style={{ borderColor: "var(--v-rule)" }}
-          >
+          {/* Header */}
+          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
             <div>
-              <div className="mono text-[10px] uppercase tracking-widest opacity-50">MAGYC assistant</div>
-              <div className="text-sm opacity-75">Ask about this project.</div>
+              <div className="mono text-[10px] uppercase tracking-widest text-white/40">@magyc</div>
+              <div className="text-[13px] font-medium text-white/85">Frag zu diesem Projekt</div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="grid h-8 w-8 place-items-center rounded-[var(--v-radius)] border text-sm"
-              style={{ borderColor: "var(--v-rule)" }}
-              aria-label="Close assistant"
-              title="Close assistant"
+              aria-label="Schließen"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/12 text-[14px] text-white/50 transition-colors hover:border-white/25 hover:text-white"
             >
-              x
+              ×
             </button>
           </header>
 
-          <div className="max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
-            {messages.length === 0 && (
+          {/* Messages */}
+          <div className="flex max-h-[46vh] min-h-[80px] flex-col gap-3 overflow-y-auto px-4 py-4">
+            {messages.length === 0 && !busy && (
               <div className="space-y-2">
-                {STARTERS.map((starter) => (
+                {STARTERS.map((s) => (
                   <button
-                    key={starter}
+                    key={s}
                     type="button"
-                    onClick={() => void send(starter)}
-                    className="block w-full rounded-[var(--v-radius)] border px-3 py-2 text-left text-sm transition hover:opacity-75"
-                    style={{ borderColor: "var(--v-rule)", background: "var(--v-card)" }}
+                    onClick={() => void send(s)}
+                    className="block w-full rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5 text-left text-[13px] leading-snug text-white/65 transition-colors hover:border-white/20 hover:text-white"
                   >
-                    {starter}
+                    {s}
                   </button>
                 ))}
               </div>
             )}
 
-            {messages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={message.role === "user" ? "ml-8 text-right" : "mr-8 text-left"}
-              >
-                <div
-                  className="inline-block max-w-full whitespace-pre-wrap rounded-[var(--v-radius)] border px-3 py-2 text-sm leading-relaxed"
-                  style={{
-                    borderColor: "var(--v-rule)",
-                    background: message.role === "user" ? "var(--v-fg)" : "var(--v-card)",
-                    color: message.role === "user" ? "var(--v-bg)" : "var(--v-fg)",
-                  }}
-                >
-                  {message.content}
-                </div>
+            {messages.map((m, i) => (
+              <div key={i} className={m.role === "user" ? "ml-8 flex justify-end" : "mr-4"}>
+                {m.role === "user" ? (
+                  <div className="max-w-full rounded-2xl rounded-br-sm bg-white px-3.5 py-2.5 text-[13px] leading-relaxed text-black">
+                    {m.content}
+                  </div>
+                ) : (
+                  <div className="max-w-full whitespace-pre-wrap rounded-2xl rounded-bl-sm border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[13px] leading-relaxed text-white/85">
+                    {m.content}
+                  </div>
+                )}
               </div>
             ))}
 
-            {busy && <div className="mono text-[10px] uppercase tracking-widest opacity-45">thinking...</div>}
-            {error && <div className="text-sm text-red-700">{error}</div>}
+            {busy && (
+              <div className="mr-4">
+                <div className="inline-flex items-center gap-1.5 rounded-2xl rounded-bl-sm border border-white/10 bg-white/[0.04] px-3.5 py-2.5">
+                  <span className="mono animate-pulse text-[11px] tracking-widest text-white/40">denkt nach …</span>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-[12px] text-red-300/80">
+                {error}
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
 
-          <form onSubmit={onSubmit} className="border-t p-3" style={{ borderColor: "var(--v-rule)" }}>
+          {/* Input */}
+          <form onSubmit={onSubmit} className="shrink-0 border-t border-white/10 p-3">
             <div className="flex items-end gap-2">
               <textarea
                 ref={inputRef}
                 value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                rows={2}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={onKeyDown}
+                rows={1}
                 maxLength={1200}
-                placeholder="Ask MAGYC..."
-                className="min-h-11 flex-1 resize-none rounded-[var(--v-radius)] border bg-transparent px-3 py-2 text-sm leading-relaxed outline-none"
-                style={{ borderColor: "var(--v-rule)" }}
+                placeholder="Stell eine Frage … (Enter sendet)"
+                className="min-h-[40px] flex-1 resize-none rounded-xl border border-white/12 bg-white/[0.03] px-3 py-2.5 text-[13px] leading-snug text-white outline-none placeholder:text-white/30 focus:border-white/30"
+                style={{ maxHeight: "120px" }}
               />
               <button
                 type="submit"
                 disabled={busy || !trimmed}
-                className="h-11 rounded-[var(--v-radius)] border px-4 mono text-[10px] uppercase tracking-widest disabled:opacity-35"
-                style={{ borderColor: "var(--v-rule)", background: "var(--v-fg)", color: "var(--v-bg)" }}
+                aria-label="Senden"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl disabled:opacity-30"
+                style={{ background: RING_GRADIENT }}
               >
-                send
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 8h12M10 4l4 4-4 4" stroke="#000" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
             </div>
           </form>
         </section>
       )}
 
+      {/* Trigger */}
       <button
         type="button"
-        onClick={() => {
-          setOpen((value) => !value);
-          window.setTimeout(() => inputRef.current?.focus(), 40);
-        }}
-        className="h-12 rounded-[var(--v-radius)] border px-4 shadow-[0_10px_30px_rgba(0,0,0,0.12)] mono text-[10px] uppercase tracking-widest"
-        style={{
-          borderColor: "var(--v-rule)",
-          background: "var(--v-fg)",
-          color: "var(--v-bg)",
-        }}
+        onClick={() => { setOpen((v) => !v); setTimeout(() => inputRef.current?.focus(), 40); }}
+        className="mono flex h-9 items-center gap-2 rounded-full px-4 text-[11px] uppercase tracking-widest text-black shadow-lg transition-opacity hover:opacity-90"
+        style={{ background: RING_GRADIENT }}
       >
-        Ask MAGYC
+        @magyc
       </button>
     </div>
   );

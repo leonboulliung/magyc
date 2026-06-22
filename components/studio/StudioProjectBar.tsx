@@ -43,6 +43,8 @@ export function StudioProjectBar({
   const [busy, setBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [stageMenuOpen, setStageMenuOpen] = useState(false);
+  const currentLabel = STAGES.find((s) => s.id === current)?.label ?? "Planung";
 
   // Moving into Absegnung locks the project page for good. Gate that one
   // transition behind a confirmation; every other transition applies at once.
@@ -100,7 +102,42 @@ export function StudioProjectBar({
         <span className="hidden sm:inline">Studio</span>
       </Link>
 
-      <div className="flex items-center gap-1 rounded-full border border-white/15 bg-black/60 p-1 backdrop-blur-md">
+      {/* Mobile: compact dropdown showing current stage */}
+      <div className="relative sm:hidden">
+        <button
+          type="button"
+          onClick={() => setStageMenuOpen((o) => !o)}
+          disabled={busy}
+          className="mono flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[10px] uppercase tracking-widest text-white/80 backdrop-blur-md transition-colors hover:text-white disabled:opacity-60"
+        >
+          {currentLabel}
+          <span aria-hidden className="text-[8px] text-white/40">▾</span>
+        </button>
+        {stageMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setStageMenuOpen(false)} />
+            <div className="absolute left-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-white/12 py-1 shadow-2xl" style={{ background: "#16181b", minWidth: "140px" }}>
+              {STAGES.map((s) => {
+                const active = s.id === current;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => { setStageMenuOpen(false); requestStage(s.id); }}
+                    disabled={busy}
+                    className={`mono block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-widest transition-colors disabled:opacity-50 ${active ? "text-white" : "text-white/50 hover:text-white"}`}
+                  >
+                    {active && <span className="mr-2 text-[8px]">●</span>}{s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Desktop: full 3-pill stepper */}
+      <div className="hidden sm:flex items-center gap-1 rounded-full border border-white/15 bg-black/60 p-1 backdrop-blur-md">
         {STAGES.map((s) => {
           const active = s.id === current;
           return (
