@@ -19,24 +19,35 @@ const STAGES: { id: ProjectStage; label: string }[] = [
   { id: "production", label: "Absegnung" },
   { id: "handoff", label: "Abschluss" },
 ];
+const ORDER: ProjectStage[] = ["brief", "production", "handoff"];
 
 /**
- * StudioProjectBar — the thin overlay on a project workspace: a back link
- * to the dashboard + the lifecycle stage stepper. Fixed top-left so it
- * never collides with SpaceView's owner toolbar (top-right). Changing the
- * stage persists via PATCH /api/projects/[id]; stage-specific workspace
- * behaviour comes in later phases.
+ * StudioProjectBar — the workspace's top-left control: back to Studio, the
+ * lifecycle stepper, and sharing. The lifecycle is FORWARD-ONLY: tabs for
+ * stages already reached switch the *view* (read-only inspection of an earlier
+ * surface), the single next stage is the advance action (confirmed, locks the
+ * plan), and later stages are disabled. A stage is never reset — advancing
+ * persists via PATCH /api/projects/[id]; `onView`/`onAdvance` drive the
+ * surrounding workspace.
  */
 export function StudioProjectBar({
   id,
   stage,
   segment,
   shared,
+  view,
+  onView,
+  onAdvance,
 }: {
   id: string;
   stage: ProjectStage | null;
   segment: string | null;
   shared: boolean;
+  /** The currently shown surface (defaults to the lifecycle stage). */
+  view: ProjectStage;
+  onView: (s: ProjectStage) => void;
+  /** Called after a successful forward advance, with the new stage. */
+  onAdvance: (s: ProjectStage) => void;
 }) {
   const router = useRouter();
   const [current, setCurrent] = useState<ProjectStage>(stage ?? "brief");
@@ -44,31 +55,26 @@ export function StudioProjectBar({
   const [shareOpen, setShareOpen] = useState(false);
   const [pendingStage, setPendingStage] = useState<ProjectStage | null>(null);
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
-  const currentLabel = STAGES.find((s) => s.id === current)?.label ?? "Planung";
+  const currentIdx = ORDER.indexOf(current);
+  const viewLabel = STAGES.find((s) => s.id === view)?.label ?? "Planung";
 
-  // The project page is locked once it leaves Planung (production/handoff).
-  // Two transitions change that lock state and must be deliberate:
-  //  - entering a locked stage from Planung → confirm (plan gets frozen)
-  //  - returning to Planung from a locked stage → confirm (plan re-opens)
-  // Transitions between the two locked stages apply immediately.
-  const lockedStage = (s: ProjectStage) => s === "production" || s === "handoff";
-  const reopening = pendingStage === "brief";
-
-  function requestStage(next: ProjectStage) {
-    if (next === current || busy) return;
-    const entersLock = lockedStage(next) && current === "brief";
-    const reopens = next === "brief" && lockedStage(current);
-    if (entersLock || reopens) {
-      setPendingStage(next);
-      return;
-    }
-    void setStage(next);
+  /** What a tab does: view a reached stage, advance to the next, or nothing. */
+  function tabKind(s: ProjectStage): "view" | "advance" | "locked" {
+    const i = ORDER.indexOf(s);
+    if (i <= currentIdx) return "view";
+    if (i === currentIdx + 1) return "advance";
+    return "locked";
   }
 
-  async function setStage(next: ProjectStage) {
-    if (next === current || busy) return;
-    const prev = current;
-    setCurrent(next); // optimistic
+  function onTab(s: ProjectStage) {
+    if (busy) return;
+    const kind = tabKind(s);
+    if (kind === "view") { onView(s); setStageMenuOpen(false); return; }
+    if (kind === "advance") { setPendingStage(s); setStageMenuOpen(false); }
+  }
+
+  async function advance(next: ProjectStage) {
+    if (busy) return;
     setBusy(true);
     try {
       showActionLoading("Phase wird gespeichert …", `stage-${id}`);
@@ -79,18 +85,17 @@ export function StudioProjectBar({
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        setCurrent(prev); // rollback
-        // contract_signed (locked plan) is mapped centrally in apiErrorMessage.
         showApiError("Phase nicht gespeichert", json, {
           id: `stage-${id}`,
           fallback: "Die Projektphase konnte nicht gespeichert werden.",
         });
-      } else {
-        showActionSuccess("Phase gespeichert", { id: `stage-${id}` });
-        router.refresh();
+        return;
       }
+      showActionSuccess("Phase gespeichert", { id: `stage-${id}` });
+      setCurrent(next);
+      onAdvance(next); // workspace moves the view forward to the new stage
+      router.refresh();
     } catch (error) {
-      setCurrent(prev);
       showUnknownError("Phase nicht gespeichert", error, {
         id: `stage-${id}`,
         fallback: "Die Projektphase konnte nicht gespeichert werden.",
@@ -99,6 +104,8 @@ export function StudioProjectBar({
       setBusy(false);
     }
   }
+
+  const advancingToHandoff = pendingStage === "handoff";
 
   return (
     <div className="fixed left-3 top-3 z-50 flex items-center gap-2 sm:left-4 sm:top-4">
@@ -111,7 +118,7 @@ export function StudioProjectBar({
         <span className="hidden sm:inline">Studio</span>
       </Link>
 
-      {/* Mobile: compact dropdown showing current stage */}
+      {/* Mobile: compact dropdown of the stages */}
       <div className="relative sm:hidden">
         <button
           type="button"
@@ -119,24 +126,27 @@ export function StudioProjectBar({
           disabled={busy}
           className="mono flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[10px] uppercase tracking-widest text-white/80 backdrop-blur-md transition-colors hover:text-white disabled:opacity-60"
         >
-          {currentLabel}
+          {viewLabel}
           <span aria-hidden className="text-[8px] text-white/40">▾</span>
         </button>
         {stageMenuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setStageMenuOpen(false)} />
-            <div className="absolute left-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-white/12 py-1 shadow-2xl" style={{ background: "#16181b", minWidth: "140px" }}>
+            <div className="absolute left-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-white/12 py-1 shadow-2xl" style={{ background: "#16181b", minWidth: "150px" }}>
               {STAGES.map((s) => {
-                const active = s.id === current;
+                const kind = tabKind(s.id);
+                const active = s.id === view;
                 return (
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => { setStageMenuOpen(false); requestStage(s.id); }}
-                    disabled={busy}
-                    className={`mono block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-widest transition-colors disabled:opacity-50 ${active ? "text-white" : "text-white/50 hover:text-white"}`}
+                    onClick={() => onTab(s.id)}
+                    disabled={busy || kind === "locked"}
+                    className={`mono block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-widest transition-colors disabled:opacity-30 ${active ? "text-white" : "text-white/50 hover:text-white"}`}
                   >
-                    {active && <span className="mr-2 text-[8px]">●</span>}{s.label}
+                    {active && <span className="mr-2 text-[8px]">●</span>}
+                    {s.label}
+                    {kind === "advance" && <span className="ml-2 text-white/40">→</span>}
                   </button>
                 );
               })}
@@ -145,21 +155,28 @@ export function StudioProjectBar({
         )}
       </div>
 
-      {/* Desktop: full 3-pill stepper */}
+      {/* Desktop: 3-stage stepper (view / advance / locked) */}
       <div className="hidden sm:flex items-center gap-1 rounded-full border border-white/15 bg-black/60 p-1 backdrop-blur-md">
         {STAGES.map((s) => {
-          const active = s.id === current;
+          const kind = tabKind(s.id);
+          const active = s.id === view;
           return (
             <button
               key={s.id}
               type="button"
-              onClick={() => requestStage(s.id)}
-              disabled={busy}
-              className={`mono rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest transition-colors disabled:opacity-60 ${
-                active ? "bg-white text-black" : "text-white/55 hover:text-white"
+              onClick={() => onTab(s.id)}
+              disabled={busy || kind === "locked"}
+              title={kind === "locked" ? "Erst die vorige Phase abschließen" : undefined}
+              className={`mono rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest transition-colors disabled:cursor-not-allowed ${
+                active
+                  ? "bg-white text-black"
+                  : kind === "locked"
+                    ? "text-white/25"
+                    : "text-white/55 hover:text-white"
               }`}
             >
               {s.label}
+              {kind === "advance" && <span aria-hidden className="ml-1.5 opacity-60">→</span>}
             </button>
           );
         })}
@@ -182,15 +199,19 @@ export function StudioProjectBar({
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
 
-      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={reopening ? "Zurück zur Planung" : "Projektseite sperren"} maxWidth={420}>
+      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={advancingToHandoff ? "Projekt abschließen" : "In die Absegnung"} maxWidth={420}>
         <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#16181b] text-left shadow-2xl">
           <div className="space-y-3 p-5">
-            <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">{reopening ? "Plan wird wieder bearbeitbar" : "Plan wird gesperrt"}</div>
-            <h2 className="text-[17px] font-semibold text-white">{reopening ? "Zurück zur Planung?" : "Projektseite sperren?"}</h2>
+            <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">
+              {advancingToHandoff ? "Phase wird fixiert" : "Plan wird gesperrt"}
+            </div>
+            <h2 className="text-[17px] font-semibold text-white">
+              {advancingToHandoff ? "Projekt abschließen?" : "In die Absegnung verschieben?"}
+            </h2>
             <p className="text-[13px] leading-relaxed text-white/65">
-              {reopening
-                ? "Die Projektseite wird wieder bearbeitbar. Ein bereits erstellter Vertragsentwurf bleibt erhalten, ist aber nicht mehr abgesichert, solange der Plan offen ist."
-                : "Danach ist die Projektseite gesperrt — am Plan sind keine Änderungen mehr möglich. Du arbeitest ab dann am Vertragsentwurf und gibst ihn selbst zur Unterschrift frei."}
+              {advancingToHandoff
+                ? "Danach ist das Projekt abgeschlossen. Frühere Phasen kannst du weiter ansehen, aber die Phase lässt sich nicht mehr zurücksetzen."
+                : "Danach ist die Projektseite gesperrt — am Plan sind keine Änderungen mehr möglich, und die Phase lässt sich nicht zurücksetzen. Du arbeitest ab dann am Vertrag und gibst ihn selbst zur Unterschrift frei."}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-white/10 bg-black/30 px-5 py-3.5">
@@ -204,11 +225,11 @@ export function StudioProjectBar({
             </button>
             <button
               type="button"
-              onClick={() => { const next = pendingStage; setPendingStage(null); if (next) void setStage(next); }}
+              onClick={() => { const next = pendingStage; setPendingStage(null); if (next) void advance(next); }}
               disabled={busy}
               className="rounded-full bg-white px-4 py-2 text-[13px] font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {reopening ? "Plan wieder öffnen" : "Sperren & fortfahren"}
+              {advancingToHandoff ? "Abschließen" : "Sperren & fortfahren"}
             </button>
           </div>
         </div>

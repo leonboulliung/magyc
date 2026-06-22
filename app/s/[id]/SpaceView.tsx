@@ -62,7 +62,7 @@ interface SpaceNotice {
  * Rich Text, and Tags as real editable renderers; everything else
  * falls to a pending placeholder which is replaced phase by phase.
  */
-export function SpaceView({ id, initialSpace = null }: { id: string; initialSpace?: Space | null }) {
+export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }: { id: string; initialSpace?: Space | null; hideLockedNotice?: boolean }) {
   const { user } = useUser();
 
   // Bridge the signed-in identity into the plain-function state layer so
@@ -602,8 +602,10 @@ export function SpaceView({ id, initialSpace = null }: { id: string; initialSpac
         </header>
 
         {/* Locked: a slim status line (no bulky banner) with a link to the
-            contract environment. Plan is frozen once it leaves Planung. */}
-        {locked && (
+            contract environment. Plan is frozen once it leaves Planung.
+            Suppressed inside the owner workspace, where the stage bar already
+            switches between plan and contract views. */}
+        {locked && !hideLockedNotice && (
           <div className="relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-10">
             <Link
               href={`/s/${space.id}/vertrag`}

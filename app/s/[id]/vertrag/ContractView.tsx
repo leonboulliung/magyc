@@ -26,7 +26,7 @@ function fmt(ts: string): string {
   catch { return ts; }
 }
 
-export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: string }) {
+export function ContractView({ id, spaceTitle, embedded = false }: { id: string; spaceTitle: string; embedded?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [contract, setContract] = useState<SavedContract | null>(null);
@@ -159,24 +159,8 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
   // Sending the owner to /s/[id] would strip their nav and trap them.
   const planHref = isOwner ? `/studio/${id}` : `/s/${id}`;
 
-  return (
-    <div className="min-h-screen text-white" style={{ background: "radial-gradient(circle at 50% -10%, #14171c, #050505 60%)" }}>
-      {/* Environment bar — clear transition + reference to the planning env */}
-      <div className="sticky top-0 z-20 border-b border-white/10 bg-black/70 backdrop-blur-md print:hidden">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-          <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
-            ← Zur Planung
-          </Link>
-          <span className="mono text-[10px] uppercase tracking-[0.28em] text-white/40">Absegnung · Vertrag</span>
-          {contract?.locked ? (
-            <button type="button" onClick={() => window.print()} className="mono rounded-full bg-white px-3.5 py-1.5 text-[12px] tracking-widest text-black transition-colors hover:bg-white/85">
-              Als PDF
-            </button>
-          ) : <span className="w-[64px]" />}
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+  const inner = (
+    <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
         {/* Reference header */}
         <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/40">Aus dem Projektplan</p>
         <h1 className="mt-2 font-brand text-[26px] font-bold tracking-[-0.02em] sm:text-[34px]">
@@ -349,6 +333,26 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
           </>
         )}
       </div>
+  );
+
+  if (embedded) return inner;
+  return (
+    <div className="min-h-screen text-white" style={{ background: "radial-gradient(circle at 50% -10%, #14171c, #050505 60%)" }}>
+      {/* Environment bar — clear transition + reference to the planning env */}
+      <div className="sticky top-0 z-20 border-b border-white/10 bg-black/70 backdrop-blur-md print:hidden">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+          <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+            ← Zur Planung
+          </Link>
+          <span className="mono text-[10px] uppercase tracking-[0.28em] text-white/40">Absegnung · Vertrag</span>
+          {contract?.locked ? (
+            <button type="button" onClick={() => window.print()} className="mono rounded-full bg-white px-3.5 py-1.5 text-[12px] tracking-widest text-black transition-colors hover:bg-white/85">
+              Als PDF
+            </button>
+          ) : <span className="w-[64px]" />}
+        </div>
+      </div>
+      {inner}
     </div>
   );
 }
