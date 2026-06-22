@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-18 (Claude, Studio QA triage)_
+_Last updated: 2026-06-22 (Claude, account-area rebuild + phase flow)_
 
 ---
 
@@ -351,6 +351,27 @@ step renderers; lowers cognitive load, no behaviour change.
 ---
 
 ## Done
+
+- 2026-06-22 · **Account-area rebuild + phase flow + mobile/chat polish**
+  (4 commits). **Phasen-Flow:** moving a project to Absegnung now (a) asks a
+  confirmation dialog (`StudioProjectBar`), (b) locks the project page —
+  `/s/[id]` is read-only in production/handoff (`act` no-op + toast, owner
+  chrome/GridZone editing hidden; bulky "bereit zur Absegnung" banner replaced
+  by a slim locked status line). **Contract release gate:** owner prepares the
+  draft, can re-edit it, then manually "Zur Unterschrift freigeben"
+  (status `released`, new route `POST /api/projects/[id]/contract/release`);
+  signing is server-gated to released contracts. Client sees "Vertrag wird
+  vorbereitet" until released, then signs, then "Dein Projekt ist in Arbeit"
+  with a link to the plan. **Account pages** rebuilt in the new look via a
+  shared `components/studio/formKit.tsx`: Profil, Einstellungen, Vertragsinhalte
+  (full conditions/business editor), Nutzer (Team + clients derived from
+  contract parties). Data/API unchanged. **Mobile:** `StudioProjectBar` stage
+  stepper becomes a compact dropdown <sm (fixes top-bar collision with the
+  right-side owner controls). **@magyc chat:** `AssistantDock` redesigned in the
+  dark design-system look (German, gradient send, Enter-to-send, auto-scroll,
+  greeting bubble). Agent remains stateless (greeting is presentational, not
+  history). Open follow-ups: multi-seat team invites (Nutzer page notes it);
+  contract chat persistence if @magyc should post into a saved thread.
 
 - 2026-06-18 · **Auswahl-Phase: `selection` widget (proofing-lite)**: new
   `selection` widget (contract 1.4.0→1.5.0) — owner uploads a photo set
