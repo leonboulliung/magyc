@@ -154,13 +154,17 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
   const released = !!contract && !contract.locked && !preparing;
   // The client never sees the document while it is still being prepared.
   const clientWaiting = !isOwner && (!contract || preparing) && !draft;
+  // The owner's plan lives in the workspace (/studio/[id], which carries the
+  // project bar + stage stepper); the client's lives at the public /s/[id].
+  // Sending the owner to /s/[id] would strip their nav and trap them.
+  const planHref = isOwner ? `/studio/${id}` : `/s/${id}`;
 
   return (
     <div className="min-h-screen text-white" style={{ background: "radial-gradient(circle at 50% -10%, #14171c, #050505 60%)" }}>
       {/* Environment bar — clear transition + reference to the planning env */}
       <div className="sticky top-0 z-20 border-b border-white/10 bg-black/70 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-          <Link href={`/s/${id}`} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+          <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
             ← Zur Planung
           </Link>
           <span className="mono text-[10px] uppercase tracking-[0.28em] text-white/40">Absegnung · Vertrag</span>
@@ -190,7 +194,7 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
               Die Fotograf:in stellt den Vertrag zu diesem Projekt fertig. Sobald er
               freigegeben ist, kannst du ihn hier in Ruhe lesen und verbindlich freigeben.
             </p>
-            <Link href={`/s/${id}`} className="mono mt-5 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+            <Link href={planHref} className="mono mt-5 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
               Zum Projektplan →
             </Link>
           </div>
@@ -228,7 +232,7 @@ export function ContractView({ id, spaceTitle }: { id: string; spaceTitle: strin
                   Der Vertrag ist verbindlich abgeschlossen. Den unterschriebenen
                   Vertrag und den Projektplan kannst du jederzeit hier einsehen.
                 </p>
-                <Link href={`/s/${id}`} className="mono mt-4 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+                <Link href={planHref} className="mono mt-4 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
                   Zum Projektplan →
                 </Link>
               </div>

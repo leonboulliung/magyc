@@ -61,7 +61,7 @@ export function StudioHome({
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState("none");
   const [fastPrompts, setFastPrompts] = useState<string[]>([]);
-  const [fpOpen, setFpOpen] = useState(false);
+  const [fpOpen, setFpOpen] = useState(true);
 
   const usablePresets = useMemo(() => presets.filter((p) => p.modules.length > 0), [presets]);
   const selectedPreset = usablePresets.find((p) => p.id === presetId) || null;
@@ -160,11 +160,6 @@ export function StudioHome({
               ))}
             </div>
           }
-          footer={
-            <Link href="/studio/new" className="mono text-[11px] uppercase tracking-widest text-white/45 transition-colors hover:text-white/80">
-              Mehr Optionen
-            </Link>
-          }
         />
 
         {/* Fast-Prompts — collapsible so many snippets stay fully readable
@@ -174,12 +169,12 @@ export function StudioHome({
             <button
               type="button"
               onClick={() => setFpOpen((o) => !o)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+              className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-white/[0.03]"
             >
-              <span className="mono text-[11px] uppercase tracking-widest text-white/50">
+              <span className="mono text-[10px] uppercase tracking-widest text-white/50">
                 Schnellbausteine <span className="text-white/30">({fastPrompts.length})</span>
               </span>
-              <span className="text-white/40 transition-transform" style={{ transform: fpOpen ? "rotate(180deg)" : "none" }}>⌄</span>
+              <Chevron open={fpOpen} />
             </button>
             {fpOpen && (
               <div className="max-h-72 overflow-y-auto border-t border-white/10">
@@ -284,13 +279,13 @@ function Accordion({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+        className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-white/[0.03]"
       >
-        <span className="mono text-[11px] uppercase tracking-widest text-white/50">
+        <span className="mono text-[10px] uppercase tracking-widest text-white/50">
           {title} <span className="text-white/30">({count})</span>
           {note && <span className="ml-2 normal-case tracking-normal text-white/25">· {note}</span>}
         </span>
-        <span className="text-white/40 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+        <Chevron open={open} />
       </button>
       {open && (
         <div className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -298,6 +293,20 @@ function Accordion({
         </div>
       )}
     </div>
+  );
+}
+
+/** A chevron that rotates around its own centre — no glyph baseline shift, so
+ *  the accordion header height stays fixed whether open or closed. */
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden
+      className="shrink-0 text-white/40 transition-transform duration-200"
+      style={{ transform: open ? "rotate(180deg)" : "none" }}
+    >
+      <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

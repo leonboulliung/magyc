@@ -11,7 +11,6 @@ import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { PromptComposer } from "@/components/PromptComposer";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
-import { EnterKey } from "@/components/EnterKey";
 import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -98,7 +97,6 @@ export default function HomePage() {
   const [promptNudge, setPromptNudge] = useState(false);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dotFieldRef = useRef<DotFieldHandle>(null);
-  const enterKeyRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const selectedMode = projectModeById(projectMode);
   const promptExamples = selectedMode
@@ -165,7 +163,7 @@ export default function HomePage() {
    *  pulsing through the AI wait, then clarify. */
   function submitInput() {
     if (busy || text.trim().length < 3) return;
-    const o = originOf(enterKeyRef.current);
+    const o = originOf(null); // ripple from screen centre (no Enter-key anchor)
     dotFieldRef.current?.ripple(o.x, o.y);
     dotFieldRef.current?.setThinking(true, o.x, o.y);
     goClarify();
@@ -478,20 +476,15 @@ export default function HomePage() {
                   ) : null}
                 />
 
-                {/* Enter key — simply bottom-right, below the card. */}
-                <div className="flex flex-col items-end gap-3">
-                  <EnterKey
-                    ref={enterKeyRef}
-                    onPress={submitInput}
-                    disabled={busy || text.trim().length < 3}
-                    busy={busy}
-                  />
-                  {statusText && (
+                {/* Submit lives in the composer itself (gradient send + Enter),
+                    matching the Studio prompt field. Status only below. */}
+                {statusText && (
+                  <div className="mt-3 flex justify-end">
                     <p className="mono text-[10px] tracking-widest opacity-60 text-right text-white">
                       {statusText}
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
