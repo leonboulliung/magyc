@@ -80,6 +80,7 @@ export function StudioProjectBar({
       const json = await readApiJson(res);
       if (!res.ok) {
         setCurrent(prev); // rollback
+        // contract_signed (locked plan) is mapped centrally in apiErrorMessage.
         showApiError("Phase nicht gespeichert", json, {
           id: `stage-${id}`,
           fallback: "Die Projektphase konnte nicht gespeichert werden.",

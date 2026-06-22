@@ -4,6 +4,30 @@ _Status: concept (not built). Decided with Leon, 2026-06. The earlier
 `agreement` grid widget was removed — a binding sign-off does not belong as a
 playful card in the dot-grid; it gets a dedicated, document-like surface._
 
+## Implemented state (2026-06-22)
+
+The MVP cut below is built (Mode A / click-consent). Current behaviour:
+
+- **Stage lock.** Moving a project to Absegnung (`stage = production`) is gated
+  by a confirmation dialog in `StudioProjectBar`; once locked, the project page
+  (`/s/[id]`) is read-only (`SpaceView`: `act` no-ops with a toast, owner chrome
+  hidden). Returning to Planung is also confirmed, and the API
+  (`PATCH /api/projects/[id]`) refuses `stage = "brief"` once a contract is
+  `locked` (409 `contract_signed`).
+- **Contract page** lives at a dedicated route `/s/[id]/vertrag`
+  (`ContractView`), not inside `/s/[id]`. Owner generates a draft
+  (`POST …/contract/draft`), edits it, and persists with `PUT …/contract`.
+- **Release gate.** The owner must explicitly release the prepared contract for
+  signing: `POST /api/projects/[id]/contract/release` sets `status = "released"`.
+  Before release the client sees only a "Vertrag wird vorbereitet" page; after
+  release both parties sign (`POST …/contract/sign`, gated to released statuses).
+  After both sign, the contract is `locked` and the client sees "Dein Projekt
+  ist in Arbeit" with a link back to the plan.
+- **Status values used** on `project_contracts.status`: `sent` (saved, still
+  being prepared) → `released` → `owner_signed` / `client_signed` (one party in)
+  → `signed` (+ `locked = true`). No migration was needed — `status` is a free
+  text column.
+
 ## Principle
 
 MAGYC owns **"between idea and execution"**. The project page is where a vague

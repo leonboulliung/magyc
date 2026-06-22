@@ -190,6 +190,13 @@ lib/
 - **Next 14 gotcha**: server-side `fetch` (incl. supabase-js) is cached by
   default. Pages that read mutable data must export
   `const dynamic = "force-dynamic"`.
+- **Error-UX layers** (pick by failure kind): _inline_ = a fixable input
+  problem, shown next to the field; _toast_ = async action feedback, always via
+  `lib/client/feedback` (`showApiError`/`showActionError`/`showActionSuccess`),
+  never raw `toast.*`; _dialog_ = a blocking modal failure that needs a choice;
+  _boundary_ = a render crash, caught by `RenderBoundary`. Map server error
+  codes to German once, centrally, in `lib/client/errors.ts` (`apiErrorMessage`)
+  so every caller is consistent — don't special-case messages per call site.
 
 ---
 

@@ -79,11 +79,21 @@ export async function PUT(
   const nextModules: unknown[] = [...currentModules];
   nextModules[widgetIndex] = widget;
 
+  // The heading at index 0 is the project title. Editing it must also update
+  // the `title` column — otherwise the browser tab, OG metadata and the
+  // dashboards keep the AI's original title (BACKLOG #9b).
+  const nextTitle =
+    widgetIndex === 0 && widget.type === "heading" && widget.text.trim()
+      ? widget.text.trim().slice(0, 200)
+      : (space.title as string | null) ?? "";
+  const spaceUpdate: { modules: unknown[]; title?: string } = { modules: nextModules };
+  if (nextTitle !== ((space.title as string | null) ?? "")) spaceUpdate.title = nextTitle;
+
   // Persist. The .select() is load-bearing: without it Supabase reports
   // success even when 0 rows matched (silent no-op writes).
   const { data: updated, error: upErr } = await admin
     .from("spaces")
-    .update({ modules: nextModules })
+    .update(spaceUpdate)
     .eq("id", params.id)
     .select("id");
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
@@ -111,7 +121,7 @@ export async function PUT(
       // Fold this edit into the most recent version.
       const { data: versionUpdated, error: vErr } = await admin
         .from("space_versions")
-        .update({ modules: nextModules, title: space.title || "", note })
+        .update({ modules: nextModules, title: nextTitle, note })
         .eq("id", top.id)
         .select("id");
       if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
@@ -125,7 +135,7 @@ export async function PUT(
         id: newId(),
         space_id: params.id,
         version: nextVersion,
-        title: space.title || "",
+        title: nextTitle,
         modules: nextModules,
         note,
       });

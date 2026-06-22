@@ -24,6 +24,7 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "state_cleanup_failed" || raw === "state_check_failed") {
     return "Die Aenderung konnte nicht konsistent gespeichert werden. Bitte erneut versuchen.";
   }
+  if (raw === "contract_signed") return "Unterschriebene Projekte sind gesperrt — der Plan kann nicht mehr geaendert werden.";
   if (raw === "bad_stage") return "Diese Projektphase ist nicht gueltig.";
   if (raw === "nothing_to_update") return "Es gab keine Aenderung zum Speichern.";
   if (raw === "owner_token_required" || raw === "owner_token_mismatch") {
