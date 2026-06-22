@@ -99,7 +99,13 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
           {/* Messages */}
           <div className="flex max-h-[46vh] min-h-[80px] flex-col gap-3 overflow-y-auto px-4 py-4">
             {messages.length === 0 && !busy && (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* Greeting — the agent introducing itself, not part of history. */}
+                <div className="mr-4">
+                  <div className="whitespace-pre-wrap rounded-2xl rounded-bl-sm border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[13px] leading-relaxed text-white/85">
+                    Deine Projektseite steht ✓ Ich bin <span className="text-white">@magyc</span> und bleibe an deiner Seite — frag mich jederzeit, wenn du etwas am Plan ändern, ergänzen oder schärfer formulieren willst.
+                  </div>
+                </div>
                 {STARTERS.map((s) => (
                   <button
                     key={s}
