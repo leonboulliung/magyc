@@ -17,6 +17,9 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "duplicate_failed") return "Das Projekt konnte gerade nicht dupliziert werden.";
   if (raw === "delete_failed") return "Das Projekt konnte gerade nicht geloescht werden.";
   if (raw === "update_failed") return "Die Aenderung konnte gerade nicht gespeichert werden.";
+  if (raw === "modules_conflict") return "Das Projekt wurde gerade an anderer Stelle geaendert. Bitte kurz neu laden.";
+  if (raw === "slot_taken") return "Dieser Platz wurde gerade von jemand anderem uebernommen.";
+  if (raw === "rate_limited") return "Zu viele Aenderungen auf einmal. Bitte kurz warten.";
   if (raw === "presets_failed") return "Die Presets konnten gerade nicht gespeichert werden.";
   if (raw === "upload_failed") return "Der Upload konnte gerade nicht vorbereitet werden.";
   if (raw === "upload_state_failed") return "Die Datei wurde nicht vollstaendig im Projekt gespeichert. Bitte erneut versuchen.";

@@ -32,15 +32,18 @@ async function persistModules(
   admin: ReturnType<typeof supabaseAdmin>,
   spaceId: string,
   modules: unknown[],
+  expectedRev: number | null,
 ): Promise<NextResponse | null> {
-  const { data, error } = await admin
+  let query = admin
     .from("spaces")
-    .update({ modules })
-    .eq("id", spaceId)
+    .update({ modules, modules_rev: (expectedRev ?? 0) + 1 })
+    .eq("id", spaceId);
+  if (expectedRev !== null) query = query.eq("modules_rev", expectedRev);
+  const { data, error } = await query
     .select("id");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data || data.length === 0) {
-    return NextResponse.json({ error: "update_no_match" }, { status: 500 });
+    return NextResponse.json({ error: "modules_conflict" }, { status: 409 });
   }
   return null;
 }
@@ -51,6 +54,7 @@ export async function POST(
 ) {
   const parsed = await parseBody(req, z.object({
     widget: z.unknown().optional(),
+    modulesRev: z.number().int().nonnegative().optional(),
     anonOwnerToken: z.string().nullish(),
   }));
   if (!parsed.ok) return parsed.response;
@@ -62,7 +66,7 @@ export async function POST(
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules")
+    .select("id, anon_owner_token, owner_id, visibility, modules, modules_rev")
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -72,10 +76,13 @@ export async function POST(
   const next = [...current, widget];
   const newIndex = current.length;
 
-  const failure = await persistModules(admin, params.id, next);
+  const expectedRev = typeof body.modulesRev === "number"
+    ? body.modulesRev
+    : typeof space.modules_rev === "number" ? space.modules_rev : null;
+  const failure = await persistModules(admin, params.id, next, expectedRev);
   if (failure) return failure;
 
-  return NextResponse.json({ ok: true, index: newIndex });
+  return NextResponse.json({ ok: true, index: newIndex, modulesRev: (expectedRev ?? 0) + 1 });
 }
 
 export async function PATCH(
@@ -84,6 +91,7 @@ export async function PATCH(
 ) {
   const parsed = await parseBody(req, z.object({
     modules: z.unknown().optional(),
+    modulesRev: z.number().int().nonnegative().optional(),
     anonOwnerToken: z.string().nullish(),
     // order[newPosition] = oldIndex — the reorder permutation, so we can
     // remap module_state (keyed by positional index) to follow the widgets.
@@ -100,13 +108,16 @@ export async function PATCH(
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility")
+    .select("id, anon_owner_token, owner_id, visibility, modules_rev")
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
-  const failure = await persistModules(admin, params.id, modules);
+  const expectedRev = typeof body.modulesRev === "number"
+    ? body.modulesRev
+    : typeof space.modules_rev === "number" ? space.modules_rev : null;
+  const failure = await persistModules(admin, params.id, modules, expectedRev);
   if (failure) return failure;
 
   // Remap module_state so collaborative rows follow their reordered widget.
@@ -139,7 +150,7 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, modulesRev: (expectedRev ?? 0) + 1 });
 }
 
 export async function DELETE(
@@ -148,6 +159,7 @@ export async function DELETE(
 ) {
   const parsed = await parseBody(req, z.object({
     index: z.number().optional(),
+    modulesRev: z.number().int().nonnegative().optional(),
     anonOwnerToken: z.string().nullish(),
   }));
   if (!parsed.ok) return parsed.response;
@@ -159,7 +171,7 @@ export async function DELETE(
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules")
+    .select("id, anon_owner_token, owner_id, visibility, modules, modules_rev")
     .eq("id", params.id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -169,7 +181,10 @@ export async function DELETE(
   if (idx >= current.length) return NextResponse.json({ error: "out_of_range" }, { status: 400 });
 
   const next = current.filter((_, i) => i !== idx);
-  const failure = await persistModules(admin, params.id, next);
+  const expectedRev = typeof body.modulesRev === "number"
+    ? body.modulesRev
+    : typeof space.modules_rev === "number" ? space.modules_rev : null;
+  const failure = await persistModules(admin, params.id, next, expectedRev);
   if (failure) return failure;
 
   // Keep module_state aligned with the now-shifted module indices.
@@ -194,5 +209,5 @@ export async function DELETE(
     if (shiftErr) console.error("[widgets] state reindex failed at", k, shiftErr.message);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, modulesRev: (expectedRev ?? 0) + 1 });
 }

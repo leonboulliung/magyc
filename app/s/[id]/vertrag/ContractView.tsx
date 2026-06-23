@@ -403,7 +403,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
           <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
             ← Zur Planung
           </Link>
-          <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">Absegnung · Vertrag</span>
+          <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">Auswahl · Vertrag</span>
           {contract?.locked ? (
             <button type="button" onClick={() => window.print()} className="mono rounded-full bg-[#17171a] px-3.5 py-1.5 text-[12px] tracking-widest text-white transition-colors hover:opacity-90">
               Als PDF

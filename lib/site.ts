@@ -5,18 +5,18 @@
  *
  * This is the stable PUBLIC brand surface. It deliberately does NOT use
  * the per-space CSS variables (`--v-*`) — those theme individual Spaces.
- * The marketing site keeps one fixed brand look (see `brand` below).
+ * The marketing site keeps one fixed light brand look (see `brand` below).
  */
 
 /** Fixed brand palette for the marketing site (not per-space themed). */
 export const brand = {
-  bg: "#000000",
-  surface: "rgba(255,255,255,0.055)",
-  ink: "#ffffff",
-  muted: "rgba(255,255,255,0.68)",
-  rule: "rgba(255,255,255,0.16)",
-  accent: "rgba(255,255,255,0.92)",
-  accentSoft: "rgba(255,255,255,0.08)",
+  bg: "#f4f4f1",
+  surface: "#ffffff",
+  ink: "#17171a",
+  muted: "rgba(23,23,26,0.58)",
+  rule: "rgba(0,0,0,0.12)",
+  accent: "rgba(23,23,26,0.82)",
+  accentSoft: "rgba(0,0,0,0.035)",
 } as const;
 
 export interface NavLink {

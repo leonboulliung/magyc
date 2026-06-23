@@ -16,8 +16,8 @@ import type { ProjectStage } from "@/lib/types";
 
 const STAGES: { id: ProjectStage; label: string }[] = [
   { id: "brief", label: "Planung" },
-  { id: "production", label: "Absegnung" },
-  { id: "handoff", label: "Abschluss" },
+  { id: "production", label: "Auswahl" },
+  { id: "handoff", label: "Abgeschlossen" },
 ];
 const ORDER: ProjectStage[] = ["brief", "production", "handoff"];
 
@@ -199,14 +199,14 @@ export function StudioProjectBar({
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
 
-      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={advancingToHandoff ? "Projekt abschließen" : "In die Absegnung"} maxWidth={420}>
+      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={advancingToHandoff ? "Projekt abschließen" : "In die Auswahl"} maxWidth={420}>
         <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#16181b] text-left shadow-2xl">
           <div className="space-y-3 p-5">
             <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">
               {advancingToHandoff ? "Phase wird fixiert" : "Plan wird gesperrt"}
             </div>
             <h2 className="text-[17px] font-semibold text-white">
-              {advancingToHandoff ? "Projekt abschließen?" : "In die Absegnung verschieben?"}
+              {advancingToHandoff ? "Projekt abschließen?" : "In die Auswahl verschieben?"}
             </h2>
             <p className="text-[13px] leading-relaxed text-white/65">
               {advancingToHandoff

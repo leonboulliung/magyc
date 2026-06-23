@@ -76,6 +76,7 @@ export function GridZone({
   ownerToken,
   isOwner,
   labels,
+  modulesRev,
   onRefresh,
 }: {
   bodyItems: BodyItem[];
@@ -85,6 +86,7 @@ export function GridZone({
   ownerToken: string | null;
   isOwner: boolean;
   labels: { emptyGrid?: string; emptyGridHint?: string };
+  modulesRev: number;
   onRefresh: () => void;
 }) {
   // Optimistic reorder: on drop we render the new order immediately and
@@ -130,7 +132,7 @@ export function GridZone({
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: body({ modules, order }),
+        body: body({ modules, order, modulesRev }),
       });
       const json = await readApiJson(res);
       if (!res.ok) {
@@ -168,7 +170,7 @@ export function GridZone({
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
-        body: body({ index: target.index }),
+        body: body({ index: target.index, modulesRev }),
       });
       const json = await readApiJson(res);
       if (!res.ok) {
@@ -212,7 +214,7 @@ export function GridZone({
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: body({ widget }),
+        body: body({ widget, modulesRev }),
       });
       const json = await readApiJson(res) as { index?: number };
       if (!res.ok) {

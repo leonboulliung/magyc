@@ -34,6 +34,7 @@ export async function PUT(
 
   const parsed = await parseBody(req, z.object({
     widget: z.unknown().optional(),
+    modulesRev: z.number().int().nonnegative().optional(),
     anonOwnerToken: z.string().nullish(),
     note: z.string().optional(),
     resolveExternal: z.boolean().optional(),
@@ -50,7 +51,7 @@ export async function PUT(
   const admin = supabaseAdmin();
   const { data: space, error: fetchErr } = await admin
     .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules, title, language")
+    .select("id, anon_owner_token, owner_id, visibility, modules, modules_rev, title, language")
     .eq("id", params.id)
     .maybeSingle();
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
@@ -86,7 +87,14 @@ export async function PUT(
     widgetIndex === 0 && widget.type === "heading" && widget.text.trim()
       ? widget.text.trim().slice(0, 200)
       : (space.title as string | null) ?? "";
-  const spaceUpdate: { modules: unknown[]; title?: string } = { modules: nextModules };
+  const currentRev = typeof (space as { modules_rev?: unknown }).modules_rev === "number"
+    ? (space as { modules_rev: number }).modules_rev
+    : 0;
+  const expectedRev = typeof body.modulesRev === "number" ? body.modulesRev : currentRev;
+  const spaceUpdate: { modules: unknown[]; modules_rev: number; title?: string } = {
+    modules: nextModules,
+    modules_rev: expectedRev + 1,
+  };
   if (nextTitle !== ((space.title as string | null) ?? "")) spaceUpdate.title = nextTitle;
 
   // Persist. The .select() is load-bearing: without it Supabase reports
@@ -95,10 +103,11 @@ export async function PUT(
     .from("spaces")
     .update(spaceUpdate)
     .eq("id", params.id)
+    .eq("modules_rev", expectedRev)
     .select("id");
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
   if (!updated || updated.length === 0) {
-    return NextResponse.json({ error: "update_no_match" }, { status: 500 });
+    return NextResponse.json({ error: "modules_conflict" }, { status: 409 });
   }
 
   // If published: snapshot a version — but COALESCE rapid edits. A pin
@@ -144,5 +153,5 @@ export async function PUT(
     }
   }
 
-  return NextResponse.json({ ok: true, version: newVersion, widget });
+  return NextResponse.json({ ok: true, version: newVersion, widget, modulesRev: expectedRev + 1 });
 }

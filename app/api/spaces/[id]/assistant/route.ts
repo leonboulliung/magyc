@@ -58,10 +58,10 @@ function buildSystem(space: {
   const status = opts.stage === "handoff"
     ? "ABGESCHLOSSEN — das Projekt ist fertig. Strukturelle Änderungen sind NICHT möglich."
     : opts.stage === "production"
-      ? "IN ABSEGNUNG — der Plan ist gesperrt. Strukturelle Änderungen sind NICHT möglich."
+      ? "IN AUSWAHL — der Plan ist gesperrt. Strukturelle Änderungen sind NICHT möglich."
       : "IN PLANUNG — der Plan ist offen.";
   const capability = opts.canEdit
-    ? "Du kannst Elemente hinzufügen: nutze das Tool `addElement` und bestätige danach kurz in Worten."
+    ? "Du kannst Elemente hinzufügen, entfernen und umbenennen: nutze die Tools nur, wenn der Nutzer eine konkrete Änderung will, und bestätige danach kurz in Worten."
     : opts.locked
       ? "Du kannst die Projektseite NICHT ändern (Projekt gesperrt/abgeschlossen). Hilf nur mit Erklärungen, Vorschlägen oder Diskussion — und sag offen, dass Änderungen nicht mehr möglich sind."
       : "Du kannst die Projektseite gerade nicht ändern (nur die Inhaber:in kann das). Hilf mit Vorschlägen.";
@@ -81,6 +81,23 @@ Status: ${status}
 
 ELEMENTE (Reihenfolge auf der Seite):
 ${elementList}`;
+}
+
+async function persistModulesWithRev(
+  admin: ReturnType<typeof supabaseAdmin>,
+  spaceId: string,
+  modules: unknown[],
+  expectedRev: number,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data, error } = await admin
+    .from("spaces")
+    .update({ modules, modules_rev: expectedRev + 1 })
+    .eq("id", spaceId)
+    .eq("modules_rev", expectedRev)
+    .select("id");
+  if (error) return { ok: false, message: "Konnte nicht gespeichert werden." };
+  if (!data || data.length === 0) return { ok: false, message: "Das Projekt wurde gerade woanders geändert. Bitte aktualisiere kurz." };
+  return { ok: true };
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -106,7 +123,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const admin = supabaseAdmin();
   const { data: space, error } = await admin
     .from("spaces")
-    .select("id, title, input_text, language, modules, stage, shared, owner_id")
+    .select("id, title, input_text, language, modules, modules_rev, stage, shared, owner_id")
     .eq("id", params.id)
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -134,11 +151,57 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             const make = ADDABLE[type as ModuleType];
             const widget = make ? sanitizeModule(make()) : null;
             if (!widget) return { ok: false, message: `Typ ${type} kann nicht hinzugefügt werden.` };
-            const { data: cur } = await admin.from("spaces").select("modules").eq("id", params.id).maybeSingle();
+            const { data: cur } = await admin.from("spaces").select("modules, modules_rev").eq("id", params.id).maybeSingle();
             const mods = Array.isArray(cur?.modules) ? (cur!.modules as unknown[]) : [];
-            const { error: upErr } = await admin.from("spaces").update({ modules: [...mods, widget] }).eq("id", params.id).select("id");
-            if (upErr) return { ok: false, message: "Konnte nicht gespeichert werden." };
+            const rev = typeof cur?.modules_rev === "number" ? cur.modules_rev : 0;
+            const saved = await persistModulesWithRev(admin, params.id, [...mods, widget], rev);
+            if (!saved.ok) return saved;
             return { ok: true, message: `Element „${ADDABLE_LABELS[type] ?? type}“ wurde hinzugefügt.` };
+          },
+        }),
+        removeElement: tool({
+          description: "Entfernt ein Element anhand seiner sichtbaren Nummer aus der Elementliste. Nicht fuer Kopfbereich/Projekt-Titel verwenden.",
+          inputSchema: z.object({
+            elementNumber: z.number().int().min(1).max(80).describe("1-basierte Nummer aus der Elementliste"),
+          }),
+          execute: async ({ elementNumber }) => {
+            const index = elementNumber - 1;
+            const { data: cur } = await admin.from("spaces").select("modules, modules_rev").eq("id", params.id).maybeSingle();
+            const mods = Array.isArray(cur?.modules) ? (cur!.modules as unknown[]) : [];
+            const rev = typeof cur?.modules_rev === "number" ? cur.modules_rev : 0;
+            if (index < 0 || index >= mods.length) return { ok: false, message: "Dieses Element gibt es nicht." };
+            const current = mods[index] as { type?: unknown };
+            if (current?.type === "heading" || current?.type === "rich_text" || current?.type === "tags") {
+              return { ok: false, message: "Kopfbereich, Beschreibung und Tags entferne ich nicht automatisch." };
+            }
+            const saved = await persistModulesWithRev(admin, params.id, mods.filter((_, i) => i !== index), rev);
+            if (!saved.ok) return saved;
+            await admin.from("module_state").delete().eq("space_id", params.id).eq("module_index", index);
+            for (let k = index + 1; k < mods.length; k++) {
+              await admin.from("module_state").update({ module_index: k - 1 }).eq("space_id", params.id).eq("module_index", k);
+            }
+            return { ok: true, message: `Element ${elementNumber} wurde entfernt.` };
+          },
+        }),
+        renameElement: tool({
+          description: "Benennt ein Element um, indem der kleine Elementtitel (microTitle) gesetzt wird.",
+          inputSchema: z.object({
+            elementNumber: z.number().int().min(1).max(80).describe("1-basierte Nummer aus der Elementliste"),
+            title: z.string().trim().min(1).max(80).describe("Neuer kurzer Elementtitel"),
+          }),
+          execute: async ({ elementNumber, title }) => {
+            const index = elementNumber - 1;
+            const { data: cur } = await admin.from("spaces").select("modules, modules_rev").eq("id", params.id).maybeSingle();
+            const mods = Array.isArray(cur?.modules) ? (cur!.modules as unknown[]) : [];
+            const rev = typeof cur?.modules_rev === "number" ? cur.modules_rev : 0;
+            if (index < 0 || index >= mods.length) return { ok: false, message: "Dieses Element gibt es nicht." };
+            const current = mods[index];
+            if (!current || typeof current !== "object") return { ok: false, message: "Dieses Element kann ich nicht umbenennen." };
+            const next = [...mods];
+            next[index] = { ...(current as Record<string, unknown>), microTitle: title };
+            const saved = await persistModulesWithRev(admin, params.id, next, rev);
+            if (!saved.ok) return saved;
+            return { ok: true, message: `Element ${elementNumber} heißt jetzt „${title}“.` };
           },
         }),
       }

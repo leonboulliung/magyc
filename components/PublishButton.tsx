@@ -159,7 +159,7 @@ export function PublishButton({
               </h2>
               {signedOut || isAnonymousDraft ? (
                 <p className="text-[13px] opacity-70 leading-relaxed">
-                  Melde dich an, um diesen Entwurf als privates Studio-Projekt zu übernehmen. Danach kannst du Planung, Auswahl und Übergabe weiterführen.
+                  Melde dich an, um diesen Entwurf als privates Studio-Projekt zu übernehmen. Danach kannst du Planung, Auswahl und Abschluss weiterführen.
                 </p>
               ) : label(L, "publishExplanation") && (
                 <p className="text-[13px] opacity-70 leading-relaxed">

@@ -42,6 +42,20 @@ const ALLOWED_KINDS: ReadonlySet<ModuleStateKind> = new Set([
 const MAX_DATA_BYTES = 48_000;
 /** Per-string cap. Sketch paths are the one legitimate long string. */
 const MAX_STRING_LEN = 44_000;
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_WRITES = 120;
+const stateWriteBuckets = new Map<string, { startedAt: number; count: number }>();
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const bucket = stateWriteBuckets.get(key);
+  if (!bucket || now - bucket.startedAt > RATE_WINDOW_MS) {
+    stateWriteBuckets.set(key, { startedAt: now, count: 1 });
+    return true;
+  }
+  bucket.count += 1;
+  return bucket.count <= RATE_MAX_WRITES;
+}
 
 /** Sanitise a data blob — cap total serialized size, keep shape. */
 function sanitizeData(d: unknown): Record<string, unknown> {
@@ -101,6 +115,10 @@ export async function POST(
     actorKind = "anon";
     actorId = token.slice(0, 64);
     displayName = (body.anonName && body.anonName.trim().slice(0, 40)) || null;
+  }
+
+  if (!checkRateLimit(`${params.id}:${actorKind}:${actorId}`)) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const admin = supabaseAdmin();
@@ -256,7 +274,12 @@ export async function POST(
       kind,
       data: { ...data, slotLabel, claimed: true },
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      if ((error as { code?: string }).code === "23505") {
+        return NextResponse.json({ error: "slot_taken" }, { status: 409 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ ok: true });
   }
 

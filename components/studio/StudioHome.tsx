@@ -31,8 +31,8 @@ export interface StudioProjectCard {
 
 const STAGE_LABEL: Record<"brief" | "production" | "handoff", string> = {
   brief: "Planung",
-  production: "Absegnung",
-  handoff: "Abschluss",
+  production: "Auswahl",
+  handoff: "Abgeschlossen",
 };
 
 function relTime(ts: number): string {

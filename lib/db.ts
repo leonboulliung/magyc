@@ -35,6 +35,7 @@ export type ModuleStateRow = {
 
 type SpaceRow = {
   id: string;
+  modules_rev: number | null;
   input_text: string;
   title: string;
   language: string;
@@ -189,6 +190,7 @@ function mapSpace(row: SpaceRow): Space {
     .sort((a, b) => a.version - b.version);
   return {
     id: row.id,
+    modulesRev: typeof row.modules_rev === "number" ? row.modules_rev : 0,
     inputText: row.input_text,
     title: row.title || "",
     language: row.language || "en",
@@ -215,7 +217,7 @@ function mapSpace(row: SpaceRow): Space {
 }
 
 const SPACE_SELECT = `
-  id, input_text, title, language, vibe, modules, labels, style,
+  id, modules_rev, input_text, title, language, vibe, modules, labels, style,
   stage, segment, shared, archived_at, deleted_at,
   owner_id, visibility,
   created_at, published_at,

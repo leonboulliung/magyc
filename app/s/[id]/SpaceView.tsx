@@ -177,12 +177,19 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
           headers: { "content-type": "application/json" },
           body: JSON.stringify(withOwnerToken({
             widget: module,
+            modulesRev: space.modulesRev,
             note: options?.note,
             resolveExternal: options?.resolveExternal,
           }, ownerToken)),
         });
         const json = await readApiJson(res);
         if (!res.ok) throw new Error(apiErrorMessage(json, options?.errorMessage ?? "save_failed"));
+        const nextRev = typeof (json as { modulesRev?: unknown })?.modulesRev === "number"
+          ? (json as { modulesRev: number }).modulesRev
+          : space.modulesRev + 1;
+        setSpace((current) => current && current.id === space.id
+          ? { ...current, modulesRev: nextRev }
+          : current);
         const persisted = (json && typeof json === "object" && "widget" in json)
           ? (json as { widget?: Module }).widget
           : null;
@@ -220,7 +227,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
         return false;
       }
     },
-    [announce, broadcastConfigChange, ownerToken, patchModule, space?.id],
+    [announce, broadcastConfigChange, ownerToken, patchModule, space?.id, space?.modulesRev],
   );
 
   // Lazy external-reference hydration. Creation stores Wikipedia widgets
@@ -322,7 +329,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
     async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
       if (!space?.id) return false;
       if (space.stage === "production" || space.stage === "handoff") {
-        showActionError("Projekt in Absegnung", { description: "Die Projektseite ist gesperrt — Änderungen sind nicht mehr möglich." });
+        showActionError("Projekt in Auswahl", { description: "Die Projektseite ist gesperrt — Änderungen sind nicht mehr möglich." });
         return false;
       }
       const snapshot = liveStateRef.current;
@@ -614,7 +621,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
             >
               <span className="mono flex items-center gap-2 text-[11px] tracking-widest" style={{ color: "var(--v-muted)" }}>
                 <span aria-hidden>⟡</span>
-                {space.stage === "handoff" ? "ABGESCHLOSSEN · PLAN GESPERRT" : "IN ABSEGNUNG · PLAN GESPERRT"}
+                {space.stage === "handoff" ? "ABGESCHLOSSEN · PLAN GESPERRT" : "IN AUSWAHL · PLAN GESPERRT"}
               </span>
               <span className="mono text-[11px] tracking-widest transition-transform group-hover:translate-x-0.5" style={{ color: "var(--v-fg)" }}>
                 Vertrag ansehen →
@@ -651,6 +658,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
                   ownerToken={ownerToken}
                   isOwner={editable}
                   labels={{ emptyGrid: space.labels.emptyGrid, emptyGridHint: space.labels.emptyGridHint }}
+                  modulesRev={space.modulesRev}
                   onRefresh={refreshEverywhere}
                 />
               </motion.div>

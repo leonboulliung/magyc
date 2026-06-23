@@ -711,6 +711,9 @@ export interface HandoffInfo {
 
 export interface Space {
   id: string;
+  /** Incremented whenever the structural modules array changes. Used
+   *  to reject stale widget writes instead of clobbering another tab. */
+  modulesRev: number;
   inputText: string;
   title: string;
   language: string;

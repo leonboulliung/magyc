@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-23 (Codex — marketing light transition)_
+_Last updated: 2026-06-24 (Codex — module concurrency + stage language + site light consolidation)_
 
 ---
 
@@ -49,11 +49,24 @@ the shared light app surface: off-white base, subtle DotField, light SiteNav,
 light PromptComposer, no old showcase/footer marketing blocks. The creation
 flow (clarify/building) now uses the same light language, and global html/body
 defaults are light while the project stage remains locally dark.
+Follow-up done 2026-06-24: pricing and segment landing pages now use the same
+light brand tokens instead of leftover dark `text-white`/`bg-black` section
+styling.
 
-**Other open follow-ups:** @magyc tool-set expansion (edit/remove/fill
-elements, not just add empty); Next.js advisories (`npm audit` → would need a
-Next 16 major upgrade, deliberately deferred); Konnektoren is still an honest
-"in preparation" page; multi-seat team invites on the Nutzer page.
+**Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
+optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client
+payloads) so stale tabs get a 409 instead of silently overwriting each other.
+Claim races are guarded with a partial unique index plus insert-conflict
+handling, and `/state` has a cheap per-space/actor write limiter. @magyc can
+now add, remove and rename elements with the same module revision guard.
+Visible stage language is now **Planung / Auswahl / Abgeschlossen** while DB
+ids stay `brief / production / handoff`.
+
+**Other open follow-ups:** @magyc still needs deeper content-edit/fill tools
+(not just structural add/remove/rename); Next.js advisories (`npm audit` →
+would need a Next 16 major upgrade, deliberately deferred); Konnektoren is
+still an honest "in preparation" page; multi-seat team invites on the Nutzer
+page.
 
 ---
 
@@ -231,18 +244,17 @@ Still open (mostly need Leon's keys / decisions, or a fresh design pass):
 
 ## P1 — correctness
 
-### 3. Lost-update races on module config
-Widget PUT does read-modify-write of the whole `modules` array with no
-version check; reorder-PATCH ships the entire array from the client. Two
-concurrent editors clobber each other. **Fix sketch:** add `modules_rev int`
-to `spaces`; client sends the rev it saw; update with
-`.eq("modules_rev", seen)` + increment; on 0 rows → 409 → client refreshes.
+### 3. Lost-update races on module config — ✅ done 2026-06-24
+Migration 018 adds `spaces.modules_rev`. Widget add/save/reorder/delete and
+@magyc structural tools now send/use the revision they read; updates increment
+with `.eq("modules_rev", seen)` and return `modules_conflict` (409) on stale
+writes. Client error copy maps the conflict to a reload hint instead of a raw
+API code.
 
-### 4. Claim race (slot double-booking)
-`state/route.ts` checks "slot taken?" then inserts — two simultaneous claims
-both win. **Fix:** partial unique index:
-`CREATE UNIQUE INDEX ON module_state (space_id, module_index, (data->>'slotLabel')) WHERE kind = 'claim';`
-then treat insert conflict as 409. (Manual SQL in Supabase editor.)
+### 4. Claim race (slot double-booking) — ✅ done 2026-06-24
+Migration 018 dedupes existing active claims, then creates a partial unique
+index on `(space_id, module_index, data->>'slotLabel')` for active claim rows.
+`state/route.ts` now treats Postgres `23505` conflicts as `slot_taken` (409).
 
 ---
 
@@ -353,9 +365,10 @@ already be resolved — confirm with Leon.
 Will hurt load time on active spaces. **Plan:** cap per-widget query +
 lazy-load older rows; consider pruning superseded `edit` rows.
 
-### 14. Rate limiting on /state
-An anon token can insert unlimited rows. Add a cheap per-actor-per-space
-counter (e.g. max N rows/min) before insert.
+### 14. Rate limiting on /state — ✅ done 2026-06-24
+`/api/spaces/[id]/state` now applies a cheap in-memory per-space/actor bucket
+(120 writes/minute). This is not a distributed quota, but it blocks accidental
+runaway clients and obvious single-process spam without adding infrastructure.
 
 ---
 

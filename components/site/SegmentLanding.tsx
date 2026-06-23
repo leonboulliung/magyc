@@ -4,6 +4,7 @@ import { Container } from "@/components/site/sections";
 import { MediaPlaceholder } from "@/components/site/MediaPlaceholder";
 import { SiteImage } from "@/components/site/SiteImage";
 import { SEGMENTS, type Segment } from "@/lib/segments";
+import { brand } from "@/lib/site";
 
 /** Building-block line icons, keyed by Segment block `icon`. Paths are
  *  pipe-separated <path> definitions. */
@@ -34,11 +35,11 @@ function Icon({ k }: { k: string }) {
 }
 
 function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">{children}</p>;
+  return <p className="mono text-[11px] uppercase tracking-[0.22em]" style={{ color: brand.muted }}>{children}</p>;
 }
 
 /** Shared headline class — clear, bold brand grotesk (no italic). */
-const H = "font-brand font-bold tracking-[-0.02em] text-white";
+const H = "font-brand font-bold tracking-[-0.02em]";
 
 /**
  * SegmentLanding — one renderer for every photography-segment marketing
@@ -50,7 +51,7 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
   const others = SEGMENTS.filter((s) => s.slug !== segment.slug);
 
   return (
-    <div>
+    <div style={{ color: brand.ink }}>
       {/* ── Hero ───────────────────────────────────────────────── */}
       <Container className="pt-28 sm:pt-36 pb-12 sm:pb-20">
         <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
@@ -59,14 +60,14 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
             <h1 className={`mt-5 ${H} text-[38px] leading-[1.03] sm:text-[60px]`}>
               {segment.hero.headline}
             </h1>
-            <p className="mt-6 max-w-xl text-[18px] leading-relaxed text-white/65 sm:text-[20px]">
+            <p className="mt-6 max-w-xl text-[18px] leading-relaxed sm:text-[20px]" style={{ color: brand.muted }}>
               {segment.hero.sub}
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
-              <Link href="/#start" className="rounded-full bg-white px-5 py-2.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
+              <Link href="/#start" className="rounded-full px-5 py-2.5 font-body text-sm font-medium transition-all duration-200 active:scale-[0.98]" style={{ background: brand.ink, color: brand.bg }}>
                 {segment.hero.ctaPrimary}
               </Link>
-              <Link href="/how-it-works" className="mono text-[12px] uppercase tracking-widest text-white/55 hover:text-white">
+              <Link href="/how-it-works" className="mono text-[12px] uppercase tracking-widest transition-opacity hover:opacity-100" style={{ color: brand.muted }}>
                 {segment.hero.ctaSecondary}
               </Link>
             </div>
@@ -88,16 +89,16 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
 
       {/* ── Das Problem ────────────────────────────────────────── */}
       <Container className="py-16 sm:py-24">
-        <div className="border-t border-white/10 pt-14">
+        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
           <Eyebrow>{segment.problem.eyebrow}</Eyebrow>
           <h2 className={`mt-4 max-w-3xl ${H} text-[28px] leading-[1.1] sm:text-[42px]`}>
             {segment.problem.heading}
           </h2>
-          <div className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-3">
+          <div className="mt-10 grid gap-px overflow-hidden rounded-2xl sm:grid-cols-3" style={{ border: `1px solid ${brand.rule}`, background: brand.rule }}>
             {segment.problem.cards.map((c) => (
-              <div key={c.big} className="bg-black/40 p-6">
+              <div key={c.big} className="p-6" style={{ background: brand.surface }}>
                 <div className={`${H} text-[22px] sm:text-[26px]`}>{c.big}</div>
-                <p className="mt-3 text-[14px] leading-relaxed text-white/60">{c.small}</p>
+                <p className="mt-3 text-[14px] leading-relaxed" style={{ color: brand.muted }}>{c.small}</p>
               </div>
             ))}
           </div>
@@ -106,12 +107,12 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
 
       {/* ── Sample work ────────────────────────────────────────── */}
       <Container className="py-16 sm:py-24">
-        <div className="border-t border-white/10 pt-14">
+        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
           <Eyebrow>{segment.work.eyebrow}</Eyebrow>
           <h2 className={`mt-4 max-w-2xl ${H} text-[28px] leading-[1.1] sm:text-[38px]`}>
             {segment.work.heading}
           </h2>
-          <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/65">{segment.work.lead}</p>
+          <p className="mt-5 max-w-2xl text-[16px] leading-relaxed" style={{ color: brand.muted }}>{segment.work.lead}</p>
           <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
             {segment.work.images
               ? segment.work.images.map((w) => (
@@ -121,24 +122,24 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
                   <MediaPlaceholder key={`${label}-${i}`} label={label} ratio="1 / 1" />
                 ))}
           </div>
-          <p className="mono mt-5 text-[11px] uppercase tracking-[0.2em] text-white/35">{segment.work.footnote}</p>
+          <p className="mono mt-5 text-[11px] uppercase tracking-[0.2em]" style={{ color: brand.muted }}>{segment.work.footnote}</p>
         </div>
       </Container>
 
       {/* ── Lebenszyklus ───────────────────────────────────────── */}
       <Container className="py-16 sm:py-24">
-        <div className="border-t border-white/10 pt-14">
+        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
           <Eyebrow>{segment.lifecycle.eyebrow}</Eyebrow>
           <h2 className={`mt-4 max-w-2xl ${H} text-[28px] leading-[1.1] sm:text-[42px]`}>
             {segment.lifecycle.heading}
           </h2>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {segment.lifecycle.steps.map((s) => (
-              <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <div className="mono text-[12px] tracking-widest text-white/40">{s.n}</div>
+              <div key={s.n} className="rounded-2xl p-6" style={{ border: `1px solid ${brand.rule}`, background: brand.surface }}>
+                <div className="mono text-[12px] tracking-widest" style={{ color: brand.muted }}>{s.n}</div>
                 <h3 className={`mt-3 ${H} text-[22px]`}>{s.title}</h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-white/68">{s.lead}</p>
-                <p className="mt-4 text-[13px] leading-relaxed text-white/45">{s.note}</p>
+                <p className="mt-3 text-[15px] leading-relaxed" style={{ color: brand.ink, opacity: 0.72 }}>{s.lead}</p>
+                <p className="mt-4 text-[13px] leading-relaxed" style={{ color: brand.muted }}>{s.note}</p>
               </div>
             ))}
           </div>
@@ -147,39 +148,39 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
 
       {/* ── Bausteine ──────────────────────────────────────────── */}
       <Container className="py-16 sm:py-24">
-        <div className="border-t border-white/10 pt-14">
+        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
           <Eyebrow>{segment.blocks.eyebrow}</Eyebrow>
           <h2 className={`mt-4 max-w-2xl ${H} text-[28px] leading-[1.1] sm:text-[42px]`}>
             {segment.blocks.heading}
           </h2>
-          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-white/68">{segment.blocks.lead}</p>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-3">
+          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed" style={{ color: brand.muted }}>{segment.blocks.lead}</p>
+          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl sm:grid-cols-2 lg:grid-cols-3" style={{ border: `1px solid ${brand.rule}`, background: brand.rule }}>
             {segment.blocks.items.map((b) => (
-              <div key={b.name} className="bg-black/40 p-6 transition-colors duration-200 hover:bg-black/20">
-                <div className="text-white/85"><Icon k={b.icon} /></div>
-                <h3 className="mt-4 font-body text-[16px] font-medium text-white">{b.name}</h3>
-                <p className="mt-2 text-[13.5px] leading-relaxed text-white/55">{b.role}</p>
+              <div key={b.name} className="p-6 transition-opacity duration-200 hover:opacity-80" style={{ background: brand.surface }}>
+                <div style={{ color: brand.ink }}><Icon k={b.icon} /></div>
+                <h3 className="mt-4 font-body text-[16px] font-medium">{b.name}</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: brand.muted }}>{b.role}</p>
               </div>
             ))}
           </div>
-          <p className="mono mt-6 text-[11px] uppercase tracking-[0.2em] text-white/35">{segment.blocks.footnote}</p>
+          <p className="mono mt-6 text-[11px] uppercase tracking-[0.2em]" style={{ color: brand.muted }}>{segment.blocks.footnote}</p>
         </div>
       </Container>
 
       {/* ── Present ────────────────────────────────────────────── */}
       <Container className="py-16 sm:py-24">
-        <div className="border-t border-white/10 pt-14">
+        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <Eyebrow>{segment.present.eyebrow}</Eyebrow>
               <h2 className={`mt-4 ${H} text-[28px] leading-[1.1] sm:text-[44px]`}>
                 {segment.present.heading}
               </h2>
-              <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-white/70">{segment.present.sub}</p>
-              <div className="mt-8 flex items-center gap-3 text-[13px] text-white/50">
-                <span className="mono rounded border border-white/15 px-2.5 py-1 tracking-widest">{segment.present.fromLabel}</span>
-                <span aria-hidden className="text-white/30">→</span>
-                <span className="mono rounded border border-white/15 px-2.5 py-1 tracking-widest text-white/80">{segment.present.toLabel}</span>
+              <p className="mt-6 max-w-xl text-[17px] leading-relaxed" style={{ color: brand.muted }}>{segment.present.sub}</p>
+              <div className="mt-8 flex items-center gap-3 text-[13px]" style={{ color: brand.muted }}>
+                <span className="mono rounded px-2.5 py-1 tracking-widest" style={{ border: `1px solid ${brand.rule}` }}>{segment.present.fromLabel}</span>
+                <span aria-hidden style={{ color: brand.muted }}>→</span>
+                <span className="mono rounded px-2.5 py-1 tracking-widest" style={{ border: `1px solid ${brand.rule}`, color: brand.ink }}>{segment.present.toLabel}</span>
               </div>
             </div>
             <MediaPlaceholder label={segment.present.mediaLabel} ratio="4 / 3" caption={segment.present.mediaCaption} />
@@ -189,12 +190,12 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
 
       {/* ── Positionierung ─────────────────────────────────────── */}
       <Container className="py-16 sm:py-24">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 sm:p-12">
+        <div className="rounded-2xl p-8 sm:p-12" style={{ border: `1px solid ${brand.rule}`, background: brand.surface }}>
           <Eyebrow>{segment.positioning.eyebrow}</Eyebrow>
           <h2 className={`mt-4 max-w-3xl ${H} text-[26px] leading-[1.12] sm:text-[40px]`}>
             {segment.positioning.heading}
           </h2>
-          <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-white/70">{segment.positioning.sub}</p>
+          <p className="mt-6 max-w-2xl text-[17px] leading-relaxed" style={{ color: brand.muted }}>{segment.positioning.sub}</p>
         </div>
       </Container>
 
@@ -204,16 +205,16 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
           {segment.cta.headline}
         </h2>
         <div className="mt-9 flex items-center justify-center">
-          <Link href="/#start" className="rounded-full bg-white px-6 py-3 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
+          <Link href="/#start" className="rounded-full px-6 py-3 font-body text-sm font-medium transition-all duration-200 active:scale-[0.98]" style={{ background: brand.ink, color: brand.bg }}>
             {segment.cta.button}
           </Link>
         </div>
         {others.length > 0 && (
           <div className="mt-14">
-            <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/40">Auch für</p>
+            <p className="mono text-[11px] uppercase tracking-[0.22em]" style={{ color: brand.muted }}>Auch für</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               {others.map((o) => (
-                <Link key={o.slug} href={`/${o.slug}`} className="rounded-full border border-white/15 px-4 py-2 text-[14px] text-white/80 transition-colors hover:border-white/40 hover:text-white">
+                <Link key={o.slug} href={`/${o.slug}`} className="rounded-full px-4 py-2 text-[14px] transition-opacity hover:opacity-80" style={{ border: `1px solid ${brand.rule}`, color: brand.ink }}>
                   {o.label}
                 </Link>
               ))}
