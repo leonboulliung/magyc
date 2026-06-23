@@ -179,7 +179,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   const inner = (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
         {/* Reference header */}
-        <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/40">Aus dem Projektplan</p>
+        <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/40">Aus dem Projektplan</p>
         <h1 className="mt-2 font-brand text-[26px] font-bold tracking-[-0.02em] sm:text-[34px]">
           {draft?.title || spaceTitle || "Vertrag"}
         </h1>
@@ -188,26 +188,26 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
           <div className="mt-8 space-y-4">{[0, 1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-white/[0.04]" />)}</div>
         ) : clientWaiting ? (
           // Client, contract not yet released — show only a "wird vorbereitet" page.
-          <div className="mt-8 rounded-2xl border border-white/12 bg-white/[0.02] p-6 sm:p-8 print:hidden">
-            <div className="mono text-[10px] uppercase tracking-widest text-white/40">In Vorbereitung</div>
+          <div className="mt-8 rounded-2xl border border-black/12 bg-white p-6 sm:p-8 print:hidden">
+            <div className="mono text-[10px] uppercase tracking-widest text-black/40">In Vorbereitung</div>
             <h2 className="mt-2 text-[18px] font-semibold">Dein Vertrag wird gerade vorbereitet</h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-white/60">
+            <p className="mt-2 text-[14px] leading-relaxed text-black/60">
               Die Fotograf:in stellt den Vertrag zu diesem Projekt fertig. Sobald er
               freigegeben ist, kannst du ihn hier in Ruhe lesen und verbindlich freigeben.
             </p>
-            <Link href={planHref} className="mono mt-5 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+            <Link href={planHref} className="mono mt-5 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
               Zum Projektplan →
             </Link>
           </div>
         ) : !contract && !draft ? (
           // Owner empty state — no contract yet.
-          <div className="mt-8 rounded-2xl border border-white/12 bg-white/[0.02] p-6 sm:p-8 print:hidden">
-            <p className="text-[15px] leading-relaxed text-white/70">
+          <div className="mt-8 rounded-2xl border border-black/12 bg-white p-6 sm:p-8 print:hidden">
+            <p className="text-[15px] leading-relaxed text-black/70">
               MAGYC erstellt aus deinem Plan und deinen hinterlegten Konditionen
               automatisch einen Vertragsentwurf. Du prüfst ihn, ergänzt das Honorar
               und gibst ihn frei.
             </p>
-            <button type="button" onClick={generate} disabled={busy} className="mt-5 rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-50">
+            <button type="button" onClick={generate} disabled={busy} className="mt-5 rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50">
               {busy ? "Entwurf wird erzeugt …" : "Vertragsentwurf erzeugen"}
             </button>
           </div>
@@ -217,11 +217,11 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {contract?.locked && (
               <div className="mt-6 rounded-2xl p-4" style={{ border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.08)" }}>
                 <div className="text-[15px] font-medium">✓ Verbindlich abgeschlossen</div>
-                <div className="mt-2 space-y-2 text-[13px] text-white/60">
+                <div className="mt-2 space-y-2 text-[13px] text-black/60">
                   {(contract.signers || []).map((s, i) => (
                     <div key={i}>
                       <div>
-                        {s.role === "photographer" ? "Fotograf:in" : "Kunde"}: <span className="text-white/85">{s.name}</span>
+                        {s.role === "photographer" ? "Fotograf:in" : "Kunde"}: <span className="text-black/85">{s.name}</span>
                         {s.place ? ` · ${s.place}` : ""} · {fmt(s.signedAt)}
                       </div>
                       {s.signature && (
@@ -236,38 +236,38 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
 
             {/* Client, after signing — project in production, or closed (handoff). */}
             {contract?.locked && !isOwner && (
-              <div className="mt-4 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
+              <div className="mt-4 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 <div className="text-[15px] font-medium">{stage === "handoff" ? "Projekt abgeschlossen" : "Dein Projekt ist in Arbeit"}</div>
-                <p className="mt-1 text-[13px] leading-relaxed text-white/60">
+                <p className="mt-1 text-[13px] leading-relaxed text-black/60">
                   {stage === "handoff"
                     ? "Das Projekt ist abgeschlossen. Unten findest du die finalen Referenzen; Vertrag und Projektplan bleiben einsehbar."
                     : "Der Vertrag ist verbindlich abgeschlossen. Den unterschriebenen Vertrag und den Projektplan kannst du jederzeit hier einsehen."}
                 </p>
                 {(handoff.note || handoff.links.length > 0) && (
-                  <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                    {handoff.note && <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/85">{handoff.note}</p>}
+                  <div className="mt-4 space-y-3 border-t border-black/10 pt-4">
+                    {handoff.note && <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-black/85">{handoff.note}</p>}
                     {handoff.links.map((l, i) => (
-                      <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.02] px-3.5 py-2.5 text-[14px] text-white/85 transition-colors hover:border-white/25 hover:text-white">
-                        <span aria-hidden className="text-white/30">↗</span>
+                      <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-[14px] text-black/85 transition-colors hover:border-black/25 hover:text-[#17171a]">
+                        <span aria-hidden className="text-black/30">↗</span>
                         <span className="truncate">{l.label}</span>
                       </a>
                     ))}
                   </div>
                 )}
-                <Link href={planHref} className="mono mt-4 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+                <Link href={planHref} className="mono mt-4 inline-flex items-center gap-1.5 text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
                   Zum Projektplan →
                 </Link>
               </div>
             )}
 
             {/* The document */}
-            <div className="mt-6 overflow-hidden rounded-2xl border border-white/12">
+            <div className="mt-6 overflow-hidden rounded-2xl border border-black/12">
               {parties?.photographer && parties?.client && (
                 <div className="grid gap-px bg-white/10 sm:grid-cols-2">
                   <PartyBlock title="Dienstleister" lines={[parties.photographer.studio || parties.photographer.name, parties.photographer.name, parties.photographer.email, parties.photographer.address, parties.photographer.vatId ? `USt-IdNr. ${parties.photographer.vatId}` : (parties.photographer.kleinunternehmer19 ? "Kleinunternehmer §19 UStG" : "")]} />
                   {editing ? (
-                    <div className="bg-[#0b0d10] p-4">
-                      <div className="mono mb-2 text-[10px] uppercase tracking-widest text-white/40">Kunde</div>
+                    <div className="bg-white p-4">
+                      <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Kunde</div>
                       <div className="space-y-2">
                         <input value={parties.client.name} onChange={(e) => editClient("name", e.target.value)} placeholder="Name" className={fieldClass} />
                         <input value={parties.client.email} onChange={(e) => editClient("email", e.target.value)} placeholder="E-Mail" className={fieldClass} />
@@ -283,12 +283,12 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
               {sections.filter((s) => s.id !== "dienstleister" && s.id !== "kunde").map((section, si) => {
                 const realIndex = sections.indexOf(section);
                 return (
-                  <div key={section.id} className="border-t border-white/10 p-4 sm:p-5">
-                    <div className="mono mb-3 text-[10px] uppercase tracking-[0.2em] text-white/40">{section.title}</div>
+                  <div key={section.id} className="border-t border-black/10 p-4 sm:p-5">
+                    <div className="mono mb-3 text-[10px] uppercase tracking-[0.2em] text-black/40">{section.title}</div>
                     <dl className="space-y-3">
                       {section.clauses.map((c, ci) => (
                         <div key={c.id} className="grid gap-1 sm:grid-cols-[160px_1fr] sm:gap-4">
-                          <dt className="text-[13px] text-white/50">{c.label}</dt>
+                          <dt className="text-[13px] text-black/50">{c.label}</dt>
                           <dd>
                             {editing ? (
                               <textarea
@@ -296,10 +296,10 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                                 onChange={(e) => editClause(realIndex, ci, e.target.value)}
                                 rows={c.value.length > 60 ? 2 : 1}
                                 placeholder={c.source === "needs_input" ? (draft?.gaps.find((g) => g.clauseId === c.id)?.hint ?? "…") : "…"}
-                                className={`w-full resize-none rounded-lg border bg-white/[0.03] px-2.5 py-1.5 text-[14px] leading-snug text-white outline-none focus:border-white/35 ${c.source === "needs_input" ? "border-amber-400/40" : "border-white/12"}`}
+                                className={`w-full resize-none rounded-lg border bg-white px-2.5 py-1.5 text-[14px] leading-snug text-[#17171a] outline-none focus:border-black/35 ${c.source === "needs_input" ? "border-amber-400/40" : "border-black/12"}`}
                               />
                             ) : (
-                              <span className="whitespace-pre-wrap break-words text-[14px] leading-snug text-white/90">{c.value || "—"}</span>
+                              <span className="whitespace-pre-wrap break-words text-[14px] leading-snug text-black/90">{c.value || "—"}</span>
                             )}
                           </dd>
                         </div>
@@ -317,10 +317,10 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                   <p className="mb-3 text-[13px] text-amber-300/80">{draft.gaps.length} Feld(er) brauchen noch deine Eingabe (gelb markiert).</p>
                 )}
                 <div className="flex flex-wrap gap-3">
-                  <button type="button" onClick={finalize} disabled={busy} className="rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-50">
+                  <button type="button" onClick={finalize} disabled={busy} className="rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50">
                     {busy ? "…" : "Vertrag festlegen"}
                   </button>
-                  <button type="button" onClick={() => setDraft(null)} className="mono rounded-full border border-white/15 px-4 py-2.5 text-[12px] tracking-widest text-white/55 hover:text-white">
+                  <button type="button" onClick={() => setDraft(null)} className="mono rounded-full border border-black/15 px-4 py-2.5 text-[12px] tracking-widest text-black/55 hover:text-[#17171a]">
                     Verwerfen
                   </button>
                 </div>
@@ -329,17 +329,17 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
 
             {/* Owner, contract prepared but not released — edit further or release for signing. */}
             {isOwner && preparing && !editing && (
-              <div className="mt-6 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
+              <div className="mt-6 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 <div className="text-[14px] font-medium">Bereit zur Freigabe</div>
-                <p className="mt-1 text-[13px] leading-relaxed text-white/60">
+                <p className="mt-1 text-[13px] leading-relaxed text-black/60">
                   Solange du nicht freigibst, sieht dein Kunde nur eine Vorbereitungs-Seite.
                   Mit der Freigabe wird der Vertrag für beide zur Unterschrift geöffnet.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <button type="button" onClick={release} disabled={busy} className="rounded-full bg-white px-5 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-50">
+                  <button type="button" onClick={release} disabled={busy} className="rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50">
                     {busy ? "…" : "Zur Unterschrift freigeben"}
                   </button>
-                  <button type="button" onClick={editSaved} disabled={busy} className="mono rounded-full border border-white/15 px-4 py-2.5 text-[12px] tracking-widest text-white/55 hover:text-white disabled:opacity-50">
+                  <button type="button" onClick={editSaved} disabled={busy} className="mono rounded-full border border-black/15 px-4 py-2.5 text-[12px] tracking-widest text-black/55 hover:text-[#17171a] disabled:opacity-50">
                     Bearbeiten
                   </button>
                 </div>
@@ -348,13 +348,13 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
 
             {/* Sign-off (released, not locked, and this viewer hasn't signed) */}
             {released && !editing && !iSigned && (
-              <div className="mt-6 rounded-2xl border border-white/12 bg-white/[0.02] p-5 print:hidden">
+              <div className="mt-6 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[14px] font-medium">Verbindlich freigeben ({myRole === "photographer" ? "Fotograf:in" : "Kunde"})</div>
                   {isOwner && (
-                    <div className="inline-flex rounded-full border border-white/12 bg-white/[0.03] p-0.5 text-[11px]">
-                      <button type="button" onClick={() => setSigMode("click")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "click" ? "bg-white text-black" : "text-white/55 hover:text-white"}`}>Klick</button>
-                      <button type="button" onClick={() => setSigMode("draw")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "draw" ? "bg-white text-black" : "text-white/55 hover:text-white"}`}>Signatur</button>
+                    <div className="inline-flex rounded-full border border-black/12 bg-white p-0.5 text-[11px]">
+                      <button type="button" onClick={() => setSigMode("click")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "click" ? "bg-[#17171a] text-white" : "text-black/55 hover:text-[#17171a]"}`}>Klick</button>
+                      <button type="button" onClick={() => setSigMode("draw")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "draw" ? "bg-[#17171a] text-white" : "text-black/55 hover:text-[#17171a]"}`}>Signatur</button>
                     </div>
                   )}
                 </div>
@@ -368,14 +368,14 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                 ) : (
                   <button type="button" onClick={() => setAgreed((a) => !a)} className="mt-3 flex w-full items-start gap-2.5 text-left">
                     <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "#fff" : "rgba(255,255,255,0.3)"}`, background: agreed ? "#fff" : "transparent", color: "#000" }}>{agreed ? "✓" : ""}</span>
-                    <span className="text-[13px] leading-snug text-white/60">Ich habe den Vertrag gelesen und stimme ihm verbindlich zu.</span>
+                    <span className="text-[13px] leading-snug text-black/60">Ich habe den Vertrag gelesen und stimme ihm verbindlich zu.</span>
                   </button>
                 )}
 
-                <button type="button" onClick={sign} disabled={!canSign} className="mt-3 w-full rounded-full bg-white px-4 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-40">
+                <button type="button" onClick={sign} disabled={!canSign} className="mt-3 w-full rounded-full bg-[#17171a] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40">
                   {busy ? "…" : "Verbindlich zustimmen"}
                 </button>
-                <p className="mono mt-2 text-[10px] leading-relaxed text-white/40">
+                <p className="mono mt-2 text-[10px] leading-relaxed text-black/40">
                   {drawMode
                     ? "Deine gezeichnete Signatur, Ort und Zeitstempel werden dokumentiert (verbindliche Freigabe, Textform)."
                     : "Deine Zustimmung wird mit Name und Zeitstempel dokumentiert (verbindliche Freigabe, Textform)."}
@@ -385,7 +385,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
 
             {/* Waiting note */}
             {released && !editing && iSigned && (
-              <p className="mt-6 text-[14px] text-white/55 print:hidden">
+              <p className="mt-6 text-[14px] text-black/55 print:hidden">
                 Deine Freigabe ist erfasst. {myRole === "photographer" ? "Warten auf die Freigabe des Kunden." : "Warten auf die Freigabe der Fotograf:in."}
               </p>
             )}
@@ -396,16 +396,16 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
 
   if (embedded) return inner;
   return (
-    <div className="min-h-screen text-white" style={{ background: "radial-gradient(circle at 50% -10%, #14171c, #050505 60%)" }}>
+    <div className="min-h-screen text-[#17171a]" style={{ background: "radial-gradient(circle at 50% -8%, #ffffff, #f4f4f1 55%)" }}>
       {/* Environment bar — clear transition + reference to the planning env */}
-      <div className="sticky top-0 z-20 border-b border-white/10 bg-black/70 backdrop-blur-md print:hidden">
+      <div className="sticky top-0 z-20 border-b border-black/10 bg-white/80 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-          <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+          <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
             ← Zur Planung
           </Link>
-          <span className="mono text-[10px] uppercase tracking-[0.28em] text-white/40">Absegnung · Vertrag</span>
+          <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">Absegnung · Vertrag</span>
           {contract?.locked ? (
-            <button type="button" onClick={() => window.print()} className="mono rounded-full bg-white px-3.5 py-1.5 text-[12px] tracking-widest text-black transition-colors hover:bg-white/85">
+            <button type="button" onClick={() => window.print()} className="mono rounded-full bg-[#17171a] px-3.5 py-1.5 text-[12px] tracking-widest text-white transition-colors hover:opacity-90">
               Als PDF
             </button>
           ) : <span className="w-[64px]" />}
@@ -416,17 +416,17 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   );
 }
 
-const fieldClass = "w-full rounded-lg border border-white/12 bg-white/[0.03] px-3 py-2 text-[14px] text-white outline-none placeholder:text-white/30 focus:border-white/35";
+const fieldClass = "w-full rounded-lg border border-black/12 bg-white px-3 py-2 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 focus:border-black/35";
 
 function PartyBlock({ title, lines }: { title: string; lines: (string | undefined)[] }) {
   return (
-    <div className="bg-[#0b0d10] p-4">
-      <div className="mono mb-2 text-[10px] uppercase tracking-widest text-white/40">{title}</div>
+    <div className="bg-white p-4">
+      <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">{title}</div>
       <div className="space-y-0.5">
         {lines.filter(Boolean).map((l, i) => (
-          <div key={i} className={`text-[13px] ${i === 0 ? "font-medium text-white" : "text-white/60"}`}>{l}</div>
+          <div key={i} className={`text-[13px] ${i === 0 ? "font-medium text-white" : "text-black/60"}`}>{l}</div>
         ))}
-        {lines.filter(Boolean).length === 0 && <div className="text-[13px] text-white/35">—</div>}
+        {lines.filter(Boolean).length === 0 && <div className="text-[13px] text-black/35">—</div>}
       </div>
     </div>
   );

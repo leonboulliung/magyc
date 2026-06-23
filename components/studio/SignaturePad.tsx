@@ -27,7 +27,7 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) 
       ctx.lineWidth = 2;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.strokeStyle = "#fff";
+      ctx.strokeStyle = "#17171a";
     }
   }, []);
 
@@ -71,7 +71,7 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) 
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-lg border border-white/15 bg-white/[0.03]">
+      <div className="relative overflow-hidden rounded-lg border border-black/15 bg-white">
         <canvas
           ref={canvasRef}
           onPointerDown={start}
@@ -82,12 +82,12 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) 
           style={{ cursor: "crosshair" }}
         />
         {!hasInk && (
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[13px] text-white/25">
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[13px] text-black/30">
             Hier unterschreiben
           </span>
         )}
       </div>
-      <button type="button" onClick={clear} className="mono mt-1.5 text-[10px] uppercase tracking-widest text-white/40 transition-colors hover:text-white">
+      <button type="button" onClick={clear} className="mono mt-1.5 text-[10px] uppercase tracking-widest text-black/45 transition-colors hover:text-black">
         Zurücksetzen
       </button>
     </div>

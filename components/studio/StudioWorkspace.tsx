@@ -35,8 +35,8 @@ export function StudioWorkspace({ space }: { space: Space }) {
         <SpaceView id={space.id} initialSpace={space} hideLockedNotice />
       ) : (
         <div
-          className="min-h-screen text-white"
-          style={{ background: "radial-gradient(circle at 50% -10%, #14171c, #050505 60%)" }}
+          className="min-h-screen text-[#17171a]"
+          style={{ background: "radial-gradient(circle at 50% -8%, #ffffff, #f4f4f1 55%)" }}
         >
           <div className="pt-14 sm:pt-16">
             {view === "handoff" ? (
