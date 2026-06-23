@@ -216,7 +216,7 @@ export function GridZone({
         headers: { "content-type": "application/json" },
         body: body({ widget, modulesRev }),
       });
-      const json = await readApiJson(res) as { index?: number };
+      const json = await readApiJson(res) as { index?: number; modulesRev?: number };
       if (!res.ok) {
         throw new Error(apiFailureMessage(json, "Element konnte nicht hinzugefügt werden."));
       }
@@ -229,7 +229,8 @@ export function GridZone({
       // Manual adds of AI-authorable widgets should NOT keep their dumb
       // placeholder (e.g. icon = star). Author it from space context.
       if (realIndex !== null && AI_FILL_ON_ADD.has(widget.type)) {
-        await fillFromContext(realIndex);
+        const nextModulesRev = typeof json.modulesRev === "number" ? json.modulesRev : modulesRev + 1;
+        await fillFromContext(realIndex, nextModulesRev);
       }
       showActionSuccess("Element hinzugefügt", { id: `add-${spaceId}` });
       onRefresh();
@@ -249,7 +250,7 @@ export function GridZone({
   /** Run regenerate (count:1) for a freshly-added widget and persist
    *  the AI's choice, so a manual add lands as a fitting widget rather
    *  than a generic default. Best-effort — silent on failure. */
-  async function fillFromContext(realIndex: number) {
+  async function fillFromContext(realIndex: number, expectedModulesRev: number) {
     try {
       const res = await fetch(`/api/spaces/${spaceId}/widgets/${realIndex}/regenerate`, {
         method: "POST",
@@ -262,7 +263,7 @@ export function GridZone({
         await fetch(`/api/spaces/${spaceId}/widgets/${realIndex}`, {
           method: "PUT",
           headers: { "content-type": "application/json" },
-          body: body({ widget: picked }),
+          body: body({ widget: picked, modulesRev: expectedModulesRev }),
         });
       }
     } catch {

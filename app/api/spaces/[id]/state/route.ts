@@ -48,6 +48,11 @@ const stateWriteBuckets = new Map<string, { startedAt: number; count: number }>(
 
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
+  if (stateWriteBuckets.size > 2000) {
+    for (const [bucketKey, bucket] of stateWriteBuckets) {
+      if (now - bucket.startedAt > RATE_WINDOW_MS) stateWriteBuckets.delete(bucketKey);
+    }
+  }
   const bucket = stateWriteBuckets.get(key);
   if (!bucket || now - bucket.startedAt > RATE_WINDOW_MS) {
     stateWriteBuckets.set(key, { startedAt: now, count: 1 });
