@@ -5,7 +5,63 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-22 (Claude, account-area rebuild + phase flow)_
+_Last updated: 2026-06-23 (Claude, handoff to Codex — chat agent + light theme)_
+
+---
+
+## ⇨ HANDOFF (2026-06-23) — read this first
+
+Working tree clean, everything pushed (HEAD `2fe6681`). Context for whoever
+continues:
+
+**Migrations applied by Leon (016 + 017):** `spaces.handoff` jsonb, and
+`project_messages` table. Both code paths are migration-tolerant either way.
+
+**Done this session:**
+- **#4 Prompt→Element architecture** (`lib/server/classify.ts`): Stage A now
+  also returns `explicit` types (user named concrete content) → forced into the
+  page past the score cap (`selectModuleTypes(scores, forced)`, `HARD_MAX=8`).
+  Stage B authoring rule flipped from "never placeholder" to GROUNDING
+  (seed only from real input; else leave empty + placeholder, never fabricate).
+- **#6 Absegnung/Abschluss as views** (`components/studio/StudioWorkspace.tsx`):
+  forward-only stage bar; Planung/Absegnung/Abschluss switch the *view*; the
+  contract is embedded (`ContractView embedded`), the Abschluss view is
+  `AbschlussPanel` (closing note + links, client sees it via the share link).
+- **#7 Signature toggle**: photographer can draw a signature (`SignaturePad`) +
+  place, or click-consent. Stored in the contract `signers[]`.
+- **#1 Fast-Prompt colours**, **#2 compact Preset pop-up** (`PresetBuilder`).
+- **#5 @magyc chat** (the agent):
+  - Stage 1: persistent thread `project_messages` + @magyc/Team channel switch
+    (`AssistantDock`, `app/api/spaces/[id]/messages/route.ts`).
+  - Stage 2+3: **streaming + tools** via Vercel AI SDK (`ai@6`, `@ai-sdk/openai`)
+    in `app/api/spaces/[id]/assistant/route.ts`. Full project context incl.
+    lifecycle stage; system prompt forbids JSON dumps; tool `addElement` (owner +
+    open project only; restricted to sanitize-safe empty types). Dock refreshes
+    the page after a turn.
+- **Light theme** rebuild (decision: **"Bühne bleibt dunkel"** — SpaceView +
+  project widgets + the @magyc dock on the stage stay dark; ALL other chrome is
+  light). Done: account area, Studio shell/home/nav, Vertrag/Abschluss, dialogs,
+  logo/favicon. `PromptComposer` gained a `theme: "light" | "dark"` prop to
+  decouple marketing (dark) from Studio (light).
+
+**▶ IMMEDIATE NEXT TASK — finish the light theme: the MARKETING site.**
+The authenticated app is fully light; marketing (the `(site)` group + home) is
+still dark and self-contained (own `bg-black`), so nothing is half-broken. To
+finish: flip `app/globals.css` `html,body` to light + `app/layout.tsx` body
+class; convert `app/page.tsx` (hero/clarify/building), `components/site/SiteNav`
+(drop the logo `invert` filter), `SegmentLanding`, `EmergentBackdrop`,
+`components/clarify/ClarifyModuleStep`, `components/home/BuildingScreen`, and
+pass `theme="light"` to the `PromptComposer` in `app/page.tsx`. Verify the
+`(site)` sub-pages (pricing, /for/[area], how-it-works, showcase, story).
+**Light palette in use:** base `#f4f4f1`, ink `#17171a`, muted `text-black/55`
+`/45` `/35`, borders `border-black/10` `/12`, cards `bg-white`, accent gradient
+violet→teal kept. Watch for "white text on white" leftovers (already fixed
+several).
+
+**Other open follow-ups:** @magyc tool-set expansion (edit/remove/fill
+elements, not just add empty); Next.js advisories (`npm audit` → would need a
+Next 16 major upgrade, deliberately deferred); Konnektoren is still an honest
+"in preparation" page; multi-seat team invites on the Nutzer page.
 
 ---
 
