@@ -73,7 +73,7 @@ export function ProjectCardActions({
     void patch({ deleted: true }, "In den Papierkorb verschoben", "Nicht gelöscht");
   }
 
-  const itemClass = "block w-full px-3.5 py-2 text-left text-[13px] text-white/75 transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-40";
+  const itemClass = "block w-full px-3.5 py-2 text-left text-[13px] text-black/75 transition-colors hover:bg-black/[0.06] hover:text-[#17171a] disabled:opacity-40";
 
   return (
     <>
@@ -81,7 +81,7 @@ export function ProjectCardActions({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Projekt-Aktionen"
-        className="flex h-8 w-8 items-center justify-center rounded-full text-[16px] leading-none text-white/70 transition-colors hover:bg-black/40 hover:text-white"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-[16px] leading-none text-black/70 transition-colors hover:bg-black/[0.04] hover:text-[#17171a]"
         style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)" }}
       >
         ⋯
@@ -91,8 +91,8 @@ export function ProjectCardActions({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl border border-white/12 py-1 shadow-2xl"
-            style={{ background: "#16181b" }}
+            className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl border border-black/12 py-1 shadow-2xl"
+            style={{ background: "#ffffff" }}
           >
             {context === "deleted" ? (
               <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ deleted: false }, "Wiederhergestellt", "Nicht wiederhergestellt")}>Wiederherstellen</button>

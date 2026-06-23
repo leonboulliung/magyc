@@ -24,8 +24,8 @@ export const metadata: Metadata = {
   title: "MAGYC",
   description: "Turn early ideas into shareable, collaborative spaces.",
   icons: {
-    icon: [{ url: "/magyc-marble-2048x2048.png", type: "image/png" }],
-    apple: [{ url: "/magyc-marble-2048x2048.png" }],
+    icon: [{ url: "/magyc-favicon.png", type: "image/png" }],
+    apple: [{ url: "/magyc-favicon.png" }],
   },
 };
 

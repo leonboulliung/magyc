@@ -90,9 +90,9 @@ export function ShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="Projekt teilen" maxWidth={460}>
-      <div className="rounded-2xl border border-white/12 bg-[#0c0c0c] p-6 text-white shadow-2xl">
+      <div className="rounded-2xl border border-black/12 bg-[#0c0c0c] p-6 text-[#17171a] shadow-2xl">
         <h2 className="font-brand text-[20px] font-bold tracking-[-0.01em]">Projekt teilen</h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-white/60">
+        <p className="mt-2 text-[14px] leading-relaxed text-black/60">
           Wer den Link hat, kann das Projekt sehen und mitarbeiten (kommentieren, abstimmen,
           hochladen). Struktur ändern kannst nur du.
         </p>
@@ -101,13 +101,13 @@ export function ShareDialog({
           type="button"
           onClick={() => toggle(!shared)}
           disabled={busy}
-          className="mt-5 flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.03] px-4 py-3 text-left transition-colors hover:border-white/25 disabled:opacity-60"
+          className="mt-5 flex w-full items-center justify-between rounded-xl border border-black/12 bg-white px-4 py-3 text-left transition-colors hover:border-black/25 disabled:opacity-60"
         >
           <span>
             <span className="block text-[15px] font-medium text-white">
               {shared ? "Geteilt" : "Privat"}
             </span>
-            <span className="block text-[13px] text-white/55">
+            <span className="block text-[13px] text-black/55">
               {shared ? "Über den Link erreichbar" : "Nur für dich sichtbar"}
             </span>
           </span>
@@ -125,18 +125,18 @@ export function ShareDialog({
 
         {shared && (
           <div className="mt-4">
-            <div className="mono mb-1.5 text-[10px] uppercase tracking-widest text-white/40">Link</div>
+            <div className="mono mb-1.5 text-[10px] uppercase tracking-widest text-black/40">Link</div>
             <div className="flex items-center gap-2">
               <input
                 readOnly
                 value={link}
                 onFocus={(e) => e.currentTarget.select()}
-                className="min-w-0 flex-1 rounded-xl border border-white/12 bg-white/[0.03] px-3 py-2.5 text-[13px] text-white/80 outline-none"
+                className="min-w-0 flex-1 rounded-xl border border-black/12 bg-white px-3 py-2.5 text-[13px] text-black/80 outline-none"
               />
               <button
                 type="button"
                 onClick={copy}
-                className="shrink-0 rounded-xl bg-white px-4 py-2.5 text-[13px] font-medium text-black transition-all hover:bg-white/85 active:scale-[0.98]"
+                className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[13px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98]"
               >
                 {copied ? "Kopiert ✓" : "Kopieren"}
               </button>
@@ -148,7 +148,7 @@ export function ShareDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="mono text-[12px] uppercase tracking-widest text-white/55 hover:text-white"
+            className="mono text-[12px] uppercase tracking-widest text-black/55 hover:text-[#17171a]"
           >
             Schließen
           </button>

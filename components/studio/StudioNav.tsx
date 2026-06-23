@@ -35,7 +35,7 @@ export function StudioNav() {
               key={item.href}
               href={item.href}
               className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${
-                active ? "bg-white/[0.08] text-white" : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"
+                active ? "bg-black/[0.07] text-black" : "text-black/50 hover:bg-black/[0.04] hover:text-black/80"
               }`}
             >
               {item.label}
@@ -51,17 +51,17 @@ export function StudioNav() {
           onClick={() => setOpen((o) => !o)}
           aria-label="Menü"
           aria-expanded={open}
-          className="flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.05] px-3.5 py-1.5 text-[13px] text-white"
+          className="flex items-center gap-1.5 rounded-full border border-black/12 bg-black/[0.04] px-3.5 py-1.5 text-[13px] text-black"
         >
           {current.label}
-          <span className="text-white/45 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
+          <span className="text-black/45 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
         </button>
         {open && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <div
-              className="absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-white/12 py-1.5 shadow-2xl"
-              style={{ background: "#16181b" }}
+              className="absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 py-1.5 shadow-xl"
+              style={{ background: "#ffffff" }}
             >
               {ITEMS.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -71,7 +71,7 @@ export function StudioNav() {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={`block px-4 py-2.5 text-[14px] transition-colors ${
-                      active ? "bg-white/[0.07] text-white" : "text-white/70 hover:bg-white/[0.05] hover:text-white"
+                      active ? "bg-black/[0.06] text-black" : "text-black/70 hover:bg-black/[0.04] hover:text-black"
                     }`}
                   >
                     {item.label}

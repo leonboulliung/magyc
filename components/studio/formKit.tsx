@@ -5,12 +5,13 @@ import type { SaveStatus } from "@/components/studio/useStudioProfile";
 
 /**
  * formKit — the shared visual primitives for the account-area editors
- * (Profil, Einstellungen, Vertragsinhalte, Nutzer). One look, one set of
+ * (Profil, Einstellungen, Vertragsinhalte, Nutzer). One light look, one set of
  * field styles, so every settings surface reads the same. Purely presentational.
  */
 
+const INK = "#17171a";
 const FIELD =
-  "w-full rounded-xl border border-white/12 bg-white/[0.03] px-3.5 py-2.5 text-[14px] text-white outline-none placeholder:text-white/30 transition-colors focus:border-white/35";
+  "w-full rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 transition-colors focus:border-black/45";
 
 export function PageHeader({
   eyebrow,
@@ -26,12 +27,12 @@ export function PageHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">{eyebrow}</p>
-        <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-white sm:text-[32px]">{title}</h1>
-        {children && <div className="mt-3 max-w-2xl text-[14px] leading-relaxed text-white/55">{children}</div>}
+        <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">{eyebrow}</p>
+        <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">{title}</h1>
+        {children && <div className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">{children}</div>}
       </div>
       {status && (
-        <span className="mono mt-2 shrink-0 text-[11px] tracking-widest text-white/35">
+        <span className="mono mt-2 shrink-0 text-[11px] tracking-widest text-black/40">
           {status === "loading" ? "Lädt …" : status === "saving" ? "Speichert …" : status === "error" ? "Nicht gespeichert" : "✓ Gespeichert"}
         </span>
       )}
@@ -41,9 +42,9 @@ export function PageHeader({
 
 export function Card({ title, hint, children }: { title?: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
-      {title && <h2 className="text-[15px] font-semibold text-white">{title}</h2>}
-      {hint && <p className="mt-1 text-[13px] leading-relaxed text-white/45">{hint}</p>}
+    <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-6">
+      {title && <h2 className="text-[15px] font-semibold text-[#17171a]">{title}</h2>}
+      {hint && <p className="mt-1 text-[13px] leading-relaxed text-black/45">{hint}</p>}
       <div className={title || hint ? "mt-4" : ""}>{children}</div>
     </section>
   );
@@ -52,9 +53,9 @@ export function Card({ title, hint, children }: { title?: string; hint?: string;
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mono text-[10px] uppercase tracking-widest text-white/40">{label}</span>
+      <span className="mono text-[10px] uppercase tracking-widest text-black/45">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[12px] leading-snug text-white/35">{hint}</span>}
+      {hint && <span className="mt-1 block text-[12px] leading-snug text-black/40">{hint}</span>}
     </label>
   );
 }
@@ -71,7 +72,7 @@ export function Select({ options, ...props }: React.SelectHTMLAttributes<HTMLSel
   return (
     <select {...props} className={`${FIELD} mt-1.5 appearance-none ${props.className ?? ""}`}>
       {options.map((o) => (
-        <option key={o.value} value={o.value} className="bg-[#16181b]">{o.label}</option>
+        <option key={o.value} value={o.value} className="bg-white text-black">{o.label}</option>
       ))}
     </select>
   );
@@ -81,17 +82,17 @@ export function Toggle({ checked, onChange, label, hint }: { checked: boolean; o
   return (
     <button type="button" onClick={() => onChange(!checked)} className="flex w-full items-center justify-between gap-4 text-left">
       <span>
-        <span className="block text-[14px] text-white/85">{label}</span>
-        {hint && <span className="mt-0.5 block text-[12px] leading-snug text-white/40">{hint}</span>}
+        <span className="block text-[14px] text-[#17171a]">{label}</span>
+        {hint && <span className="mt-0.5 block text-[12px] leading-snug text-black/45">{hint}</span>}
       </span>
       <span
         aria-hidden
         className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-        style={{ background: checked ? "#fff" : "rgba(255,255,255,0.15)" }}
+        style={{ background: checked ? INK : "rgba(0,0,0,0.18)" }}
       >
         <span
-          className="absolute top-0.5 h-5 w-5 rounded-full transition-transform"
-          style={{ left: 2, background: checked ? "#000" : "#fff", transform: checked ? "translateX(20px)" : "none" }}
+          className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+          style={{ left: 2, transform: checked ? "translateX(20px)" : "none" }}
         />
       </span>
     </button>
@@ -109,7 +110,7 @@ export function Chips<T extends string>({ options, selected, onToggle }: { optio
             key={o.value}
             type="button"
             onClick={() => onToggle(o.value)}
-            className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${on ? "border-white bg-white text-black" : "border-white/15 text-white/65 hover:border-white/35 hover:text-white"}`}
+            className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${on ? "border-[#17171a] bg-[#17171a] text-white" : "border-black/15 text-black/65 hover:border-black/40 hover:text-black"}`}
           >
             {o.label}
           </button>
@@ -122,7 +123,7 @@ export function Chips<T extends string>({ options, selected, onToggle }: { optio
 /** A single-choice segmented control. */
 export function Segmented<T extends string>({ options, value, onChange }: { options: readonly { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-full border border-white/12 bg-white/[0.03] p-1">
+    <div className="inline-flex flex-wrap gap-1 rounded-full border border-black/12 bg-black/[0.03] p-1">
       {options.map((o) => {
         const on = o.value === value;
         return (
@@ -130,7 +131,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className={`rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${on ? "bg-white text-black" : "text-white/60 hover:text-white"}`}
+            className={`rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${on ? "bg-[#17171a] text-white" : "text-black/55 hover:text-black"}`}
           >
             {o.label}
           </button>
@@ -161,12 +162,12 @@ export function TagEditor({
   return (
     <div>
       <div className="space-y-2">
-        {items.length === 0 && emptyHint && <p className="text-[13px] text-white/35">{emptyHint}</p>}
+        {items.length === 0 && emptyHint && <p className="text-[13px] text-black/40">{emptyHint}</p>}
         {items.map((it, i) => (
-          <div key={i} className="group flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3.5 py-2.5">
-            <span className="mono mt-0.5 text-[12px] leading-none text-white/30">{glyph}</span>
-            <span className="flex-1 text-[14px] leading-snug text-white/85">{it}</span>
-            <button type="button" onClick={() => onRemove(i)} aria-label="Entfernen" className="text-white/30 opacity-0 transition-opacity hover:text-white group-hover:opacity-100">×</button>
+          <div key={i} className="group flex items-start gap-3 rounded-xl border border-black/10 bg-black/[0.015] px-3.5 py-2.5">
+            <span className="mono mt-0.5 text-[12px] leading-none text-black/30">{glyph}</span>
+            <span className="flex-1 text-[14px] leading-snug text-black/80">{it}</span>
+            <button type="button" onClick={() => onRemove(i)} aria-label="Entfernen" className="text-black/30 opacity-0 transition-opacity hover:text-black group-hover:opacity-100">×</button>
           </div>
         ))}
       </div>
@@ -192,7 +193,7 @@ function AddRow({ placeholder, maxLength, onAdd }: { placeholder: string; maxLen
         maxLength={maxLength}
         className={FIELD}
       />
-      <button type="button" onClick={commit} disabled={!input.trim()} className="shrink-0 rounded-xl bg-white px-4 text-[14px] font-medium text-black transition-colors hover:bg-white/85 disabled:opacity-40">
+      <button type="button" onClick={commit} disabled={!input.trim()} className="shrink-0 rounded-xl bg-[#17171a] px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40">
         Hinzufügen
       </button>
     </div>

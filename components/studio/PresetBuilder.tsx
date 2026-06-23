@@ -132,28 +132,28 @@ export function PresetBuilder() {
     setPickerOpen(false);
   }
 
-  const field = "w-full rounded-xl border border-white/12 bg-white/[0.035] px-3 py-2.5 text-[14px] text-white outline-none placeholder:text-white/25 focus:border-white/35";
+  const field = "w-full rounded-xl border border-black/12 bg-white/[0.035] px-3 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/25 focus:border-black/35";
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/45">Studio · Presets</p>
-            <span className="mono text-[11px] tracking-widest text-white/35">
+            <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio · Presets</p>
+            <span className="mono text-[11px] tracking-widest text-black/35">
               {syncState === "loading" && "Lädt …"}
               {syncState === "saved" && "✓ Gespeichert"}
               {syncState === "local" && "Lokal gesichert"}
               {syncState === "error" && "Nicht gespeichert"}
             </span>
           </div>
-          <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-white sm:text-[32px]">Presets</h1>
-          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-white/55">
+          <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Presets</h1>
+          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">
             Wiederkehrende Projektstarts: einmal Elemente + Prompt-Regeln festlegen,
             danach legst du solche Projekte strukturiert mit einem Klick an.
           </p>
         </div>
-        <button type="button" onClick={addPreset} className="rounded-full bg-white px-4 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-white/85">
+        <button type="button" onClick={addPreset} className="rounded-full bg-[#17171a] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90">
           Neues Preset
         </button>
       </div>
@@ -162,7 +162,7 @@ export function PresetBuilder() {
       <div className="mt-8 space-y-2">
         {syncState === "loading" && [0, 1].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-white/[0.04]" />)}
         {syncState !== "loading" && presets.length === 0 && (
-          <p className="rounded-xl border border-dashed border-white/12 px-4 py-8 text-center text-[13px] text-white/40">
+          <p className="rounded-xl border border-dashed border-black/12 px-4 py-8 text-center text-[13px] text-black/40">
             Noch keine Presets — leg mit „Neues Preset“ dein erstes an.
           </p>
         )}
@@ -171,14 +171,14 @@ export function PresetBuilder() {
             key={p.id}
             type="button"
             onClick={() => { setEditingId(p.id); setPickerOpen(false); }}
-            className="flex w-full items-center gap-4 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-left transition-colors hover:border-white/25 hover:bg-white/[0.04]"
+            className="flex w-full items-center gap-4 rounded-xl border border-black/10 bg-white px-4 py-3 text-left transition-colors hover:border-black/25 hover:bg-black/[0.04]"
           >
             <div className="min-w-0 flex-1">
               <div className="truncate text-[15px] font-medium text-white">{p.name || "Unbenannt"}</div>
-              {p.description && <div className="mt-0.5 truncate text-[12px] text-white/45">{p.description}</div>}
+              {p.description && <div className="mt-0.5 truncate text-[12px] text-black/45">{p.description}</div>}
             </div>
-            <span className="mono shrink-0 text-[11px] tracking-widest text-white/35">{p.modules.length} Elemente</span>
-            <span aria-hidden className="shrink-0 text-white/30">→</span>
+            <span className="mono shrink-0 text-[11px] tracking-widest text-black/35">{p.modules.length} Elemente</span>
+            <span aria-hidden className="shrink-0 text-black/30">→</span>
           </button>
         ))}
       </div>
@@ -186,23 +186,23 @@ export function PresetBuilder() {
       {/* Compact editor pop-up */}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title="Preset bearbeiten" maxWidth={560}>
         {editing && (
-          <div className="max-h-[85vh] overflow-y-auto rounded-2xl border border-white/12 bg-[#16181b] shadow-2xl">
+          <div className="max-h-[85vh] overflow-y-auto rounded-2xl border border-black/12 bg-white shadow-2xl">
             <div className="space-y-5 p-5 sm:p-6">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mono text-[10px] uppercase tracking-widest text-white/40">Name</span>
+                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">Name</span>
                   <input value={editing.name} onChange={(e) => patch(editing.id, { name: e.target.value })} placeholder="z. B. Hochzeit" maxLength={120} className={`${field} mt-1.5`} />
                 </label>
                 <label className="block">
-                  <span className="mono text-[10px] uppercase tracking-widest text-white/40">Kurzbeschreibung</span>
+                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">Kurzbeschreibung</span>
                   <input value={editing.description} onChange={(e) => patch(editing.id, { description: e.target.value })} placeholder="Wann nutzt du es?" maxLength={500} className={`${field} mt-1.5`} />
                 </label>
               </div>
 
               <button type="button" onClick={() => patch(editing.id, { allowContextModules: editing.allowContextModules === false })} className="flex w-full items-center justify-between gap-4 text-left">
                 <span>
-                  <span className="block text-[14px] text-white/85">Kontext-Elemente erlauben</span>
-                  <span className="mt-0.5 block text-[12px] leading-snug text-white/40">MAGYC darf passende Elemente ergänzen.</span>
+                  <span className="block text-[14px] text-black/85">Kontext-Elemente erlauben</span>
+                  <span className="mt-0.5 block text-[12px] leading-snug text-black/40">MAGYC darf passende Elemente ergänzen.</span>
                 </span>
                 <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "#fff" : "rgba(255,255,255,0.15)" }}>
                   <span className="absolute top-0.5 h-5 w-5 rounded-full transition-transform" style={{ left: 2, background: editing.allowContextModules !== false ? "#000" : "#fff", transform: editing.allowContextModules !== false ? "translateX(20px)" : "none" }} />
@@ -211,27 +211,27 @@ export function PresetBuilder() {
 
               {/* Elements */}
               <div>
-                <div className="mono mb-2 text-[10px] uppercase tracking-widest text-white/40">Elemente</div>
+                <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Elemente</div>
                 {editing.modules.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {editing.modules.map((m, i) => (
-                      <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 py-1 pl-3 pr-1 text-[13px] text-white/80">
+                      <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-black/15 py-1 pl-3 pr-1 text-[13px] text-black/80">
                         {m.microTitle || LABELS[m.type]}
-                        <button type="button" onClick={() => removeElement(i)} aria-label="Entfernen" className="grid h-5 w-5 place-items-center rounded-full text-[13px] leading-none text-white/40 hover:bg-white/10 hover:text-white">×</button>
+                        <button type="button" onClick={() => removeElement(i)} aria-label="Entfernen" className="grid h-5 w-5 place-items-center rounded-full text-[13px] leading-none text-black/40 hover:bg-white/10 hover:text-[#17171a]">×</button>
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="rounded-lg border border-dashed border-white/12 px-3 py-3 text-[13px] text-white/40">Noch keine Elemente.</p>
+                  <p className="rounded-lg border border-dashed border-black/12 px-3 py-3 text-[13px] text-black/40">Noch keine Elemente.</p>
                 )}
                 <div className="relative mt-2">
-                  <button type="button" onClick={() => setPickerOpen((o) => !o)} className="mono text-[12px] tracking-widest text-white/55 transition-colors hover:text-white">
+                  <button type="button" onClick={() => setPickerOpen((o) => !o)} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
                     {pickerOpen ? "Schließen" : "+ Element hinzufügen"}
                   </button>
                   {pickerOpen && (
-                    <div className="mt-2 grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-1.5 sm:grid-cols-3">
+                    <div className="mt-2 grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-xl border border-black/10 bg-black/[0.04] p-1.5 sm:grid-cols-3">
                       {PRESET_ELEMENT_TYPES.map((t) => (
-                        <button key={t} type="button" onClick={() => addElement(t)} className="truncate rounded px-2.5 py-2 text-left text-[12px] text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white">
+                        <button key={t} type="button" onClick={() => addElement(t)} className="truncate rounded px-2.5 py-2 text-left text-[12px] text-black/70 transition-colors hover:bg-black/[0.06] hover:text-[#17171a]">
                           {LABELS[t]}
                         </button>
                       ))}
@@ -243,26 +243,26 @@ export function PresetBuilder() {
               {/* Prompt rules */}
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="mono text-[10px] uppercase tracking-widest text-white/40">Prompt-Regeln</span>
-                  <button type="button" onClick={addPrompt} className="mono text-[11px] tracking-widest text-white/45 hover:text-white">+ Regel</button>
+                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">Prompt-Regeln</span>
+                  <button type="button" onClick={addPrompt} className="mono text-[11px] tracking-widest text-black/45 hover:text-[#17171a]">+ Regel</button>
                 </div>
                 <div className="space-y-2">
-                  {editing.promptInjections.length === 0 && <p className="text-[12px] text-white/30">Keine Regeln.</p>}
+                  {editing.promptInjections.length === 0 && <p className="text-[12px] text-black/30">Keine Regeln.</p>}
                   {editing.promptInjections.map((p, i) => (
                     <div key={i} className="group flex items-start gap-2">
                       <textarea value={p} onChange={(e) => setPrompt(i, e.target.value)} rows={2} placeholder="Regel, die beim Erstellen in den Prompt geht." className={`${field} resize-none leading-relaxed`} />
-                      <button type="button" onClick={() => removePrompt(i)} aria-label="Entfernen" className="mt-2 text-white/30 transition-colors hover:text-white">×</button>
+                      <button type="button" onClick={() => removePrompt(i)} aria-label="Entfernen" className="mt-2 text-black/30 transition-colors hover:text-[#17171a]">×</button>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-black/30 px-5 py-3.5 sm:px-6">
-              <button type="button" onClick={() => deletePreset(editing.id)} className="rounded-full border border-white/12 px-3.5 py-2 text-[13px] text-white/45 transition-colors hover:border-red-300/40 hover:text-red-200">
+            <div className="flex items-center justify-between gap-3 border-t border-black/10 bg-black/[0.03] px-5 py-3.5 sm:px-6">
+              <button type="button" onClick={() => deletePreset(editing.id)} className="rounded-full border border-black/12 px-3.5 py-2 text-[13px] text-black/45 transition-colors hover:border-red-300/40 hover:text-red-200">
                 Löschen
               </button>
-              <button type="button" onClick={finish} className="rounded-full bg-white px-5 py-2 text-[13px] font-medium text-black transition-opacity hover:opacity-90">
+              <button type="button" onClick={finish} className="rounded-full bg-[#17171a] px-5 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90">
                 Fertig
               </button>
             </div>

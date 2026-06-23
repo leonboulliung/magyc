@@ -136,11 +136,11 @@ export function StudioHome({
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
       {/* Prompt-first hero — the create field is the centre of the Studio */}
-      <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/40">Studio</p>
-      <h1 className="mt-3 font-brand text-[30px] font-bold tracking-[-0.02em] text-white sm:text-[40px]">
+      <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio</p>
+      <h1 className="mt-3 font-brand text-[30px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[40px]">
         {greetingName ? `Was planen wir, ${greetingName}?` : "Was planen wir?"}
       </h1>
-      <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-white/55">
+      <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-black/55">
         Beschreib dein Shooting in einem Satz. MAGYC macht aus deiner Idee einen klaren,
         greifbaren Plan — den Rest schärfst du gemeinsam.
       </p>
@@ -166,29 +166,29 @@ export function StudioHome({
         {/* Fast-Prompts — collapsible so many snippets stay fully readable
             without crowding the field. Click to drop into the prompt. */}
         {fastPrompts.length > 0 && (
-          <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+          <div className="mt-3 overflow-hidden rounded-2xl border border-black/10 bg-white">
             <button
               type="button"
               onClick={() => setFpOpen((o) => !o)}
-              className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-white/[0.03]"
+              className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-black/[0.03]"
             >
-              <span className="mono text-[10px] uppercase tracking-widest text-white/50">
-                Schnellbausteine <span className="text-white/30">({fastPrompts.length})</span>
+              <span className="mono text-[10px] uppercase tracking-widest text-black/55">
+                Schnellbausteine <span className="text-black/35">({fastPrompts.length})</span>
               </span>
               <Chevron open={fpOpen} />
             </button>
             {fpOpen && (
-              <div className="max-h-72 overflow-y-auto border-t border-white/10">
+              <div className="max-h-72 overflow-y-auto border-t border-black/10">
                 {fastPrompts.map((fp, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setPrompt((p) => (p.trim() ? `${p.trimEnd()}\n${fp.text}` : fp.text))}
-                    className="flex w-full items-start gap-2.5 border-b border-white/[0.06] px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-white/[0.04]"
+                    className="flex w-full items-start gap-2.5 border-b border-black/[0.06] px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-black/[0.04]"
                     style={fp.color ? { borderLeft: `3px solid ${fp.color}` } : undefined}
                   >
-                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: fp.color ?? "rgba(255,255,255,0.25)" }} />
-                    <span className="text-[13.5px] leading-snug text-white/75">{fp.text}</span>
+                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: fp.color ?? "rgba(0,0,0,0.25)" }} />
+                    <span className="text-[13.5px] leading-snug text-black/75">{fp.text}</span>
                   </button>
                 ))}
               </div>
@@ -200,14 +200,14 @@ export function StudioHome({
       {/* Projects */}
       <div className="mt-12">
         <div className="mb-4 flex items-center justify-between">
-          <p className="mono text-[11px] uppercase tracking-[0.2em] text-white/40">Deine Projekte</p>
+          <p className="mono text-[11px] uppercase tracking-[0.2em] text-black/45">Deine Projekte</p>
           {projects.length > 0 && (
-            <span className="mono text-[11px] tabular-nums text-white/30">{projects.length}</span>
+            <span className="mono text-[11px] tabular-nums text-black/35">{projects.length}</span>
           )}
         </div>
 
         {projects.length === 0 ? (
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 p-8 text-center sm:p-12">
+          <div className="relative overflow-hidden rounded-2xl border border-black/10 p-8 text-center sm:p-12">
             <MoodGradient seed="willkommen" className="absolute inset-0 opacity-50" />
             <div className="absolute inset-0 bg-black/55" />
             <div className="relative">
@@ -241,7 +241,7 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
     <div className={`group relative ${dim ? "opacity-75" : ""}`}>
       <Link
         href={`/studio/${p.id}`}
-        className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-white/10 transition-transform hover:-translate-y-0.5"
+        className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-black/10 transition-transform hover:-translate-y-0.5"
       >
         <MoodGradient seed={p.id} className={`absolute inset-0 transition-transform duration-500 group-hover:scale-105 ${dim ? "saturate-[0.6]" : ""}`} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
@@ -277,20 +277,20 @@ function Accordion({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+    <div className="mt-6 overflow-hidden rounded-2xl border border-black/10 bg-white">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-white/[0.03]"
+        className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-black/[0.03]"
       >
-        <span className="mono text-[10px] uppercase tracking-widest text-white/50">
-          {title} <span className="text-white/30">({count})</span>
-          {note && <span className="ml-2 normal-case tracking-normal text-white/25">· {note}</span>}
+        <span className="mono text-[10px] uppercase tracking-widest text-black/55">
+          {title} <span className="text-black/35">({count})</span>
+          {note && <span className="ml-2 normal-case tracking-normal text-black/30">· {note}</span>}
         </span>
         <Chevron open={open} />
       </button>
       {open && (
-        <div className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 border-t border-black/10 p-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((p) => <ProjectCard key={p.id} p={p} context={context} />)}
         </div>
       )}
@@ -304,7 +304,7 @@ function Chevron({ open }: { open: boolean }) {
   return (
     <svg
       width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden
-      className="shrink-0 text-white/40 transition-transform duration-200"
+      className="shrink-0 text-black/40 transition-transform duration-200"
       style={{ transform: open ? "rotate(180deg)" : "none" }}
     >
       <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />

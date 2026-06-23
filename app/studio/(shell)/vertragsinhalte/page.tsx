@@ -125,22 +125,22 @@ export default function VertragsinhaltePage() {
                 <div className="mt-2 space-y-2">
                   {settings.conditions.cancellation.tiers.map((t, i) => (
                     <div key={i} className="flex items-center gap-2.5">
-                      <span className="text-[13px] text-white/45">bis</span>
+                      <span className="text-[13px] text-black/45">bis</span>
                       <input type="number" min={0} value={t.untilDaysBefore} onChange={(e) => {
                         const tiers = settings.conditions.cancellation.tiers.map((x, j) => j === i ? { ...x, untilDaysBefore: num(e.target.value) } : x);
                         setCond("cancellation", { tiers });
-                      }} className="w-20 rounded-lg border border-white/12 bg-white/[0.03] px-2.5 py-1.5 text-[14px] text-white outline-none focus:border-white/35" />
-                      <span className="text-[13px] text-white/45">Tage vorher →</span>
+                      }} className="w-20 rounded-lg border border-black/12 bg-white px-2.5 py-1.5 text-[14px] text-[#17171a] outline-none focus:border-black/35" />
+                      <span className="text-[13px] text-black/45">Tage vorher →</span>
                       <input type="number" min={0} max={100} value={t.percent} onChange={(e) => {
                         const tiers = settings.conditions.cancellation.tiers.map((x, j) => j === i ? { ...x, percent: Math.min(100, num(e.target.value)) } : x);
                         setCond("cancellation", { tiers });
-                      }} className="w-20 rounded-lg border border-white/12 bg-white/[0.03] px-2.5 py-1.5 text-[14px] text-white outline-none focus:border-white/35" />
-                      <span className="text-[13px] text-white/45">%</span>
-                      <button type="button" onClick={() => setCond("cancellation", { tiers: settings.conditions.cancellation.tiers.filter((_, j) => j !== i) })} aria-label="Stufe entfernen" className="ml-auto text-white/30 transition-colors hover:text-white">×</button>
+                      }} className="w-20 rounded-lg border border-black/12 bg-white px-2.5 py-1.5 text-[14px] text-[#17171a] outline-none focus:border-black/35" />
+                      <span className="text-[13px] text-black/45">%</span>
+                      <button type="button" onClick={() => setCond("cancellation", { tiers: settings.conditions.cancellation.tiers.filter((_, j) => j !== i) })} aria-label="Stufe entfernen" className="ml-auto text-black/30 transition-colors hover:text-[#17171a]">×</button>
                     </div>
                   ))}
                   {settings.conditions.cancellation.tiers.length < 6 && (
-                    <button type="button" onClick={() => setCond("cancellation", { tiers: [...settings.conditions.cancellation.tiers, { untilDaysBefore: 0, percent: 100 }] })} className="mono text-[12px] tracking-widest text-white/45 transition-colors hover:text-white">+ Stufe</button>
+                    <button type="button" onClick={() => setCond("cancellation", { tiers: [...settings.conditions.cancellation.tiers, { untilDaysBefore: 0, percent: 100 }] })} className="mono text-[12px] tracking-widest text-black/45 transition-colors hover:text-[#17171a]">+ Stufe</button>
                   )}
                 </div>
               </Field>
