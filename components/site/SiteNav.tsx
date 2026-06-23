@@ -6,11 +6,12 @@ import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { MAIN_NAV, USE_CASES, isNavGroup } from "@/lib/site";
 
 /**
- * SiteNav — the marketing-site top bar. White serif wordmark top-left;
- * nav + CTA on the right. Desktop shows the "Anwendungsfälle" dropdown on
+ * SiteNav — the marketing-site top bar. It shares the light account-area
+ * language so sign-in feels like unlocking more controls, not changing apps.
+ * Desktop shows the "Anwendungsfälle" dropdown on
  * hover; on mobile everything collapses into a burger panel so every page
  * (incl. the segment submenu) stays reachable. Reads like a tool, not an
- * art piece. The logo PNG is black-on-transparent; `invert` renders white.
+ * art piece.
  */
 export function SiteNav() {
   const [open, setOpen] = useState(false);
@@ -24,15 +25,14 @@ export function SiteNav() {
   }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-black/10 bg-[#f4f4f1]/82 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-8">
         <Link href="/" aria-label="MAGYC" className="flex items-center" onClick={() => setOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/magyc-logo.png"
             alt="MAGYC"
-            className="h-[18px] w-auto sm:h-[20px]"
-            style={{ filter: "invert(1) brightness(2)" }}
+            className="h-[18px] w-auto"
           />
         </Link>
 
@@ -41,7 +41,7 @@ export function SiteNav() {
           {MAIN_NAV.map((entry) =>
             isNavGroup(entry) ? (
               <div key={entry.label} className="group relative">
-                <button type="button" className="flex items-center gap-1 font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
+                <button type="button" className="flex items-center gap-1 rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
                   {entry.label}
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="mt-px opacity-70">
                     <path d="M6 9l6 6 6-6" />
@@ -49,9 +49,9 @@ export function SiteNav() {
                 </button>
                 {/* hover bridge + menu */}
                 <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                  <div className="min-w-[200px] rounded-2xl border border-white/12 bg-black/90 p-2 backdrop-blur-md">
+                  <div className="min-w-[200px] rounded-2xl border border-black/10 bg-white p-2 shadow-xl">
                     {entry.items.map((it) => (
-                      <Link key={it.href} href={it.href} className="block rounded-xl px-3 py-2 font-body text-sm text-white/75 transition-colors hover:bg-white/10 hover:text-white">
+                      <Link key={it.href} href={it.href} className="block rounded-xl px-3 py-2 font-body text-sm text-black/65 transition-colors hover:bg-black/[0.04] hover:text-black">
                         {it.label}
                       </Link>
                     ))}
@@ -59,7 +59,7 @@ export function SiteNav() {
                 </div>
               </div>
             ) : (
-              <Link key={entry.href} href={entry.href} className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
+              <Link key={entry.href} href={entry.href} className="rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
                 {entry.label}
               </Link>
             ),
@@ -72,19 +72,19 @@ export function SiteNav() {
               signUpForceRedirectUrl={signInTarget}
               signUpFallbackRedirectUrl={signInTarget}
             >
-              <button type="button" className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
+              <button type="button" className="rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
                 Anmelden
               </button>
             </SignInButton>
-            <Link href="/#start" className="rounded-full bg-white px-4 py-1.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
+            <Link href="/#start" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
               Kostenlos testen
             </Link>
           </SignedOut>
           <SignedIn>
-            <Link href="/studio" className="font-body text-sm text-white/65 transition-colors duration-200 hover:text-white">
+            <Link href="/studio" className="rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
               Studio
             </Link>
-            <Link href="/studio/new" className="rounded-full bg-white px-4 py-1.5 font-body text-sm font-medium text-black transition-all duration-200 hover:bg-white/85 active:scale-[0.98]">
+            <Link href="/studio/new" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
               Neues Projekt
             </Link>
           </SignedIn>
@@ -96,7 +96,7 @@ export function SiteNav() {
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? "Menü schließen" : "Menü öffnen"}
           aria-expanded={open}
-          className="flex h-9 w-9 items-center justify-center text-white md:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/[0.04] text-black md:hidden"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
             {open ? <path d="M6 6l12 12M18 6L6 18" /> : <><path d="M3 6h18" /><path d="M3 12h18" /><path d="M3 18h18" /></>}
@@ -107,26 +107,26 @@ export function SiteNav() {
       {/* ── Mobile panel ──────────────────────────────────────── */}
       {open && (
         <div className="md:hidden">
-          <div className="mx-4 mt-1 rounded-2xl border border-white/12 bg-black/95 p-5 backdrop-blur-md">
-            <p className="mono mb-2 text-[10px] uppercase tracking-[0.2em] text-white/40">Anwendungsfälle</p>
+          <div className="mx-4 mt-2 rounded-2xl border border-black/10 bg-white p-5 shadow-xl">
+            <p className="mono mb-2 text-[10px] uppercase tracking-[0.2em] text-black/35">Anwendungsfälle</p>
             <div className="mb-4 grid grid-cols-2 gap-1">
               {USE_CASES.map((it) => (
-                <Link key={it.href} href={it.href} onClick={() => setOpen(false)} className="rounded-lg px-2 py-2 font-body text-[15px] text-white/80 hover:bg-white/10 hover:text-white">
+                <Link key={it.href} href={it.href} onClick={() => setOpen(false)} className="rounded-lg px-2 py-2 font-body text-[15px] text-black/70 hover:bg-black/[0.04] hover:text-black">
                   {it.label}
                 </Link>
               ))}
             </div>
-            <div className="flex flex-col gap-1 border-t border-white/10 pt-4">
+            <div className="flex flex-col gap-1 border-t border-black/10 pt-4">
               {MAIN_NAV.filter((e) => !isNavGroup(e)).map((e) => {
                 const link = e as { href: string; label: string };
                 return (
-                  <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="rounded-lg px-2 py-2 font-body text-[15px] text-white/80 hover:bg-white/10 hover:text-white">
+                  <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="rounded-lg px-2 py-2 font-body text-[15px] text-black/70 hover:bg-black/[0.04] hover:text-black">
                     {link.label}
                   </Link>
                 );
               })}
             </div>
-            <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
+            <div className="mt-4 flex items-center gap-3 border-t border-black/10 pt-4">
               <SignedOut>
                 <SignInButton
                   mode="modal"
@@ -135,17 +135,17 @@ export function SiteNav() {
                   signUpForceRedirectUrl={signInTarget}
                   signUpFallbackRedirectUrl={signInTarget}
                 >
-                  <button type="button" className="font-body text-[15px] text-white/70 hover:text-white">Anmelden</button>
+                  <button type="button" className="font-body text-[15px] text-black/60 hover:text-black">Anmelden</button>
                 </SignInButton>
-                <Link href="/#start" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-white px-4 py-2 font-body text-sm font-medium text-black">
+                <Link href="/#start" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">
                   Kostenlos testen
                 </Link>
               </SignedOut>
               <SignedIn>
-                <Link href="/studio" onClick={() => setOpen(false)} className="font-body text-[15px] text-white/70 hover:text-white">
+                <Link href="/studio" onClick={() => setOpen(false)} className="font-body text-[15px] text-black/60 hover:text-black">
                   Studio
                 </Link>
-                <Link href="/studio/new" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-white px-4 py-2 font-body text-sm font-medium text-black">
+                <Link href="/studio/new" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">
                   Neues Projekt
                 </Link>
               </SignedIn>

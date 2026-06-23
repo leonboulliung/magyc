@@ -142,15 +142,21 @@ function LocationEditor({
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-black/90"
-              style={{ border: "1px solid var(--v-rule)", boxShadow: "0 18px 50px rgba(0,0,0,0.28)", backdropFilter: "blur(18px)" }}
+              className="absolute left-0 right-0 top-full mt-1 z-20 overflow-hidden rounded-[var(--v-radius)]"
+              style={{
+                border: "1px solid var(--v-rule)",
+                background: "var(--v-bg)",
+                color: "var(--v-fg)",
+                boxShadow: "0 18px 50px rgba(0,0,0,0.12)",
+                backdropFilter: "blur(18px)",
+              }}
             >
               {results.map((r, i) => (
                 <li key={i}>
                   <button
                     type="button"
                     onClick={() => pick(r)}
-                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-white/[0.08] transition-colors"
+                    className="w-full px-3 py-2 text-left text-[13px] transition-colors hover:bg-black/[0.04]"
                   >
                     {r.label}
                   </button>
@@ -323,15 +329,21 @@ function MultiPointEditor({
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              className="absolute left-0 right-0 top-full mt-1 z-20 rounded-[var(--v-radius)] overflow-hidden bg-black/90"
-              style={{ border: "1px solid var(--v-rule)", boxShadow: "0 18px 50px rgba(0,0,0,0.28)", backdropFilter: "blur(18px)" }}
+              className="absolute left-0 right-0 top-full mt-1 z-20 overflow-hidden rounded-[var(--v-radius)]"
+              style={{
+                border: "1px solid var(--v-rule)",
+                background: "var(--v-bg)",
+                color: "var(--v-fg)",
+                boxShadow: "0 18px 50px rgba(0,0,0,0.12)",
+                backdropFilter: "blur(18px)",
+              }}
             >
               {results.map((r, i) => (
                 <li key={i}>
                   <button
                     type="button"
                     onClick={() => add(r)}
-                    className="w-full text-left px-3 py-2 text-[13px] hover:bg-white/[0.08] transition-colors"
+                    className="w-full px-3 py-2 text-left text-[13px] transition-colors hover:bg-black/[0.04]"
                   >
                     {r.label}
                   </button>

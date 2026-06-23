@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-23 (Claude, handoff to Codex — chat agent + light theme)_
+_Last updated: 2026-06-23 (Codex — marketing light transition)_
 
 ---
 
@@ -44,19 +44,11 @@ continues:
   logo/favicon. `PromptComposer` gained a `theme: "light" | "dark"` prop to
   decouple marketing (dark) from Studio (light).
 
-**▶ IMMEDIATE NEXT TASK — finish the light theme: the MARKETING site.**
-The authenticated app is fully light; marketing (the `(site)` group + home) is
-still dark and self-contained (own `bg-black`), so nothing is half-broken. To
-finish: flip `app/globals.css` `html,body` to light + `app/layout.tsx` body
-class; convert `app/page.tsx` (hero/clarify/building), `components/site/SiteNav`
-(drop the logo `invert` filter), `SegmentLanding`, `EmergentBackdrop`,
-`components/clarify/ClarifyModuleStep`, `components/home/BuildingScreen`, and
-pass `theme="light"` to the `PromptComposer` in `app/page.tsx`. Verify the
-`(site)` sub-pages (pricing, /for/[area], how-it-works, showcase, story).
-**Light palette in use:** base `#f4f4f1`, ink `#17171a`, muted `text-black/55`
-`/45` `/35`, borders `border-black/10` `/12`, cards `bg-white`, accent gradient
-violet→teal kept. Watch for "white text on white" leftovers (already fixed
-several).
+**Marketing light transition — done (Codex, 2026-06-23):** home was reduced to
+the shared light app surface: off-white base, subtle DotField, light SiteNav,
+light PromptComposer, no old showcase/footer marketing blocks. The creation
+flow (clarify/building) now uses the same light language, and global html/body
+defaults are light while the project stage remains locally dark.
 
 **Other open follow-ups:** @magyc tool-set expansion (edit/remove/fill
 elements, not just add empty); Next.js advisories (`npm audit` → would need a

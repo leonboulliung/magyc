@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -13,8 +11,6 @@ import { PromptComposer } from "@/components/PromptComposer";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
 import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
 import { SiteNav } from "@/components/site/SiteNav";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { EmergentBackdrop } from "@/components/site/EmergentBackdrop";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { apiError, fetchJsonWithTimeout, formatFlowError } from "@/lib/home/flow";
 
@@ -40,13 +36,6 @@ const DEFAULT_ASSIST_CHIPS: { label: string; text: string }[] = [
   { label: "Need roles?", text: "Add roles and responsibilities for the people involved." },
   { label: "Want a timeline?", text: "Turn this into a clear timeline." },
   { label: "Add deliverables?", text: "Include concrete deliverables and approval points." },
-];
-
-const HOME_WORK_IMAGES = [
-  { src: "/media/showcase-10.jpg", alt: "Luxusuhr auf dunklem Grund", label: "Produkt" },
-  { src: "/media/showcase-03.jpg", alt: "Editorial-Portraet mit schwarzem Blazer", label: "Editorial" },
-  { src: "/media/showcase-05.jpg", alt: "Event in einer grossen Halle", label: "Event" },
-  { src: "/media/showcase-02.jpg", alt: "Skincare-Stillleben mit Palmblatt", label: "Stilllife" },
 ];
 
 /**
@@ -357,18 +346,21 @@ export default function HomePage() {
 
   return (
     <main
-      className="fixed inset-0 flex flex-col overflow-hidden bg-black font-body text-white"
+      className="fixed inset-0 flex flex-col overflow-hidden bg-[#f4f4f1] font-body text-[#17171a]"
       style={{ overscrollBehavior: "none" }}
     >
       {stage === "input" ? (
         <>
-          <EmergentBackdrop />
-          <DotField ref={dotFieldRef} color="255,255,255" className="fixed inset-0 z-[1] opacity-[0.22]" />
+          <DotField ref={dotFieldRef} color="0,0,0" className="fixed inset-0 z-[1] opacity-[0.055]" />
+          <div
+            className="pointer-events-none fixed inset-0 z-[2]"
+            style={{ background: "radial-gradient(circle at 50% -10%, rgba(0,0,0,0.055), transparent 44%)" }}
+          />
         </>
       ) : (
-        <div className="fixed inset-0 z-0 bg-black">
-          <DotField ref={dotFieldRef} color="255,255,255" className="opacity-[0.18]" />
-          <div className="absolute inset-0 bg-black/70" />
+        <div className="fixed inset-0 z-0 bg-[#f4f4f1]">
+          <DotField ref={dotFieldRef} color="0,0,0" className="opacity-[0.05]" />
+          <div className="absolute inset-0 bg-[#f4f4f1]/72" />
         </div>
       )}
 
@@ -418,6 +410,7 @@ export default function HomePage() {
                   rows={2}
                   highlight={promptNudge}
                   placeholder={selectedMode?.placeholder ?? "Describe a rough idea, project, or plan."}
+                  theme="light"
                   topSlot={
                     <div className="flex flex-wrap gap-2">
                       {PROJECT_MODES.map((mode) => {
@@ -431,9 +424,9 @@ export default function HomePage() {
                             className="font-body text-[11px] tracking-wide px-3 py-2 rounded transition-all disabled:opacity-30"
                             style={{
                               border: "1px solid",
-                              borderColor: picked ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.14)",
-                              background: picked ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.04)",
-                              color: picked ? "#fff" : "rgba(255,255,255,0.72)",
+                              borderColor: picked ? "rgba(0,0,0,0.34)" : "rgba(0,0,0,0.12)",
+                              background: picked ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.7)",
+                              color: picked ? "#17171a" : "rgba(23,23,26,0.68)",
                             }}
                           >
                             {mode.label}
@@ -451,8 +444,8 @@ export default function HomePage() {
                               type="button"
                               onClick={() => applyExample(example.prompt, example.mode)}
                               disabled={busy}
-                              className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded transition-all disabled:opacity-30 hover:bg-white/10"
-                              style={{ border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.035)", color: "rgba(255,255,255,0.72)" }}
+                              className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded transition-all disabled:opacity-30 hover:bg-black/[0.035]"
+                              style={{ border: "1px solid rgba(0,0,0,0.12)", background: "rgba(255,255,255,0.72)", color: "rgba(23,23,26,0.68)" }}
                             >
                               {example.prompt}
                             </button>
@@ -464,7 +457,7 @@ export default function HomePage() {
                               onClick={() => addPromptHint(chip.text)}
                               disabled={busy}
                               className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded transition-opacity disabled:opacity-30"
-                              style={{ border: "1px dashed rgba(255,255,255,0.22)", background: "transparent", color: "rgba(255,255,255,0.64)" }}
+                              style={{ border: "1px dashed rgba(0,0,0,0.18)", background: "transparent", color: "rgba(23,23,26,0.58)" }}
                             >
                               {chip.label}
                             </button>
@@ -480,7 +473,7 @@ export default function HomePage() {
                     matching the Studio prompt field. Status only below. */}
                 {statusText && (
                   <div className="mt-3 flex justify-end">
-                    <p className="mono text-[10px] tracking-widest opacity-60 text-right text-white">
+                    <p className="mono text-[10px] tracking-widest opacity-60 text-right text-[#17171a]">
                       {statusText}
                     </p>
                   </div>
@@ -495,17 +488,16 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="liquid-glass-strong rounded-[34px] p-5 text-white sm:p-9"
+                className="rounded-[34px] bg-white p-5 text-[#17171a] sm:p-9"
                 style={{
-                  background: "rgba(255,255,255,0.035)",
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  boxShadow: "0 18px 70px rgba(0,0,0,0.36), inset 0 1px 1px rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  boxShadow: "0 18px 70px rgba(0,0,0,0.08)",
                   ["--v-radius" as string]: "28px",
-                  ["--v-bg" as string]: "rgba(255,255,255,0.06)",
-                  ["--v-fg" as string]: "#ffffff",
-                  ["--v-muted" as string]: "rgba(255,255,255,0.58)",
-                  ["--v-rule" as string]: "rgba(255,255,255,0.18)",
-                  ["--v-accent" as string]: "#ffffff",
+                  ["--v-bg" as string]: "rgba(0,0,0,0.035)",
+                  ["--v-fg" as string]: "#17171a",
+                  ["--v-muted" as string]: "rgba(23,23,26,0.58)",
+                  ["--v-rule" as string]: "rgba(0,0,0,0.14)",
+                  ["--v-accent" as string]: "#17171a",
                 }}
               >
                 {/* Progress bar + step counter */}
@@ -525,10 +517,10 @@ export default function HomePage() {
                   </div>
                   <div
                     className="w-full rounded-full overflow-hidden"
-                    style={{ height: 2, background: "rgba(255,255,255,0.12)" }}
+                    style={{ height: 2, background: "rgba(0,0,0,0.1)" }}
                   >
                     <motion.div
-                      className="h-full rounded-full bg-white"
+                      className="h-full rounded-full bg-[#17171a]"
                       initial={false}
                       animate={{ width: `${Math.max(progress * 100, 4)}%` }}
                       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -587,8 +579,8 @@ export default function HomePage() {
                             rows={3}
                             maxLength={currentStep.maxLength ?? 240}
                             placeholder={currentStep.placeholder ?? "…"}
-                            className="w-full resize-none rounded-[28px] bg-white/[0.04] p-4 text-[16px] leading-relaxed text-white outline-none placeholder:text-white/28"
-                            style={{ border: "1px solid rgba(255,255,255,0.18)" }}
+                            className="w-full resize-none rounded-[28px] p-4 text-[16px] leading-relaxed outline-none placeholder:text-black/28"
+                            style={{ border: "1px solid rgba(0,0,0,0.14)", background: "rgba(0,0,0,0.025)", color: "#17171a" }}
                           />
                         </>
                       ) : (
@@ -621,9 +613,9 @@ export default function HomePage() {
                                   className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full"
                                   style={{
                                     border: "1px solid",
-                                    borderColor: picked ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.18)",
-                                    background: picked ? "#fff" : "rgba(255,255,255,0.035)",
-                                    color: picked ? "#000" : "rgba(255,255,255,0.78)",
+                                    borderColor: picked ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.14)",
+                                    background: picked ? "#17171a" : "rgba(0,0,0,0.025)",
+                                    color: picked ? "#fff" : "rgba(23,23,26,0.72)",
                                   }}
                                   whileHover={{ y: -2 }}
                                   whileTap={{ scale: 0.96 }}
@@ -650,8 +642,8 @@ export default function HomePage() {
                               className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full bg-transparent outline-none"
                               style={{
                                 border: "1px solid",
-                                borderColor: isCustom ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.18)",
-                                color: "#fff",
+                                borderColor: isCustom ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.14)",
+                                color: "#17171a",
                                 minWidth: "80px",
                               }}
                             />
@@ -677,7 +669,7 @@ export default function HomePage() {
                     onClick={goForward}
                     disabled={busy}
                     aria-label={isLastStep ? "build" : "next"}
-                    className="mono rounded-full bg-white px-5 py-2 text-[11px] tracking-widest text-black disabled:opacity-30"
+                    className="mono rounded-full bg-[#17171a] px-5 py-2 text-[11px] tracking-widest text-white disabled:opacity-30"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
@@ -695,11 +687,10 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="rounded-[20px] py-20"
+                className="rounded-[20px] bg-white py-20"
                 style={{
-                  background: "rgba(255,255,255,0.96)",
-                  border: "1px solid rgba(255,255,255,0.16)",
-                  boxShadow: "0 12px 50px rgba(0,0,0,0.22)",
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  boxShadow: "0 12px 50px rgba(0,0,0,0.08)",
                 }}
               >
                 <BuildingScreen inputText={text} comingToLife={comingToLife} statusText={statusText} />
@@ -720,105 +711,13 @@ export default function HomePage() {
         </div>
 
         {stage === "input" && (
-          <div className="mx-auto mt-16 w-full max-w-5xl pb-20 sm:mt-24">
-            <section className="liquid-glass rounded-[34px] p-5 sm:p-8">
-              <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/55">Für kreative Arbeit</p>
-              <h2 className="mt-3 max-w-2xl font-brand text-[30px] font-bold leading-[1.06] tracking-[-0.02em] text-white sm:text-[48px]">
-                Eine Seite, die als Prompt beginnt und zur gemeinsamen Projektfläche wird.
-              </h2>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                {[
-                  { href: "/product", label: "Produkt", tag: "Briefing, Rechte, Deliverables." },
-                  { href: "/event", label: "Event", tag: "Tempo, Volumen, schnelle Auslieferung." },
-                  { href: "/wedding", label: "Hochzeit", tag: "Ein Tag, viele Beteiligte." },
-                  { href: "/corporate", label: "Corporate", tag: "Standorte, Termine, Freigaben." },
-                  { href: "/fashion", label: "Fashion", tag: "Crew, Styling, Looks." },
-                ].map((c) => (
-                  <Link
-                    key={c.href}
-                    href={c.href}
-                    className="liquid-glass rounded-[24px] p-4 transition-transform hover:-translate-y-1"
-                  >
-                    <span className="block text-sm font-medium text-white">{c.label}</span>
-                    <span className="mt-2 block text-sm leading-relaxed text-white/55">{c.tag}</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-            <section className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="liquid-glass rounded-[34px] p-5 sm:p-8">
-                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">So entsteht ein Projekt</p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  {[
-                    ["01", "Idee rein", "Ein grober Gedanke wird zu klaren Fragen."],
-                    ["02", "Bausteine", "MAGYC wählt sinnvolle Abschnitte statt leerer Vorlagen."],
-                    ["03", "Zusammen", "Übernehmen, abstimmen, freigeben, hochladen, entscheiden."],
-                  ].map(([number, title, body]) => (
-                    <div key={number} className="rounded-[24px] border border-white/12 bg-white/[0.035] p-4">
-                      <div className="mono text-[11px] tracking-widest text-white/40">{number}</div>
-                      <div className="mt-3 text-base font-medium text-white">{title}</div>
-                      <p className="mt-2 text-sm leading-relaxed text-white/55">{body}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="liquid-glass-strong rounded-[34px] p-5 sm:p-8">
-                <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">Wofür</p>
-                <h3 className="mt-3 font-brand text-[26px] font-bold leading-[1.1] tracking-[-0.02em] text-white sm:text-[36px]">
-                  Weniger Distanz zwischen Idee und gemeinsamer Realität.
-                </h3>
-                <p className="mt-5 text-sm leading-relaxed text-white/62">
-                  Für ein Shooting, eine Kampagne, einen Event oder jedes frühe Projekt, das einen Ort braucht, um konkret zu werden.
-                </p>
-                <button
-                  type="button"
-                  onClick={focusPrompt}
-                  className="mt-6 rounded bg-white px-5 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.03] active:scale-[0.97]"
-                >
-                  Oben starten
-                </button>
-              </div>
-            </section>
-
-            <section id="work" className="mt-5 liquid-glass rounded-[34px] p-5 sm:p-8 scroll-mt-24">
-              <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
-                <div>
-                  <p className="mono text-[11px] uppercase tracking-[0.22em] text-white/50">Für Fotografen</p>
-                  <h3 className="mt-3 font-brand text-[28px] font-bold leading-[1.08] tracking-[-0.02em] text-white sm:text-[42px]">
-                    Nicht noch eine Galerie. Ein Arbeitsraum, der davor aufraeumt.
-                  </h3>
-                  <p className="mt-5 text-sm leading-relaxed text-white/62">
-                    Moodboard, Shotlist, Rollen, Deliverables und Freigaben entstehen aus dem Briefing. So bleibt mehr Energie fuer Licht, Motiv und Timing.
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {HOME_WORK_IMAGES.map((img, i) => (
-                    <figure
-                      key={img.src}
-                      className={`relative overflow-hidden rounded-[24px] border border-white/12 bg-white/[0.04] ${i === 1 ? "translate-y-6" : ""}`}
-                    >
-                      <Image
-                        src={img.src}
-                        alt={img.alt}
-                        width={520}
-                        height={640}
-                        sizes="(max-width: 1024px) 45vw, 260px"
-                        className="aspect-[4/5] h-full w-full object-cover opacity-82"
-                      />
-                      <figcaption className="mono absolute left-3 top-3 rounded-full bg-black/70 px-2.5 py-1 text-[9px] uppercase tracking-widest text-white/85 backdrop-blur-sm">
-                        {img.label}
-                      </figcaption>
-                    </figure>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <div className="mt-8 overflow-hidden rounded-[34px]">
-              <SiteFooter />
-            </div>
+          <div className="pointer-events-none mx-auto flex w-full max-w-6xl justify-between pb-10 pt-16 text-[13px] leading-relaxed text-black/45 sm:pt-24">
+            <p className="max-w-[230px]">
+              MAGYC ordnet kreative Arbeit, bevor sie schwer wird.
+            </p>
+            <p className="hidden max-w-[260px] text-right sm:block">
+              Beschreibe, was entstehen soll. Der Arbeitsraum beginnt hier.
+            </p>
           </div>
         )}
       </div>

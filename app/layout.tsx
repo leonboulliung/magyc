@@ -38,7 +38,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-black antialiased">
+      <body className="min-h-screen bg-[#f4f4f1] text-[#17171a] antialiased">
         <ClerkProvider appearance={clerkAppearance}>
           {children}
           <AppToaster />
