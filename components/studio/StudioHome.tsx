@@ -150,6 +150,7 @@ export function StudioHome({
           value={prompt}
           onChange={setPrompt}
           onSubmit={create}
+          theme="light"
           autoFocus
           rows={3}
           placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
@@ -320,9 +321,9 @@ function PresetChip({ active, onClick, label }: { active: boolean; onClick: () =
       className="rounded-full px-3 py-1.5 text-[12px] tracking-wide transition-colors"
       style={{
         border: "1px solid",
-        borderColor: active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.14)",
-        background: active ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.03)",
-        color: active ? "#fff" : "rgba(255,255,255,0.7)",
+        borderColor: active ? "#17171a" : "rgba(0,0,0,0.15)",
+        background: active ? "#17171a" : "rgba(0,0,0,0.02)",
+        color: active ? "#fff" : "rgba(0,0,0,0.65)",
       }}
     >
       {label}

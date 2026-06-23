@@ -174,7 +174,7 @@ export function PresetBuilder() {
             className="flex w-full items-center gap-4 rounded-xl border border-black/10 bg-white px-4 py-3 text-left transition-colors hover:border-black/25 hover:bg-black/[0.04]"
           >
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[15px] font-medium text-white">{p.name || "Unbenannt"}</div>
+              <div className="truncate text-[15px] font-medium text-[#17171a]">{p.name || "Unbenannt"}</div>
               {p.description && <div className="mt-0.5 truncate text-[12px] text-black/45">{p.description}</div>}
             </div>
             <span className="mono shrink-0 text-[11px] tracking-widest text-black/35">{p.modules.length} Elemente</span>

@@ -41,12 +41,15 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
   highlight?: boolean;
   id?: string;
   className?: string;
+  /** Surface theme: dark (default) for the marketing hero, light for the Studio. */
+  theme?: "light" | "dark";
 }>(function PromptComposer(
-  { value, onChange, onSubmit, placeholder, disabled, maxLength = 1200, rows = 3, autoFocus, topSlot, chips, footer, highlight, id, className },
+  { value, onChange, onSubmit, placeholder, disabled, maxLength = 1200, rows = 3, autoFocus, topSlot, chips, footer, highlight, id, className, theme = "dark" },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
   const lit = focused || highlight;
+  const dark = theme !== "light";
 
   // Auto-grow the textarea so the latest text is always visible (incl. after
   // programmatic appends). min-height (Tailwind) keeps the resting size.
@@ -72,13 +75,16 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
       style={{
         background: lit ? RING_FOCUS : RING_REST,
         boxShadow: lit
-          ? "0 0 44px rgba(74,168,255,0.20), 0 18px 60px rgba(0,0,0,0.34)"
-          : "0 18px 60px rgba(0,0,0,0.30)",
+          ? `0 0 44px rgba(74,168,255,0.20), 0 18px 60px rgba(0,0,0,${dark ? 0.34 : 0.12})`
+          : `0 18px 60px rgba(0,0,0,${dark ? 0.30 : 0.10})`,
       }}
     >
       <div
         className="rounded-[29px] p-5 sm:rounded-[31px] sm:p-6"
-        style={{ background: "#0b0c0e", boxShadow: "inset 0 1px 1px rgba(255,255,255,0.06)" }}
+        style={{
+          background: dark ? "#0b0c0e" : "#ffffff",
+          boxShadow: dark ? "inset 0 1px 1px rgba(255,255,255,0.06)" : "inset 0 1px 1px rgba(0,0,0,0.03)",
+        }}
       >
         {topSlot && <div className="mb-4">{topSlot}</div>}
 
@@ -99,7 +105,7 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
               onSubmit();
             }
           }}
-          className="block w-full resize-none border-0 bg-transparent text-[18px] leading-relaxed text-white outline-none placeholder:text-white/32 sm:text-[21px]"
+          className={`block w-full resize-none border-0 bg-transparent text-[18px] leading-relaxed outline-none sm:text-[21px] ${dark ? "text-white placeholder:text-white/32" : "text-[#17171a] placeholder:text-black/30"}`}
           style={{ minHeight: `${rows * 1.65 + 0.5}em` }}
         />
 
@@ -107,7 +113,7 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
           <div className="mt-3 flex items-end justify-between gap-3">
             <div className="min-w-0 flex-1">{chips}</div>
             <div className="flex shrink-0 items-center gap-3">
-              <span className="mono text-[10px] tracking-widest tabular-nums opacity-40">
+              <span className={`mono text-[10px] tracking-widest tabular-nums opacity-40 ${dark ? "text-white" : "text-[#17171a]"}`}>
                 {value.length > 0 ? `${value.length}/${maxLength}` : ""}
               </span>
               {onSubmit && (

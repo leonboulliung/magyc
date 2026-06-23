@@ -78,7 +78,7 @@ export default async function StudioUsersPage() {
             ) : ownerInitial}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-[14px] font-medium text-white">{ownerName}</div>
+            <div className="truncate text-[14px] font-medium text-[#17171a]">{ownerName}</div>
             {ownerEmail && <div className="truncate text-[13px] text-black/45">{ownerEmail}</div>}
           </div>
           <span className="mono ml-auto rounded-full border border-black/12 px-2.5 py-1 text-[10px] uppercase tracking-widest text-black/45">Inhaber:in</span>
@@ -106,7 +106,7 @@ export default async function StudioUsersPage() {
                   {(c.name || c.email || "?").slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-medium text-white">{c.name}</div>
+                  <div className="truncate text-[14px] font-medium text-[#17171a]">{c.name}</div>
                   <div className="truncate text-[13px] text-black/45">{c.email || "—"} · {c.projectTitle}</div>
                 </div>
                 {c.signed ? (

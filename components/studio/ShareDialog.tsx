@@ -104,7 +104,7 @@ export function ShareDialog({
           className="mt-5 flex w-full items-center justify-between rounded-xl border border-black/12 bg-white px-4 py-3 text-left transition-colors hover:border-black/25 disabled:opacity-60"
         >
           <span>
-            <span className="block text-[15px] font-medium text-white">
+            <span className="block text-[15px] font-medium text-[#17171a]">
               {shared ? "Geteilt" : "Privat"}
             </span>
             <span className="block text-[13px] text-black/55">
