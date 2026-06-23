@@ -29,12 +29,13 @@ function errorLabel(value: unknown): string {
 
 const RING_GRADIENT = "linear-gradient(135deg, #8b7bff 0%, #4f9eff 50%, #39d2b4 100%)";
 
-export function AssistantDock({ spaceId }: { spaceId: string }) {
+export function AssistantDock({ spaceId, onProjectChanged }: { spaceId: string; onProjectChanged?: () => void }) {
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<Channel>("magyc");
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -56,10 +57,11 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
       const rows = Array.isArray(json.messages) ? json.messages : [];
       if (rows.length || replaceEmpty) setMessages(rows.map((r) => mapRow(r, ch)));
     } catch { /* best-effort; ephemeral fallback */ }
+    finally { setLoading(false); }
   }, [spaceId, mapRow]);
 
   useEffect(() => {
-    if (open) void load(channel);
+    if (open) { setLoading(true); void load(channel); }
   }, [open, channel, load]);
 
   // Team chat liveness: poll while open (no realtime dependency in stage 1).
@@ -95,7 +97,7 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
       return;
     }
 
-    // MAGYC channel: question → assistant reply, both persisted.
+    // MAGYC channel: streamed reply (may act via tools), both ends persisted.
     const history = messages.slice(-8).map((m) => ({ role: m.role, content: m.content }));
     setMessages((cur) => [...cur, { role: "user", content, mine: true }]);
     persist("magyc", "user", content);
@@ -106,11 +108,28 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: content, anonToken: getSelfId(), history }),
       });
-      const json = await readApiJson(res);
-      if (!res.ok || !json?.answer) throw new Error(errorLabel(json));
-      const answer = String(json.answer);
-      setMessages((cur) => [...cur, { role: "assistant", content: answer, authorName: "@magyc", mine: false }]);
-      persist("magyc", "assistant", answer);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(errorLabel(json));
+      }
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      let added = false;
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        if (!added) {
+          added = true;
+          setBusy(false); // first token arrived — drop the "denkt nach" hint
+          setMessages((cur) => [...cur, { role: "assistant", content: acc, authorName: "@magyc", mine: false }]);
+        } else {
+          setMessages((cur) => { const c = [...cur]; c[c.length - 1] = { ...c[c.length - 1], content: acc }; return c; });
+        }
+      }
+      if (acc.trim()) persist("magyc", "assistant", acc);
+      onProjectChanged?.(); // a tool may have changed the page — refresh it
       setTimeout(() => inputRef.current?.focus(), 30);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nicht erreichbar.");
@@ -127,6 +146,7 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
     if (ch === channel) return;
     setChannel(ch);
     setMessages([]);
+    setLoading(true); // suppress the empty-state flash until the channel loads
     setError(null);
   }
 
@@ -157,7 +177,7 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
 
           {/* Messages */}
           <div className="flex max-h-[46vh] min-h-[80px] flex-col gap-3 overflow-y-auto px-4 py-4">
-            {messages.length === 0 && !busy && isMagyc && (
+            {messages.length === 0 && !busy && !loading && isMagyc && (
               <div className="space-y-3">
                 <div className="mr-4">
                   <div className="whitespace-pre-wrap rounded-2xl rounded-bl-sm border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-[13px] leading-relaxed text-white/85">
@@ -171,7 +191,7 @@ export function AssistantDock({ spaceId }: { spaceId: string }) {
                 ))}
               </div>
             )}
-            {messages.length === 0 && !busy && !isMagyc && (
+            {messages.length === 0 && !busy && !loading && !isMagyc && (
               <p className="px-1 text-[13px] leading-relaxed text-white/40">
                 Schreib hier mit allen, die an diesem Projekt mitwirken. Nachrichten bleiben am Projekt.
               </p>
