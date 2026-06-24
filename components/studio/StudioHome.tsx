@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { PromptComposer } from "@/components/PromptComposer";
+import { motion, AnimatePresence } from "motion/react";
+import { PromptStart } from "@/components/create/PromptStart";
+import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
+import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { MoodGradient } from "@/components/MoodGradient";
 import { ProjectCardActions } from "@/components/studio/ProjectCardActions";
 import {
@@ -13,6 +16,11 @@ import {
   showActionLoading,
   showActionSuccess,
 } from "@/lib/client/feedback";
+import { apiError, fetchJsonWithTimeout, formatFlowError } from "@/lib/home/flow";
+import { getAnonToken } from "@/lib/anonId";
+import { stagePage, chipGrid, clarifyItem } from "@/lib/anim";
+import type { ClarifyStep, Module } from "@/lib/types";
+import type { ProjectModeId } from "@/lib/projectModes";
 import {
   cleanStudioPresets,
   DEFAULT_STUDIO_PRESETS,
@@ -33,6 +41,34 @@ const STAGE_LABEL: Record<"brief" | "production" | "handoff", string> = {
   brief: "Planung",
   production: "Auswahl",
   handoff: "Abgeschlossen",
+};
+
+type CreateStage = "input" | "clarify" | "building";
+
+interface Answer {
+  questionId: string;
+  questionText: string;
+  choice: string;
+}
+
+const CLARIFY_TIMEOUT_MS = 25_000;
+const BUILD_TIMEOUT_MS = 45_000;
+
+const slideVariants = {
+  enter: (dir: number) => ({
+    opacity: 0,
+    x: dir > 0 ? 28 : -28,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.32, ease: "easeOut" as const },
+  },
+  exit: (dir: number) => ({
+    opacity: 0,
+    x: dir > 0 ? -28 : 28,
+    transition: { duration: 0.2, ease: "easeIn" as const },
+  }),
 };
 
 function relTime(ts: number): string {
@@ -57,8 +93,22 @@ export function StudioHome({
 }) {
   const router = useRouter();
   const { user } = useUser();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [prompt, setPrompt] = useState("");
+  const [projectMode, setProjectMode] = useState<ProjectModeId | null>("photo_shoot");
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState<CreateStage>("input");
+  const [steps, setSteps] = useState<ClarifyStep[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [configured, setConfigured] = useState<Record<string, Module | null>>({});
+  const [stepIndex, setStepIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [customDraft, setCustomDraft] = useState("");
+  const [error, setError] = useState("");
+  const [statusText, setStatusText] = useState("");
+  const [comingToLife, setComingToLife] = useState("");
+  const [promptNudge, setPromptNudge] = useState(false);
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState("none");
   const [fastPrompts, setFastPrompts] = useState<FastPrompt[]>([]);
@@ -67,6 +117,15 @@ export function StudioHome({
   const usablePresets = useMemo(() => presets.filter((p) => p.modules.length > 0), [presets]);
   const selectedPreset = usablePresets.find((p) => p.id === presetId) || null;
   const greetingName = user?.firstName || user?.username || null;
+  const totalSteps = steps.length;
+  const currentStep: ClarifyStep | null = steps[stepIndex] ?? null;
+  const isLastStep = stepIndex === totalSteps - 1;
+  const currentAnswer = currentStep ? answers[currentStep.id] : undefined;
+  const isCustom =
+    currentStep?.kind === "choice" &&
+    currentAnswer != null &&
+    !currentStep.options.some((o) => o.value === currentAnswer);
+  const progress = totalSteps > 0 ? stepIndex / totalSteps : 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -102,34 +161,178 @@ export function StudioHome({
     return () => { cancelled = true; };
   }, []);
 
-  async function create() {
+  useEffect(() => () => {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+  }, []);
+
+  function focusPrompt() {
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+      window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 160);
+    });
+  }
+
+  function nudgePrompt() {
+    setPromptNudge(true);
+    window.setTimeout(() => setPromptNudge(false), 900);
+    focusPrompt();
+  }
+
+  function submitInput() {
     if (busy) return;
+    if (prompt.trim().length < 3) {
+      nudgePrompt();
+      return;
+    }
+    void goClarify();
+  }
+
+  function toggleProjectMode(id: ProjectModeId) {
+    setProjectMode((current) => (current === id ? null : id));
+    focusPrompt();
+  }
+
+  function applyExample(text: string, mode?: ProjectModeId) {
+    if (mode) setProjectMode(mode);
+    setPrompt(text);
+    focusPrompt();
+  }
+
+  function addPromptHint(hint: string) {
+    setPrompt((current) => {
+      const trimmed = current.trim();
+      return trimmed ? `${trimmed}\n${hint}` : hint;
+    });
+    focusPrompt();
+  }
+
+  async function goClarify() {
+    if (busy) return;
+    const trimmed = prompt.trim();
+    if (trimmed.length < 3) return;
     setBusy(true);
-    showActionLoading("Projekt wird erstellt …", "create-project");
+    setError("");
+    setStatusText("Rückfragen werden vorbereitet …");
     try {
-      const res = await fetch("/api/projects", {
+      const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          segment: selectedPreset?.id || "product",
+          input: trimmed,
+          projectMode,
+          anonToken: getAnonToken(),
+        }),
+      }, CLARIFY_TIMEOUT_MS);
+      if (!res.ok) {
+        setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
+        return;
+      }
+      const nextSteps = Array.isArray(json.steps) ? json.steps : [];
+      if (nextSteps.length === 0) {
+        setError("Keine Rückfragen erhalten. Bitte erneut versuchen.");
+        return;
+      }
+      setSteps(nextSteps);
+      setComingToLife(typeof json.comingToLife === "string" ? json.comingToLife : "");
+      setAnswers({});
+      setConfigured({});
+      setStepIndex(0);
+      setDirection(1);
+      setCustomDraft("");
+      setStage("clarify");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "clarify_failed";
+      setError(formatFlowError(message));
+    } finally {
+      setBusy(false);
+      setStatusText("");
+    }
+  }
+
+  function pickAnswer(stepId: string, value: string) {
+    setAnswers((a) => ({ ...a, [stepId]: value }));
+    setCustomDraft("");
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    advanceTimer.current = setTimeout(() => {
+      goForward();
+    }, 500);
+  }
+
+  function goForward() {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    if (stepIndex < totalSteps - 1) {
+      setDirection(1);
+      setStepIndex((i) => i + 1);
+      setCustomDraft("");
+    } else {
+      void goBuild();
+    }
+  }
+
+  function goBack() {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    if (stepIndex > 0) {
+      setDirection(-1);
+      setStepIndex((i) => i - 1);
+      setCustomDraft("");
+    } else {
+      setStage("input");
+      setAnswers({});
+    }
+  }
+
+  async function goBuild() {
+    if (busy) return;
+    setBusy(true);
+    setStage("building");
+    setError("");
+    setStatusText("Projekt wird erstellt …");
+    showActionLoading("Projekt wird erstellt …", "create-project");
+
+    const payloadAnswers: Answer[] = steps
+      .filter((s) => s.kind === "choice" || s.kind === "text")
+      .filter((s) => answers[s.id])
+      .map((s) => ({ questionId: s.id, questionText: s.text, choice: answers[s.id] }));
+    const configuredModules = steps
+      .filter((s) => s.kind === "module")
+      .map((s) => configured[s.id])
+      .filter(Boolean);
+
+    try {
+      const { res, json } = await fetchJsonWithTimeout("/api/projects", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          segment: selectedPreset?.id || projectMode || "product",
           prompt,
+          projectMode,
+          answers: payloadAnswers,
+          configuredModules,
           presetName: selectedPreset?.name,
           presetModules: selectedPreset?.modules,
           presetPromptInjections: selectedPreset?.promptInjections,
           presetAllowContextModules: selectedPreset?.allowContextModules,
         }),
-      });
-      const json = await readApiJson(res) as { id?: string };
-      if (!res.ok || !json?.id) {
-        showActionError("Projekt nicht erstellt", { id: "create-project", description: "Bitte erneut versuchen." });
-        setBusy(false);
+      }, BUILD_TIMEOUT_MS);
+      const id = typeof json.id === "string" ? json.id : "";
+      if (!res.ok || !id) {
+        const description = formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown });
+        showActionError("Projekt nicht erstellt", { id: "create-project", description });
+        setError(description);
+        setStage("clarify");
         return;
       }
       showActionSuccess("Projekt erstellt", { id: "create-project", description: "Die Planung wird geöffnet." });
-      router.push(`/studio/${json.id}`);
-    } catch {
-      showActionError("Projekt nicht erstellt", { id: "create-project", description: "Netzwerkfehler. Bitte erneut versuchen." });
+      router.push(`/studio/${id}`);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "classify_failed";
+      const description = formatFlowError(message);
+      showActionError("Projekt nicht erstellt", { id: "create-project", description });
+      setError(description);
+      setStage("clarify");
+    } finally {
       setBusy(false);
+      setStatusText("");
     }
   }
 
@@ -146,27 +349,250 @@ export function StudioHome({
       </p>
 
       <div className="mt-7">
-        <PromptComposer
-          value={prompt}
-          onChange={setPrompt}
-          onSubmit={create}
-          theme="light"
-          autoFocus
-          rows={3}
-          placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
-          topSlot={
-            <div className="flex flex-wrap gap-2">
-              <PresetChip active={presetId === "none"} onClick={() => setPresetId("none")} label="Ohne Preset" />
-              {usablePresets.map((p) => (
-                <PresetChip key={p.id} active={presetId === p.id} onClick={() => setPresetId(p.id)} label={p.name} />
-              ))}
-            </div>
-          }
-        />
+        <AnimatePresence mode="wait" initial={false}>
+          {stage === "input" && (
+            <motion.div
+              key="input"
+              variants={stagePage}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+            >
+              <PromptStart
+                inputRef={inputRef}
+                value={prompt}
+                onChange={(v) => { setPromptNudge(false); setPrompt(v); }}
+                onSubmit={submitInput}
+                disabled={busy}
+                autoFocus
+                rows={2}
+                highlight={promptNudge}
+                projectMode={projectMode}
+                onProjectModeChange={toggleProjectMode}
+                onExample={applyExample}
+                onAssist={addPromptHint}
+                extraTopSlot={
+                  usablePresets.length > 0 ? (
+                    <div className="border-t border-black/10 pt-3">
+                      <p className="mono mb-2 text-[9px] uppercase tracking-widest text-black/35">Preset</p>
+                      <div className="flex flex-wrap gap-2">
+                        <PresetChip active={presetId === "none"} onClick={() => setPresetId("none")} label="Ohne Preset" />
+                        {usablePresets.map((p) => (
+                          <PresetChip key={p.id} active={presetId === p.id} onClick={() => setPresetId(p.id)} label={p.name} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null
+                }
+                footer={!busy ? (
+                  <p className="text-[13px] leading-relaxed text-black/50">
+                    Gleicher Start wie auf der Homepage — hier zusätzlich mit deinen Studio-Presets.
+                  </p>
+                ) : null}
+              />
+            </motion.div>
+          )}
+
+          {stage === "clarify" && currentStep && (
+            <motion.div
+              key="clarify"
+              variants={stagePage}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="rounded-[34px] bg-white p-5 text-[#17171a] sm:p-9"
+              style={{
+                border: "1px solid rgba(0,0,0,0.12)",
+                boxShadow: "0 18px 70px rgba(0,0,0,0.08)",
+                ["--v-radius" as string]: "28px",
+                ["--v-bg" as string]: "rgba(0,0,0,0.035)",
+                ["--v-fg" as string]: "#17171a",
+                ["--v-muted" as string]: "rgba(23,23,26,0.58)",
+                ["--v-rule" as string]: "rgba(0,0,0,0.14)",
+                ["--v-accent" as string]: "#17171a",
+              }}
+            >
+              <div className="mb-8 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="mono text-[9px] tracking-widest opacity-40 tabular-nums">
+                    {stepIndex + 1} / {totalSteps}
+                  </span>
+                  <button
+                    onClick={goBuild}
+                    disabled={busy}
+                    className="mono text-[9px] tracking-widest opacity-30 hover:opacity-60 disabled:opacity-20"
+                  >
+                    skip all →
+                  </button>
+                </div>
+                <div
+                  className="w-full overflow-hidden rounded-full"
+                  style={{ height: 2, background: "rgba(0,0,0,0.1)" }}
+                >
+                  <motion.div
+                    className="h-full rounded-full bg-[#17171a]"
+                    initial={false}
+                    animate={{ width: `${Math.max(progress * 100, 4)}%` }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-hidden" style={{ minHeight: 220 }}>
+                <AnimatePresence custom={direction} mode="wait" initial={false}>
+                  <motion.div
+                    key={currentStep.id}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    className="space-y-5"
+                  >
+                    <p className="mono truncate text-[10px] tracking-widest opacity-30" title={prompt.trim()}>
+                      {prompt.trim()}
+                    </p>
+
+                    {currentStep.kind === "module" ? (
+                      <ClarifyModuleStep
+                        prefill={currentStep}
+                        value={configured[currentStep.id] ?? null}
+                        onChange={(mod) => setConfigured((c) => ({ ...c, [currentStep.id]: mod }))}
+                      />
+                    ) : currentStep.kind === "text" ? (
+                      <>
+                        <motion.h3
+                          className="text-[18px] font-medium leading-snug sm:text-[22px]"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.32, ease: "easeOut", delay: 0.15 }}
+                        >
+                          {currentStep.text}
+                        </motion.h3>
+                        <textarea
+                          autoFocus
+                          value={currentAnswer ?? ""}
+                          onChange={(e) => setAnswers((a) => ({ ...a, [currentStep.id]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                              e.preventDefault();
+                              goForward();
+                            }
+                          }}
+                          rows={3}
+                          maxLength={currentStep.maxLength ?? 240}
+                          placeholder={currentStep.placeholder ?? "…"}
+                          className="w-full resize-none rounded-[28px] p-4 text-[16px] leading-relaxed outline-none placeholder:text-black/28"
+                          style={{ border: "1px solid rgba(0,0,0,0.14)", background: "rgba(0,0,0,0.025)", color: "#17171a" }}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <motion.h3
+                          className="flex items-baseline gap-2 text-[18px] font-medium leading-snug sm:text-[22px]"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.32, ease: "easeOut", delay: 0.15 }}
+                        >
+                          {currentStep.category === "data" && (
+                            <span aria-hidden className="mono text-[11px] tracking-widest opacity-40">◆</span>
+                          )}
+                          <span>{currentStep.text}</span>
+                        </motion.h3>
+
+                        <motion.div className="flex flex-wrap gap-2" initial="hidden" animate="show" variants={chipGrid}>
+                          {currentStep.options.map((o) => {
+                            const picked = currentAnswer === o.value;
+                            return (
+                              <motion.button
+                                key={o.value}
+                                variants={clarifyItem}
+                                onClick={() => pickAnswer(currentStep.id, o.value)}
+                                className="mono rounded-full px-3 py-1.5 text-[11px] tracking-widest"
+                                style={{
+                                  border: "1px solid",
+                                  borderColor: picked ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.14)",
+                                  background: picked ? "#17171a" : "rgba(0,0,0,0.025)",
+                                  color: picked ? "#fff" : "rgba(23,23,26,0.72)",
+                                }}
+                                whileHover={{ y: -2 }}
+                                whileTap={{ scale: 0.96 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                              >
+                                {o.value}
+                              </motion.button>
+                            );
+                          })}
+                          <input
+                            type="text"
+                            value={customDraft}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setCustomDraft(v);
+                              if (v.trim()) setAnswers((a) => ({ ...a, [currentStep.id]: v.trim() }));
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && customDraft.trim()) goForward();
+                            }}
+                            placeholder="…"
+                            maxLength={120}
+                            className="mono rounded-full bg-transparent px-3 py-1.5 text-[11px] tracking-widest outline-none"
+                            style={{
+                              border: "1px solid",
+                              borderColor: isCustom ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.14)",
+                              color: "#17171a",
+                              minWidth: "80px",
+                            }}
+                          />
+                        </motion.div>
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              <div className="mt-6 flex items-center justify-between">
+                <motion.button
+                  onClick={goBack}
+                  className="mono text-[12px] tracking-widest opacity-40 hover:opacity-80"
+                  whileHover={{ x: -3 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                >
+                  ←
+                </motion.button>
+                <motion.button
+                  onClick={goForward}
+                  disabled={busy}
+                  aria-label={isLastStep ? "build" : "next"}
+                  className="mono rounded-full bg-[#17171a] px-5 py-2 text-[11px] tracking-widest text-white disabled:opacity-30"
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                >
+                  {busy ? "…" : "→"}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+          {stage === "building" && (
+            <motion.div
+              key="building"
+              variants={stagePage}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="rounded-[20px] bg-white py-16"
+              style={{ border: "1px solid rgba(0,0,0,0.12)", boxShadow: "0 12px 50px rgba(0,0,0,0.08)" }}
+            >
+              <BuildingScreen inputText={prompt} comingToLife={comingToLife} statusText={statusText} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Fast-Prompts — collapsible so many snippets stay fully readable
             without crowding the field. Click to drop into the prompt. */}
-        {fastPrompts.length > 0 && (
+        {stage === "input" && fastPrompts.length > 0 && (
           <div className="mt-3 overflow-hidden rounded-2xl border border-black/10 bg-white">
             <button
               type="button"
@@ -184,7 +610,7 @@ export function StudioHome({
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setPrompt((p) => (p.trim() ? `${p.trimEnd()}\n${fp.text}` : fp.text))}
+                    onClick={() => addPromptHint(fp.text)}
                     className="flex w-full items-start gap-2.5 border-b border-black/[0.06] px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-black/[0.04]"
                     style={fp.color ? { borderLeft: `3px solid ${fp.color}` } : undefined}
                   >
@@ -196,10 +622,19 @@ export function StudioHome({
             )}
           </div>
         )}
+        {error && stage !== "building" && (
+          <motion.p
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mono mt-6 text-[10px] tracking-widest text-black/55"
+          >
+            {error}
+          </motion.p>
+        )}
       </div>
 
       {/* Projects */}
-      <div className="mt-12">
+      {stage === "input" && <div className="mt-12">
         <div className="mb-4 flex items-center justify-between">
           <p className="mono text-[11px] uppercase tracking-[0.2em] text-black/45">Deine Projekte</p>
           {projects.length > 0 && (
@@ -231,7 +666,7 @@ export function StudioHome({
         {deleted.length > 0 && (
           <Accordion title="Papierkorb" count={deleted.length} items={deleted} context="deleted" note="30 Tage wiederherstellbar" />
         )}
-      </div>
+      </div>}
     </div>
   );
 }

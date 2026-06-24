@@ -52,6 +52,10 @@ defaults are light while the project stage remains locally dark.
 Follow-up done 2026-06-24: pricing and segment landing pages now use the same
 light brand tokens instead of leftover dark `text-white`/`bg-black` section
 styling.
+Follow-up done 2026-06-24: Home and Studio now share the same prompt controls
+(`PromptStart`) and both run prompt → clarify → build. Studio keeps its
+account-specific layer (presets, fast prompts, owner binding through
+`/api/projects`) but no longer bypasses the clarification architecture.
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client

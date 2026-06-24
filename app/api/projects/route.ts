@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/server/profile";
-import { classifyInput } from "@/lib/server/classify";
+import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { recordAiEvent } from "@/lib/server/aiEvents";
+import type { Module } from "@/lib/types";
 import { sanitizeModules } from "@/lib/modules";
 import { newId, newAnonToken } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
@@ -67,6 +68,9 @@ export async function POST(req: Request) {
   const parsed = await parseBody(req, z.object({
     segment: z.string().optional(),
     prompt: z.string().optional(),
+    projectMode: z.string().optional().nullable(),
+    answers: z.unknown().optional(),
+    configuredModules: z.unknown().optional(),
     presetName: z.string().optional(),
     presetModules: z.unknown().optional(),
     presetPromptInjections: z.unknown().optional(),
@@ -97,10 +101,34 @@ export async function POST(req: Request) {
   const segment = str(b.segment) || "product";
   const presetName = str(b.presetName);
   const presetModules = sanitizeModules(Array.isArray(b.presetModules) ? b.presetModules.slice(0, 24) : []);
+  const clarifyModules = sanitizeModules(Array.isArray(b.configuredModules) ? b.configuredModules.slice(0, 6) : []);
   const presetAllowContextModules = b.presetAllowContextModules !== false;
   const presetPromptInjections = Array.isArray(b.presetPromptInjections)
     ? b.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
     : [];
+  const projectMode = str(b.projectMode) || "photo_shoot";
+  const answersRaw = Array.isArray(b.answers) ? b.answers : [];
+  const answers: ClassifyAnswer[] = [];
+  for (const a of answersRaw) {
+    if (!a || typeof a !== "object") continue;
+    const ar = a as Record<string, unknown>;
+    const questionId = typeof ar.questionId === "string" ? ar.questionId.slice(0, 16) : "";
+    const questionText = typeof ar.questionText === "string"
+      ? ar.questionText.trim().slice(0, 200)
+      : "";
+    const choice = typeof ar.choice === "string"
+      ? ar.choice.trim().slice(0, 200)
+      : "";
+    if (questionId && questionText && choice) answers.push({ questionId, questionText, choice });
+    if (answers.length >= 6) break;
+  }
+  const seededModules: Module[] = [];
+  const seededTypes = new Set<string>();
+  for (const module of [...presetModules, ...clarifyModules]) {
+    if (seededTypes.has(module.type)) continue;
+    seededTypes.add(module.type);
+    seededModules.push(module);
+  }
   let admin;
   try {
     admin = supabaseAdmin();
@@ -136,7 +164,7 @@ export async function POST(req: Request) {
   let result;
   const aiStarted = Date.now();
   try {
-    result = await classifyInput(input, [], presetModules, { projectMode: "photo_shoot" });
+    result = await classifyInput(input, answers, seededModules, { projectMode });
   } catch (e) {
     const err = e as { message?: string; status?: number };
     const msg = err.message || "unknown";
@@ -146,13 +174,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "classify_failed", detail: msg.slice(0, 120) }, { status: 502 });
   }
 
-  if (presetModules.length > 0 && !presetAllowContextModules) {
+  if (seededModules.length > 0 && !presetAllowContextModules) {
     const headerModules = result.modules.filter((module) => (
       module.type === "heading" || module.type === "rich_text" || module.type === "tags"
     ));
     result.modules = [
       ...headerModules,
-      ...presetModules,
+      ...seededModules,
     ];
   }
 
@@ -189,7 +217,9 @@ export async function POST(req: Request) {
       input,
       segment,
       presetName: presetName || null,
+      answers,
       presetModuleTypes: presetModules.map((m) => m.type),
+      clarifyModuleTypes: clarifyModules.map((m) => m.type),
       presetPromptInjections,
       presetAllowContextModules,
     },
@@ -198,6 +228,8 @@ export async function POST(req: Request) {
       source: "studio_builder",
       segment,
       presetApplied: presetModules.length > 0,
+      projectMode,
+      clarifyApplied: answers.length > 0 || clarifyModules.length > 0,
       presetAllowContextModules,
       moduleCount: result.modules.length,
     },

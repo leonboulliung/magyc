@@ -77,7 +77,8 @@ Supabase SQL editor — there is no migration runner wired up.
    `/s/[id]`.
 2. **Studio (`app/studio/(shell)/`)**: signed-in photographers manage projects,
    reusable presets, users/permissions, profile, and settings. New projects use
-   `/api/projects`, bind `owner_id` immediately, and move through
+   the same prompt → clarify → build flow as Home, then `/api/projects` binds
+   `owner_id` immediately, applies Studio presets/settings, and moves through
    Planung / Auswahl / Abgeschlossen.
 3. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores all
    30 body module types 0–10 against the input (gpt-4o-mini); the **server**
