@@ -41,6 +41,34 @@ const ADDABLE_LABELS: Record<string, string> = {
   qa: "Fragen", checklist: "Checkliste", sketch: "Skizze", audio: "Audio", selection: "Auswahl",
 };
 
+function isMissingModulesRev(error: unknown): boolean {
+  const e = error as { message?: string; details?: string; hint?: string; code?: string } | null;
+  return [e?.message, e?.details, e?.hint, e?.code]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes("modules_rev");
+}
+
+function readModulesRev(row: unknown): number {
+  const rev = (row as { modules_rev?: unknown } | null)?.modules_rev;
+  return typeof rev === "number" ? rev : 0;
+}
+
+async function fetchAssistantSpace(admin: ReturnType<typeof supabaseAdmin>, spaceId: string) {
+  const selectWithRev = "id, title, input_text, language, modules, modules_rev, stage, shared, owner_id";
+  const selectLegacy = "id, title, input_text, language, modules, stage, shared, owner_id";
+  const primary = await admin.from("spaces").select(selectWithRev).eq("id", spaceId).maybeSingle();
+  if (!primary.error || !isMissingModulesRev(primary.error)) return primary;
+  return admin.from("spaces").select(selectLegacy).eq("id", spaceId).maybeSingle();
+}
+
+async function fetchModulesForTool(admin: ReturnType<typeof supabaseAdmin>, spaceId: string) {
+  const primary = await admin.from("spaces").select("modules, modules_rev").eq("id", spaceId).maybeSingle();
+  if (!primary.error || !isMissingModulesRev(primary.error)) return primary;
+  return admin.from("spaces").select("modules").eq("id", spaceId).maybeSingle();
+}
+
 function moduleLine(m: unknown, i: number): string {
   if (!m || typeof m !== "object") return `${i + 1}. (leer)`;
   const d = m as Record<string, unknown>;
@@ -89,12 +117,21 @@ async function persistModulesWithRev(
   modules: unknown[],
   expectedRev: number,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const { data, error } = await admin
+  let { data, error } = await admin
     .from("spaces")
     .update({ modules, modules_rev: expectedRev + 1 })
     .eq("id", spaceId)
     .eq("modules_rev", expectedRev)
     .select("id");
+  if (error && isMissingModulesRev(error)) {
+    const fallback = await admin
+      .from("spaces")
+      .update({ modules })
+      .eq("id", spaceId)
+      .select("id");
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) return { ok: false, message: "Konnte nicht gespeichert werden." };
   if (!data || data.length === 0) return { ok: false, message: "Das Projekt wurde gerade woanders geändert. Bitte aktualisiere kurz." };
   return { ok: true };
@@ -121,11 +158,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   lastCallAt.set(actorKey, now);
 
   const admin = supabaseAdmin();
-  const { data: space, error } = await admin
-    .from("spaces")
-    .select("id, title, input_text, language, modules, modules_rev, stage, shared, owner_id")
-    .eq("id", params.id)
-    .maybeSingle();
+  const { data: space, error } = await fetchAssistantSpace(admin, params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
@@ -151,9 +184,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             const make = ADDABLE[type as ModuleType];
             const widget = make ? sanitizeModule(make()) : null;
             if (!widget) return { ok: false, message: `Typ ${type} kann nicht hinzugefügt werden.` };
-            const { data: cur } = await admin.from("spaces").select("modules, modules_rev").eq("id", params.id).maybeSingle();
+            const { data: cur } = await fetchModulesForTool(admin, params.id);
             const mods = Array.isArray(cur?.modules) ? (cur!.modules as unknown[]) : [];
-            const rev = typeof cur?.modules_rev === "number" ? cur.modules_rev : 0;
+            const rev = readModulesRev(cur);
             const saved = await persistModulesWithRev(admin, params.id, [...mods, widget], rev);
             if (!saved.ok) return saved;
             return { ok: true, message: `Element „${ADDABLE_LABELS[type] ?? type}“ wurde hinzugefügt.` };
@@ -166,9 +199,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           }),
           execute: async ({ elementNumber }) => {
             const index = elementNumber - 1;
-            const { data: cur } = await admin.from("spaces").select("modules, modules_rev").eq("id", params.id).maybeSingle();
+            const { data: cur } = await fetchModulesForTool(admin, params.id);
             const mods = Array.isArray(cur?.modules) ? (cur!.modules as unknown[]) : [];
-            const rev = typeof cur?.modules_rev === "number" ? cur.modules_rev : 0;
+            const rev = readModulesRev(cur);
             if (index < 0 || index >= mods.length) return { ok: false, message: "Dieses Element gibt es nicht." };
             const current = mods[index] as { type?: unknown };
             if (current?.type === "heading" || current?.type === "rich_text" || current?.type === "tags") {
@@ -191,9 +224,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           }),
           execute: async ({ elementNumber, title }) => {
             const index = elementNumber - 1;
-            const { data: cur } = await admin.from("spaces").select("modules, modules_rev").eq("id", params.id).maybeSingle();
+            const { data: cur } = await fetchModulesForTool(admin, params.id);
             const mods = Array.isArray(cur?.modules) ? (cur!.modules as unknown[]) : [];
-            const rev = typeof cur?.modules_rev === "number" ? cur.modules_rev : 0;
+            const rev = readModulesRev(cur);
             if (index < 0 || index >= mods.length) return { ok: false, message: "Dieses Element gibt es nicht." };
             const current = mods[index];
             if (!current || typeof current !== "object") return { ok: false, message: "Dieses Element kann ich nicht umbenennen." };

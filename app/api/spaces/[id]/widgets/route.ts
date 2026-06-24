@@ -25,6 +25,28 @@ import { isSpaceOwner, forbidden } from "@/lib/api/auth";
  * All three require owner auth (anon token on drafts, Clerk on published).
  */
 
+function isMissingModulesRev(error: unknown): boolean {
+  const e = error as { message?: string; details?: string; hint?: string; code?: string } | null;
+  return [e?.message, e?.details, e?.hint, e?.code]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes("modules_rev");
+}
+
+function readModulesRev(row: unknown): number | null {
+  const rev = (row as { modules_rev?: unknown } | null)?.modules_rev;
+  return typeof rev === "number" ? rev : null;
+}
+
+async function fetchWidgetSpace(admin: ReturnType<typeof supabaseAdmin>, spaceId: string) {
+  const selectWithRev = "id, anon_owner_token, owner_id, visibility, modules, modules_rev";
+  const selectLegacy = "id, anon_owner_token, owner_id, visibility, modules";
+  const primary = await admin.from("spaces").select(selectWithRev).eq("id", spaceId).maybeSingle();
+  if (!primary.error || !isMissingModulesRev(primary.error)) return primary;
+  return admin.from("spaces").select(selectLegacy).eq("id", spaceId).maybeSingle();
+}
+
 /** Write the modules array. The .select() is load-bearing: without it
  *  Supabase reports success even when 0 rows matched. Returns an error
  *  response, or null on success. */
@@ -39,8 +61,16 @@ async function persistModules(
     .update({ modules, modules_rev: (expectedRev ?? 0) + 1 })
     .eq("id", spaceId);
   if (expectedRev !== null) query = query.eq("modules_rev", expectedRev);
-  const { data, error } = await query
-    .select("id");
+  let { data, error } = await query.select("id");
+  if (error && isMissingModulesRev(error)) {
+    const fallback = await admin
+      .from("spaces")
+      .update({ modules })
+      .eq("id", spaceId)
+      .select("id");
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data || data.length === 0) {
     return NextResponse.json({ error: "modules_conflict" }, { status: 409 });
@@ -64,11 +94,7 @@ export async function POST(
   if (!widget) return NextResponse.json({ error: "widget_invalid" }, { status: 400 });
 
   const admin = supabaseAdmin();
-  const { data: space } = await admin
-    .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules, modules_rev")
-    .eq("id", params.id)
-    .maybeSingle();
+  const { data: space } = await fetchWidgetSpace(admin, params.id);
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
@@ -78,7 +104,7 @@ export async function POST(
 
   const expectedRev = typeof body.modulesRev === "number"
     ? body.modulesRev
-    : typeof space.modules_rev === "number" ? space.modules_rev : null;
+    : readModulesRev(space);
   const failure = await persistModules(admin, params.id, next, expectedRev);
   if (failure) return failure;
 
@@ -106,17 +132,13 @@ export async function PATCH(
   const modules = sanitizeModules(body.modules);
 
   const admin = supabaseAdmin();
-  const { data: space } = await admin
-    .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules_rev")
-    .eq("id", params.id)
-    .maybeSingle();
+  const { data: space } = await fetchWidgetSpace(admin, params.id);
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
   const expectedRev = typeof body.modulesRev === "number"
     ? body.modulesRev
-    : typeof space.modules_rev === "number" ? space.modules_rev : null;
+    : readModulesRev(space);
   const failure = await persistModules(admin, params.id, modules, expectedRev);
   if (failure) return failure;
 
@@ -169,11 +191,7 @@ export async function DELETE(
   if (idx < 0 || idx > 64) return NextResponse.json({ error: "bad_index" }, { status: 400 });
 
   const admin = supabaseAdmin();
-  const { data: space } = await admin
-    .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules, modules_rev")
-    .eq("id", params.id)
-    .maybeSingle();
+  const { data: space } = await fetchWidgetSpace(admin, params.id);
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!await isSpaceOwner(space, body.anonOwnerToken)) return forbidden();
 
@@ -183,7 +201,7 @@ export async function DELETE(
   const next = current.filter((_, i) => i !== idx);
   const expectedRev = typeof body.modulesRev === "number"
     ? body.modulesRev
-    : typeof space.modules_rev === "number" ? space.modules_rev : null;
+    : readModulesRev(space);
   const failure = await persistModules(admin, params.id, next, expectedRev);
   if (failure) return failure;
 

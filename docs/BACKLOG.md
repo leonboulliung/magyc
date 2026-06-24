@@ -59,6 +59,11 @@ payloads) so stale tabs get a 409 instead of silently overwriting each other.
 Claim races are guarded with a partial unique index plus insert-conflict
 handling, and `/state` has a cheap per-space/actor write limiter. @magyc can
 now add, remove and rename elements with the same module revision guard.
+Follow-up done 2026-06-24: space reads and widget/assistant structural writes
+fall back gracefully when a deploy reaches an environment before migration 018
+has added `modules_rev`; project generation should no longer turn that schema
+lag into `/studio/[id]` or `/s/[id]` 404s. The migration is still required for
+real optimistic concurrency.
 Visible stage language is now **Planung / Auswahl / Abgeschlossen** while DB
 ids stay `brief / production / handoff`.
 

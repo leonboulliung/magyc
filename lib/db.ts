@@ -35,7 +35,7 @@ export type ModuleStateRow = {
 
 type SpaceRow = {
   id: string;
-  modules_rev: number | null;
+  modules_rev?: number | null;
   input_text: string;
   title: string;
   language: string;
@@ -226,16 +226,43 @@ const SPACE_SELECT = `
   versions:space_versions(id, space_id, version, title, note, created_at)
 `;
 
+const SPACE_SELECT_LEGACY = `
+  id, input_text, title, language, vibe, modules, labels, style,
+  stage, segment, shared, archived_at, deleted_at,
+  owner_id, visibility,
+  created_at, published_at,
+  owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
+  state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
+  versions:space_versions(id, space_id, version, title, note, created_at)
+`;
+
+function isMissingModulesRev(error: unknown): boolean {
+  const e = error as { message?: string; details?: string; hint?: string; code?: string } | null;
+  const text = [e?.message, e?.details, e?.hint, e?.code].filter(Boolean).join(" ").toLowerCase();
+  return text.includes("modules_rev");
+}
+
 // ============================================================
 // Queries
 // ============================================================
 
 export async function fetchSpaceById(id: string): Promise<Space | null> {
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("spaces")
     .select(SPACE_SELECT)
     .eq("id", id)
     .maybeSingle();
+  let data: unknown = primary.data;
+  let error: unknown = primary.error;
+  if (error && isMissingModulesRev(error)) {
+    const fallback = await supabase
+      .from("spaces")
+      .select(SPACE_SELECT_LEGACY)
+      .eq("id", id)
+      .maybeSingle();
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) throw error;
   return data ? mapSpace(data as unknown as SpaceRow) : null;
 }
@@ -275,11 +302,22 @@ export async function fetchVersionModules(spaceId: string, version: number): Pro
 }
 
 export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("spaces")
     .select(SPACE_SELECT)
     .eq("owner_id", ownerId)
     .order("created_at", { ascending: false });
+  let data: unknown = primary.data;
+  let error: unknown = primary.error;
+  if (error && isMissingModulesRev(error)) {
+    const fallback = await supabase
+      .from("spaces")
+      .select(SPACE_SELECT_LEGACY)
+      .eq("owner_id", ownerId)
+      .order("created_at", { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) throw error;
   return ((data || []) as unknown as SpaceRow[]).map(mapSpace);
 }

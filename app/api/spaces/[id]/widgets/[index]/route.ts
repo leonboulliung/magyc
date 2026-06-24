@@ -7,6 +7,23 @@ import { resolveWikipedia } from "@/lib/server/wikipedia";
 import { parseBody } from "@/lib/api/validate";
 import { isSpaceOwner, forbidden } from "@/lib/api/auth";
 
+function isMissingModulesRev(error: unknown): boolean {
+  const e = error as { message?: string; details?: string; hint?: string; code?: string } | null;
+  return [e?.message, e?.details, e?.hint, e?.code]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes("modules_rev");
+}
+
+async function fetchWidgetSpace(admin: ReturnType<typeof supabaseAdmin>, spaceId: string) {
+  const selectWithRev = "id, anon_owner_token, owner_id, visibility, modules, modules_rev, title, language";
+  const selectLegacy = "id, anon_owner_token, owner_id, visibility, modules, title, language";
+  const primary = await admin.from("spaces").select(selectWithRev).eq("id", spaceId).maybeSingle();
+  if (!primary.error || !isMissingModulesRev(primary.error)) return primary;
+  return admin.from("spaces").select(selectLegacy).eq("id", spaceId).maybeSingle();
+}
+
 /**
  * PUT /api/spaces/[id]/widgets/[index]
  *
@@ -49,11 +66,7 @@ export async function PUT(
   const note = typeof body.note === "string" ? body.note.trim().slice(0, 200) : null;
 
   const admin = supabaseAdmin();
-  const { data: space, error: fetchErr } = await admin
-    .from("spaces")
-    .select("id, anon_owner_token, owner_id, visibility, modules, modules_rev, title, language")
-    .eq("id", params.id)
-    .maybeSingle();
+  const { data: space, error: fetchErr } = await fetchWidgetSpace(admin, params.id);
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
@@ -88,10 +101,10 @@ export async function PUT(
       ? widget.text.trim().slice(0, 200)
       : (space.title as string | null) ?? "";
   const currentRev = typeof (space as { modules_rev?: unknown }).modules_rev === "number"
-    ? (space as { modules_rev: number }).modules_rev
+    ? (space as unknown as { modules_rev: number }).modules_rev
     : 0;
   const expectedRev = typeof body.modulesRev === "number" ? body.modulesRev : currentRev;
-  const spaceUpdate: { modules: unknown[]; modules_rev: number; title?: string } = {
+  const spaceUpdate: { modules: unknown[]; modules_rev?: number; title?: string } = {
     modules: nextModules,
     modules_rev: expectedRev + 1,
   };
@@ -99,12 +112,23 @@ export async function PUT(
 
   // Persist. The .select() is load-bearing: without it Supabase reports
   // success even when 0 rows matched (silent no-op writes).
-  const { data: updated, error: upErr } = await admin
+  let { data: updated, error: upErr } = await admin
     .from("spaces")
     .update(spaceUpdate)
     .eq("id", params.id)
     .eq("modules_rev", expectedRev)
     .select("id");
+  if (upErr && isMissingModulesRev(upErr)) {
+    const legacyUpdate = { ...spaceUpdate };
+    delete legacyUpdate.modules_rev;
+    const fallback = await admin
+      .from("spaces")
+      .update(legacyUpdate)
+      .eq("id", params.id)
+      .select("id");
+    updated = fallback.data;
+    upErr = fallback.error;
+  }
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
   if (!updated || updated.length === 0) {
     return NextResponse.json({ error: "modules_conflict" }, { status: 409 });
