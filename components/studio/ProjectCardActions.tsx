@@ -110,18 +110,18 @@ export function ProjectCardActions({
             ) : context === "archived" ? (
               <>
                 <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: false }, "Wiederhergestellt", "Nicht wiederhergestellt")}>Wiederherstellen</button>
-                <button type="button" disabled={busy} className={itemClass} onClick={rename}>Name bearbeiten</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={rename}>Umbenennen</button>
                 <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>Duplizieren</button>
-                <div className="my-1 h-px bg-white/10" />
+                <div className="h-px bg-black/10" />
                 <button type="button" disabled={busy} className={`${itemClass} hover:!text-red-300`} onClick={remove}>Löschen</button>
               </>
             ) : (
               <>
-                <button type="button" disabled={busy} className={itemClass} onClick={rename}>Name bearbeiten</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={rename}>Umbenennen</button>
                 <button type="button" disabled={busy} className={itemClass} onClick={() => { setOpen(false); setShareOpen(true); }}>Teilen …</button>
                 <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>Duplizieren</button>
                 <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: true }, "Archiviert", "Nicht archiviert")}>Archivieren</button>
-                <div className="my-1 h-px bg-white/10" />
+                <div className="h-px bg-black/10" />
                 <button type="button" disabled={busy} className={`${itemClass} hover:!text-red-300`} onClick={remove}>Löschen</button>
               </>
             )}

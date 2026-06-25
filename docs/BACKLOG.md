@@ -85,6 +85,23 @@ partly consolidated into Studio chrome: the topbar avatar links to the profile
 page and the profile page can update the Clerk profile image. Full account
 security/email management remains Clerk-owned unless a later slice rebuilds it.
 
+**Infra audit 2026-06-25 (Codex):** the current Vercel + Supabase + Clerk +
+OpenAI stack is enough for an early 100-user launch, but the highest-risk path
+is media. Uploads still proxy through `/api/spaces/[id]/upload`, so the client
+compresses to stay below Vercel's ~4.5 MB request limit even though the server
+route documents 50 MB. For a photography product this must become direct
+browser upload via signed upload URLs (or a dedicated object store) before
+real customers move larger moodboard/reference/delivery files through MAGYC.
+The `space_assets` bucket is public-read today, which is convenient but weak
+for client/private work; move to private objects + signed download URLs for
+customer-facing media. Realtime collaboration is architecturally sound for MVP
+(`module_state`, Realtime, optimistic client, claim unique index), but free/pro
+Supabase connection/message limits must be monitored as every open project tab
+joins a Realtime channel. API abuse protection is currently mostly in-memory
+(`state`, `upload`, `spaces`, `assistant`), so the next stability slice should
+add persistent account/project/IP rate limits for AI + uploads, per-account
+storage quotas, and admin visibility for upload/storage usage.
+
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client
 payloads) so stale tabs get a 409 instead of silently overwriting each other.
