@@ -10,7 +10,7 @@ import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
 import { DEFAULT_CREATE_FAST_PROMPTS, PromptStart } from "@/components/create/PromptStart";
 import type { ProjectModeId } from "@/lib/projectModes";
-import { DEFAULT_STUDIO_PRESETS } from "@/lib/studioPresets";
+import { MARKETING_STARTER_PRESETS } from "@/lib/studioPresets";
 import { SiteNav } from "@/components/site/SiteNav";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { apiError, fetchJsonWithTimeout, formatFlowError } from "@/lib/home/flow";
@@ -256,7 +256,7 @@ export default function HomePage() {
       .filter((s) => s.kind === "module")
       .map((s) => configured[s.id])
       .filter(Boolean);
-    const selectedPreset = DEFAULT_STUDIO_PRESETS.find((preset) => preset.id === presetId) || null;
+    const selectedPreset = MARKETING_STARTER_PRESETS.find((preset) => preset.id === presetId) || null;
     try {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces", {
         method: "POST",
@@ -367,7 +367,7 @@ export default function HomePage() {
                   autoFocus
                   rows={5}
                   highlight={promptNudge}
-                  presets={DEFAULT_STUDIO_PRESETS}
+                  presets={MARKETING_STARTER_PRESETS}
                   selectedPresetId={presetId}
                   onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
                   fastPrompts={DEFAULT_CREATE_FAST_PROMPTS}

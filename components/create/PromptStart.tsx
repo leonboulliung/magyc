@@ -7,20 +7,20 @@ import type { FastPrompt } from "@/lib/studioProfile";
 
 export const DEFAULT_CREATE_FAST_PROMPTS: FastPrompt[] = [
   {
-    text: "Der Kunde bekommt zur Einsicht drei Kundenprojekte als Beispiel vorgelegt. Er soll dadurch dann die Richtung bestimmen.",
+    text: "Der Kunde soll vorab 2–3 Referenzen zur gewünschten Bildsprache schicken.",
     color: "#8b7bff",
   },
   {
-    text: "Ich möchte das Projekt vorab in einer Teams-Sitzung besprechen.",
-    color: "#b8b8b8",
+    text: "Bitte plane eine klare Shotlist mit Must-have-Motiven und optionalen Zusatzmotiven.",
+    color: "#4aa8ff",
   },
   {
-    text: "Es wird die FE 28–70mm f/3.5–5.6 OSS benutzt.",
-    color: "#b8b8b8",
+    text: "Es sollen Deliverables für Website, Social Media und Archiv vorbereitet werden.",
+    color: "#39d2b4",
   },
   {
-    text: "Es wird die Sony Alpha 7 III benutzt.",
-    color: "#b8b8b8",
+    text: "Der Kunde soll eine Auswahlrunde mit Favoriten und finaler Freigabe bekommen.",
+    color: "#f5b740",
   },
 ];
 
@@ -39,7 +39,7 @@ export function PromptStart({
   presets,
   selectedPresetId,
   onPresetChange,
-  fastPrompts = DEFAULT_CREATE_FAST_PROMPTS,
+  fastPrompts = [],
   onFastPrompt,
   showFastPrompts = true,
   className,

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "motion/react";
-import { DEFAULT_CREATE_FAST_PROMPTS, PromptStart } from "@/components/create/PromptStart";
+import { PromptStart } from "@/components/create/PromptStart";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { MoodGradient } from "@/components/MoodGradient";
@@ -23,7 +23,6 @@ import type { ClarifyStep, Module } from "@/lib/types";
 import type { ProjectModeId } from "@/lib/projectModes";
 import {
   cleanStudioPresets,
-  DEFAULT_STUDIO_PRESETS,
   STUDIO_PRESETS_STORAGE_KEY,
   type StudioPreset,
 } from "@/lib/studioPresets";
@@ -138,9 +137,9 @@ export function StudioHome({
         const res = await fetch("/api/studio/presets", { cache: "no-store" });
         const json = await readApiJson(res) as { presets?: unknown };
         const remote = cleanStudioPresets(json.presets) ?? [];
-        if (!cancelled) setPresets(remote.length ? remote : DEFAULT_STUDIO_PRESETS);
+        if (!cancelled) setPresets(remote);
       } catch {
-        if (!cancelled) setPresets(local && local.length ? local : DEFAULT_STUDIO_PRESETS);
+        if (!cancelled) setPresets(local ?? []);
       }
     }
     void load();
@@ -358,7 +357,7 @@ export function StudioHome({
                 presets={usablePresets}
                 selectedPresetId={presetId}
                 onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
-                fastPrompts={fastPrompts.length > 0 ? fastPrompts : DEFAULT_CREATE_FAST_PROMPTS}
+                fastPrompts={fastPrompts}
                 onFastPrompt={addPromptHint}
               />
             </motion.div>

@@ -67,6 +67,116 @@ export const DEFAULT_STUDIO_PRESETS: StudioPreset[] = [
   },
 ];
 
+export const MARKETING_STARTER_PRESETS: StudioPreset[] = [
+  {
+    id: "starter-product",
+    name: "Produktshooting",
+    description: "Webshop, Kampagne, Packshots und Social-Crops.",
+    modules: [
+      { type: "moodboard", microTitle: "Moodboard", directions: [
+        { label: "Licht & Look", status: "reference" },
+        { label: "Material / Textur", status: "reference" },
+        { label: "No-Gos", status: "avoid" },
+      ] },
+      { type: "shot_list", microTitle: "Shotlist", shots: [
+        { label: "Hero-Aufnahme", purpose: "Key Visual / Website", priority: "must", status: "planned" },
+        { label: "Detail / Textur", purpose: "Produktmerkmale sichtbar machen", priority: "should", status: "planned" },
+      ] },
+      { type: "table", microTitle: "Technikliste", columns: ["Bereich", "Vorgabe"], rows: [["Kamera", ""], ["Objektiv", ""], ["Licht", ""]] },
+      { type: "deliverables", microTitle: "Deliverables", items: [
+        { label: "Webshop", format: "JPG", status: "planned" },
+        { label: "Social Media", format: "Crops", status: "planned" },
+      ] },
+      { type: "approvals", microTitle: "Freigaben", items: [
+        { text: "Bildsprache freigeben", audience: "client", status: "pending" },
+        { text: "Finale Auswahl freigeben", audience: "client", status: "pending" },
+      ] },
+      { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Produkte reinigen / vorbereiten" }, { text: "Referenzen einsammeln" }] },
+    ],
+    promptInjections: [
+      "Plane wie ein kommerzieller Produktfotograf in Deutschland: Bildsprache, Shotlist, Nutzungsrechte, Formate, Freigaben und Übergabetermin klar machen.",
+    ],
+    allowContextModules: true,
+  },
+  {
+    id: "starter-wedding",
+    name: "Hochzeit",
+    description: "Ablauf, Orte, Must-have-Motive und Übergabe.",
+    modules: [
+      { type: "appointments", microTitle: "Zeitplan", entries: [] },
+      { type: "locations_multi", microTitle: "Orte", locations: [] },
+      { type: "shot_list", microTitle: "Must-have-Motive", shots: [
+        { label: "Getting Ready", priority: "must", status: "planned" },
+        { label: "Trauung", priority: "must", status: "planned" },
+        { label: "Gruppenbilder", priority: "must", status: "planned" },
+        { label: "Paarshooting", priority: "must", status: "planned" },
+      ] },
+      { type: "crew", microTitle: "Kontakte", roles: [{ name: "Brautpaar" }, { name: "Trauzeug:innen" }, { name: "Locationkontakt" }] },
+      { type: "deliverables", microTitle: "Übergabe", items: [
+        { label: "Online-Galerie", status: "planned" },
+        { label: "Highlight-Auswahl", status: "planned" },
+      ] },
+      { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Ablaufplan bestätigen" }, { text: "Gruppenbildliste einsammeln" }] },
+    ],
+    promptInjections: [
+      "Plane sensibel und zuverlässig für eine Hochzeit in Deutschland: Ablauf, Orte, Kontaktpersonen, Must-have-Motive, Backup-Plan und Bildübergabe priorisieren.",
+    ],
+    allowContextModules: true,
+  },
+  {
+    id: "starter-business-portrait",
+    name: "Business-Portrait",
+    description: "Personal Branding, LinkedIn, Website und Teamfotos.",
+    modules: [
+      { type: "rich_text", microTitle: "Briefing", text: "Ziel, Zielgruppe, Einsatzorte und gewünschte Wirkung der Portraits festhalten." },
+      { type: "moodboard", microTitle: "Bildsprache", directions: [
+        { label: "Professionell / nahbar", status: "reference" },
+        { label: "Hintergrund & Licht", status: "reference" },
+      ] },
+      { type: "locations_multi", microTitle: "Location", locations: [] },
+      { type: "parts_list", microTitle: "Styling / Requisiten", items: [{ name: "Outfit 1" }, { name: "Outfit 2" }] },
+      { type: "shot_list", microTitle: "Shotlist", shots: [
+        { label: "LinkedIn Portrait", priority: "must", status: "planned" },
+        { label: "Website Hero", priority: "should", status: "planned" },
+        { label: "Arbeitsmoment / Kontext", priority: "nice", status: "planned" },
+      ] },
+      { type: "deliverables", microTitle: "Deliverables", items: [
+        { label: "LinkedIn / Profilbild", format: "Quadrat", status: "planned" },
+        { label: "Website", format: "Querformat", status: "planned" },
+      ] },
+    ],
+    promptInjections: [
+      "Plane Business-Portraits mit Fokus auf Wirkung, Vertrauen, Einsatzkanäle, Styling, Location und klare Auswahlrunde.",
+    ],
+    allowContextModules: true,
+  },
+  {
+    id: "starter-event",
+    name: "Event-Reportage",
+    description: "Konferenz, Firmenveranstaltung, Launch oder Kultur-Event.",
+    modules: [
+      { type: "appointments", microTitle: "Ablauf", entries: [] },
+      { type: "locations_multi", microTitle: "Location-Plan", locations: [] },
+      { type: "crew", microTitle: "Team & Rollen", roles: [{ name: "Fotograf:in" }, { name: "Ansprechpartner:in" }, { name: "Social / Presse" }] },
+      { type: "shot_list", microTitle: "Shotlist", shots: [
+        { label: "Atmosphäre / Raum", priority: "must", status: "planned" },
+        { label: "Keynote / Programmpunkt", priority: "must", status: "planned" },
+        { label: "Gäste / Interaktion", priority: "should", status: "planned" },
+        { label: "Branding / Details", priority: "should", status: "planned" },
+      ] },
+      { type: "table", microTitle: "Technikliste", columns: ["Bereich", "Vorgabe"], rows: [["Kamera", ""], ["Objektiv", ""], ["Licht / Blitz", ""]] },
+      { type: "deliverables", microTitle: "Deliverables", items: [
+        { label: "Presseauswahl", due: "zeitnah", status: "planned" },
+        { label: "Gesamtübergabe", status: "planned" },
+      ] },
+    ],
+    promptInjections: [
+      "Plane eine Event-Reportage mit Fokus auf Ablauf, Ansprechpartner, kritische Programmpunkte, schnelle Auswahl und saubere Übergabe.",
+    ],
+    allowContextModules: true,
+  },
+];
+
 export function createStudioPreset(): StudioPreset {
   return {
     id: `preset-${Date.now()}`,

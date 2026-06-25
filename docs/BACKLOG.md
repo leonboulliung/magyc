@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-25 (Codex — shared prompt composer consolidation)_
+_Last updated: 2026-06-25 (Codex — photographer starter presets)_
 
 ---
 
@@ -62,6 +62,11 @@ Schnellbausteine, shared sizing/placeholder/submit controls. The old
 marketing-only English project-mode/example chips were removed. Anonymous
 Home creation now sends selected preset modules/rules through `/api/spaces`,
 matching the Studio `/api/projects` contract.
+Follow-up done 2026-06-25: Marketing now uses explicit photographer starter
+presets (`MARKETING_STARTER_PRESETS`: Produktshooting, Hochzeit,
+Business-Portrait, Event-Reportage) plus German fast prompts aimed at the
+German photography market. Studio no longer falls back to those code presets:
+signed-in users only see real account presets (or none).
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client
