@@ -9,6 +9,7 @@ import type { ModuleStateEntry, SelectionWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
 import { UploadZone } from "./UploadZone";
+import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 interface Photo {
   id: string;
@@ -42,13 +43,18 @@ export function SelectionRenderer({
   const myId = getSelfId();
   const [openId, setOpenId] = useState<string | null>(null);
   const [pending, setPending] = useState("");
+  const assetPaths = state
+    .filter((e) => e.kind === "upload")
+    .map((e) => assetPathFromData(e.data))
+    .filter(Boolean);
+  const signedUrls = useAssetUrls(ctx.spaceId, assetPaths);
 
   const photos: Photo[] = state
     .filter((e) => e.kind === "upload" && typeof e.data.mimeType === "string" && (e.data.mimeType as string).startsWith("image/"))
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((e) => ({
       id: e.id,
-      url: typeof e.data.url === "string" ? (e.data.url as string) : "",
+      url: assetUrlFromData(e.data, signedUrls),
       name: typeof e.data.name === "string" ? (e.data.name as string) : "",
     }))
     .filter((p) => p.url);

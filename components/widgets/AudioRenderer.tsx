@@ -6,6 +6,7 @@ import type { AudioWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
 import { UploadZone, fmtSize } from "./UploadZone";
+import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 /**
  * Audio-Ablage — audio file list with inline HTML5 player.
@@ -21,13 +22,18 @@ export function AudioRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const assetPaths = state
+    .filter((e) => e.kind === "upload")
+    .map((e) => assetPathFromData(e.data))
+    .filter(Boolean);
+  const signedUrls = useAssetUrls(ctx.spaceId, assetPaths);
 
   const tracks = state
     .filter((e) => e.kind === "upload" && typeof e.data.mimeType === "string" && (e.data.mimeType as string).startsWith("audio/"))
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((e) => ({
       key: e.id,
-      url: typeof e.data.url === "string" ? (e.data.url as string) : "",
+      url: assetUrlFromData(e.data, signedUrls),
       name: typeof e.data.name === "string" ? (e.data.name as string) : "audio",
       size: typeof e.data.size === "number" ? (e.data.size as number) : 0,
       authorName: e.actor.displayName,

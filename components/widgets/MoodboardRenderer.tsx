@@ -10,6 +10,7 @@ import { WidgetCard } from "./WidgetCard";
 import { UploadZone } from "./UploadZone";
 import { useInlineEdit } from "./useInlineEdit";
 import { FullscreenOverlay } from "./FullscreenOverlay";
+import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 const CAPTION_MAX = 280;
 
@@ -112,6 +113,11 @@ export function MoodboardRenderer({
 }) {
   const ctx = useWidgetContext();
   const directions = buildDirections(m, state);
+  const assetPaths = state
+    .filter((e) => e.kind === "upload")
+    .map((e) => assetPathFromData(e.data))
+    .filter(Boolean);
+  const signedUrls = useAssetUrls(ctx.spaceId, assetPaths);
 
   // Per-image overlays live in the same module_state as edit-entries keyed
   // by the upload id: { id, caption } for a note, { id, deleted } to remove.
@@ -128,7 +134,7 @@ export function MoodboardRenderer({
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((e) => ({
       key: e.id,
-      url: typeof e.data.url === "string" ? (e.data.url as string) : "",
+      url: assetUrlFromData(e.data, signedUrls),
       name: typeof e.data.name === "string" ? (e.data.name as string) : "",
       caption: captions.get(e.id) ?? "",
     }))

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { getAnonToken, getAnonDisplayName } from "@/lib/anonId";
+import { supabase } from "@/lib/supabase";
 import {
   readApiJson,
   showActionError,
@@ -12,17 +13,15 @@ import {
 } from "@/lib/client/feedback";
 
 /**
- * Hard client-side ceiling. The API allows 50 MB, but the deploy platform
- * rejects request bodies above ~4.5 MB *before* the handler runs — which
- * surfaced as a reasonless "upload failed". We check here so the user gets
- * a concrete reason (and which file) instead.
+ * Product-level per-file ceiling. Files upload directly to Supabase Storage
+ * through signed URLs, so the Vercel request body limit no longer applies.
  */
-const DEFAULT_MAX_MB = 4.5;
+const DEFAULT_MAX_MB = 50;
 
 /**
  * Shared upload affordance used by Attachments, Images, and Audio
- * widgets. Handles drag-and-drop + click-to-pick, POSTs to the upload
- * endpoint, and calls onDone(url, name, size, mimeType) on success.
+ * widgets. Handles drag-and-drop + click-to-pick, asks the API for a signed
+ * Storage upload URL, uploads directly to Supabase, then commits a state row.
  *
  * The parent controls what MIME types are accepted. The component
  * shows a minimal dashed drop zone that expands on drag-over.
@@ -52,7 +51,7 @@ export function UploadZone({
   /** Tile: a square drop target sized like a gallery thumbnail, so it can
    *  sit inline next to images as an "add" cell. */
   tile?: boolean;
-  onDone?: (files: { url: string; name: string; size: number; mimeType: string }[]) => void;
+  onDone?: (files: { url: string; path: string; name: string; size: number; mimeType: string }[]) => void;
   /** Slot for custom idle UI inside the zone. */
   children?: React.ReactNode;
 }) {
@@ -91,31 +90,72 @@ export function UploadZone({
     if (!files.length) { setBusy(false); return; }
 
     if (!tooBig.length) setError("");
-    const results: { url: string; name: string; size: number; mimeType: string }[] = [];
+    const results: { url: string; path: string; name: string; size: number; mimeType: string }[] = [];
     showActionLoading(files.length === 1 ? "Datei wird hochgeladen …" : "Dateien werden hochgeladen …", toastId);
     for (const file of files) {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("moduleIndex", String(moduleIndex));
-      fd.append("anonToken", getAnonToken());
-      fd.append("anonName", getAnonDisplayName());
       try {
-        const res = await fetch(`/api/spaces/${spaceId}/upload`, {
+        const actor = { anonToken: getAnonToken(), anonName: getAnonDisplayName() };
+        const prepareRes = await fetch(`/api/spaces/${spaceId}/upload`, {
           method: "POST",
-          body: fd,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            phase: "prepare",
+            moduleIndex,
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || "application/octet-stream",
+            ...actor,
+          }),
         });
-        const json = await readApiJson(res);
-        if (res.ok && json.url) {
+        const prepareJson = await readApiJson(prepareRes) as { path?: unknown; token?: unknown };
+        if (!prepareRes.ok || typeof prepareJson.path !== "string" || typeof prepareJson.token !== "string") {
+          const message = showApiError("Upload fehlgeschlagen", prepareJson, {
+            id: toastId,
+            fallback: `${file.name} konnte nicht vorbereitet werden.`,
+          });
+          setError(message);
+          continue;
+        }
+
+        const { error: uploadError } = await supabase.storage
+          .from("space_assets")
+          .uploadToSignedUrl(prepareJson.path, prepareJson.token, file, {
+            contentType: file.type || "application/octet-stream",
+            upsert: false,
+          });
+        if (uploadError) {
+          const message = uploadError.message || `${file.name} konnte nicht hochgeladen werden.`;
+          showActionError("Upload fehlgeschlagen", { id: toastId, description: message });
+          setError(message);
+          continue;
+        }
+
+        const completeRes = await fetch(`/api/spaces/${spaceId}/upload`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            phase: "complete",
+            moduleIndex,
+            path: prepareJson.path,
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || "application/octet-stream",
+            ...actor,
+          }),
+        });
+        const completeJson = await readApiJson(completeRes) as { url?: unknown; path?: unknown; name?: unknown; size?: unknown; mimeType?: unknown };
+        if (completeRes.ok && completeJson.path) {
           results.push({
-            url: String(json.url),
-            name: typeof json.name === "string" ? json.name : file.name,
-            size: typeof json.size === "number" ? json.size : file.size,
-            mimeType: typeof json.mimeType === "string" ? json.mimeType : file.type,
+            url: typeof completeJson.url === "string" ? completeJson.url : "",
+            path: String(completeJson.path),
+            name: typeof completeJson.name === "string" ? completeJson.name : file.name,
+            size: typeof completeJson.size === "number" ? completeJson.size : file.size,
+            mimeType: typeof completeJson.mimeType === "string" ? completeJson.mimeType : file.type,
           });
         } else {
-          const message = showApiError("Upload fehlgeschlagen", json, {
+          const message = showApiError("Upload fehlgeschlagen", completeJson, {
             id: toastId,
-            fallback: `${file.name} konnte nicht hochgeladen werden.`,
+            fallback: `${file.name} konnte nicht im Projekt gespeichert werden.`,
           });
           setError(message);
         }

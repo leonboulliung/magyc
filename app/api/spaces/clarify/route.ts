@@ -4,6 +4,8 @@ import { auth } from "@clerk/nextjs/server";
 import { clarifyInput } from "@/lib/server/clarify";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
+import { supabaseAdmin } from "@/lib/supabase";
+import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 15_000;
@@ -51,6 +53,14 @@ export async function POST(req: Request) {
     );
   }
   lastCallAt.set(key, now);
+
+  try {
+    const admin = supabaseAdmin();
+    const allowed = await takePersistentRateLimit(admin, `ai-clarify:${userId || key}`, 60 * 60, 80);
+    if (!allowed) return NextResponse.json({ error: "rate_limited", retryInSeconds: 60 }, { status: 429 });
+  } catch {
+    // Clarify can still run when observability/rate-limit storage is not ready.
+  }
 
   const started = Date.now();
   try {

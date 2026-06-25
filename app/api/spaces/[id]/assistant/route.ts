@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { sanitizeModule } from "@/lib/modules";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
+import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import type { Module, ModuleType } from "@/lib/types";
 
 /**
@@ -158,6 +159,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   lastCallAt.set(actorKey, now);
 
   const admin = supabaseAdmin();
+  const aiAllowed = await takePersistentRateLimit(admin, `ai-assistant:${actorKey}`, 60, 30);
+  if (!aiAllowed) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const { data: space, error } = await fetchAssistantSpace(admin, params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });

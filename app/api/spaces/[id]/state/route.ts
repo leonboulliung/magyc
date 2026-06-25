@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 import { SINGLE_ACTIVE_RULES } from "@/lib/stateDedup";
+import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import type { ModuleStateKind } from "@/lib/types";
 
 /**
@@ -27,7 +28,7 @@ import type { ModuleStateKind } from "@/lib/types";
  *   voice   — append message. data: { id, text, role?, parentId? }
  *   edit    — last-write-wins. data: arbitrary (text, id, etc.)
  *   add     — append item. data: arbitrary (text, id, imageUrl, etc.)
- *   upload  — record a stored file. data: { url, name, size?, mimeType? }
+ *   upload  — record a stored file. data: { path or url, name, size?, mimeType? }
  *   stroke  — append canvas stroke. data: { path, color? }
  */
 
@@ -127,6 +128,10 @@ export async function POST(
   }
 
   const admin = supabaseAdmin();
+  const persistentAllowed = await takePersistentRateLimit(admin, `state:${params.id}:${actorKind}:${actorId}`, 60, RATE_MAX_WRITES);
+  if (!persistentAllowed) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   // Signed-in contributors get their real name (and colour) from their
   // profile, so elements show "Leon" instead of an empty "anon"/"?".
@@ -351,8 +356,9 @@ export async function POST(
   // ── upload ────────────────────────────────────────────────────────────
   if (kind === "upload") {
     const url = typeof data.url === "string" ? (data.url as string).trim() : "";
-    if (!url.startsWith("https://")) {
-      return NextResponse.json({ error: "upload_url_required" }, { status: 400 });
+    const path = typeof data.path === "string" ? (data.path as string).trim() : "";
+    if (!url.startsWith("https://") && !path.startsWith(`${params.id}/`)) {
+      return NextResponse.json({ error: "upload_reference_required" }, { status: 400 });
     }
     const { error } = await admin.from("module_state").insert({
       id: newId(),
@@ -362,7 +368,7 @@ export async function POST(
       actor_id: actorId,
       display_name: displayName,
       kind,
-      data: { ...data, url },
+      data: { ...data, ...(url ? { url } : {}), ...(path ? { path } : {}) },
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });

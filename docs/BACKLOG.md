@@ -101,6 +101,17 @@ joins a Realtime channel. API abuse protection is currently mostly in-memory
 (`state`, `upload`, `spaces`, `assistant`), so the next stability slice should
 add persistent account/project/IP rate limits for AI + uploads, per-account
 storage quotas, and admin visibility for upload/storage usage.
+Follow-up done 2026-06-25: media infrastructure moved to signed direct
+Supabase Storage uploads. `/api/spaces/[id]/upload` now prepares signed upload
+tokens and commits upload state after the browser uploads directly to Storage;
+`/api/spaces/[id]/assets/sign` signs private object paths for renderers. Upload
+renderers resolve both legacy `url` rows and new private `path` rows. Migration
+019 makes `space_assets` private and adds persistent rate-limit/usage functions
+used by uploads, asset signing, state writes, create/classify, clarify,
+regenerate, project create, and @magyc chat. **Operational follow-up:** apply
+`supabase/migrations/019_asset_security_and_rate_limits.sql` in Supabase before
+or immediately with deploy; monitor Storage usage and consider a dedicated
+media CDN/R2 layer once delivery files or very large galleries become core.
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client

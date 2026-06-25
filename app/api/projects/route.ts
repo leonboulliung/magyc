@@ -10,6 +10,7 @@ import { sanitizeModules } from "@/lib/modules";
 import { newId, newAnonToken } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 import { cleanSettings } from "@/lib/studioProfile";
+import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 
 // The classifier makes two gpt-4o-mini calls + geocoding — give headroom.
 export const maxDuration = 30;
@@ -135,6 +136,8 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "db_unavailable" }, { status: 503 });
   }
+  const aiAllowed = await takePersistentRateLimit(admin, `ai-project:${userId}`, 60 * 60, 60);
+  if (!aiAllowed) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   await ensureProfile(userId);
 
   // Account-level Studio settings shape every new project: the working-style

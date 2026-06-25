@@ -8,6 +8,7 @@ import { ALL_VIBES, type Module, type SpaceLabels, type Vibe } from "@/lib/types
 import { sanitizeModule } from "@/lib/modules";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
+import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 8_000;
@@ -58,6 +59,9 @@ export async function POST(
 
   // Load the space + the widget.
   const admin = supabaseAdmin();
+  const persistentAllowed = await takePersistentRateLimit(admin, `ai-regenerate:${userId || rateKey}`, 60 * 60, 120);
+  if (!persistentAllowed) return NextResponse.json({ error: "rate_limited", retryInSeconds: 60 }, { status: 429 });
+
   const { data: space, error } = await admin
     .from("spaces")
     .select("id, input_text, language, vibe, modules, labels, stage, shared, owner_id")

@@ -8,6 +8,7 @@ import type { Module } from "@/lib/types";
 import { newAnonToken, newId } from "@/lib/id";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
+import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 
 // The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
 // author) plus a Wikipedia hydration pass. Give the function headroom
@@ -117,6 +118,18 @@ export async function POST(req: Request) {
   }
   lastCallAt.set(anonToken, now);
 
+  let admin;
+  try {
+    admin = supabaseAdmin();
+  } catch (e) {
+    const msg = (e as Error).message || "supabase_unavailable";
+    return NextResponse.json({ error: "db_unavailable", detail: msg }, { status: 503 });
+  }
+  const aiAllowed = await takePersistentRateLimit(admin, `ai-create:${userId || anonToken}`, 60 * 60, 40);
+  if (!aiAllowed) {
+    return NextResponse.json({ error: "rate_limited", retryInSeconds: 60 }, { status: 429 });
+  }
+
   let result;
   const aiStarted = Date.now();
   try {
@@ -176,14 +189,6 @@ export async function POST(req: Request) {
     ];
   }
   const hydratedModules: unknown[] = result.modules;
-
-  let admin;
-  try {
-    admin = supabaseAdmin();
-  } catch (e) {
-    const msg = (e as Error).message || "supabase_unavailable";
-    return NextResponse.json({ error: "db_unavailable", detail: msg }, { status: 503 });
-  }
 
   const id = newId();
   const { error } = await admin.from("spaces").insert({

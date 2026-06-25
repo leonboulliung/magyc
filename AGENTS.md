@@ -50,7 +50,7 @@ same commit.
 |---|---|---|
 | Framework | Next.js 14 App Router, React 18, TS, Tailwind | |
 | Hosting | Vercel, region `fra1` (vercel.json), domain magyc.site | `vercel` CLI is logged in locally |
-| DB + Realtime | Supabase Postgres, project ref `zpkgofpkksetnbuizvhi` (eu-central-1) | client: anon key; API routes: `supabaseAdmin()` (service_role, bypasses RLS) |
+| DB + Realtime + Storage | Supabase Postgres/Realtime/Storage, project ref `zpkgofpkksetnbuizvhi` (eu-central-1) | client: anon key; API routes: `supabaseAdmin()` (service_role, bypasses RLS); media uses signed direct uploads + signed reads |
 | Auth | Clerk (`@clerk/nextjs`), email OTP | publish binds a draft to a Clerk account |
 | AI | OpenAI `gpt-4o-mini` (classify, clarify, regenerate) | |
 | Maps | Leaflet + CARTO tiles; geocoding via Komoot Photon (free, no key) | |
@@ -135,7 +135,7 @@ app/
   api/spaces/clarify/…      clarify steps
   api/spaces/[id]/widgets…  config CRUD + regenerate (AI alternatives)
   api/spaces/[id]/state/…   collaborative actions
-  api/spaces/[id]/{claim,publish,style,upload,resolve}/…
+  api/spaces/[id]/{claim,publish,style,upload,assets/sign,resolve}/…
   api/projects/…            account-first Studio project CRUD
   api/studio/presets/…      per-user workflow preset persistence
   api/{geocode,gif}/…       proxies (Photon, GIF search)
@@ -205,6 +205,17 @@ lib/
   _boundary_ = a render crash, caught by `RenderBoundary`. Map server error
   codes to German once, centrally, in `lib/client/errors.ts` (`apiErrorMessage`)
   so every caller is consistent — don't special-case messages per call site.
+- **Media infrastructure**: browser file blobs must not be proxied through
+  Vercel functions. `UploadZone` asks `/api/spaces/[id]/upload` for a signed
+  Supabase Storage upload token, uploads directly with `uploadToSignedUrl`,
+  then commits the `module_state` row. Renderers resolve private object paths
+  through `/api/spaces/[id]/assets/sign` and must keep supporting legacy
+  public `url` rows as fallback. The `space_assets` bucket is intended to be
+  private after migration 019.
+- **Persistent limits**: cost/security limits must be durable across Vercel
+  instances. Use the Supabase `take_rate_limit` RPC from migration 019 for
+  AI, uploads, asset signing, and high-volume state writes; in-memory guards
+  are only a fast local debounce.
 
 ---
 

@@ -8,6 +8,7 @@ import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
 import { UploadZone } from "./UploadZone";
 import { FullscreenOverlay } from "./FullscreenOverlay";
+import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 /**
  * Bild-Ablage — image collection. Uploads are compressed client-side, stored
@@ -31,6 +32,11 @@ export function ImagesRenderer({
 }) {
   const ctx = useWidgetContext();
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
+  const assetPaths = state
+    .filter((e) => e.kind === "upload")
+    .map((e) => assetPathFromData(e.data))
+    .filter(Boolean);
+  const signedUrls = useAssetUrls(ctx.spaceId, assetPaths);
 
   const deleted = new Set<string>();
   for (const e of state) {
@@ -44,7 +50,7 @@ export function ImagesRenderer({
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((e) => ({
       key: e.id,
-      url: typeof e.data.url === "string" ? (e.data.url as string) : "",
+      url: assetUrlFromData(e.data, signedUrls),
       name: typeof e.data.name === "string" ? (e.data.name as string) : "",
     }))
     .filter((f) => f.url && !deleted.has(f.key));
