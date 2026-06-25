@@ -111,10 +111,15 @@ export function QaRenderer({
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        {questions.length === 0 && (
-          <p className="mono text-[11px] opacity-50 mb-3" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "Noch keine Frage — stell die erste."}
-          </p>
+        {questions.length === 0 && !askOpen && (
+          <button
+            type="button"
+            onClick={() => setAskOpen(true)}
+            className="mono mb-3 block w-full rounded-[var(--v-radius)] px-3 py-3 text-left text-[11px] leading-relaxed opacity-65 transition-opacity hover:opacity-100"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
+          >
+            {m.placeholder ?? "Noch keine Frage - stell die erste."}
+          </button>
         )}
 
         <ul className="space-y-3">
@@ -156,7 +161,7 @@ export function QaRenderer({
               }}
               rows={2}
               maxLength={600}
-              placeholder="?"
+              placeholder="Frage formulieren"
               className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -164,11 +169,11 @@ export function QaRenderer({
             <button
               type="button"
               onClick={() => setAskOpen(true)}
-              aria-label="ask"
-              className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
+              aria-label="Frage hinzufügen"
+              className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              ?
+              + Frage hinzufügen
             </button>
           )}
         </div>
@@ -243,7 +248,7 @@ function QuestionBlock({
           />
         )}
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] leading-snug" style={{ color: "var(--v-fg)" }}>
+          <div className="whitespace-pre-wrap break-words text-[13px] leading-snug [overflow-wrap:anywhere]" style={{ color: "var(--v-fg)" }}>
             {question.text}
           </div>
           {!question.seeded && question.actor?.displayName && (
@@ -266,7 +271,7 @@ function QuestionBlock({
                   size={14}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12.5px] leading-snug" style={{ color: "var(--v-fg)" }}>
+                  <div className="whitespace-pre-wrap break-words text-[12.5px] leading-snug [overflow-wrap:anywhere]" style={{ color: "var(--v-fg)" }}>
                     {String(a.data.text ?? "")}
                   </div>
                   <div className="mono text-[9px] tracking-widest mt-0.5 opacity-50" style={{ color: "var(--v-muted)" }}>
@@ -301,7 +306,7 @@ function QuestionBlock({
             }}
             rows={2}
             maxLength={600}
-            placeholder={question.answerHint || "…"}
+            placeholder={question.answerHint || "Antwort schreiben"}
             className="w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           />

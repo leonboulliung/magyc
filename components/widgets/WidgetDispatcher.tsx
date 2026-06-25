@@ -55,7 +55,7 @@ const SketchRenderer = dynamic(() => import("./SketchRenderer").then((mod) => mo
  * placeholder so the space stays renderable while we iterate.
  *
  * Stateful widgets (notes, checklist, poll, crew, work_packages, qa,
- * discussion, parts_list) receive their slice of module_state. The
+ * parts_list) receive their slice of module_state. The
  * SpaceView slices state per moduleIndex once and hands it down so
  * every renderer only sees its own actions.
  */
@@ -105,6 +105,7 @@ export function WidgetDispatcher({
       return <ApprovalsRenderer module={m} index={index} state={s} />;
     case "qa":
       return <QaRenderer module={m} index={index} state={s} />;
+    // Legacy-only: the visible product uses the MAGYC chat instead.
     case "discussion":
       return <DiscussionRenderer module={m} index={index} state={s} />;
 

@@ -14,7 +14,7 @@ import type { Module, ModuleType, SpaceLabels, Vibe } from "@/lib/types";
  * Per-widget logic lives in REGEN_HANDLERS below — each handler
  * knows how to build a focused prompt for its type and how many
  * alternatives are the default. Widget types that should NOT be
- * regenerated (user-content slots like notes, qa, discussion,
+ * regenerated (user-content slots like notes and qa,
  * sketch, attachments, images, audio, dates, exact map locations)
  * return null; the API surface refuses the request.
  */
@@ -68,7 +68,6 @@ const REGEN_LIMITS: Partial<Record<ModuleType, { defaultCount: number; max: numb
 const REGEN_BLOCKED: ReadonlySet<ModuleType> = new Set<ModuleType>([
   "notes",
   "qa",
-  "discussion",
   "sketch",
   "attachments",
   "images",

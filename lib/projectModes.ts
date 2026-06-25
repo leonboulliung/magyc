@@ -62,7 +62,6 @@ export const PROJECT_MODES: readonly ProjectMode[] = [
       images: -1,
       sketch: 1,
       notes: -2,
-      discussion: -2,
     },
     shapeHints: {
       moodboard:

@@ -192,6 +192,15 @@ lib/
 - **Studio wording**: user-facing Studio labels are German for the German
   launch market. The prompt entry headline is "Plane deinen nächsten
   Fotografie-Auftrag"; "Fast-Prompts" are called "Schnellbausteine".
+- **Element UX rules**: no grid-level two-width/full-width toggle. If an
+  element needs a larger temporary view, the renderer owns that affordance
+  (Moodboard fullscreen is the model). Empty configurable widgets should start
+  empty when useful, but render clear German empty states and explicit actions
+  (`+ Eintrag hinzufügen`, `+ Frage hinzufügen`, etc.) instead of raw `…` or a
+  bare `+`. Long user text must wrap inside the card (`break-words` /
+  `overflow-wrap:anywhere`). Productive renderers should use the real widget
+  UI in Preset previews through `WidgetDispatcher`; don't create parallel
+  preset forms unless the data contract requires a separate abstraction.
 - **Supabase gotcha**: `.update()` without `.select()` reports success even
   when 0 rows matched. Always chain `.select("id")` and treat an empty
   result as an error.
@@ -210,8 +219,10 @@ lib/
   Supabase Storage upload token, uploads directly with `uploadToSignedUrl`,
   then commits the `module_state` row. Renderers resolve private object paths
   through `/api/spaces/[id]/assets/sign` and must keep supporting legacy
-  public `url` rows as fallback. The `space_assets` bucket is intended to be
-  private after migration 019.
+  public `url` rows as fallback. Every upload renderer must show accepted file
+  types + max size through the shared `UploadZone` helpers; keep the client
+  accept list and `lib/server/uploadSecurity.ts` allowlist in sync. The
+  `space_assets` bucket is intended to be private after migration 019.
 - **Persistent limits**: cost/security limits must be durable across Vercel
   instances. Use the Supabase `take_rate_limit` RPC from migration 019 for
   AI, uploads, asset signing, and high-volume state writes; in-memory guards

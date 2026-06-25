@@ -21,9 +21,10 @@ export function WidgetCard({
   children: React.ReactNode;
   bare?: boolean;
 }) {
+  const paddedClass = microTitle ? "p-4" : "px-4 pb-4 pt-10";
   return (
     <motion.div
-      className={`rounded-[var(--v-radius)] ${bare ? "overflow-hidden" : "p-4"}`}
+      className={`min-w-0 rounded-[var(--v-radius)] [overflow-wrap:anywhere] ${bare ? "overflow-hidden" : `${paddedClass} overflow-hidden`}`}
       style={{
         border: "1px solid var(--v-widget-border, var(--v-rule))",
         background: "var(--v-widget, var(--v-bg))",

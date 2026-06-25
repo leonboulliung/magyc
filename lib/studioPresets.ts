@@ -18,6 +18,7 @@ export const HIDDEN_PRESET_TYPES = new Set<ModuleType>([
   "icon",
   "ai_summary",
   "notes",
+  "discussion",
   "sketch",
 ]);
 

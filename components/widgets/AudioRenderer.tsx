@@ -5,7 +5,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { AudioWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
-import { UploadZone, fmtSize } from "./UploadZone";
+import { UploadZone, fmtSize, uploadHintForAccept } from "./UploadZone";
 import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 /**
@@ -96,7 +96,10 @@ export function AudioRenderer({
           multiple
           onDone={() => {}}
         >
-          <span className="mono text-[10px] tracking-widest opacity-60">♫ +</span>
+          <span className="mono text-[10px] tracking-widest opacity-60">♫ Audio hinzufügen</span>
+          <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
+            {uploadHintForAccept("audio/*")}
+          </span>
         </UploadZone>
       </WidgetCard>
     </WidgetShell>

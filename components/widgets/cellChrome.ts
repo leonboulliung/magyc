@@ -5,7 +5,7 @@ import type { DraggableAttributes } from "@dnd-kit/core";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 /**
- * Per-cell chrome — the reorder/resize/remove actions a GridZone cell
+ * Per-cell chrome — the reorder/remove actions a GridZone cell
  * owns, handed down so WidgetShell can render them in the SAME bar as the
  * widget's own affordances (regenerate / prompt-edit). One toolbar per
  * element instead of two floating clusters. Null when a widget isn't in a
@@ -16,8 +16,6 @@ export interface CellChrome {
   listeners: SyntheticListenerMap | undefined;
   setActivatorNodeRef: (el: HTMLElement | null) => void;
   onRemove: () => void;
-  onToggleFull: () => void;
-  isFull: boolean;
   busy: boolean;
 }
 

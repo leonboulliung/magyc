@@ -16,7 +16,77 @@ import {
  * Product-level per-file ceiling. Files upload directly to Supabase Storage
  * through signed URLs, so the Vercel request body limit no longer applies.
  */
-const DEFAULT_MAX_MB = 50;
+export const DEFAULT_MAX_UPLOAD_MB = 50;
+
+export const ATTACHMENT_ACCEPT = [
+  "image/*",
+  "audio/*",
+  "video/mp4",
+  "application/pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+  ".odt",
+  ".ods",
+  ".odp",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+].join(",");
+
+export function uploadHintForAccept(accept: string, maxSizeMb = DEFAULT_MAX_UPLOAD_MB): string {
+  const normalized = accept.replace(/\s+/g, "").toLowerCase();
+  if (normalized === "image/*") return `JPG, PNG, WebP, HEIC/HEIF · max. ${maxSizeMb} MB`;
+  if (normalized === "audio/*") return `MP3, WAV, M4A, AAC · max. ${maxSizeMb} MB`;
+  if (normalized.includes("application/pdf") || normalized.includes("video/mp4") || normalized.includes(".doc")) {
+    return `Bilder, Audio, MP4, PDF, Office, Text/CSV · max. ${maxSizeMb} MB`;
+  }
+  return `Erlaubte Medien und Dokumente · max. ${maxSizeMb} MB`;
+}
+
+function isAccepted(file: File, accept: string): boolean {
+  const rules = accept.split(",").map((rule) => rule.trim().toLowerCase()).filter(Boolean);
+  if (rules.length === 0 || rules.includes("*/*")) return true;
+  const mime = normalizedMime(file);
+  const name = file.name.toLowerCase();
+  return rules.some((rule) => {
+    if (rule.endsWith("/*")) return mime.startsWith(rule.slice(0, -1));
+    if (rule.startsWith(".")) return name.endsWith(rule);
+    if (rule.includes("/")) return mime === rule || mime.startsWith(rule);
+    return false;
+  });
+}
+
+function normalizedMime(file: File): string {
+  const fromBrowser = (file.type || "").toLowerCase();
+  if (fromBrowser) return fromBrowser;
+  const name = file.name.toLowerCase();
+  if (/\.(jpe?g)$/.test(name)) return "image/jpeg";
+  if (/\.png$/.test(name)) return "image/png";
+  if (/\.webp$/.test(name)) return "image/webp";
+  if (/\.(heic|heif)$/.test(name)) return "image/heic";
+  if (/\.gif$/.test(name)) return "image/gif";
+  if (/\.mp3$/.test(name)) return "audio/mpeg";
+  if (/\.wav$/.test(name)) return "audio/wav";
+  if (/\.m4a$/.test(name)) return "audio/mp4";
+  if (/\.aac$/.test(name)) return "audio/aac";
+  if (/\.mp4$/.test(name)) return "video/mp4";
+  if (/\.pdf$/.test(name)) return "application/pdf";
+  if (/\.doc$/.test(name)) return "application/msword";
+  if (/\.docx$/.test(name)) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (/\.xls$/.test(name)) return "application/vnd.ms-excel";
+  if (/\.xlsx$/.test(name)) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (/\.ppt$/.test(name)) return "application/vnd.ms-powerpoint";
+  if (/\.pptx$/.test(name)) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  if (/\.(odt|ods|odp)$/.test(name)) return "application/vnd.oasis.opendocument";
+  if (/\.md$/.test(name)) return "text/markdown";
+  if (/\.csv$/.test(name)) return "text/csv";
+  if (/\.txt$/.test(name)) return "text/plain";
+  return "application/octet-stream";
+}
 
 /**
  * Shared upload affordance used by Attachments, Images, and Audio
@@ -31,7 +101,7 @@ export function UploadZone({
   moduleIndex,
   accept,
   multiple = true,
-  maxSizeMb = DEFAULT_MAX_MB,
+  maxSizeMb = DEFAULT_MAX_UPLOAD_MB,
   compact = false,
   tile = false,
   onDone,
@@ -77,6 +147,15 @@ export function UploadZone({
       incoming = prepared;
     }
 
+    const wrongType = incoming.filter((f) => !isAccepted(f, accept));
+    if (wrongType.length) {
+      const names = wrongType.map((f) => f.name).join(", ");
+      const message = `Dateityp nicht erlaubt: ${names}. Erlaubt: ${uploadHintForAccept(accept, maxSizeMb)}.`;
+      showActionError("Dateityp nicht erlaubt", { id: toastId, description: message });
+      setError(message);
+    }
+    incoming = incoming.filter((f) => isAccepted(f, accept));
+
     // Reject anything still oversized with a concrete reason, then upload the rest.
     const limit = maxSizeMb * 1024 * 1024;
     const tooBig = incoming.filter((f) => f.size > limit);
@@ -103,7 +182,7 @@ export function UploadZone({
             moduleIndex,
             name: file.name,
             size: file.size,
-            mimeType: file.type || "application/octet-stream",
+            mimeType: normalizedMime(file),
             ...actor,
           }),
         });
@@ -120,7 +199,7 @@ export function UploadZone({
         const { error: uploadError } = await supabase.storage
           .from("space_assets")
           .uploadToSignedUrl(prepareJson.path, prepareJson.token, file, {
-            contentType: file.type || "application/octet-stream",
+            contentType: normalizedMime(file),
             upsert: false,
           });
         if (uploadError) {
@@ -139,7 +218,7 @@ export function UploadZone({
             path: prepareJson.path,
             name: file.name,
             size: file.size,
-            mimeType: file.type || "application/octet-stream",
+            mimeType: normalizedMime(file),
             ...actor,
           }),
         });
@@ -150,7 +229,7 @@ export function UploadZone({
             path: String(completeJson.path),
             name: typeof completeJson.name === "string" ? completeJson.name : file.name,
             size: typeof completeJson.size === "number" ? completeJson.size : file.size,
-            mimeType: typeof completeJson.mimeType === "string" ? completeJson.mimeType : file.type,
+            mimeType: typeof completeJson.mimeType === "string" ? completeJson.mimeType : normalizedMime(file),
           });
         } else {
           const message = showApiError("Upload fehlgeschlagen", completeJson, {

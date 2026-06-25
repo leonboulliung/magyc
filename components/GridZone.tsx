@@ -52,7 +52,9 @@ import { RenderBoundary } from "./ui/RenderBoundary";
  * re-init). Keyboard drag + screen-reader announcements come for free.
  *
  * Visual: a bounded white surface with a faint dot grid; widgets pack
- * in a CSS multi-column masonry, half- or full-width per cell.
+ * in a CSS grid masonry. Every element keeps the same single-column
+ * cell width on desktop; temporary fullscreen belongs to specialised
+ * widgets such as Moodboard, not to the grid chrome.
  */
 
 export interface BodyItem {
@@ -102,7 +104,6 @@ export function GridZone({
     setOptimisticItems(null);
   }, [serverOrderKey]);
 
-  const [fullWidth, setFullWidth] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addError, setAddError] = useState("");
@@ -190,14 +191,6 @@ export function GridZone({
     } finally {
       setBusy(false);
     }
-  }
-
-  function toggleFull(targetIndex: number) {
-    setFullWidth((s) => {
-      const n = new Set(s);
-      if (n.has(targetIndex)) n.delete(targetIndex); else n.add(targetIndex);
-      return n;
-    });
   }
 
   // ── Add (optimistic) ────────────────────────────────────────────
@@ -346,9 +339,7 @@ export function GridZone({
                       item={item}
                       stateEntries={stateByModule.get(item.index) ?? []}
                       isOwner={isOwner}
-                      isFull={fullWidth.has(item.index)}
                       busy={busy}
-                      onToggleFull={() => toggleFull(item.index)}
                       onRemove={() => removeAt(item.index)}
                     />
                   ))}
@@ -376,7 +367,7 @@ export function GridZone({
 }
 
 /**
- * A single draggable, removable, full/half-width widget cell. Drag is
+ * A single draggable, removable widget cell. Drag is
  * initiated only from the grip handle (setActivatorNodeRef + listeners),
  * leaving the rest of the card free for the widget's own interactions.
  *
@@ -388,17 +379,13 @@ function SortableCell({
   item,
   stateEntries,
   isOwner,
-  isFull,
   busy,
-  onToggleFull,
   onRemove,
 }: {
   item: BodyItem;
   stateEntries: ModuleStateEntry[];
   isOwner: boolean;
-  isFull: boolean;
   busy: boolean;
-  onToggleFull: () => void;
   onRemove: () => void;
 }) {
   const {
@@ -434,7 +421,7 @@ function SortableCell({
     const observer = new ResizeObserver(() => measure());
     observer.observe(el);
     return () => observer.disconnect();
-  }, [isFull, item.index]);
+  }, [item.index]);
 
   function attachRefs(node: HTMLDivElement | null) {
     localRef.current = node;
@@ -452,7 +439,6 @@ function SortableCell({
         // card (the reported "Verzerrung"). Translate keeps natural size.
         transform: CSS.Translate.toString(transform),
         transition,
-        gridColumn: isFull ? "1 / -1" : undefined,
         gridRow: `span ${rowSpan}`,
         borderRadius: "var(--v-radius)",
         opacity: isDragging ? 0.4 : 1,
@@ -460,12 +446,12 @@ function SortableCell({
         position: "relative",
       }}
     >
-      {/* Reorder / resize / remove are handed to WidgetShell via context
+      {/* Reorder / remove are handed to WidgetShell via context
           so the widget renders ONE toolbar (cell chrome + its own
           regenerate/prompt affordances), not two floating clusters. */}
       {isOwner ? (
         <CellChromeContext.Provider
-          value={{ attributes, listeners, setActivatorNodeRef, onRemove, onToggleFull, isFull, busy }}
+          value={{ attributes, listeners, setActivatorNodeRef, onRemove, busy }}
         >
           <RenderBoundary label="Element" resetKeys={[item.index, item.module.type]}>
             <WidgetDispatcher module={item.module} index={item.index} state={stateEntries} />

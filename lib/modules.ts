@@ -359,7 +359,6 @@ export function sanitizeModule(raw: unknown): Module | null {
     case "poll": {
       const question = clean(r.question, 200);
       const options = stringArray(r.options, 6, 80);
-      if (!question || options.length < 2) return null;
       return { type, ...b, question, options };
     }
     case "discussion": {
@@ -506,7 +505,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         });
         if (shots.length >= 40) break;
       }
-      if (shots.length === 0) return null;
       return { type, ...b, shots };
     }
     case "parts_list": {
@@ -528,7 +526,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         items.push(entry);
         if (items.length >= 30) break;
       }
-      if (items.length === 0) return null;
       return { type, ...b, items };
     }
     case "gif": {

@@ -22,7 +22,7 @@ const LABELS: Record<ModuleType, string> = {
   date: "Datum", appointment: "Termin", appointments: "Termine", range: "Von - Bis",
   crew: "Team & Rollen", work_packages: "Aufgaben", deliverables: "Deliverables",
   approvals: "Freigaben", notes: "Notizen", qa: "Fragen", poll: "Umfrage",
-  discussion: "Diskussion", phases: "Phasen", checklist: "Checkliste",
+  discussion: "MAGYC-Chat (alt)", phases: "Phasen", checklist: "Checkliste",
   attachments: "Dateien", images: "Bilder", moodboard: "Moodboard",
   selection: "Auswahl", audio: "Audio", sketch: "Skizze",
   table: "Tabelle / Technikliste", shot_list: "Shotlist",
@@ -379,6 +379,91 @@ function applyPresetAction(module: Module, kind: ModuleStateKind, data: Record<s
   if (module.type === "checklist" && kind === "add" && typeof data.text === "string") {
     const text = data.text.trim();
     return text ? { ...module, items: [...module.items, { text }] } : module;
+  }
+
+  if (module.type === "qa") {
+    if (kind === "voice" && data.role === "question" && typeof data.text === "string") {
+      const text = data.text.trim();
+      return text ? { ...module, questions: [...(module.questions ?? []), { text }] } : module;
+    }
+    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
+      const seedIndex = Number(data.id.slice(5));
+      if (!Number.isInteger(seedIndex) || seedIndex < 0) return module;
+      if (data.deleted === true) {
+        return { ...module, questions: (module.questions ?? []).filter((_, i) => i !== seedIndex) };
+      }
+    }
+  }
+
+  if (module.type === "shot_list") {
+    if (kind === "add" && typeof data.label === "string") {
+      const label = data.label.trim();
+      if (!label) return module;
+      return {
+        ...module,
+        shots: [
+          ...module.shots,
+          {
+            label,
+            priority: data.priority === "should" || data.priority === "nice" ? data.priority : "must",
+            status: data.status === "captured" || data.status === "selected" ? data.status : "planned",
+          },
+        ],
+      };
+    }
+    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
+      const seedIndex = Number(data.id.slice(5));
+      if (!Number.isInteger(seedIndex) || seedIndex < 0 || seedIndex >= module.shots.length) return module;
+      if (data.deleted === true) return { ...module, shots: module.shots.filter((_, i) => i !== seedIndex) };
+      return {
+        ...module,
+        shots: module.shots.map((shot, i) => {
+          if (i !== seedIndex) return shot;
+          return {
+            ...shot,
+            label: typeof data.label === "string" ? data.label.trim() : shot.label,
+            purpose: typeof data.purpose === "string" ? data.purpose.trim() || undefined : shot.purpose,
+            setup: typeof data.setup === "string" ? data.setup.trim() || undefined : shot.setup,
+            location: typeof data.location === "string" ? data.location.trim() || undefined : shot.location,
+            notes: typeof data.notes === "string" ? data.notes.trim() || undefined : shot.notes,
+            priority: data.priority === "must" || data.priority === "should" || data.priority === "nice" ? data.priority : shot.priority,
+            status: data.status === "planned" || data.status === "captured" || data.status === "selected" ? data.status : shot.status,
+          };
+        }).filter((shot) => shot.label.trim()),
+      };
+    }
+  }
+
+  if (module.type === "parts_list") {
+    if (kind === "add" && typeof data.name === "string") {
+      const name = data.name.trim();
+      if (!name) return module;
+      const quantity = typeof data.quantity === "string" ? data.quantity.trim() : "";
+      const imageUrl = typeof data.imageUrl === "string" && /^https?:\/\/[^\s]+$/i.test(data.imageUrl.trim())
+        ? data.imageUrl.trim()
+        : "";
+      return {
+        ...module,
+        items: [...module.items, { name, ...(quantity ? { quantity } : {}), ...(imageUrl ? { imageUrl } : {}) }],
+      };
+    }
+    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
+      const seedIndex = Number(data.id.slice(5));
+      if (!Number.isInteger(seedIndex) || seedIndex < 0 || seedIndex >= module.items.length) return module;
+      if (data.deleted === true) return { ...module, items: module.items.filter((_, i) => i !== seedIndex) };
+      return {
+        ...module,
+        items: module.items.map((item, i) => {
+          if (i !== seedIndex) return item;
+          const name = typeof data.name === "string" ? data.name.trim() : item.name;
+          const quantity = typeof data.quantity === "string" ? data.quantity.trim() || undefined : item.quantity;
+          const imageUrl = typeof data.imageUrl === "string" && /^https?:\/\/[^\s]+$/i.test(data.imageUrl.trim())
+            ? data.imageUrl.trim()
+            : item.imageUrl;
+          return { ...item, name, quantity, imageUrl };
+        }).filter((item) => item.name.trim()),
+      };
+    }
   }
 
   if (module.type === "moodboard") {

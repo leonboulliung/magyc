@@ -92,7 +92,7 @@ function buildSystem(space: {
   const capability = opts.canEdit
     ? "Du kannst Elemente hinzufügen, entfernen und umbenennen: nutze die Tools nur, wenn der Nutzer eine konkrete Änderung will, und bestätige danach kurz in Worten."
     : opts.locked
-      ? "Du kannst die Projektseite NICHT ändern (Projekt gesperrt/abgeschlossen). Hilf nur mit Erklärungen, Vorschlägen oder Diskussion — und sag offen, dass Änderungen nicht mehr möglich sind."
+      ? "Du kannst die Projektseite NICHT ändern (Projekt gesperrt/abgeschlossen). Hilf nur mit Erklärungen, Vorschlägen oder Entscheidungsfragen — und sag offen, dass Änderungen nicht mehr möglich sind."
       : "Du kannst die Projektseite gerade nicht ändern (nur die Inhaber:in kann das). Hilf mit Vorschlägen.";
 
   return `Du bist @magyc, der durchgehende Projekt-Agent dieses einen Projekts.

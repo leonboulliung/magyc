@@ -13,6 +13,8 @@ const ALLOWED_MIME_PREFIXES = [
   "video/mp4",
   "application/pdf",
   "application/msword",
+  "application/vnd.ms-excel",
+  "application/vnd.ms-powerpoint",
   "application/vnd.openxmlformats",
   "application/vnd.oasis",
   "text/plain",

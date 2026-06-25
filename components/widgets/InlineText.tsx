@@ -36,7 +36,7 @@ export function InlineText({
 
   if (!isOwner) {
     return (
-      <span className={className} style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}>
+      <span className={`break-words [overflow-wrap:anywhere] ${className}`} style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}>
         {value || placeholder}
       </span>
     );
@@ -59,7 +59,7 @@ export function InlineText({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
-          className={`w-full resize-none bg-transparent outline-none ${className}`}
+          className={`w-full resize-none bg-transparent outline-none [overflow-wrap:anywhere] ${className}`}
           style={{ color: "var(--v-fg)" }}
         />
       );
@@ -75,7 +75,7 @@ export function InlineText({
           if (e.key === "Enter") { e.preventDefault(); commit(); }
           else if (e.key === "Escape") { setDraft(value); setEditing(false); }
         }}
-        className={`w-full bg-transparent outline-none ${className}`}
+        className={`w-full bg-transparent outline-none [overflow-wrap:anywhere] ${className}`}
         style={{ color: "var(--v-fg)" }}
       />
     );
@@ -85,7 +85,7 @@ export function InlineText({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className={`text-left ${className}`}
+      className={`break-words text-left [overflow-wrap:anywhere] ${className}`}
       style={{ color: value ? "var(--v-fg)" : "var(--v-muted)", cursor: "text" }}
     >
       {value || placeholder}

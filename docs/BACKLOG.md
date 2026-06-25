@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-25 (Codex — prompt/studio/preset polish)_
+_Last updated: 2026-06-25 (Codex — element robustness pass)_
 
 ---
 
@@ -112,6 +112,21 @@ regenerate, project create, and @magyc chat. **Operational follow-up:** apply
 `supabase/migrations/019_asset_security_and_rate_limits.sql` in Supabase before
 or immediately with deploy; monitor Storage usage and consider a dedicated
 media CDN/R2 layer once delivery files or very large galleries become core.
+
+Follow-up done 2026-06-25: element robustness pass. The grid-level two-column
+resize affordance was removed for all widgets; element-specific fullscreen
+remains only where the renderer owns it (e.g. Moodboard). Moodboard, Shotlist,
+Questions, Poll, Notes, Attachments, Images/Selection/Audio uploads, Checklist,
+Deliverables, Approvals, and Parts List now use clearer German empty states and
+add actions instead of cryptic `…` / bare `+` affordances where they caused
+confusion. The shared `UploadZone` now exposes one accepted-types/max-size
+contract (50 MB per file), validates MIME/extensions client-side, normalizes
+common blank browser MIME values, and matches the server allowlist for legacy
+Office files. Attachments gained per-file download actions. Notes and inline
+text paths now force wrapping (`overflow-wrap:anywhere`) to resist long input.
+The user-facing Discussion element is retired from picker, presets,
+classification, and `/dev`; the legacy `discussion` module type/renderer stays
+only to avoid breaking existing Spaces under the frozen data contract.
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client

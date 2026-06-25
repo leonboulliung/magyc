@@ -163,7 +163,7 @@ export function WidgetShell({
     }
   }
 
-  // One toolbar for the whole element: cell chrome (reorder / resize /
+  // One toolbar for the whole element: cell chrome (reorder /
   // remove, if this widget sits in a grid cell) + its own affordances
   // (prompt-edit, alternatives).
   const showBar = ctx.isOwner && !presetPreview && (!!cell || canRegenerate || promptEditable);
@@ -205,15 +205,6 @@ export function WidgetShell({
                 style={{ cursor: "grab", touchAction: "none", color: "var(--v-muted)" }}
               >
                 ⠿
-              </button>
-              <button
-                type="button"
-                onClick={cell.onToggleFull}
-                title={cell.isFull ? "half width" : "full width"}
-                className={`${barBtn} text-[13px] hidden sm:flex`}
-                style={{ color: "var(--v-muted)" }}
-              >
-                {cell.isFull ? "⇥" : "⇔"}
               </button>
               <button
                 type="button"

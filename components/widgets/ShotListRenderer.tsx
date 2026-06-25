@@ -141,7 +141,7 @@ export function ShotListRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={160}
-              placeholder="Motiv eingeben, Enter für weiteres …"
+              placeholder="Motiv benennen, Enter für weiteres"
               className="w-full bg-transparent px-2 py-1 text-[13px] outline-none rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -149,11 +149,11 @@ export function ShotListRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="add"
-              className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-60 transition-opacity hover:opacity-100"
+              aria-label="Eintrag hinzufügen"
+              className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              +
+              + Eintrag hinzufügen
             </button>
           )}
         </div>
@@ -304,7 +304,7 @@ function InlineField({
         <button
           type="button"
           onClick={() => edit.setEditing(true)}
-          className={`block min-h-[16px] w-full whitespace-pre-wrap break-words text-left leading-relaxed ${fieldClass}`}
+          className={`block min-h-[16px] w-full whitespace-pre-wrap break-words text-left leading-relaxed [overflow-wrap:anywhere] ${fieldClass}`}
           style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}
         >
           {value || (label ? "—" : ph)}
@@ -326,11 +326,11 @@ function buildShots(module: ShotListWidget, state: ModuleStateEntry[]): ShotView
   module.shots.forEach((shot, i) => {
     byId.set(`seed-${i}`, {
       key: `seed-${i}`,
-      label: shot.label,
-      purpose: shot.purpose,
-      setup: shot.setup,
-      location: shot.location,
-      notes: shot.notes,
+      label: cleanPlaceholder(shot.label),
+      purpose: cleanPlaceholder(shot.purpose),
+      setup: cleanPlaceholder(shot.setup),
+      location: cleanPlaceholder(shot.location),
+      notes: cleanPlaceholder(shot.notes),
       priority: shot.priority ?? "must",
       status: shot.status ?? "planned",
     });
@@ -339,7 +339,7 @@ function buildShots(module: ShotListWidget, state: ModuleStateEntry[]): ShotView
   for (const e of state) {
     if (e.kind !== "add") continue;
     const id = typeof e.data.id === "string" ? e.data.id : e.id;
-    const label = typeof e.data.label === "string" ? e.data.label : "";
+    const label = cleanPlaceholder(typeof e.data.label === "string" ? e.data.label : "");
     if (!label) continue;
     byId.set(id, {
       key: id,
@@ -360,17 +360,22 @@ function buildShots(module: ShotListWidget, state: ModuleStateEntry[]): ShotView
     if (!current) continue;
     byId.set(id, {
       ...current,
-      label: typeof e.data.label === "string" ? e.data.label : current.label,
-      purpose: typeof e.data.purpose === "string" ? e.data.purpose : current.purpose,
-      setup: typeof e.data.setup === "string" ? e.data.setup : current.setup,
-      location: typeof e.data.location === "string" ? e.data.location : current.location,
-      notes: typeof e.data.notes === "string" ? e.data.notes : current.notes,
+      label: typeof e.data.label === "string" ? cleanPlaceholder(e.data.label) : current.label,
+      purpose: typeof e.data.purpose === "string" ? cleanPlaceholder(e.data.purpose) : current.purpose,
+      setup: typeof e.data.setup === "string" ? cleanPlaceholder(e.data.setup) : current.setup,
+      location: typeof e.data.location === "string" ? cleanPlaceholder(e.data.location) : current.location,
+      notes: typeof e.data.notes === "string" ? cleanPlaceholder(e.data.notes) : current.notes,
       priority: asPriority(e.data.priority, current.priority),
       status: asStatus(e.data.status, current.status),
     });
   }
 
-  return Array.from(byId.values()).filter((shot) => !deleted.has(shot.key));
+  return Array.from(byId.values()).filter((shot) => !deleted.has(shot.key) && shot.label.trim());
+}
+
+function cleanPlaceholder(value: unknown): string {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text === "…" || text === "..." ? "" : text;
 }
 
 function asPriority(value: unknown, fallback: ShotPriority = "must"): ShotPriority {

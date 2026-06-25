@@ -188,7 +188,7 @@ export function ApprovalsRenderer({
                       <div className="mt-2">
                         <InlineWorkflowText
                           value={item.text}
-                          placeholder="…"
+                          placeholder="Freigabe benennen ..."
                           onSave={(next) => updateItem(item.key, { text: next })}
                           className="text-[13px] leading-snug"
                         />
@@ -287,7 +287,7 @@ export function ApprovalsRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={200}
-              placeholder="…"
+              placeholder="Freigabe hinzufügen ..."
               className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -295,11 +295,11 @@ export function ApprovalsRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="add"
+              aria-label="Freigabe hinzufügen"
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              +
+              + Eintrag hinzufügen
             </button>
           )}
         </div>

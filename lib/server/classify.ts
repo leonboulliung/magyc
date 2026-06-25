@@ -18,7 +18,7 @@ import {
  * v4 used a single call that both SELECTED and AUTHORED 26 widgets.
  * That suffered three structural problems:
  *   (a) position bias — modules late in the flat list got under-picked;
- *   (b) vague-rule modules (notes, discussion, qa) dominated every
+ *   (b) vague-rule modules (notes, qa) dominated every
  *       space regardless of fit;
  *   (c) the model defaulted to the same "safe" few each time.
  *
@@ -57,7 +57,7 @@ const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
   { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "range", "phases"] },
   { title: "PLACE", types: ["location_single", "locations_multi", "location_suggestions", "route"] },
   { title: "PEOPLE & WORK", types: ["crew", "work_packages", "deliverables", "checklist"] },
-  { title: "DISCUSSION & DECISIONS", types: ["notes", "qa", "poll", "discussion", "approvals"] },
+  { title: "QUESTIONS & DECISIONS", types: ["notes", "qa", "poll", "approvals"] },
   { title: "STRUCTURED DATA", types: ["table", "shot_list", "parts_list"] },
   { title: "MEDIA", types: ["attachments", "images", "moodboard", "audio", "sketch"] },
 ];
@@ -148,9 +148,9 @@ SCORING RULES — read carefully, this is the important part:
 - Reserve 8-10 for widgets that obviously and concretely serve THIS
   input. Reserve 5-7 for plausible fits. Score 0-4 for everything
   that would only fit a generic version of the input.
-- Be especially strict with discussion, notes, qa, poll — only score
+- Be especially strict with notes, qa, poll — only score
   them high when the input GENUINELY needs that exact interaction,
-  not just because most projects "could" have a discussion.
+  not just because most projects "could" have open conversation.
 
 THE WIDGETS:
 
@@ -330,7 +330,6 @@ const SHAPE: Partial<Record<ModuleType, string>> = {
   notes: `{"type":"notes","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
   qa: `{"type":"qa","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>","questions":[{"text":"<optional seeded question>","answerHint":"<optional short answer cue>"}]}`,
   poll: `{"type":"poll","microTitle":"<short label>","question":"<question>","options":["<opt>","<opt>"]}`,
-  discussion: `{"type":"discussion","microTitle":"<short label>","description":"<optional 1-line context>","placeholder":"<optional short invite>"}`,
   table: `{"type":"table","microTitle":"<short label>","description":"<optional 1-line context>","columns":["<col>","<col>"],"rows":[["<cell>","<cell>"]]}`,
   shot_list: `{"type":"shot_list","microTitle":"<short label>","description":"<optional 1-line context>","shots":[{"label":"<shot>","purpose":"<optional>","setup":"<optional>","location":"<optional>","notes":"<optional>","priority":"must|should|nice","status":"planned|captured|selected"}]}`,
   parts_list: `{"type":"parts_list","microTitle":"<short label>","description":"<optional 1-line context>","items":[{"name":"<item>","quantity":"<optional>"}]}`,
@@ -450,7 +449,7 @@ CONTENT RULES:
   grounded items beat ten invented ones. Always author microTitle,
   description and placeholder (framing, not facts) so empty widgets read as
   clear invitations.
-- Collaboration / upload widgets (notes, qa, discussion, attachments,
+- Collaboration / upload widgets (notes, qa, attachments,
   images, audio, sketch) may use microTitle plus optional description
   and placeholder guidance. The qa widget may optionally seed question
   prompts, but it must NOT invent answers, conversation entries, uploaded

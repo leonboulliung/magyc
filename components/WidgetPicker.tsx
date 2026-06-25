@@ -20,7 +20,7 @@ type LangMap = Partial<Record<ModuleType, string>>;
 const TRANSLATIONS: Record<string, LangMap> = {
   en: {
     ai_summary: "AI summary", icon: "Icon", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notes", discussion: "Chat", qa: "Q&A", poll: "Poll",
+    notes: "Notes", qa: "Q&A", poll: "Poll",
     crew: "Crew", work_packages: "Tasks", deliverables: "Deliverables", approvals: "Approvals", checklist: "Checklist",
     date: "Date", appointment: "Appointment", appointments: "Schedule",
     range: "Range", phases: "Phases",
@@ -31,7 +31,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   },
   de: {
     ai_summary: "KI-Einschätzung", icon: "Symbol", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notizen", discussion: "Diskussion", qa: "Fragen", poll: "Umfrage",
+    notes: "Notizen", qa: "Fragen", poll: "Umfrage",
     crew: "Crew", work_packages: "Aufgaben", deliverables: "Ergebnisse", approvals: "Freigaben", checklist: "Checkliste",
     date: "Datum", appointment: "Termin", appointments: "Termine",
     range: "Von – Bis", phases: "Phasen",
@@ -42,7 +42,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   },
   fr: {
     ai_summary: "Synthèse IA", icon: "Icône", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notes", discussion: "Discussion", qa: "Questions", poll: "Sondage",
+    notes: "Notes", qa: "Questions", poll: "Sondage",
     crew: "Équipe", work_packages: "Tâches", deliverables: "Livrables", approvals: "Validations", checklist: "Liste",
     date: "Date", appointment: "Rendez-vous", appointments: "Planning",
     range: "De – À", phases: "Phases",
@@ -53,7 +53,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   },
   es: {
     ai_summary: "Resumen IA", icon: "Ícono", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notas", discussion: "Discusión", qa: "Preguntas", poll: "Encuesta",
+    notes: "Notas", qa: "Preguntas", poll: "Encuesta",
     crew: "Equipo", work_packages: "Tareas", deliverables: "Entregables", approvals: "Aprobaciones", checklist: "Lista",
     date: "Fecha", appointment: "Cita", appointments: "Agenda",
     range: "De – A", phases: "Fases",
@@ -64,7 +64,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   },
   it: {
     ai_summary: "Sintesi IA", icon: "Icona", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Note", discussion: "Discussione", qa: "Domande", poll: "Sondaggio",
+    notes: "Note", qa: "Domande", poll: "Sondaggio",
     crew: "Team", work_packages: "Compiti", deliverables: "Deliverable", approvals: "Approvazioni", checklist: "Lista",
     date: "Data", appointment: "Appuntamento", appointments: "Agenda",
     range: "Da – A", phases: "Fasi",
@@ -75,7 +75,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   },
   pt: {
     ai_summary: "Resumo IA", icon: "Ícone", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notas", discussion: "Discussão", qa: "Perguntas", poll: "Enquete",
+    notes: "Notas", qa: "Perguntas", poll: "Enquete",
     crew: "Equipe", work_packages: "Tarefas", deliverables: "Entregas", approvals: "Aprovações", checklist: "Lista",
     date: "Data", appointment: "Compromisso", appointments: "Agenda",
     range: "De – A", phases: "Fases",
@@ -86,7 +86,7 @@ const TRANSLATIONS: Record<string, LangMap> = {
   },
   nl: {
     ai_summary: "AI samenvatting", icon: "Icoon", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notities", discussion: "Discussie", qa: "Vragen", poll: "Enquête",
+    notes: "Notities", qa: "Vragen", poll: "Enquête",
     crew: "Team", work_packages: "Taken", deliverables: "Deliverables", approvals: "Goedkeuringen", checklist: "Checklist",
     date: "Datum", appointment: "Afspraak", appointments: "Agenda",
     range: "Van – Tot", phases: "Fasen",
@@ -135,7 +135,6 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
     symbol: "↩",
     entries: [
       { type: "notes",      symbol: "≡" },
-      { type: "discussion", symbol: "↩" },
       { type: "qa",         symbol: "?" },
       { type: "poll",       symbol: "○" },
     ],
@@ -202,29 +201,28 @@ export function defaultWidget(type: ModuleType): Module | null {
     case "wikipedia":            return { type, topic: "…" };
     case "gif":                  return { type, gifUrl: "https://media.tenor.com/RoFLtN1WqOwAAAAC/loading.gif", thumbnailUrl: "" };
     case "notes":                return { type };
-    case "discussion":           return { type };
     case "qa":                   return { type };
-    case "poll":                 return { type, question: "?", options: ["A", "B", "C"] };
-    case "crew":                 return { type, roles: [{ name: "…" }] };
-    case "work_packages":        return { type, packages: [{ label: "…" }] };
-    case "deliverables":         return { type, items: [{ label: "…" }] };
-    case "approvals":            return { type, items: [{ text: "…" }] };
+    case "poll":                 return { type, question: "", options: [] };
+    case "crew":                 return { type, roles: [{ name: "Rolle" }] };
+    case "work_packages":        return { type, packages: [{ label: "Aufgabe" }] };
+    case "deliverables":         return { type, items: [{ label: "Ergebnis" }] };
+    case "approvals":            return { type, items: [{ text: "Freigabe" }] };
     case "checklist":            return { type, items: [] };
     case "date":                 return { type, date: today };
     case "appointment":          return { type, datetime: now };
-    case "appointments":         return { type, entries: [{ datetime: now, label: "…" }] };
+    case "appointments":         return { type, entries: [{ datetime: now, label: "" }] };
     case "range":                return { type, unit: "generic", from: "—", to: "—" };
     case "phases":               return { type, phases: [{ label: "I" }, { label: "II" }, { label: "III" }], currentPhase: 0 };
     case "location_single":      return { type, center: [2.3522, 48.8566], zoom: 13, label: "Paris" };
-    case "locations_multi":      return { type, locations: [{ lng: 2.3522, lat: 48.8566, label: "…" }] };
-    case "location_suggestions": return { type, suggestions: [{ label: "…" }] };
+    case "locations_multi":      return { type, locations: [{ lng: 2.3522, lat: 48.8566, label: "Ort" }] };
+    case "location_suggestions": return { type, suggestions: [{ label: "Ort vorschlagen" }] };
     case "route":                return { type, stops: [{ lng: 2.3522, lat: 48.8566, label: "A" }, { lng: 2.3601, lat: 48.8529, label: "B" }] };
     case "table":                return { type, columns: ["A", "B", "C"], rows: [["", "", ""]] };
-    case "shot_list":            return { type, shots: [{ label: "…", priority: "must", status: "planned" }] };
-    case "parts_list":           return { type, items: [{ name: "…" }] };
+    case "shot_list":            return { type, shots: [] };
+    case "parts_list":           return { type, items: [] };
     case "attachments":          return { type };
     case "images":               return { type };
-    case "moodboard":            return { type, directions: [{ label: "…" }] };
+    case "moodboard":            return { type, directions: [] };
     case "selection":            return { type };
     case "audio":                return { type };
     case "sketch":               return { type };

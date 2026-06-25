@@ -60,8 +60,6 @@ export function ImagesRenderer({
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        {ctx.isOwner && !m.microTitle && <div aria-hidden className="h-5" />}
-
         {images.length === 0 ? (
           <p className="mono pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>
             {m.placeholder ?? "Noch keine Bilder — lade welche hoch."}
@@ -109,7 +107,7 @@ export function ImagesRenderer({
 
         <div className="mt-3">
           <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
-            <span className="mono tracking-widest opacity-70">▨ Bilder hochladen</span>
+            <span className="mono tracking-widest opacity-70">▨ Bilder hochladen · JPG PNG WEBP HEIC · max. 50 MB</span>
           </UploadZone>
         </div>
       </WidgetCard>

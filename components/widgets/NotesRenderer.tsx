@@ -88,7 +88,7 @@ export function NotesRenderer({
                   else if (e.key === "Escape") { setPending(""); setAdding(false); }
                 }}
                 maxLength={1000}
-                placeholder="…"
+                placeholder="Notiz schreiben"
                 rows={2}
                 className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
                 style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
@@ -101,11 +101,11 @@ export function NotesRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="add"
-              className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
+              aria-label="Notiz hinzufügen"
+              className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              +
+              + Eintrag hinzufügen
             </button>
           )}
         </div>
@@ -133,7 +133,7 @@ function buildNotes(entries: ModuleStateEntry[]): Note[] {
       const text = String(e.data.text ?? "");
       byId.set(id, {
         id,
-        text,
+        text: cleanNoteText(text),
         authorName: e.actor.displayName,
         authorColor: typeof e.data.color === "string" ? e.data.color : undefined,
         createdAt: e.createdAt,
@@ -143,7 +143,7 @@ function buildNotes(entries: ModuleStateEntry[]): Note[] {
       if (!id) continue;
       if (e.data.deleted === true) { deleted.add(id); continue; }
       const existing = byId.get(id);
-      if (existing) existing.text = String(e.data.text ?? existing.text);
+      if (existing) existing.text = cleanNoteText(e.data.text ?? existing.text);
     }
   }
   return [...byId.values()]
@@ -190,7 +190,7 @@ function NoteCard({
       <div className="flex items-start gap-2.5">
         <ActorDot color={note.authorColor} displayName={note.authorName} size={16} />
         {editing ? (
-          <div className="flex-1 space-y-1.5">
+          <div className="min-w-0 flex-1 space-y-1.5">
             <textarea
               autoFocus
               value={draft}
@@ -202,7 +202,7 @@ function NoteCard({
               }}
               rows={3}
               maxLength={1000}
-              className="w-full text-[13px] leading-relaxed bg-transparent border-0 outline-none resize-none"
+              className="w-full resize-none border-0 bg-transparent text-[13px] leading-relaxed outline-none [overflow-wrap:anywhere]"
               style={{ color: "var(--v-fg)" }}
             />
             <p className="mono text-[9px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
@@ -212,13 +212,17 @@ function NoteCard({
         ) : (
           <div
             onClick={() => setEditing(true)}
-            className="flex-1 text-[13px] leading-relaxed cursor-text whitespace-pre-wrap"
+            className="min-w-0 flex-1 cursor-text whitespace-pre-wrap break-words text-[13px] leading-relaxed [overflow-wrap:anywhere]"
             style={{ color: "var(--v-fg)" }}
           >
-            {note.text || "…"}
+            {note.text || "Notiz schreiben"}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function cleanNoteText(value: unknown): string {
+  return String(value ?? "").replace(/\r\n?/g, "\n").trim().slice(0, 1000);
 }

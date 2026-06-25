@@ -148,7 +148,7 @@ export function DeliverablesRenderer({
                     <div className="flex-1 min-w-0">
                       <InlineWorkflowText
                         value={item.label}
-                        placeholder="…"
+                        placeholder="Ergebnis benennen ..."
                         onSave={(next) => updateItem(item.key, { label: next })}
                         className="text-[13px] leading-snug"
                       />
@@ -228,7 +228,7 @@ export function DeliverablesRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={200}
-              placeholder="Liefergegenstand hinzufügen …"
+              placeholder="Ergebnis hinzufügen ..."
               className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -236,11 +236,11 @@ export function DeliverablesRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="add"
+              aria-label="Ergebnis hinzufügen"
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              +
+              + Eintrag hinzufügen
             </button>
           )}
         </div>

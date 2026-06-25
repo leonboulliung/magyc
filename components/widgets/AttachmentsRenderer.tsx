@@ -5,7 +5,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { AttachmentsWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
-import { UploadZone, fmtSize } from "./UploadZone";
+import { ATTACHMENT_ACCEPT, UploadZone, fmtSize, uploadHintForAccept } from "./UploadZone";
 import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 /**
@@ -99,7 +99,7 @@ export function AttachmentsRenderer({
                     href={f.url}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="flex-1 min-w-0 text-[12.5px] hover:underline truncate"
+                    className="flex-1 min-w-0 truncate text-[12.5px] hover:underline"
                     style={{ color: "var(--v-fg)" }}
                   >
                     {f.name}
@@ -112,6 +112,15 @@ export function AttachmentsRenderer({
                   {f.authorName && (
                     <ActorDot color={f.authorColor} displayName={f.authorName} size={14} />
                   )}
+                  <a
+                    href={f.url}
+                    download={f.name}
+                    aria-label={`${f.name} herunterladen`}
+                    className="mono shrink-0 rounded-full px-2 py-1 text-[9px] tracking-widest opacity-55 transition-opacity hover:opacity-100"
+                    style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+                  >
+                    Download
+                  </a>
                   <button
                     type="button"
                     onClick={() => remove(f.key)}
@@ -130,11 +139,14 @@ export function AttachmentsRenderer({
         <UploadZone
           spaceId={ctx.spaceId}
           moduleIndex={index}
-          accept="*/*"
+          accept={ATTACHMENT_ACCEPT}
           multiple
           onDone={() => {}}
         >
           <span className="mono text-[10px] tracking-widest opacity-60">↑ Datei hinzufügen</span>
+          <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
+            {uploadHintForAccept(ATTACHMENT_ACCEPT)}
+          </span>
         </UploadZone>
       </WidgetCard>
     </WidgetShell>

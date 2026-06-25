@@ -8,7 +8,7 @@ import { PERSONAS, getActivePersonaId, setActivePersona } from "@/lib/personas";
  * Persona switcher — a tiny floating pill in the bottom-left of any
  * space view that lets a tester swap identity between Alice and Bob
  * (and "none" = the browser's own anon token). Lets us see multi-user
- * widgets (discussion, voices, votes) behave correctly without two
+ * widgets (voices, votes, claims) behave correctly without two
  * devices.
  *
  * Visible always for now. When we ship a real product the switcher

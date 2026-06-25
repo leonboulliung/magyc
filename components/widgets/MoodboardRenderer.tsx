@@ -175,9 +175,6 @@ export function MoodboardRenderer({
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        {/* Reserve a strip for the hover toolbar (owner only, no title). */}
-        {ctx.isOwner && !m.microTitle && <div aria-hidden className="h-5" />}
-
         {empty && (
           <p className="mono mb-2 pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>
             {m.placeholder ?? "Lade Referenzen hoch oder notiere eine Richtung."}
@@ -239,6 +236,9 @@ export function MoodboardRenderer({
               <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
                 <span className="text-[20px] leading-none opacity-60">＋</span>
                 <span className="mono tracking-widest opacity-60">Bilder</span>
+                <span className="mono px-2 text-center text-[8px] leading-tight tracking-widest opacity-45">
+                  JPG PNG WEBP HEIC · max. 50 MB
+                </span>
               </UploadZone>
             </div>
           </div>
@@ -284,7 +284,7 @@ export function MoodboardRenderer({
               className="mono inline-flex items-center gap-1 text-[11px] tracking-widest opacity-75 transition-opacity hover:opacity-100"
               style={{ color: "var(--v-accent, var(--v-fg))" }}
             >
-              <span className="text-[14px] leading-none">+</span> Richtung notieren
+              + Eintrag hinzufügen
             </button>
             {!empty && (
               <button
@@ -343,6 +343,9 @@ export function MoodboardRenderer({
                   <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
                     <span className="text-[20px] leading-none opacity-60">＋</span>
                     <span className="mono tracking-widest opacity-60">Bilder</span>
+                    <span className="mono px-2 text-center text-[8px] leading-tight tracking-widest opacity-45">
+                      JPG PNG WEBP HEIC · max. 50 MB
+                    </span>
                   </UploadZone>
                 </div>
               </div>
@@ -388,7 +391,7 @@ export function MoodboardRenderer({
                     className="mono inline-flex items-center gap-1 pt-1 text-[11px] tracking-widest opacity-75 transition-opacity hover:opacity-100"
                     style={{ color: "var(--v-accent, var(--v-fg))" }}
                   >
-                    <span className="text-[14px] leading-none">+</span> Richtung notieren
+                    + Eintrag hinzufügen
                   </button>
                 )}
               </div>
@@ -551,8 +554,8 @@ function buildDirections(module: MoodboardWidget, state: ModuleStateEntry[]): Di
   module.directions.forEach((direction, i) => {
     byId.set(`seed-${i}`, {
       key: `seed-${i}`,
-      label: direction.label,
-      note: direction.note,
+      label: cleanPlaceholder(direction.label),
+      note: cleanPlaceholder(direction.note),
       status: direction.status ?? "reference",
     });
   });
@@ -560,7 +563,7 @@ function buildDirections(module: MoodboardWidget, state: ModuleStateEntry[]): Di
   for (const e of state) {
     if (e.kind !== "add") continue;
     const id = typeof e.data.id === "string" ? e.data.id : e.id;
-    const label = typeof e.data.label === "string" ? e.data.label : "";
+    const label = cleanPlaceholder(typeof e.data.label === "string" ? e.data.label : "");
     if (!label) continue;
     byId.set(id, {
       key: id,
@@ -579,11 +582,16 @@ function buildDirections(module: MoodboardWidget, state: ModuleStateEntry[]): Di
       : current.status;
     byId.set(id, {
       ...current,
-      label: typeof e.data.label === "string" ? e.data.label : current.label,
-      note: typeof e.data.note === "string" ? e.data.note : current.note,
+      label: typeof e.data.label === "string" ? cleanPlaceholder(e.data.label) : current.label,
+      note: typeof e.data.note === "string" ? cleanPlaceholder(e.data.note) : current.note,
       status,
     });
   }
 
-  return Array.from(byId.values()).filter((d) => !deleted.has(d.key));
+  return Array.from(byId.values()).filter((d) => !deleted.has(d.key) && (d.label.trim() || d.note?.trim()));
+}
+
+function cleanPlaceholder(value: unknown): string {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text === "…" || text === "..." ? "" : text;
 }

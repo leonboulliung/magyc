@@ -37,6 +37,9 @@ export function PollRenderer({
   const myEntry = latestByActor.get(myId) || null;
   const mine = myEntry && typeof myEntry.data.option === "string" ? (myEntry.data.option as string) : null;
 
+  const question = cleanPollText(m.question);
+  const options = m.options.map(cleanPollText);
+
   // Bucket votes per option.
   const buckets = new Map<string, ModuleStateEntry[]>();
   for (const e of latestByActor.values()) {
@@ -60,9 +63,8 @@ export function PollRenderer({
     options[i] = v;
     save({ ...m, options });
   }
-  function addOption() { save({ ...m, options: [...m.options, "Neue Option"] }); }
+  function addOption() { save({ ...m, options: [...m.options, ""] }); }
   function removeOption(i: number) {
-    if (m.options.length <= 2) return; // a poll needs at least two
     save({ ...m, options: m.options.filter((_, j) => j !== i) });
   }
 
@@ -82,28 +84,47 @@ export function PollRenderer({
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        <div className="text-[13px] mb-3 leading-snug" style={{ color: "var(--v-fg)" }}>
+        <div className="mb-3 text-[13px] leading-snug" style={{ color: "var(--v-fg)" }}>
           <InlineText
-            value={m.question}
+            value={question}
             isOwner={ctx.isOwner}
             onSave={(v) => save({ ...m, question: v })}
-            placeholder="Frage …"
+            placeholder="Welche Entscheidung soll getroffen werden?"
             multiline
-            className="text-[13px] leading-snug"
+            className="text-[13px] font-medium leading-snug [overflow-wrap:anywhere]"
           />
         </div>
 
+        {options.length === 0 && (
+          <p className="mono mb-3 rounded-[var(--v-radius)] px-3 py-3 text-[11px] leading-relaxed opacity-55" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}>
+            {ctx.isOwner ? "Lege Antwortoptionen an, damit abgestimmt werden kann." : "Diese Umfrage ist noch nicht vorbereitet."}
+          </p>
+        )}
+
         <ul className="space-y-2">
-          {m.options.map((opt, i) => {
+          {options.map((opt, i) => {
             const votes = buckets.get(opt) || [];
             const pct = totalVotes ? Math.round((votes.length / totalVotes) * 100) : 0;
-            const selected = mine === opt;
+            const selectable = !!opt.trim();
+            const selected = selectable && mine === opt;
             return (
-              <li key={i}>
-                <button
-                  type="button"
-                  onClick={() => vote(opt)}
-                  className="w-full text-left relative overflow-hidden rounded-[var(--v-radius)] transition-colors"
+              <li key={i} className="group/option">
+                <div
+                  role={selectable ? "button" : undefined}
+                  tabIndex={selectable ? 0 : -1}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest("button,input,textarea,[data-poll-control='true']")) return;
+                    if (selectable) vote(opt);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!selectable) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      vote(opt);
+                    }
+                  }}
+                  className={`relative w-full overflow-hidden rounded-[var(--v-radius)] text-left transition-colors ${selectable ? "cursor-pointer" : "cursor-text"}`}
                   style={{
                     border: `1px solid ${selected ? "var(--v-fg)" : "var(--v-rule)"}`,
                     background: "transparent",
@@ -128,9 +149,13 @@ export function PollRenderer({
                     >
                       {String(pct).padStart(2, "0")}
                     </span>
-                    <span className="flex-1 text-[13px]" style={{ color: "var(--v-fg)" }}>
-                      {opt}
-                    </span>
+                    <InlineText
+                      value={opt}
+                      isOwner={ctx.isOwner}
+                      onSave={(v) => setOption(i, v)}
+                      placeholder={`Option ${i + 1}`}
+                      className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[13px] [overflow-wrap:anywhere]"
+                    />
                     {votes.length > 0 && (
                       <div className="flex -space-x-1.5 shrink-0">
                         <AnimatePresence initial={false}>
@@ -161,47 +186,42 @@ export function PollRenderer({
                         )}
                       </div>
                     )}
+                    {ctx.isOwner && (
+                      <span
+                        role="button"
+                        data-poll-control="true"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); removeOption(i); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            removeOption(i);
+                          }
+                        }}
+                        aria-label="Option entfernen"
+                        className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover/option:opacity-50 hover:!opacity-100"
+                        style={{ color: "var(--v-muted)" }}
+                      >
+                        ×
+                      </span>
+                    )}
                   </div>
-                </button>
+                </div>
               </li>
             );
           })}
         </ul>
 
         {ctx.isOwner && (
-          <div className="mt-3 space-y-1.5 rounded-[var(--v-radius)] p-2" style={{ border: "1px dashed var(--v-rule)" }}>
-            <p className="mono text-[9px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>OPTIONEN</p>
-            {m.options.map((opt, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <InlineText
-                  value={opt}
-                  isOwner
-                  onSave={(v) => setOption(i, v)}
-                  placeholder="Option …"
-                  className="flex-1 text-[12px]"
-                />
-                {m.options.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => removeOption(i)}
-                    aria-label="Option entfernen"
-                    className="mono shrink-0 text-[12px] opacity-40 hover:opacity-100"
-                    style={{ color: "var(--v-muted)" }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addOption}
-              className="mono mt-1 rounded-full px-2.5 py-1 text-[10px] tracking-widest opacity-60 hover:opacity-100"
-              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
-            >
-              + Option
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={addOption}
+            className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 hover:opacity-100"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+          >
+            + Option hinzufügen
+          </button>
         )}
 
         {totalVotes > 0 && (
@@ -212,4 +232,9 @@ export function PollRenderer({
       </WidgetCard>
     </WidgetShell>
   );
+}
+
+function cleanPollText(value: unknown): string {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text === "?" || text === "…" || text === "..." ? "" : text;
 }
