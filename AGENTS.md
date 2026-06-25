@@ -71,10 +71,11 @@ Supabase SQL editor — there is no migration runner wired up.
 
 ## 3. How the product works (mental model)
 
-1. **Home (`app/page.tsx`)**: user types an idea → `/api/spaces/clarify`
-   returns typed clarify steps (choice / text / module editors) →
-   `/api/spaces` runs the classifier and creates the space → redirect to
-   `/s/[id]`.
+1. **Home (`app/page.tsx`)**: user types an idea in the shared German
+   `PromptStart` composer (same presets + fast prompts as Studio) →
+   `/api/spaces/clarify` returns typed clarify steps (choice / text / module
+   editors) → `/api/spaces` runs the classifier and creates the space →
+   redirect to `/s/[id]`.
 2. **Studio (`app/studio/(shell)/`)**: signed-in photographers manage projects,
    reusable presets, users/permissions, profile, and settings. New projects use
    the same prompt → clarify → build flow as Home, then `/api/projects` binds
@@ -139,6 +140,7 @@ app/
   dev/page.tsx              widget showroom (all 33 widgets w/ fixtures)
   studio/(shell)/…          Studio dashboard, project builder, presets, settings
 components/
+  create/PromptStart.tsx    single source of truth for Home + Studio prompt composer
   GridZone.tsx              body grid: dnd-kit reorder, add/remove, full/half width
   widgets/WidgetDispatcher  type → renderer map (heavy ones via next/dynamic)
   widgets/WidgetShell.tsx   owner chrome: ⇆ alternatives + AI prompt-edit bubble

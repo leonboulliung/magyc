@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { sanitizeModules } from "@/lib/modules";
+import type { Module } from "@/lib/types";
 import { newAnonToken, newId } from "@/lib/id";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
@@ -19,6 +20,11 @@ const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 8_000;
 const MAX_INPUT_CHARS = 1200;
 const MAX_ANSWERS = 6;
+const FIELD_MAX = 600;
+const str = (v: unknown) =>
+  typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, FIELD_MAX) : "";
+const promptRule = (v: unknown) =>
+  typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, 500) : "";
 
 /**
  * POST /api/spaces — second leg of the create flow.
@@ -39,6 +45,10 @@ export async function POST(req: Request) {
     projectMode: z.string().optional().nullable(),
     answers: z.unknown().optional(),
     configuredModules: z.unknown().optional(),
+    presetName: z.string().optional(),
+    presetModules: z.unknown().optional(),
+    presetPromptInjections: z.unknown().optional(),
+    presetAllowContextModules: z.boolean().optional(),
     anonToken: z.string().optional(),
   }));
   if (!parsed.ok) return parsed.response;
@@ -73,6 +83,24 @@ export async function POST(req: Request) {
   // …). Sanitised into real Modules; anything malformed is dropped.
   const configuredRaw = Array.isArray(body.configuredModules) ? body.configuredModules : [];
   const configuredModules = sanitizeModules(configuredRaw.slice(0, 6));
+  const presetName = str(body.presetName);
+  const presetModules = sanitizeModules(Array.isArray(body.presetModules) ? body.presetModules.slice(0, 24) : []);
+  const presetAllowContextModules = body.presetAllowContextModules !== false;
+  const presetPromptInjections = Array.isArray(body.presetPromptInjections)
+    ? body.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
+    : [];
+  const seededModules: Module[] = [];
+  const seededTypes = new Set<string>();
+  for (const module of [...presetModules, ...configuredModules]) {
+    if (seededTypes.has(module.type)) continue;
+    seededTypes.add(module.type);
+    seededModules.push(module);
+  }
+  const inputForAi = [
+    input,
+    presetName ? `Preset: ${presetName}.` : "",
+    presetPromptInjections.length ? `Preset-Regeln: ${presetPromptInjections.join(" ")}` : "",
+  ].filter(Boolean).join(" ").slice(0, MAX_INPUT_CHARS);
 
   const anonToken = typeof body.anonToken === "string" && body.anonToken.length >= 16
     ? body.anonToken.slice(0, 64)
@@ -92,7 +120,7 @@ export async function POST(req: Request) {
   let result;
   const aiStarted = Date.now();
   try {
-    result = await classifyInput(input, answers, configuredModules, { projectMode: body.projectMode });
+    result = await classifyInput(inputForAi, answers, seededModules, { projectMode: body.projectMode });
   } catch (e) {
     const err = e as { message?: string; status?: number; code?: string };
     const msg = err.message || "unknown";
@@ -102,7 +130,15 @@ export async function POST(req: Request) {
       eventType: "classify",
       model: "gpt-4o-mini",
       status: "error",
-      input: { input, answers, configuredModuleTypes: configuredModules.map((m) => m.type) },
+      input: {
+        input: inputForAi,
+        answers,
+        configuredModuleTypes: configuredModules.map((m) => m.type),
+        presetName: presetName || null,
+        presetModuleTypes: presetModules.map((m) => m.type),
+        presetPromptInjections,
+        presetAllowContextModules,
+      },
       error: msg,
       metadata: { projectMode: body.projectMode ?? null, status: err.status ?? null, code: err.code ?? null },
       latencyMs: Date.now() - aiStarted,
@@ -130,6 +166,15 @@ export async function POST(req: Request) {
   // Wikipedia widgets and SpaceView resolves them lazily on first load
   // (POST /api/spaces/[id]/resolve). Geocoding already ran inside the
   // author stage (coords are required before sanitisation).
+  if (seededModules.length > 0 && !presetAllowContextModules) {
+    const headerModules = result.modules.filter((module) => (
+      module.type === "heading" || module.type === "rich_text" || module.type === "tags"
+    ));
+    result.modules = [
+      ...headerModules,
+      ...seededModules,
+    ];
+  }
   const hydratedModules: unknown[] = result.modules;
 
   let admin;
@@ -143,7 +188,7 @@ export async function POST(req: Request) {
   const id = newId();
   const { error } = await admin.from("spaces").insert({
     id,
-    input_text: input,
+    input_text: inputForAi,
     title: result.title,
     language: result.language,
     vibe: result.vibe,
@@ -163,14 +208,27 @@ export async function POST(req: Request) {
     spaceId: id,
     eventType: "classify",
     model: "gpt-4o-mini",
-    input: { input, answers, configuredModuleTypes: configuredModules.map((m) => m.type) },
+    input: {
+      input: inputForAi,
+      answers,
+      configuredModuleTypes: configuredModules.map((m) => m.type),
+      presetName: presetName || null,
+      presetModuleTypes: presetModules.map((m) => m.type),
+      presetPromptInjections,
+      presetAllowContextModules,
+    },
     output: {
       title: result.title,
       language: result.language,
       vibe: result.vibe,
       moduleTypes: result.modules.map((m) => m.type),
     },
-    metadata: { projectMode: body.projectMode ?? null, moduleCount: result.modules.length },
+    metadata: {
+      projectMode: body.projectMode ?? null,
+      presetApplied: presetModules.length > 0,
+      presetAllowContextModules,
+      moduleCount: result.modules.length,
+    },
     latencyMs: Date.now() - aiStarted,
   });
 

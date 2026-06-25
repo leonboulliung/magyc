@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-24 (Codex — module concurrency + stage language + site light consolidation)_
+_Last updated: 2026-06-25 (Codex — shared prompt composer consolidation)_
 
 ---
 
@@ -56,6 +56,12 @@ Follow-up done 2026-06-24: Home and Studio now share the same prompt controls
 (`PromptStart`) and both run prompt → clarify → build. Studio keeps its
 account-specific layer (presets, fast prompts, owner binding through
 `/api/projects`) but no longer bypasses the clarification architecture.
+Follow-up done 2026-06-25: `PromptStart` is now the actual single source of
+truth for the Home + Studio prompt composer: German preset chips, German
+Schnellbausteine, shared sizing/placeholder/submit controls. The old
+marketing-only English project-mode/example chips were removed. Anonymous
+Home creation now sends selected preset modules/rules through `/api/spaces`,
+matching the Studio `/api/projects` contract.
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client

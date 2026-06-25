@@ -8,8 +8,9 @@ import { stagePage, chipGrid, clarifyItem } from "@/lib/anim";
 import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
-import { PromptStart } from "@/components/create/PromptStart";
+import { DEFAULT_CREATE_FAST_PROMPTS, PromptStart } from "@/components/create/PromptStart";
 import type { ProjectModeId } from "@/lib/projectModes";
+import { DEFAULT_STUDIO_PRESETS } from "@/lib/studioPresets";
 import { SiteNav } from "@/components/site/SiteNav";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { apiError, fetchJsonWithTimeout, formatFlowError } from "@/lib/home/flow";
@@ -24,6 +25,7 @@ interface Answer {
 
 const CLARIFY_TIMEOUT_MS = 25_000;
 const BUILD_TIMEOUT_MS = 45_000;
+const DEFAULT_PROJECT_MODE: ProjectModeId = "photo_shoot";
 
 /**
  * Read a human error string out of an API (or Vercel platform) error
@@ -54,8 +56,8 @@ export default function HomePage() {
   const [stage, setStage] = useState<Stage>("input");
   const [mounted, setMounted] = useState(false);
   const [text, setText] = useState("");
-  const [projectMode, setProjectMode] = useState<ProjectModeId | null>(null);
-  const [, setLanguage] = useState("en");
+  const [, setLanguage] = useState("de");
+  const [presetId, setPresetId] = useState("none");
   // AI-authored "bringing your idea to life" line for the build screen.
   const [comingToLife, setComingToLife] = useState("");
   // One ordered list of typed clarify steps (choice | text | module).
@@ -101,26 +103,6 @@ export default function HomePage() {
     };
   }, []);
 
-  // The prompt box grows with its content instead of being a fixed,
-  // mostly-empty block — but only up to ~40% of the viewport, after which
-  // it scrolls internally. Without the cap, long text on the fixed,
-  // overflow-hidden page pushes its own bottom (and the Enter key) off
-  // screen with no way to scroll to it.
-  useEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    const fit = () => {
-      el.style.height = "auto";
-      const max = Math.max(120, Math.round(window.innerHeight * 0.4));
-      const next = Math.min(el.scrollHeight, max);
-      el.style.height = `${next}px`;
-      el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
-    };
-    fit();
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
-  }, [text, stage]);
-
   /** Viewport centre of an element (or screen centre as fallback). */
   function originOf(el: HTMLElement | null): { x: number; y: number } {
     if (el) {
@@ -162,17 +144,6 @@ export default function HomePage() {
     });
   }
 
-  function toggleProjectMode(id: ProjectModeId) {
-    setProjectMode((current) => (current === id ? null : id));
-    focusPrompt();
-  }
-
-  function applyExample(prompt: string, mode?: ProjectModeId) {
-    if (mode) setProjectMode(mode);
-    setText(prompt);
-    focusPrompt();
-  }
-
   function addPromptHint(hint: string) {
     setText((current) => {
       const trimmed = current.trim();
@@ -190,12 +161,12 @@ export default function HomePage() {
     if (trimmed.length < 3) return;
     setBusy(true);
     setError("");
-    setStatusText("Thinking through the first questions…");
+    setStatusText("Rückfragen werden vorbereitet …");
     try {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input: trimmed, projectMode, anonToken: getAnonToken() }),
+        body: JSON.stringify({ input: trimmed, projectMode: DEFAULT_PROJECT_MODE, anonToken: getAnonToken() }),
       }, CLARIFY_TIMEOUT_MS);
       if (!res.ok) {
         setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
@@ -203,7 +174,7 @@ export default function HomePage() {
       }
       const nextSteps = Array.isArray(json.steps) ? json.steps : [];
       if (nextSteps.length === 0) {
-        setError("No clarification steps came back. Please try again.");
+        setError("Keine Rückfragen erhalten. Bitte erneut versuchen.");
         return;
       }
       setSteps(nextSteps);
@@ -274,7 +245,7 @@ export default function HomePage() {
     setBusy(true);
     setStage("building");
     setError("");
-    setStatusText("Building your space…");
+    setStatusText("Arbeitsraum wird erstellt …");
     // Choice + text steps become Q&A pairs; module steps become
     // pre-configured Modules. The classifier consumes both unchanged.
     const payloadAnswers: Answer[] = steps
@@ -285,15 +256,20 @@ export default function HomePage() {
       .filter((s) => s.kind === "module")
       .map((s) => configured[s.id])
       .filter(Boolean);
+    const selectedPreset = DEFAULT_STUDIO_PRESETS.find((preset) => preset.id === presetId) || null;
     try {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           input: text.trim(),
-          projectMode,
+          projectMode: DEFAULT_PROJECT_MODE,
           answers: payloadAnswers,
           configuredModules,
+          presetName: selectedPreset?.name,
+          presetModules: selectedPreset?.modules,
+          presetPromptInjections: selectedPreset?.promptInjections,
+          presetAllowContextModules: selectedPreset?.allowContextModules,
           anonToken: getAnonToken(),
         }),
       }, BUILD_TIMEOUT_MS);
@@ -389,15 +365,13 @@ export default function HomePage() {
                   onSubmit={submitInput}
                   disabled={busy}
                   autoFocus
-                  rows={2}
+                  rows={5}
                   highlight={promptNudge}
-                  projectMode={projectMode}
-                  onProjectModeChange={toggleProjectMode}
-                  onExample={applyExample}
-                  onAssist={addPromptHint}
-                  footer={!busy ? (
-                    <p className="text-[13px] opacity-55 leading-relaxed">Start with a rough idea, a plan, or a prompt.</p>
-                  ) : null}
+                  presets={DEFAULT_STUDIO_PRESETS}
+                  selectedPresetId={presetId}
+                  onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
+                  fastPrompts={DEFAULT_CREATE_FAST_PROMPTS}
+                  onFastPrompt={addPromptHint}
                 />
 
                 {/* Submit lives in the composer itself (gradient send + Enter),

@@ -1,21 +1,30 @@
 "use client";
 
+import { useState, type Ref } from "react";
 import { PromptComposer } from "@/components/PromptComposer";
-import { PROJECT_MODES, projectModeById, type ProjectModeId } from "@/lib/projectModes";
-import type { ReactNode, Ref } from "react";
+import type { StudioPreset } from "@/lib/studioPresets";
+import type { FastPrompt } from "@/lib/studioProfile";
 
-const DEFAULT_EXAMPLES: { prompt: string; mode?: ProjectModeId }[] = [
-  { prompt: "Plan a fashion shoot in Berlin.", mode: "photo_shoot" },
-  { prompt: "Create a launch plan for a neighborhood cafe.", mode: "campaign" },
-  { prompt: "Organize a podcast episode with guests and production tasks." },
+export const DEFAULT_CREATE_FAST_PROMPTS: FastPrompt[] = [
+  {
+    text: "Der Kunde bekommt zur Einsicht drei Kundenprojekte als Beispiel vorgelegt. Er soll dadurch dann die Richtung bestimmen.",
+    color: "#8b7bff",
+  },
+  {
+    text: "Ich möchte das Projekt vorab in einer Teams-Sitzung besprechen.",
+    color: "#b8b8b8",
+  },
+  {
+    text: "Es wird die FE 28–70mm f/3.5–5.6 OSS benutzt.",
+    color: "#b8b8b8",
+  },
+  {
+    text: "Es wird die Sony Alpha 7 III benutzt.",
+    color: "#b8b8b8",
+  },
 ];
 
-const DEFAULT_ASSIST_CHIPS: { label: string; text: string }[] = [
-  { label: "Add locations?", text: "Include useful locations or place suggestions." },
-  { label: "Need roles?", text: "Add roles and responsibilities for the people involved." },
-  { label: "Want a timeline?", text: "Turn this into a clear timeline." },
-  { label: "Add deliverables?", text: "Include concrete deliverables and approval points." },
-];
+type PromptPreset = Pick<StudioPreset, "id" | "name" | "modules">;
 
 export function PromptStart({
   id,
@@ -25,15 +34,15 @@ export function PromptStart({
   onSubmit,
   disabled,
   autoFocus,
-  rows = 2,
+  rows = 5,
   highlight,
-  projectMode,
-  onProjectModeChange,
-  onExample,
-  onAssist,
-  footer,
+  presets,
+  selectedPresetId,
+  onPresetChange,
+  fastPrompts = DEFAULT_CREATE_FAST_PROMPTS,
+  onFastPrompt,
+  showFastPrompts = true,
   className,
-  extraTopSlot,
 }: {
   id?: string;
   inputRef?: Ref<HTMLTextAreaElement>;
@@ -44,91 +53,131 @@ export function PromptStart({
   autoFocus?: boolean;
   rows?: number;
   highlight?: boolean;
-  projectMode: ProjectModeId | null;
-  onProjectModeChange: (mode: ProjectModeId) => void;
-  onExample: (prompt: string, mode?: ProjectModeId) => void;
-  onAssist: (hint: string) => void;
-  footer?: ReactNode;
+  presets: PromptPreset[];
+  selectedPresetId: string;
+  onPresetChange: (id: string) => void;
+  fastPrompts?: FastPrompt[];
+  onFastPrompt: (hint: string) => void;
+  showFastPrompts?: boolean;
   className?: string;
-  extraTopSlot?: ReactNode;
 }) {
-  const selectedMode = projectModeById(projectMode);
-  const promptExamples = selectedMode
-    ? selectedMode.examples.map((prompt) => ({ prompt, mode: selectedMode.id }))
-    : DEFAULT_EXAMPLES;
-  const assistChips = selectedMode?.assistChips ?? DEFAULT_ASSIST_CHIPS;
+  const [fastPromptsOpen, setFastPromptsOpen] = useState(true);
+  const usablePresets = presets.filter((preset) => preset.modules.length > 0);
 
   return (
-    <PromptComposer
-      id={id}
-      ref={inputRef}
-      className={className}
-      value={value}
-      onChange={onChange}
-      onSubmit={onSubmit}
-      disabled={disabled}
-      autoFocus={autoFocus}
-      rows={rows}
-      highlight={highlight}
-      placeholder={selectedMode?.placeholder ?? "Describe a rough idea, project, or plan."}
-      theme="light"
-      topSlot={
-        <div className="space-y-3">
+    <div className={className}>
+      <PromptComposer
+        id={id}
+        ref={inputRef}
+        value={value}
+        onChange={onChange}
+        onSubmit={onSubmit}
+        disabled={disabled}
+        autoFocus={autoFocus}
+        rows={rows}
+        highlight={highlight}
+        placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
+        theme="light"
+        topSlot={
           <div className="flex flex-wrap gap-2">
-            {PROJECT_MODES.map((mode) => {
-              const picked = projectMode === mode.id;
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => onProjectModeChange(mode.id)}
-                  disabled={disabled}
-                  className="font-body text-[11px] tracking-wide px-3 py-2 rounded transition-all disabled:opacity-30"
-                  style={{
-                    border: "1px solid",
-                    borderColor: picked ? "rgba(0,0,0,0.34)" : "rgba(0,0,0,0.12)",
-                    background: picked ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.7)",
-                    color: picked ? "#17171a" : "rgba(23,23,26,0.68)",
-                  }}
-                >
-                  {mode.label}
-                </button>
-              );
-            })}
+            <PresetChip
+              active={selectedPresetId === "none"}
+              onClick={() => onPresetChange("none")}
+              label="Ohne Preset"
+              disabled={disabled}
+            />
+            {usablePresets.map((preset) => (
+              <PresetChip
+                key={preset.id}
+                active={selectedPresetId === preset.id}
+                onClick={() => onPresetChange(preset.id)}
+                label={preset.name}
+                disabled={disabled}
+              />
+            ))}
           </div>
-          {extraTopSlot}
-        </div>
-      }
-      chips={
-        <div className="flex flex-wrap gap-2">
-          {value.trim().length === 0
-            ? promptExamples.map((example) => (
+        }
+      />
+
+      {showFastPrompts && fastPrompts.length > 0 && (
+        <div className="mt-3 overflow-hidden rounded-2xl border border-black/10 bg-white">
+          <button
+            type="button"
+            onClick={() => setFastPromptsOpen((open) => !open)}
+            className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-black/[0.03]"
+          >
+            <span className="mono text-[10px] uppercase tracking-widest text-black/55">
+              Schnellbausteine <span className="text-black/35">({fastPrompts.length})</span>
+            </span>
+            <Chevron open={fastPromptsOpen} />
+          </button>
+          {fastPromptsOpen && (
+            <div className="max-h-72 overflow-y-auto border-t border-black/10">
+              {fastPrompts.map((fastPrompt, index) => (
                 <button
-                  key={`${example.mode ?? "free"}:${example.prompt}`}
+                  key={`${index}:${fastPrompt.text}`}
                   type="button"
-                  onClick={() => onExample(example.prompt, example.mode)}
+                  onClick={() => onFastPrompt(fastPrompt.text)}
                   disabled={disabled}
-                  className="text-left text-[12px] sm:text-[13px] leading-snug px-3 py-2 rounded transition-all disabled:opacity-30 hover:bg-black/[0.035]"
-                  style={{ border: "1px solid rgba(0,0,0,0.12)", background: "rgba(255,255,255,0.72)", color: "rgba(23,23,26,0.68)" }}
+                  className="flex w-full items-start gap-2.5 border-b border-black/[0.06] px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-black/[0.04] disabled:opacity-40"
+                  style={fastPrompt.color ? { borderLeft: `3px solid ${fastPrompt.color}` } : undefined}
                 >
-                  {example.prompt}
-                </button>
-              ))
-            : assistChips.map((chip) => (
-                <button
-                  key={chip.label}
-                  type="button"
-                  onClick={() => onAssist(chip.text)}
-                  disabled={disabled}
-                  className="mono text-[10px] sm:text-[11px] tracking-widest px-3 py-2 rounded transition-opacity disabled:opacity-30"
-                  style={{ border: "1px dashed rgba(0,0,0,0.18)", background: "transparent", color: "rgba(23,23,26,0.58)" }}
-                >
-                  {chip.label}
+                  <span
+                    className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: fastPrompt.color ?? "rgba(0,0,0,0.25)" }}
+                  />
+                  <span className="text-[13.5px] leading-snug text-black/75">{fastPrompt.text}</span>
                 </button>
               ))}
+            </div>
+          )}
         </div>
-      }
-      footer={footer}
-    />
+      )}
+    </div>
+  );
+}
+
+function PresetChip({
+  active,
+  onClick,
+  label,
+  disabled,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="rounded-full px-3.5 py-2 text-[12px] tracking-wide transition-colors disabled:opacity-40"
+      style={{
+        border: "1px solid",
+        borderColor: active ? "#17171a" : "rgba(0,0,0,0.15)",
+        background: active ? "#17171a" : "rgba(0,0,0,0.02)",
+        color: active ? "#fff" : "rgba(0,0,0,0.65)",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      aria-hidden
+      className="shrink-0 text-black/40 transition-transform duration-200"
+      style={{ transform: open ? "rotate(180deg)" : "none" }}
+    >
+      <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

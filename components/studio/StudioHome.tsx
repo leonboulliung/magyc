@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "motion/react";
-import { PromptStart } from "@/components/create/PromptStart";
+import { DEFAULT_CREATE_FAST_PROMPTS, PromptStart } from "@/components/create/PromptStart";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { MoodGradient } from "@/components/MoodGradient";
@@ -96,7 +96,7 @@ export function StudioHome({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [projectMode, setProjectMode] = useState<ProjectModeId | null>("photo_shoot");
+  const projectMode: ProjectModeId = "photo_shoot";
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<CreateStage>("input");
   const [steps, setSteps] = useState<ClarifyStep[]>([]);
@@ -112,7 +112,6 @@ export function StudioHome({
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState("none");
   const [fastPrompts, setFastPrompts] = useState<FastPrompt[]>([]);
-  const [fpOpen, setFpOpen] = useState(true);
 
   const usablePresets = useMemo(() => presets.filter((p) => p.modules.length > 0), [presets]);
   const selectedPreset = usablePresets.find((p) => p.id === presetId) || null;
@@ -185,17 +184,6 @@ export function StudioHome({
       return;
     }
     void goClarify();
-  }
-
-  function toggleProjectMode(id: ProjectModeId) {
-    setProjectMode((current) => (current === id ? null : id));
-    focusPrompt();
-  }
-
-  function applyExample(text: string, mode?: ProjectModeId) {
-    if (mode) setProjectMode(mode);
-    setPrompt(text);
-    focusPrompt();
   }
 
   function addPromptHint(hint: string) {
@@ -365,30 +353,13 @@ export function StudioHome({
                 onSubmit={submitInput}
                 disabled={busy}
                 autoFocus
-                rows={2}
+                rows={5}
                 highlight={promptNudge}
-                projectMode={projectMode}
-                onProjectModeChange={toggleProjectMode}
-                onExample={applyExample}
-                onAssist={addPromptHint}
-                extraTopSlot={
-                  usablePresets.length > 0 ? (
-                    <div className="border-t border-black/10 pt-3">
-                      <p className="mono mb-2 text-[9px] uppercase tracking-widest text-black/35">Preset</p>
-                      <div className="flex flex-wrap gap-2">
-                        <PresetChip active={presetId === "none"} onClick={() => setPresetId("none")} label="Ohne Preset" />
-                        {usablePresets.map((p) => (
-                          <PresetChip key={p.id} active={presetId === p.id} onClick={() => setPresetId(p.id)} label={p.name} />
-                        ))}
-                      </div>
-                    </div>
-                  ) : null
-                }
-                footer={!busy ? (
-                  <p className="text-[13px] leading-relaxed text-black/50">
-                    Gleicher Start wie auf der Homepage — hier zusätzlich mit deinen Studio-Presets.
-                  </p>
-                ) : null}
+                presets={usablePresets}
+                selectedPresetId={presetId}
+                onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
+                fastPrompts={fastPrompts.length > 0 ? fastPrompts : DEFAULT_CREATE_FAST_PROMPTS}
+                onFastPrompt={addPromptHint}
               />
             </motion.div>
           )}
@@ -590,38 +561,6 @@ export function StudioHome({
           )}
         </AnimatePresence>
 
-        {/* Fast-Prompts — collapsible so many snippets stay fully readable
-            without crowding the field. Click to drop into the prompt. */}
-        {stage === "input" && fastPrompts.length > 0 && (
-          <div className="mt-3 overflow-hidden rounded-2xl border border-black/10 bg-white">
-            <button
-              type="button"
-              onClick={() => setFpOpen((o) => !o)}
-              className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-black/[0.03]"
-            >
-              <span className="mono text-[10px] uppercase tracking-widest text-black/55">
-                Schnellbausteine <span className="text-black/35">({fastPrompts.length})</span>
-              </span>
-              <Chevron open={fpOpen} />
-            </button>
-            {fpOpen && (
-              <div className="max-h-72 overflow-y-auto border-t border-black/10">
-                {fastPrompts.map((fp, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => addPromptHint(fp.text)}
-                    className="flex w-full items-start gap-2.5 border-b border-black/[0.06] px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-black/[0.04]"
-                    style={fp.color ? { borderLeft: `3px solid ${fp.color}` } : undefined}
-                  >
-                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: fp.color ?? "rgba(0,0,0,0.25)" }} />
-                    <span className="text-[13.5px] leading-snug text-black/75">{fp.text}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
         {error && stage !== "building" && (
           <motion.p
             initial={{ opacity: 0, y: 4 }}
@@ -745,23 +684,5 @@ function Chevron({ open }: { open: boolean }) {
     >
       <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
-  );
-}
-
-function PresetChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-full px-3 py-1.5 text-[12px] tracking-wide transition-colors"
-      style={{
-        border: "1px solid",
-        borderColor: active ? "#17171a" : "rgba(0,0,0,0.15)",
-        background: active ? "#17171a" : "rgba(0,0,0,0.02)",
-        color: active ? "#fff" : "rgba(0,0,0,0.65)",
-      }}
-    >
-      {label}
-    </button>
   );
 }

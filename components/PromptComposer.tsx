@@ -41,7 +41,7 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
   highlight?: boolean;
   id?: string;
   className?: string;
-  /** Surface theme: dark (default) for the marketing hero, light for the Studio. */
+  /** Surface theme. The shared Home/Studio composer uses light via PromptStart. */
   theme?: "light" | "dark";
 }>(function PromptComposer(
   { value, onChange, onSubmit, placeholder, disabled, maxLength = 1200, rows = 3, autoFocus, topSlot, chips, footer, highlight, id, className, theme = "dark" },
