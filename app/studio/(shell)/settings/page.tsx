@@ -6,7 +6,7 @@ import { PageHeader, Card, Field, Select, Toggle } from "@/components/studio/for
 
 /**
  * Einstellungen — account-wide defaults for new projects (language, sharing).
- * Contract content lives on its own Vertragsinhalte page; Fast-Prompts on theirs.
+ * Contract content lives on its own Vertragsinhalte page; Schnellbausteine on theirs.
  */
 export default function StudioSettingsPage() {
   const { profile, status, update } = useStudioProfile();

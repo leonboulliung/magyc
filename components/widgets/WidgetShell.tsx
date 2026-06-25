@@ -70,6 +70,7 @@ export function WidgetShell({
   onPick?: (s: Module) => Promise<void> | void;
 }) {
   const ctx = useWidgetContext();
+  const presetPreview = ctx.spaceId.startsWith("preset:");
   const cell = useCellChrome();
   const [hover, setHover] = useState(false);
   const [altOpen, setAltOpen] = useState(false);
@@ -165,7 +166,7 @@ export function WidgetShell({
   // One toolbar for the whole element: cell chrome (reorder / resize /
   // remove, if this widget sits in a grid cell) + its own affordances
   // (prompt-edit, alternatives).
-  const showBar = ctx.isOwner && (!!cell || canRegenerate || promptEditable);
+  const showBar = ctx.isOwner && !presetPreview && (!!cell || canRegenerate || promptEditable);
   const clusterVisible = hover || busy || altOpen || bubbleOpen;
 
   const barBtn = "w-7 h-7 flex items-center justify-center hover:bg-white/[0.08] transition-colors disabled:opacity-30";

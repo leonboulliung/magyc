@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "motion/react";
 import { PromptStart } from "@/components/create/PromptStart";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
@@ -91,7 +90,6 @@ export function StudioHome({
   deleted?: StudioProjectCard[];
 }) {
   const router = useRouter();
-  const { user } = useUser();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -114,7 +112,6 @@ export function StudioHome({
 
   const usablePresets = useMemo(() => presets.filter((p) => p.modules.length > 0), [presets]);
   const selectedPreset = usablePresets.find((p) => p.id === presetId) || null;
-  const greetingName = user?.firstName || user?.username || null;
   const totalSteps = steps.length;
   const currentStep: ClarifyStep | null = steps[stepIndex] ?? null;
   const isLastStep = stepIndex === totalSteps - 1;
@@ -328,11 +325,11 @@ export function StudioHome({
       {/* Prompt-first hero — the create field is the centre of the Studio */}
       <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio</p>
       <h1 className="mt-3 font-brand text-[30px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[40px]">
-        {greetingName ? `Was planen wir, ${greetingName}?` : "Was planen wir?"}
+        Plane deinen nächsten Fotografie-Auftrag
       </h1>
       <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-black/55">
-        Beschreib dein Shooting in einem Satz. MAGYC macht aus deiner Idee einen klaren,
-        greifbaren Plan — den Rest schärfst du gemeinsam.
+        Beschreibe dein Shooting so konkret wie möglich: Standort(e), beteiligte Personen,
+        Requisiten, Ziel des Projekts, Ablaufphasen und geplante Termine.
       </p>
 
       <div className="mt-7">
@@ -392,7 +389,7 @@ export function StudioHome({
                     disabled={busy}
                     className="mono text-[9px] tracking-widest opacity-30 hover:opacity-60 disabled:opacity-20"
                   >
-                    skip all →
+                    {hasAnyAnswer(answers, configured) ? "Überspringen" : "Alle überspringen"}
                   </button>
                 </div>
                 <div
@@ -629,11 +626,16 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
           <span className="mt-1 text-[12px] text-white/55">{relTime(p.createdAt)}</span>
         </div>
       </Link>
-      <div className="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-        <ProjectCardActions id={p.id} shared={p.shared} context={context} />
+      <div className="absolute right-2 top-2">
+        <ProjectCardActions id={p.id} title={p.title} shared={p.shared} context={context} />
       </div>
     </div>
   );
+}
+
+function hasAnyAnswer(answers: Record<string, string>, configured: Record<string, Module | null>): boolean {
+  return Object.values(answers).some((value) => value.trim().length > 0) ||
+    Object.values(configured).some(Boolean);
 }
 
 function Accordion({

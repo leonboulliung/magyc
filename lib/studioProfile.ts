@@ -12,9 +12,9 @@ export interface FastPrompt {
   color?: string;
 }
 
-/** The optional tint palette offered in the Fast-Prompts editor. */
+/** The optional tint palette offered in the Schnellbausteine editor. */
 export const FAST_PROMPT_COLORS = [
-  "#8b7bff", "#4aa8ff", "#39d2b4", "#f5b740", "#f4719b", "#7bd88f",
+  "#17171a", "#6b7280", "#8b7bff", "#39d2b4",
 ] as const;
 
 export interface StudioSettings {

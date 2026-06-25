@@ -47,6 +47,7 @@ export async function PUT(req: Request) {
     displayName: z.string().max(80).optional(),
     headline: z.string().max(120).optional(),
     bio: z.string().max(600).optional(),
+    avatarUrl: z.string().url().max(1000).nullable().optional(),
     specialties: z.array(z.string()).max(24).optional(),
     settings: z.unknown().optional(),
   }));
@@ -60,6 +61,7 @@ export async function PUT(req: Request) {
   if (typeof body.displayName === "string") update.display_name = body.displayName.trim().slice(0, 80);
   if (typeof body.headline === "string") update.headline = body.headline.trim().slice(0, 120);
   if (typeof body.bio === "string") update.bio = body.bio.slice(0, 600);
+  if (body.avatarUrl === null || typeof body.avatarUrl === "string") update.avatar_url = body.avatarUrl;
   if (Array.isArray(body.specialties)) {
     update.specialties = body.specialties.map((s) => s.trim()).filter(Boolean).slice(0, 24);
   }

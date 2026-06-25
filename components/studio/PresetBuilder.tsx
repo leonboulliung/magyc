@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
-import { defaultWidget } from "@/components/WidgetPicker";
+import { defaultWidget, widgetPickerSymbolFor } from "@/components/WidgetPicker";
+import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
+import { WidgetContext } from "@/lib/widgetContext";
 import { readApiJson, showApiError, showUnknownError } from "@/lib/client/feedback";
 import {
   cleanStudioPresets,
@@ -11,7 +13,7 @@ import {
   STUDIO_PRESETS_STORAGE_KEY,
   type StudioPreset,
 } from "@/lib/studioPresets";
-import type { ModuleType } from "@/lib/types";
+import type { Module, ModuleStateKind, ModuleType, SpaceLabels } from "@/lib/types";
 
 const LABELS: Record<ModuleType, string> = {
   heading: "Titel", rich_text: "Text", tags: "Tags", wikipedia: "Wikipedia",
@@ -28,16 +30,15 @@ const LABELS: Record<ModuleType, string> = {
 };
 
 /**
- * PresetBuilder — reusable project starters. A compact list; editing opens a
- * single, well-structured pop-up holding ALL controls (name, description,
- * context toggle, elements, prompt rules). Presets define WHICH elements +
- * rules seed a project; the concrete content comes from the prompt at creation
- * (grounded), so there is no bulky per-element preview here. Autosaved to the
- * account with a local fallback.
+ * PresetBuilder — reusable project starters. Presets define which real MAGYC
+ * elements seed a project, and the active element can be preconfigured through
+ * the same renderer it uses on a project page. Autosaved to the account with a
+ * local fallback.
  */
 export function PresetBuilder() {
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeElementIndex, setActiveElementIndex] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [syncState, setSyncState] = useState<"loading" | "saved" | "local" | "error">("loading");
   const hydratedRef = useRef(false);
@@ -93,6 +94,12 @@ export function PresetBuilder() {
   }, [presets]);
 
   const editing = useMemo(() => presets.find((p) => p.id === editingId) || null, [editingId, presets]);
+  const activeModule = editing?.modules[activeElementIndex] ?? null;
+
+  useEffect(() => {
+    if (!editing) return;
+    setActiveElementIndex((index) => Math.max(0, Math.min(index, Math.max(0, editing.modules.length - 1))));
+  }, [editing]);
 
   function patch(id: string, p: Partial<StudioPreset>) {
     setPresets((items) => items.map((x) => (x.id === id ? { ...x, ...p } : x)));
@@ -101,6 +108,7 @@ export function PresetBuilder() {
     const preset = createStudioPreset();
     setPresets((items) => [...items, preset]);
     setEditingId(preset.id);
+    setActiveElementIndex(0);
     setPickerOpen(false);
   }
   function deletePreset(id: string) {
@@ -111,12 +119,20 @@ export function PresetBuilder() {
     if (!editing) return;
     const w = defaultWidget(type);
     if (!w) return;
-    patch(editing.id, { modules: [...editing.modules, { ...w, microTitle: w.microTitle || LABELS[type] }] });
+    const next = [...editing.modules, { ...w, microTitle: w.microTitle || LABELS[type] }];
+    patch(editing.id, { modules: next });
+    setActiveElementIndex(next.length - 1);
     setPickerOpen(false);
   }
   function removeElement(i: number) {
     if (!editing) return;
-    patch(editing.id, { modules: editing.modules.filter((_, j) => j !== i) });
+    const next = editing.modules.filter((_, j) => j !== i);
+    patch(editing.id, { modules: next });
+    setActiveElementIndex((current) => Math.max(0, Math.min(current > i ? current - 1 : current, Math.max(0, next.length - 1))));
+  }
+  function setElement(i: number, module: Module) {
+    if (!editing) return;
+    patch(editing.id, { modules: editing.modules.map((existing, j) => (j === i ? module : existing)) });
   }
   function setPrompt(i: number, value: string) {
     if (!editing) return;
@@ -175,7 +191,9 @@ export function PresetBuilder() {
           >
             <div className="min-w-0 flex-1">
               <div className="truncate text-[15px] font-medium text-[#17171a]">{p.name || "Unbenannt"}</div>
-              {p.description && <div className="mt-0.5 truncate text-[12px] text-black/45">{p.description}</div>}
+              <div className="mt-0.5 truncate text-[12px] text-black/45">
+                {p.modules.length > 0 ? p.modules.map((module) => module.microTitle || LABELS[module.type]).join(" · ") : "Noch keine Elemente"}
+              </div>
             </div>
             <span className="mono shrink-0 text-[11px] tracking-widest text-black/35">{p.modules.length} Elemente</span>
             <span aria-hidden className="shrink-0 text-black/30">→</span>
@@ -192,10 +210,6 @@ export function PresetBuilder() {
                 <label className="block">
                   <span className="mono text-[10px] uppercase tracking-widest text-black/40">Name</span>
                   <input value={editing.name} onChange={(e) => patch(editing.id, { name: e.target.value })} placeholder="z. B. Hochzeit" maxLength={120} className={`${field} mt-1.5`} />
-                </label>
-                <label className="block">
-                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">Kurzbeschreibung</span>
-                  <input value={editing.description} onChange={(e) => patch(editing.id, { description: e.target.value })} placeholder="Wann nutzt du es?" maxLength={500} className={`${field} mt-1.5`} />
                 </label>
               </div>
 
@@ -215,9 +229,20 @@ export function PresetBuilder() {
                 {editing.modules.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {editing.modules.map((m, i) => (
-                      <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-black/15 py-1 pl-3 pr-1 text-[13px] text-black/80">
-                        {m.microTitle || LABELS[m.type]}
-                        <button type="button" onClick={() => removeElement(i)} aria-label="Entfernen" className="grid h-5 w-5 place-items-center rounded-full text-[13px] leading-none text-black/40 hover:bg-white/10 hover:text-[#17171a]">×</button>
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 rounded-full border py-1 pl-3 pr-1 text-[13px] transition-colors"
+                        style={{
+                          borderColor: activeElementIndex === i ? "#17171a" : "rgba(0,0,0,0.15)",
+                          background: activeElementIndex === i ? "#17171a" : "transparent",
+                          color: activeElementIndex === i ? "#fff" : "rgba(0,0,0,0.8)",
+                        }}
+                      >
+                        <button type="button" onClick={() => setActiveElementIndex(i)} className="inline-flex min-w-0 items-center gap-1.5">
+                          <span className="mono text-[10px] opacity-65">{widgetPickerSymbolFor(m.type)}</span>
+                          <span>{m.microTitle || LABELS[m.type]}</span>
+                        </button>
+                        <button type="button" onClick={() => removeElement(i)} aria-label="Entfernen" className="grid h-5 w-5 place-items-center rounded-full text-[13px] leading-none opacity-55 hover:bg-white/10 hover:opacity-100">×</button>
                       </span>
                     ))}
                   </div>
@@ -231,13 +256,30 @@ export function PresetBuilder() {
                   {pickerOpen && (
                     <div className="mt-2 grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-xl border border-black/10 bg-black/[0.04] p-1.5 sm:grid-cols-3">
                       {PRESET_ELEMENT_TYPES.map((t) => (
-                        <button key={t} type="button" onClick={() => addElement(t)} className="truncate rounded px-2.5 py-2 text-left text-[12px] text-black/70 transition-colors hover:bg-black/[0.06] hover:text-[#17171a]">
-                          {LABELS[t]}
+                        <button key={t} type="button" onClick={() => addElement(t)} className="flex min-w-0 items-center gap-2 rounded px-2.5 py-2 text-left text-[12px] text-black/70 transition-colors hover:bg-black/[0.06] hover:text-[#17171a]">
+                          <span className="mono w-5 shrink-0 text-center text-[10px] text-black/45">{widgetPickerSymbolFor(t)}</span>
+                          <span className="truncate">{LABELS[t]}</span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div>
+                <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Element-Vorschau</div>
+                {activeModule ? (
+                  <PresetModulePreview
+                    presetId={editing.id}
+                    module={activeModule}
+                    index={activeElementIndex}
+                    onChange={(module) => setElement(activeElementIndex, module)}
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-black/12 bg-black/[0.03] px-4 py-8 text-center text-[13px] text-black/40">
+                    Wähle links ein Element aus, um es für dieses Preset vorzukonfigurieren.
+                  </div>
+                )}
               </div>
 
               {/* Prompt rules */}
@@ -271,4 +313,111 @@ export function PresetBuilder() {
       </Dialog>
     </div>
   );
+}
+
+const PREVIEW_LABELS: SpaceLabels = {
+  widgetLabels: Object.fromEntries(Object.entries(LABELS)),
+};
+
+function PresetModulePreview({
+  presetId,
+  module,
+  index,
+  onChange,
+}: {
+  presetId: string;
+  module: Module;
+  index: number;
+  onChange: (module: Module) => void;
+}) {
+  return (
+    <div
+      className="rounded-2xl border border-black/10 bg-[#0b0c0e] p-4"
+      style={{
+        ["--v-radius" as string]: "18px",
+        ["--v-bg" as string]: "#121416",
+        ["--v-widget" as string]: "rgba(255,255,255,0.07)",
+        ["--v-widget-border" as string]: "rgba(255,255,255,0.16)",
+        ["--v-fg" as string]: "#f3f3ef",
+        ["--v-muted" as string]: "rgba(243,243,239,0.58)",
+        ["--v-rule" as string]: "rgba(255,255,255,0.14)",
+        ["--v-accent" as string]: "#39d2b4",
+        ["--v-font" as string]: "var(--font-body)",
+        backgroundImage: "radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1px)",
+        backgroundSize: "18px 18px",
+      }}
+    >
+      <WidgetContext.Provider
+        value={{
+          spaceId: `preset:${presetId}`,
+          title: "Preset",
+          language: "de",
+          labels: PREVIEW_LABELS,
+          isOwner: true,
+          ownerToken: null,
+          refresh: () => {},
+          patchModule: (_moduleIndex, next) => onChange(next),
+          saveModule: async (_moduleIndex, next) => {
+            onChange(next);
+            return true;
+          },
+          act: async (_moduleIndex, kind, data) => {
+            onChange(applyPresetAction(module, kind, data));
+            return true;
+          },
+        }}
+      >
+        <div className="mx-auto max-w-[520px]">
+          <WidgetDispatcher module={module} index={index} state={[]} />
+        </div>
+      </WidgetContext.Provider>
+    </div>
+  );
+}
+
+function applyPresetAction(module: Module, kind: ModuleStateKind, data: Record<string, unknown>): Module {
+  if (module.type === "checklist" && kind === "add" && typeof data.text === "string") {
+    const text = data.text.trim();
+    return text ? { ...module, items: [...module.items, { text }] } : module;
+  }
+
+  if (module.type === "moodboard") {
+    if (kind === "add" && typeof data.label === "string") {
+      const label = data.label.trim();
+      if (!label) return module;
+      return {
+        ...module,
+        directions: [
+          ...module.directions,
+          {
+            label,
+            status: data.status === "approved" || data.status === "avoid" ? data.status : "reference",
+          },
+        ],
+      };
+    }
+    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
+      const index = Number(data.id.slice(5));
+      if (!Number.isInteger(index) || index < 0 || index >= module.directions.length) return module;
+      if (data.deleted === true) {
+        return { ...module, directions: module.directions.filter((_, i) => i !== index) };
+      }
+      return {
+        ...module,
+        directions: module.directions.map((direction, i) => {
+          if (i !== index) return direction;
+          return {
+            ...direction,
+            label: typeof data.label === "string" ? data.label : direction.label,
+            note: typeof data.note === "string" ? data.note : direction.note,
+            status: data.status === "reference" || data.status === "approved" || data.status === "avoid"
+              ? data.status
+              : direction.status,
+          };
+        }),
+      };
+    }
+  }
+
+  return module;
 }

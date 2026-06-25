@@ -20,6 +20,7 @@ export async function PATCH(
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const parsed = await parseBody(req, z.object({
+    title: z.string().max(160).optional(),
     stage: z.string().optional(),
     shared: z.boolean().optional(),
     archived: z.boolean().optional(),
@@ -33,11 +34,17 @@ export async function PATCH(
     shared?: boolean;
     archived_at?: string | null;
     deleted_at?: string | null;
+    title?: string;
     handoff?: unknown;
     modules?: unknown[];
   } = {};
   if (parsed.data.handoff !== undefined) {
     update.handoff = mapHandoff(parsed.data.handoff);
+  }
+  if (typeof parsed.data.title === "string") {
+    const title = parsed.data.title.replace(/\s+/g, " ").trim().slice(0, 160);
+    if (title.length < 1) return NextResponse.json({ error: "bad_title" }, { status: 400 });
+    update.title = title;
   }
   if (typeof parsed.data.stage === "string") {
     if (!VALID_STAGES.has(parsed.data.stage)) {

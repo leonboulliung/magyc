@@ -72,7 +72,7 @@ Supabase SQL editor — there is no migration runner wired up.
 ## 3. How the product works (mental model)
 
 1. **Home (`app/page.tsx`)**: user types an idea in the shared German
-   `PromptStart` composer (same presets + fast prompts as Studio) →
+   `PromptStart` composer (same presets + Schnellbausteine as Studio) →
    `/api/spaces/clarify` returns typed clarify steps (choice / text / module
    editors) → `/api/spaces` runs the classifier and creates the space →
    redirect to `/s/[id]`.
@@ -80,7 +80,9 @@ Supabase SQL editor — there is no migration runner wired up.
    reusable presets, users/permissions, profile, and settings. New projects use
    the same prompt → clarify → build flow as Home, then `/api/projects` binds
    `owner_id` immediately, applies Studio presets/settings, and moves through
-   Planung / Auswahl / Abgeschlossen.
+   Planung / Auswahl / Abgeschlossen. Presets must stay close to the real
+   project architecture: their per-element preview/configuration renders the
+   actual widget renderer through `WidgetDispatcher`, not a parallel form.
 3. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores all
    30 body module types 0–10 against the input (gpt-4o-mini); the **server**
    deterministically selects (threshold + redundancy caps: max one date
@@ -187,6 +189,9 @@ lib/
   published = Clerk owner.
 - **Language**: each space has ONE language (detected from input); all
   AI-authored strings + UI labels are in it. Code/comments in English.
+- **Studio wording**: user-facing Studio labels are German for the German
+  launch market. The prompt entry headline is "Plane deinen nächsten
+  Fotografie-Auftrag"; "Fast-Prompts" are called "Schnellbausteine".
 - **Supabase gotcha**: `.update()` without `.select()` reports success even
   when 0 rows matched. Always chain `.select("id")` and treat an empty
   result as an error.

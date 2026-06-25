@@ -52,6 +52,7 @@ export function useStudioProfile() {
           displayName: next.displayName,
           headline: next.headline,
           bio: next.bio,
+          avatarUrl: next.avatarUrl,
           specialties: next.specialties,
           settings: next.settings,
         }),

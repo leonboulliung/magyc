@@ -184,6 +184,14 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
   },
 ];
 
+export function widgetPickerSymbolFor(type: ModuleType): string {
+  for (const group of GROUPS) {
+    const entry = group.entries.find((item) => item.type === type);
+    if (entry) return entry.symbol;
+  }
+  return "□";
+}
+
 // ── Default configs ──────────────────────────────────────────────────
 export function defaultWidget(type: ModuleType): Module | null {
   const now = new Date().toISOString();

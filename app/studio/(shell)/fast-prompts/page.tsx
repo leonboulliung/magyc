@@ -5,7 +5,7 @@ import { useStudioProfile } from "@/components/studio/useStudioProfile";
 import { FAST_PROMPT_COLORS, type FastPrompt } from "@/lib/studioProfile";
 
 /**
- * Fast-Prompts — its own page. Reusable click-to-insert snippets that appear
+ * Schnellbausteine — its own page. Reusable click-to-insert snippets that appear
  * under the create prompt field. Each can carry an optional colour tint for
  * quick scanning. Stored in settings.fastPrompts (autosaved).
  */
@@ -38,8 +38,8 @@ export default function FastPromptsPage() {
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio · Fast-Prompts</p>
-          <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Fast-Prompts</h1>
+          <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio · Schnellbausteine</p>
+          <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Schnellbausteine</h1>
         </div>
         <span className="mono mt-2 text-[11px] tracking-widest text-black/35">
           {status === "loading" ? "Lädt …" : status === "saving" ? "Speichert …" : status === "error" ? "Nicht gespeichert" : "✓ Gespeichert"}
@@ -57,7 +57,7 @@ export default function FastPromptsPage() {
         <section className="mt-8 rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
           <div className="space-y-2">
             {settings.fastPrompts.length === 0 && (
-              <p className="text-[13px] text-black/35">Noch keine Fast-Prompts.</p>
+              <p className="text-[13px] text-black/35">Noch keine Schnellbausteine.</p>
             )}
             {settings.fastPrompts.map((fp, i) => (
               <div
@@ -101,7 +101,7 @@ function Swatches({ value, onPick }: { value: string | undefined; onPick: (c: st
         onClick={() => onPick(undefined)}
         aria-label="Keine Farbe"
         className="h-5 w-5 rounded-full border border-black/20 text-[10px] leading-none text-black/40"
-        style={{ outline: value === undefined ? "2px solid rgba(0,0,0,0.5)" : "none", outlineOffset: 1 }}
+        style={{ outline: value === undefined ? "2px solid rgba(0,0,0,0.38)" : "none", outlineOffset: 2 }}
       >
         ×
       </button>
@@ -112,7 +112,12 @@ function Swatches({ value, onPick }: { value: string | undefined; onPick: (c: st
           onClick={() => onPick(c)}
           aria-label={`Farbe ${c}`}
           className="h-5 w-5 rounded-full"
-          style={{ background: c, outline: value === c ? "2px solid rgba(0,0,0,0.55)" : "none", outlineOffset: 1 }}
+          style={{
+            background: c,
+            outline: value === c ? "2px solid rgba(0,0,0,0.38)" : "none",
+            outlineOffset: 2,
+            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.5)",
+          }}
         />
       ))}
     </div>

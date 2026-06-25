@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const ITEMS = [
   { href: "/studio", label: "Studio" },
   { href: "/studio/presets", label: "Presets" },
-  { href: "/studio/fast-prompts", label: "Fast-Prompts" },
+  { href: "/studio/fast-prompts", label: "Schnellbausteine" },
   { href: "/studio/vertragsinhalte", label: "Vertragsinhalte" },
   { href: "/studio/konnektoren", label: "Konnektoren" },
   { href: "/studio/users", label: "Nutzer" },

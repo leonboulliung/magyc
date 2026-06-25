@@ -1,15 +1,41 @@
 "use client";
 
+import { useRef, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useStudioProfile } from "@/components/studio/useStudioProfile";
 import { PageHeader, Card, Field, Input, Textarea, TagEditor } from "@/components/studio/formKit";
+import { showActionError, showActionSuccess, showUnknownError } from "@/lib/client/feedback";
 
 /**
  * Profil — the photographer's public-facing identity (name, headline, bio,
- * specialties). Autosaved via useStudioProfile. The avatar is read-only,
- * snapshotted from Clerk.
+ * specialties). Autosaved via useStudioProfile. The avatar can be updated in
+ * Clerk from this UI and the profile snapshot is kept in sync.
  */
 export default function StudioProfilePage() {
   const { profile, status, update } = useStudioProfile();
+  const { user } = useUser();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+
+  async function uploadAvatar(file: File | null) {
+    if (!file || !user || avatarBusy) return;
+    if (!file.type.startsWith("image/")) {
+      showActionError("Profilbild nicht geändert", { description: "Bitte wähle eine Bilddatei aus." });
+      return;
+    }
+    setAvatarBusy(true);
+    try {
+      await user.setProfileImage({ file });
+      await user.reload();
+      update({ avatarUrl: user.imageUrl || null });
+      showActionSuccess("Profilbild aktualisiert");
+    } catch (error) {
+      showUnknownError("Profilbild nicht geändert", error, { fallback: "Bitte erneut versuchen." });
+    } finally {
+      setAvatarBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
@@ -35,8 +61,27 @@ export default function StudioProfilePage() {
                   (profile.displayName || "S").slice(0, 1).toUpperCase()
                 )}
               </div>
-              <div className="text-[13px] text-white/45">
-                Dein Profilbild wird aus deinem Konto übernommen.
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] leading-relaxed text-black/50">
+                  Dein Profilbild wird in deinem Konto gespeichert und hier für Kundenansicht, Team und Freigaben genutzt.
+                </p>
+                <div className="mt-3">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => void uploadAvatar(e.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={avatarBusy}
+                    className="rounded-full border border-black/15 px-3.5 py-2 text-[13px] text-black/70 transition-colors hover:border-black/35 hover:text-black disabled:opacity-40"
+                  >
+                    {avatarBusy ? "Lädt …" : "Profilbild ändern"}
+                  </button>
+                </div>
               </div>
             </div>
           </Card>

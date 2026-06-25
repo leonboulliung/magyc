@@ -417,7 +417,7 @@ export default function HomePage() {
                       disabled={busy}
                       className="mono text-[9px] tracking-widest opacity-30 hover:opacity-60 disabled:opacity-20"
                     >
-                      skip all →
+                      {hasAnyAnswer(answers, configured) ? "Überspringen" : "Alle überspringen"}
                     </button>
                   </div>
                   <div
@@ -629,6 +629,11 @@ export default function HomePage() {
 
     </main>
   );
+}
+
+function hasAnyAnswer(answers: Record<string, string>, configured: Record<string, Module | null>): boolean {
+  return Object.values(answers).some((value) => value.trim().length > 0) ||
+    Object.values(configured).some(Boolean);
 }
 
 /**

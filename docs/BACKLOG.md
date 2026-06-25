@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-25 (Codex — photographer starter presets)_
+_Last updated: 2026-06-25 (Codex — prompt/studio/preset polish)_
 
 ---
 
@@ -67,6 +67,23 @@ presets (`MARKETING_STARTER_PRESETS`: Produktshooting, Hochzeit,
 Business-Portrait, Event-Reportage) plus German fast prompts aimed at the
 German photography market. Studio no longer falls back to those code presets:
 signed-in users only see real account presets (or none).
+Follow-up done 2026-06-25: Studio/Home prompt copy now uses the photographer
+briefing language ("Plane deinen nächsten Fotografie-Auftrag") and the
+clarify skip control switches between "Alle überspringen" and "Überspringen"
+depending on whether partial answers already exist. Project actions are always
+visible for active/archived/deleted contexts; active and archived projects can
+be renamed through the existing PATCH route.
+Follow-up done 2026-06-25: Preset editing removed the unused short description
+field and now configures one selected element at a time via a mini project
+preview that renders the real widget through `WidgetDispatcher`. Element chips
+reuse the picker symbols and can be selected/removed like tags. The picker
+still does not persist real uploaded preset assets as first-class preset media;
+that remains a future data-model decision if Leon wants media templates.
+Follow-up done 2026-06-25: "Fast-Prompts" is now user-facing
+"Schnellbausteine"; colour swatches were reduced to a calmer palette. Clerk is
+partly consolidated into Studio chrome: the topbar avatar links to the profile
+page and the profile page can update the Clerk profile image. Full account
+security/email management remains Clerk-owned unless a later slice rebuilds it.
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client

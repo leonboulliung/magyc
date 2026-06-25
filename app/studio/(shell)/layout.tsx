@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { SignOutButton, UserButton } from "@clerk/nextjs";
 import { DotField } from "@/components/DotField";
 import { StudioNav } from "@/components/studio/StudioNav";
+import { StudioAccountControls } from "@/components/studio/StudioAccountControls";
 
 /**
  * Studio shell — the account-area environment. A light, warm off-white base
@@ -36,14 +36,7 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
             </Link>
             <StudioNav />
           </div>
-          <div className="flex shrink-0 items-center gap-4">
-            <SignOutButton redirectUrl="/">
-              <button type="button" className="font-body text-[13px] text-black/50 transition-colors hover:text-black">
-                Abmelden
-              </button>
-            </SignOutButton>
-            <UserButton afterSignOutUrl="/" />
-          </div>
+          <StudioAccountControls />
         </div>
       </header>
 
