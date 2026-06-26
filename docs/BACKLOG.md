@@ -9,6 +9,48 @@ _Last updated: 2026-06-26 (Codex — admin/support launch cockpit)_
 
 ---
 
+## ⇨ AUDIT FINDINGS (2026-06-26) — MVP readiness blockers
+
+**Status:** the core project creation path is no longer a mock. Home + Studio
+share `PromptStart`; `/api/projects` and `/api/spaces` both carry presets,
+clarification answers, prompt injections and the `allow_context_modules` flag
+into the classifier. Signed upload infrastructure is also real. The remaining
+MVP risks are not the first prompt, but the later projection layers.
+
+1. **Contract facts are too narrow.** Contract drafting reads only
+   `spaces.modules` and ignores `module_state`; `extractContractFacts` currently
+   extracts only heading/rich text, dates, locations, deliverables, shot count
+   and crew. Checklist progress, moodboard decisions, uploaded references,
+   approvals, selection/delivery choices, location suggestions, tables/gear and
+   client feedback do not become structured contract/delivery facts yet. Next
+   slice: build a typed `ProjectFacts` projection that merges modules +
+   module_state and feed that to contract/delivery/abschluss.
+2. **Preset previews are visually real but state-model shallow.** The editor
+   renders widgets via `WidgetDispatcher`, but it gives them an artificial
+   `spaceId` (`preset:<id>`) and maps only a few state actions back into module
+   config (`checklist`, `qa`, `shot_list`, `parts_list`, `moodboard`). Uploads
+   and many stateful widgets cannot persist real preset media/state. Next
+   slice: introduce first-class preset template state/assets instead of routing
+   preset widgets through fake space state.
+3. **Admin cockpit is functional but not true ghost mode.** Plan/status/support
+   actions are real, and the user-detail modal selection bug was fixed in
+   `AdminConsole`. However the cockpit loads bounded snapshots (profiles 250,
+   spaces 400, state 1600) and project links still point at `/s/:id`, which can
+   404 for private/unshared user projects. Next slice: add admin-only read
+   routes for private spaces and paginated/searchable account inspection.
+4. **Studio dashboard overfetches.** `fetchSpacesByOwner` loads full modules,
+   module_state and version metadata for every project, but the Studio list only
+   needs id/title/stage/shared/archive/delete timestamps. Next slice: add a
+   lean project-list query/RPC and reserve full `SPACE_SELECT` for opening one
+   project.
+5. **Multi-user collaboration is link-based, not account-member based.**
+   Realtime `module_state` collaboration is coherent for early client feedback,
+   but permissions are still mostly owner vs. shared-link contributor. Team
+   members, client roles and per-project account membership remain a later
+   product/data-model layer.
+
+---
+
 ## ⇨ HANDOFF (2026-06-23) — read this first
 
 Working tree clean, everything pushed (HEAD `2fe6681`). Context for whoever

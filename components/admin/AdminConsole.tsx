@@ -125,19 +125,36 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
     () => users.find((user) => user.id === selectedUserId) || null,
     [selectedUserId, users],
   );
-  const selectedSpaces = useMemo(
+  const focusedSpaces = useMemo(
     () => initialData.spaces.filter((space) => space.ownerId === selectedUserId),
     [initialData.spaces, selectedUserId],
   );
-  const selectedTimeline = useMemo(
+  const focusedTimeline = useMemo(
     () => initialData.timeline.filter((entry) => entry.userId === selectedUserId).slice(0, 18),
     [initialData.timeline, selectedUserId],
   );
-  const selectedTickets = useMemo(
+  const focusedTickets = useMemo(
     () => tickets.filter((ticket) => ticket.userId === selectedUserId),
     [tickets, selectedUserId],
   );
+  const modalSpaces = useMemo(
+    () => initialData.spaces.filter((space) => space.ownerId === modalUserId),
+    [initialData.spaces, modalUserId],
+  );
+  const modalTimeline = useMemo(
+    () => initialData.timeline.filter((entry) => entry.userId === modalUserId).slice(0, 18),
+    [initialData.timeline, modalUserId],
+  );
+  const modalTickets = useMemo(
+    () => tickets.filter((ticket) => ticket.userId === modalUserId),
+    [tickets, modalUserId],
+  );
   const openTickets = tickets.filter((ticket) => ticket.status === "new");
+
+  function openUser(userId: string) {
+    setSelectedUserId(userId);
+    setModalUserId(userId);
+  }
 
   async function updateUser(userId: string, patch: { plan?: AdminPlan; status?: AccountStatus; adminNotes?: string }) {
     const reason = window.prompt("Grund fuer die Admin-Aenderung (optional)") || "";
@@ -263,7 +280,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                   </div>
                   <button
                     type="button"
-                    onClick={() => setModalUserId(focusedUser.id)}
+                    onClick={() => openUser(focusedUser.id)}
                     className="rounded-full border border-black/15 px-4 py-2 text-sm"
                   >
                     Read-only ansehen
@@ -272,9 +289,9 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                 <div className="grid grid-cols-3 gap-2">
                   <MiniMetric label="Plan" value={planLabel(focusedUser.plan)} />
                   <MiniMetric label="Status" value={statusLabel(focusedUser.accountStatus)} />
-                  <MiniMetric label="Projekte" value={selectedSpaces.length} />
+                  <MiniMetric label="Projekte" value={focusedSpaces.length} />
                 </div>
-                <Timeline entries={selectedTimeline} />
+                <Timeline entries={focusedTimeline} />
               </div>
             ) : (
               <p className="text-sm text-black/45">Noch kein Nutzer ausgewaehlt.</p>
@@ -339,7 +356,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                     <td className="px-4 py-4 text-right">
                       <button
                         type="button"
-                        onClick={() => setModalUserId(user.id)}
+                        onClick={() => openUser(user.id)}
                         className="rounded-full border border-black/15 px-4 py-2"
                       >
                         Ansehen
@@ -377,13 +394,13 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                 <div className="grid grid-cols-2 gap-2">
                   <MiniMetric label="Plan" value={planLabel(selectedUser.plan)} />
                   <MiniMetric label="Status" value={statusLabel(selectedUser.accountStatus)} />
-                  <MiniMetric label="Projekte" value={selectedSpaces.length} />
-                  <MiniMetric label="Support" value={selectedTickets.length} />
+                  <MiniMetric label="Projekte" value={modalSpaces.length} />
+                  <MiniMetric label="Support" value={modalTickets.length} />
                 </div>
                 <div className="rounded-[24px] border border-black/10 bg-white/55 p-4">
                   <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Projekte</h3>
                   <div className="mt-3 space-y-2">
-                    {selectedSpaces.map((space) => (
+                    {modalSpaces.map((space) => (
                       <Link key={space.id} href={`/s/${space.id}`} className="block rounded-[18px] border border-black/8 px-4 py-3 hover:bg-white">
                         <div className="font-medium">{space.title}</div>
                         <div className="text-xs text-black/45">
@@ -391,19 +408,19 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                         </div>
                       </Link>
                     ))}
-                    {selectedSpaces.length === 0 && <p className="text-sm text-black/45">Keine Projekte.</p>}
+                    {modalSpaces.length === 0 && <p className="text-sm text-black/45">Keine Projekte.</p>}
                   </div>
                 </div>
               </div>
               <div className="space-y-5">
                 <div className="rounded-[24px] border border-black/10 bg-white/55 p-4">
                   <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Aktivitaet</h3>
-                  <Timeline entries={selectedTimeline} />
+                  <Timeline entries={modalTimeline} />
                 </div>
                 <div className="rounded-[24px] border border-black/10 bg-white/55 p-4">
                   <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Support</h3>
                   <div className="mt-3 space-y-2">
-                    {selectedTickets.map((ticket) => (
+                    {modalTickets.map((ticket) => (
                       <div key={ticket.id} className="rounded-[18px] border border-black/8 px-4 py-3">
                         <div className="flex justify-between gap-3">
                           <span className="font-medium">{supportTypeLabel(ticket.type)}</span>
@@ -412,7 +429,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                         <p className="mt-2 whitespace-pre-wrap text-sm text-black/65">{ticket.message}</p>
                       </div>
                     ))}
-                    {selectedTickets.length === 0 && <p className="text-sm text-black/45">Keine Tickets.</p>}
+                    {modalTickets.length === 0 && <p className="text-sm text-black/45">Keine Tickets.</p>}
                   </div>
                 </div>
               </div>
