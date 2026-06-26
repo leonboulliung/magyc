@@ -7,6 +7,7 @@ import { sanitizeModules } from "@/lib/modules";
 import type { Module } from "@/lib/types";
 import { newAnonToken, newId } from "@/lib/id";
 import { recordAiEvent } from "@/lib/server/aiEvents";
+import { insertSpaceRow } from "@/lib/server/spacePersistence";
 import { parseBody } from "@/lib/api/validate";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 
@@ -191,7 +192,7 @@ export async function POST(req: Request) {
   const hydratedModules: unknown[] = result.modules;
 
   const id = newId();
-  const { error } = await admin.from("spaces").insert({
+  const { error } = await insertSpaceRow(admin, {
     id,
     input_text: inputForAi,
     title: result.title,

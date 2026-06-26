@@ -2,9 +2,16 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
+import { recordAppEvent } from "@/lib/server/observability";
+import {
+  assertAssetExists,
+  createAssetUploadUrl,
+  removeAssetPaths,
+  signAssetReadUrl,
+  STORAGE_PROVIDER,
+} from "@/lib/server/storage";
 import {
   adminClientForUpload,
-  ASSET_BUCKET,
   canAccessSpace,
   cleanFileName,
   extensionFromName,
@@ -50,6 +57,7 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } },
 ) {
+  const startedAt = Date.now();
   const parsed = await parseBody(req, bodySchema);
   if (!parsed.ok) return parsed.response;
   const b = parsed.data;
@@ -63,9 +71,34 @@ export async function POST(
 
   const admin = adminClientForUpload();
   const actor = await hydrateActorName(admin, actorResult);
+  const logEvent = (status: "ok" | "warn" | "error", error?: unknown, metadata?: Record<string, unknown>) =>
+    recordAppEvent({
+      eventType: `upload.${b.phase}`,
+      status,
+      route: "/api/spaces/[id]/upload",
+      method: "POST",
+      spaceId: params.id,
+      userId: actor.userId,
+      anonId: actor.kind === "anon" ? actor.id : null,
+      actorKind: actor.kind,
+      actorId: actor.id,
+      latencyMs: Date.now() - startedAt,
+      error,
+      metadata: {
+        provider: STORAGE_PROVIDER,
+        moduleIndex: b.moduleIndex,
+        size: b.size,
+        mimeType: b.mimeType,
+        phase: b.phase,
+        ...metadata,
+      },
+    });
   const rateKey = `upload:${params.id}:${actor.kind}:${actor.id}`;
   const allowed = await takePersistentRateLimit(admin, rateKey, 60, 90);
-  if (!allowed) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  if (!allowed) {
+    await logEvent("warn", "rate_limited");
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   let space;
   try {
@@ -76,14 +109,17 @@ export async function POST(
   }
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!moduleExists(space, b.moduleIndex)) {
+    await logEvent("warn", "module_out_of_range");
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
   }
   if (!canAccessSpace(space, actor)) {
+    await logEvent("warn", "not_shared");
     return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }
 
   const usage = await readSpaceUploadUsage(admin, params.id);
   if (usage + b.size > PROJECT_UPLOAD_QUOTA_BYTES) {
+    await logEvent("warn", "storage_quota_exceeded", { usage });
     return NextResponse.json({ error: "storage_quota_exceeded" }, { status: 413 });
   }
 
@@ -91,38 +127,44 @@ export async function POST(
     const ext = extensionFromName(b.name);
     const safeName = cleanFileName(b.name.replace(/\.[^.]+$/, ""));
     const path = `${params.id}/${b.moduleIndex}/${newId()}-${safeName}.${ext}`;
-    const { data, error } = await admin.storage
-      .from(ASSET_BUCKET)
-      .createSignedUploadUrl(path);
-    if (error || !data?.token) {
-      console.error("[upload] signed upload url failed:", error?.message);
+    let signed;
+    try {
+      signed = await createAssetUploadUrl(admin, path);
+    } catch (error) {
+      console.error("[upload] signed upload url failed:", (error as Error).message);
+      await logEvent("error", error, { path });
       return NextResponse.json({ error: "storage_sign_failed" }, { status: 500 });
     }
+    await logEvent("ok", null, { path: signed.path });
     return NextResponse.json({
       ok: true,
-      path: data.path || path,
-      token: data.token,
-      signedUrl: data.signedUrl,
+      path: signed.path,
+      token: signed.token,
+      signedUrl: signed.signedUrl,
       maxSize: MAX_UPLOAD_SIZE_BYTES,
     });
   }
 
   const path = b.path || "";
   if (!isAssetPathForSpace(params.id, path)) {
+    await logEvent("warn", "bad_asset_path");
     return NextResponse.json({ error: "bad_asset_path" }, { status: 400 });
   }
 
-  const { error: infoErr } = await admin.storage.from(ASSET_BUCKET).info(path);
-  if (infoErr) {
-    console.error("[upload] uploaded object missing:", infoErr.message);
+  try {
+    await assertAssetExists(admin, path);
+  } catch (error) {
+    console.error("[upload] uploaded object missing:", (error as Error).message);
+    await logEvent("error", error, { path });
     return NextResponse.json({ error: "storage_missing" }, { status: 400 });
   }
 
-  const { data: signed, error: signErr } = await admin.storage
-    .from(ASSET_BUCKET)
-    .createSignedUrl(path, 6 * 60 * 60);
-  if (signErr) {
-    console.error("[upload] read sign failed:", signErr.message);
+  let signedUrl = "";
+  try {
+    signedUrl = await signAssetReadUrl(admin, path);
+  } catch (error) {
+    console.error("[upload] read sign failed:", (error as Error).message);
+    await logEvent("error", error, { path });
     return NextResponse.json({ error: "storage_sign_failed" }, { status: 500 });
   }
 
@@ -143,15 +185,21 @@ export async function POST(
   });
   if (stateErr) {
     console.error("[upload] state insert failed:", stateErr.message);
-    const { error: removeErr } = await admin.storage.from(ASSET_BUCKET).remove([path]);
-    if (removeErr) console.error("[upload] orphan cleanup failed:", removeErr.message);
+    await logEvent("error", stateErr.message, { path });
+    try {
+      await removeAssetPaths(admin, [path]);
+    } catch (removeErr) {
+      console.error("[upload] orphan cleanup failed:", (removeErr as Error).message);
+      await logEvent("error", removeErr, { path, cleanup: true });
+    }
     return NextResponse.json({ error: "upload_state_failed", detail: stateErr.message }, { status: 500 });
   }
 
+  await logEvent("ok", null, { path });
   return NextResponse.json({
     ok: true,
     path,
-    url: signed?.signedUrl || "",
+    url: signedUrl,
     name: b.name,
     size: b.size,
     mimeType: b.mimeType,

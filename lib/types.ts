@@ -711,6 +711,8 @@ export interface HandoffInfo {
 
 export interface Space {
   id: string;
+  /** Data-contract version persisted on the row when the DB supports it. */
+  contractVersion: string;
   /** Incremented whenever the structural modules array changes. Used
    *  to reject stale widget writes instead of clobbering another tab. */
   modulesRev: number;

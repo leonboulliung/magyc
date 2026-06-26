@@ -1,6 +1,6 @@
 # magyc.site — Data Contract
 
-**Version:** 1.5.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
+**Version:** 1.6.0 (see `CONTRACT_VERSION` in `lib/contract.ts`)
 
 This document is the stable interface of a space. The **presentation
 layer** (renderers, animations, the style system, the grid) may change
@@ -20,6 +20,7 @@ without being recorded here.
 ```ts
 Space {
   id: string                 // 10-char slug, also the URL
+  contractVersion: string    // persisted row contract version; older rows may report 1.5.0
   inputText: string          // the original seed text
   title: string              // AI headline
   language: string           // ISO 639-1; the space's only "language"

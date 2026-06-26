@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { CONTRACT_VERSION } from "./contract";
 import { sanitizeModules } from "./modules";
 import { AI_LABEL_KEYS } from "./labels";
 import { sanitizeStyle } from "./style";
@@ -35,6 +36,7 @@ export type ModuleStateRow = {
 
 type SpaceRow = {
   id: string;
+  contract_version?: string | null;
   modules_rev?: number | null;
   input_text: string;
   title: string;
@@ -190,6 +192,7 @@ function mapSpace(row: SpaceRow): Space {
     .sort((a, b) => a.version - b.version);
   return {
     id: row.id,
+    contractVersion: row.contract_version || CONTRACT_VERSION,
     modulesRev: typeof row.modules_rev === "number" ? row.modules_rev : 0,
     inputText: row.input_text,
     title: row.title || "",
@@ -217,6 +220,16 @@ function mapSpace(row: SpaceRow): Space {
 }
 
 const SPACE_SELECT = `
+  id, contract_version, modules_rev, input_text, title, language, vibe, modules, labels, style,
+  stage, segment, shared, archived_at, deleted_at,
+  owner_id, visibility,
+  created_at, published_at,
+  owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
+  state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
+  versions:space_versions(id, space_id, version, title, note, created_at)
+`;
+
+const SPACE_SELECT_WITHOUT_CONTRACT = `
   id, modules_rev, input_text, title, language, vibe, modules, labels, style,
   stage, segment, shared, archived_at, deleted_at,
   owner_id, visibility,
@@ -236,10 +249,10 @@ const SPACE_SELECT_LEGACY = `
   versions:space_versions(id, space_id, version, title, note, created_at)
 `;
 
-function isMissingModulesRev(error: unknown): boolean {
+function isMissingColumn(error: unknown, column: string): boolean {
   const e = error as { message?: string; details?: string; hint?: string; code?: string } | null;
   const text = [e?.message, e?.details, e?.hint, e?.code].filter(Boolean).join(" ").toLowerCase();
-  return text.includes("modules_rev");
+  return text.includes(column.toLowerCase());
 }
 
 // ============================================================
@@ -254,7 +267,16 @@ export async function fetchSpaceById(id: string): Promise<Space | null> {
     .maybeSingle();
   let data: unknown = primary.data;
   let error: unknown = primary.error;
-  if (error && isMissingModulesRev(error)) {
+  if (error && isMissingColumn(error, "contract_version")) {
+    const fallback = await supabase
+      .from("spaces")
+      .select(SPACE_SELECT_WITHOUT_CONTRACT)
+      .eq("id", id)
+      .maybeSingle();
+    data = fallback.data;
+    error = fallback.error;
+  }
+  if (error && isMissingColumn(error, "modules_rev")) {
     const fallback = await supabase
       .from("spaces")
       .select(SPACE_SELECT_LEGACY)
@@ -309,7 +331,16 @@ export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {
     .order("created_at", { ascending: false });
   let data: unknown = primary.data;
   let error: unknown = primary.error;
-  if (error && isMissingModulesRev(error)) {
+  if (error && isMissingColumn(error, "contract_version")) {
+    const fallback = await supabase
+      .from("spaces")
+      .select(SPACE_SELECT_WITHOUT_CONTRACT)
+      .eq("owner_id", ownerId)
+      .order("created_at", { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
+  }
+  if (error && isMissingColumn(error, "modules_rev")) {
     const fallback = await supabase
       .from("spaces")
       .select(SPACE_SELECT_LEGACY)

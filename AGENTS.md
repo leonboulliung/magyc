@@ -36,7 +36,8 @@ same commit.
 5. **The data contract is frozen.** `docs/DATA_CONTRACT.md` +
    `lib/contract.ts` define Space/Module/state shapes. Presentation may change
    freely; data shapes change only deliberately, with a `CONTRACT_VERSION`
-   bump and a doc update.
+   bump and a doc update. New spaces also persist `spaces.contract_version`
+   after migration 020; code must remain migration-tolerant before SQL lands.
 6. **End-of-session protocol:** update `docs/BACKLOG.md` (mark done, add new
    findings with root-cause notes), update this file if conventions changed,
    commit + push. The next agent has no memory of your session — the repo is
@@ -50,7 +51,7 @@ same commit.
 |---|---|---|
 | Framework | Next.js 14 App Router, React 18, TS, Tailwind | |
 | Hosting | Vercel, region `fra1` (vercel.json), domain magyc.site | `vercel` CLI is logged in locally |
-| DB + Realtime + Storage | Supabase Postgres/Realtime/Storage, project ref `zpkgofpkksetnbuizvhi` (eu-central-1) | client: anon key; API routes: `supabaseAdmin()` (service_role, bypasses RLS); media uses signed direct uploads + signed reads |
+| DB + Realtime + Storage | Supabase Postgres/Realtime/Storage, project ref `zpkgofpkksetnbuizvhi` (eu-central-1) | client: anon key; API routes: `supabaseAdmin()` (service_role, bypasses RLS); media uses signed direct uploads + signed reads through `lib/server/storage.ts` |
 | Auth | Clerk (`@clerk/nextjs`), email OTP | publish binds a draft to a Clerk account |
 | AI | OpenAI `gpt-4o-mini` (classify, clarify, regenerate) | |
 | Maps | Leaflet + CARTO tiles; geocoding via Komoot Photon (free, no key) | |
@@ -65,7 +66,9 @@ be checked before local verification. Names: `NEXT_PUBLIC_SUPABASE_URL`,
 
 DB schema: `supabase/migrations/` (current), `supabase/migrations-archive/`
 (predecessor app, historical only). Schema changes are applied manually in the
-Supabase SQL editor — there is no migration runner wired up.
+Supabase SQL editor — there is no migration runner wired up. Operational
+checks live in `docs/OPERATIONS.md`; run `npm run ops:backup-check` after
+applying migrations that affect storage/events/core tables.
 
 ---
 
@@ -217,16 +220,22 @@ lib/
 - **Media infrastructure**: browser file blobs must not be proxied through
   Vercel functions. `UploadZone` asks `/api/spaces/[id]/upload` for a signed
   Supabase Storage upload token, uploads directly with `uploadToSignedUrl`,
-  then commits the `module_state` row. Renderers resolve private object paths
-  through `/api/spaces/[id]/assets/sign` and must keep supporting legacy
-  public `url` rows as fallback. Every upload renderer must show accepted file
-  types + max size through the shared `UploadZone` helpers; keep the client
-  accept list and `lib/server/uploadSecurity.ts` allowlist in sync. The
-  `space_assets` bucket is intended to be private after migration 019.
+  then commits the `module_state` row. Server-side Storage operations must go
+  through `lib/server/storage.ts` so future R2/S3/CDN moves stay contained.
+  Renderers resolve private object paths through `/api/spaces/[id]/assets/sign`
+  and must keep supporting legacy public `url` rows as fallback. Every upload
+  renderer must show accepted file types + max size through the shared
+  `UploadZone` helpers; keep the client accept list and
+  `lib/server/uploadSecurity.ts` allowlist in sync. The `space_assets` bucket
+  is intended to be private after migration 019.
 - **Persistent limits**: cost/security limits must be durable across Vercel
   instances. Use the Supabase `take_rate_limit` RPC from migration 019 for
   AI, uploads, asset signing, and high-volume state writes; in-memory guards
   are only a fast local debounce.
+- **Operations events**: user-facing flows must not depend on telemetry.
+  `lib/server/observability.ts` writes best-effort `app_events` rows after
+  migration 020 for upload/signing/support visibility. Missing migrations log
+  a warning once and must not break the product path.
 
 ---
 
@@ -236,6 +245,7 @@ lib/
 |---|---|
 | `docs/BACKLOG.md` | **Prioritized known issues + improvement queue, with root-cause notes.** Check before starting work; update before ending. |
 | `docs/DATA_CONTRACT.md` | Frozen data shapes (binding) |
+| `docs/OPERATIONS.md` | Migration, observability, backup/restore, and early-scale runbook |
 | `docs/MOTION.md` | Motion/aliveness design language |
 | `TODO-LAUNCH.md` | Launch-gated items needing Leon's decision (email digest, trust & safety, emergent-functions idea) |
 | `docs/archive/` | Predecessor app ("one card per week" Paris feed). Historical only — **do not** follow anything in there. |

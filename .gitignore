@@ -10,6 +10,7 @@
 # build
 /build
 /dist
+/backups/
 
 # misc
 .DS_Store

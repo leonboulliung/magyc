@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/server/profile";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { recordAiEvent } from "@/lib/server/aiEvents";
+import { insertSpaceRow } from "@/lib/server/spacePersistence";
 import type { Module } from "@/lib/types";
 import { sanitizeModules } from "@/lib/modules";
 import { newId, newAnonToken } from "@/lib/id";
@@ -188,7 +189,7 @@ export async function POST(req: Request) {
   }
 
   const id = newId();
-  const { error } = await admin.from("spaces").insert({
+  const { error } = await insertSpaceRow(admin, {
     id,
     input_text: input,
     title: result.title,

@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "ops:backup-check": "node scripts/backup-check.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.74",

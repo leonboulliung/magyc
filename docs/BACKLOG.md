@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-25 (Codex — element robustness pass)_
+_Last updated: 2026-06-26 (Codex — operations foundation)_
 
 ---
 
@@ -127,6 +127,18 @@ text paths now force wrapping (`overflow-wrap:anywhere`) to resist long input.
 The user-facing Discussion element is retired from picker, presets,
 classification, and `/dev`; the legacy `discussion` module type/renderer stays
 only to avoid breaking existing Spaces under the frozen data contract.
+
+Follow-up done 2026-06-26: operations foundation. Contract version bumped to
+1.6.0 and migration `020_operations_foundation.sql` adds
+`spaces.contract_version`, `app_events`, upload usage rollups, and a manual
+ops migration log. Space inserts and reads are migration-tolerant if the deploy
+lands before SQL. Storage calls now route through `lib/server/storage.ts`;
+upload preparation/completion and asset signing write best-effort app events
+through `lib/server/observability.ts`. `/admin` now shows contract version,
+feature flags, media usage, operations logs, and existing AI logs. Added
+`docs/OPERATIONS.md` and `npm run ops:backup-check` for non-destructive
+production/staging readiness checks. **Operational follow-up:** apply migration
+020 in Supabase and run the backup check against the production env.
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client
