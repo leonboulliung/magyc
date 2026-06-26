@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-26 (Codex — operations foundation)_
+_Last updated: 2026-06-26 (Codex — admin/support launch cockpit)_
 
 ---
 
@@ -139,6 +139,16 @@ feature flags, media usage, operations logs, and existing AI logs. Added
 `docs/OPERATIONS.md` and `npm run ops:backup-check` for non-destructive
 production/staging readiness checks. **Operational follow-up:** apply migration
 020 in Supabase and run the backup check against the production env.
+
+Follow-up done 2026-06-26: admin/support launch cockpit. Migration
+`021_admin_support_and_account_ops.sql` adds profile plan/account-status
+fields, `support_tickets`, and `admin_audit_events`. `/admin` now shows launch
+metrics, open support tickets, Clerk-enriched user emails, plan/status controls
+with Clerk lock/ban/unlock integration, admin notes, and a read-only account
+view with projects, tickets, and timeline. Signed-in users can submit one-way
+support tickets from Studio and project pages; admins mark them done and reply
+manually by email. **Operational follow-up:** apply migration 021 in Supabase
+before using account controls/support in production.
 
 **Done 2026-06-24:** module structural writes now use `spaces.modules_rev`
 optimistic concurrency (`018_modules_rev_claim_guard.sql`, widget APIs, client

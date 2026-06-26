@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
+import { clerkClient } from "@clerk/nextjs/server";
 import { requireAdmin } from "@/lib/admin";
 import { CONTRACT_VERSION } from "@/lib/contract";
-import { featureFlagSnapshot } from "@/lib/featureFlags";
 import { supabaseAdmin } from "@/lib/supabase";
+import { AdminConsole, type AdminConsoleData, type AdminSpace, type AdminTicket, type AdminUser, type TimelineEntry } from "@/components/admin/AdminConsole";
+import type { AccountStatus, AdminPlan, SupportStatus } from "@/lib/adminAccount";
 
 export const dynamic = "force-dynamic";
 
@@ -11,23 +12,22 @@ type ProfileRow = {
   id: string;
   display_name: string;
   avatar_url: string | null;
-  color: string | null;
   created_at: string;
+  plan?: AdminPlan | null;
+  account_status?: AccountStatus | null;
+  admin_notes?: string | null;
 };
 
 type SpaceRow = {
   id: string;
   title: string;
   owner_id: string | null;
-  visibility: string | null;
-  language: string | null;
   stage: string | null;
   segment: string | null;
   archived_at: string | null;
   deleted_at: string | null;
   modules: unknown[] | null;
   created_at: string;
-  published_at: string | null;
 };
 
 type StateRow = {
@@ -42,35 +42,20 @@ type StateRow = {
 type AiEventRow = {
   id: string;
   user_id: string | null;
-  anon_id: string | null;
   space_id: string | null;
-  module_index: number | null;
   event_type: string;
-  model: string | null;
   status: "ok" | "error";
-  input: string | null;
-  output: string | null;
-  error: string | null;
-  latency_ms: number | null;
-  tokens_in: number | null;
-  tokens_out: number | null;
   created_at: string;
 };
 
 type AppEventRow = {
   id: string;
-  event_type: string;
-  status: "ok" | "warn" | "error";
-  route: string | null;
-  method: string | null;
   user_id: string | null;
-  anon_id: string | null;
   actor_kind: "user" | "anon" | null;
   actor_id: string | null;
   space_id: string | null;
-  latency_ms: number | null;
-  error: string | null;
-  metadata: Record<string, unknown> | null;
+  event_type: string;
+  status: "ok" | "warn" | "error";
   created_at: string;
 };
 
@@ -80,29 +65,27 @@ type UploadUsageRow = {
   total_bytes: number | string | null;
 };
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("de-DE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
+type SupportTicketRow = {
+  id: string;
+  user_id: string | null;
+  email: string | null;
+  type: string;
+  status: SupportStatus;
+  message: string;
+  route: string | null;
+  space_id: string | null;
+  last_error: string | null;
+  created_at: string;
+  done_at: string | null;
+};
 
-function clip(text: string | null | undefined, max = 180) {
-  if (!text) return "-";
-  return text.length > max ? `${text.slice(0, max)}...` : text;
-}
-
-function formatBytes(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let size = value;
-  let unit = 0;
-  while (size >= 1024 && unit < units.length - 1) {
-    size /= 1024;
-    unit += 1;
-  }
-  return `${size.toLocaleString("de-DE", { maximumFractionDigits: unit === 0 ? 0 : 1 })} ${units[unit]}`;
+function phaseLabel(space: SpaceRow): string {
+  if (space.deleted_at) return "Geloescht";
+  if (space.archived_at) return "Archiviert";
+  if (space.stage === "brief") return "Planung";
+  if (space.stage === "production") return "Auswahl";
+  if (space.stage === "handoff") return "Abgeschlossen";
+  return "Entwurf";
 }
 
 function stateSize(row: StateRow): number {
@@ -112,139 +95,276 @@ function stateSize(row: StateRow): number {
   return 0;
 }
 
-function phaseLabel(space: SpaceRow): string {
-  if (space.deleted_at) return "Gelöscht";
-  if (space.archived_at) return "Archiviert";
-  if (space.stage === "brief") return "Planung";
-  if (space.stage === "production") return "Auswahl";
-  if (space.stage === "handoff") return "Abgeschlossen";
-  return "Draft";
+async function loadProfiles(admin: ReturnType<typeof supabaseAdmin>) {
+  const rich = await admin
+    .from("profiles")
+    .select("id, display_name, avatar_url, created_at, plan, account_status, admin_notes")
+    .order("created_at", { ascending: false })
+    .limit(250);
+
+  if (!rich.error) return { profiles: (rich.data || []) as ProfileRow[], warning: null };
+
+  const fallback = await admin
+    .from("profiles")
+    .select("id, display_name, avatar_url, created_at")
+    .order("created_at", { ascending: false })
+    .limit(250);
+  if (fallback.error) throw fallback.error;
+  return {
+    profiles: (fallback.data || []) as ProfileRow[],
+    warning: "Migration 021 fehlt noch: Plan, Account-Status und Admin-Notizen werden mit Standardwerten angezeigt.",
+  };
 }
 
-async function loadAdminData() {
+async function loadOptionalTable<T>(
+  promise: PromiseLike<{ data: unknown; error: { message: string } | null }>,
+  warning: string,
+) {
+  const res = await promise;
+  if (res.error) {
+    console.warn("[admin] optional data unavailable:", res.error.message);
+    return { rows: [] as T[], warning };
+  }
+  return { rows: (res.data || []) as T[], warning: null };
+}
+
+async function clerkEmails(userIds: string[]) {
+  const client = await clerkClient();
+  const entries = await Promise.allSettled(
+    userIds.slice(0, 120).map(async (id) => {
+      const user = await client.users.getUser(id);
+      const email =
+        user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId)?.emailAddress ||
+        user.emailAddresses[0]?.emailAddress ||
+        null;
+      return [id, email] as const;
+    }),
+  );
+  const map = new Map<string, string | null>();
+  for (const entry of entries) {
+    if (entry.status === "fulfilled") map.set(entry.value[0], entry.value[1]);
+  }
+  return map;
+}
+
+async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
   const admin = supabaseAdmin();
-  const [profilesRes, spacesRes, stateRes, aiEventsRes, appEventsRes, uploadUsageRes] = await Promise.all([
-    admin.from("profiles").select("id, display_name, avatar_url, color, created_at").order("created_at", { ascending: false }).limit(250),
-    admin.from("spaces").select("id, title, owner_id, visibility, language, stage, segment, archived_at, deleted_at, modules, created_at, published_at").order("created_at", { ascending: false }).limit(250),
-    admin.from("module_state").select("space_id, actor_kind, actor_id, kind, data, created_at").order("created_at", { ascending: false }).limit(1000),
-    admin.from("ai_events").select("id, user_id, anon_id, space_id, module_index, event_type, model, status, input, output, error, latency_ms, tokens_in, tokens_out, created_at").order("created_at", { ascending: false }).limit(200),
-    admin.from("app_events").select("id, event_type, status, route, method, user_id, anon_id, actor_kind, actor_id, space_id, latency_ms, error, metadata, created_at").order("created_at", { ascending: false }).limit(300),
-    admin.rpc("space_upload_usage_by_space", { p_limit: 250 }),
+  const migrationWarnings: string[] = [];
+
+  const profilesRes = await loadProfiles(admin);
+  if (profilesRes.warning) migrationWarnings.push(profilesRes.warning);
+
+  const [spacesRes, stateRes, aiEventsRes, appEventsRes, uploadUsageRes, supportRes] = await Promise.all([
+    admin.from("spaces").select("id, title, owner_id, stage, segment, archived_at, deleted_at, modules, created_at").order("created_at", { ascending: false }).limit(400),
+    admin.from("module_state").select("space_id, actor_kind, actor_id, kind, data, created_at").order("created_at", { ascending: false }).limit(1600),
+    admin.from("ai_events").select("id, user_id, space_id, event_type, status, created_at").order("created_at", { ascending: false }).limit(400),
+    admin.from("app_events").select("id, user_id, actor_kind, actor_id, space_id, event_type, status, created_at").order("created_at", { ascending: false }).limit(600),
+    admin.rpc("space_upload_usage_by_space", { p_limit: 400 }),
+    loadOptionalTable<SupportTicketRow>(
+      admin.from("support_tickets").select("id, user_id, email, type, status, message, route, space_id, last_error, created_at, done_at").order("created_at", { ascending: false }).limit(250),
+      "Migration 021 fehlt noch: Support-Tickets sind im Admin noch nicht sichtbar.",
+    ),
   ]);
 
-  if (profilesRes.error) throw profilesRes.error;
   if (spacesRes.error) throw spacesRes.error;
   if (stateRes.error) throw stateRes.error;
 
-  const aiEventsMissing = Boolean(aiEventsRes.error);
-  if (aiEventsRes.error) {
-    console.warn("[admin] ai_events unavailable:", aiEventsRes.error.message);
-  }
-  const appEventsMissing = Boolean(appEventsRes.error);
-  if (appEventsRes.error) {
-    console.warn("[admin] app_events unavailable:", appEventsRes.error.message);
-  }
-  const uploadUsageMissing = Boolean(uploadUsageRes.error);
-  if (uploadUsageRes.error) {
-    console.warn("[admin] upload usage rollup unavailable:", uploadUsageRes.error.message);
-  }
+  const aiEvents = aiEventsRes.error ? [] : ((aiEventsRes.data || []) as AiEventRow[]);
+  const appEvents = appEventsRes.error ? [] : ((appEventsRes.data || []) as AppEventRow[]);
+  const uploadUsageRows = uploadUsageRes.error ? [] : ((uploadUsageRes.data || []) as UploadUsageRow[]);
+  const supportRows = supportRes.rows;
+  if (aiEventsRes.error) migrationWarnings.push("AI-Events sind nicht lesbar. Migration 009 pruefen.");
+  if (appEventsRes.error) migrationWarnings.push("Operations-Events sind nicht lesbar. Migration 020 pruefen.");
+  if (uploadUsageRes.error) migrationWarnings.push("Upload-Rollup ist nicht lesbar. Es wird aus aktuellen State-Zeilen angenaehert.");
+  if (supportRes.warning) migrationWarnings.push(supportRes.warning);
 
-  const profiles = (profilesRes.data || []) as ProfileRow[];
+  const profiles = profilesRes.profiles;
   const spaces = (spacesRes.data || []) as SpaceRow[];
   const state = (stateRes.data || []) as StateRow[];
-  const aiEvents = (aiEventsRes.data || []) as AiEventRow[];
-  const appEvents = (appEventsRes.data || []) as AppEventRow[];
+  const emailByUser = await clerkEmails(profiles.map((profile) => profile.id));
 
-  const uploadUsageBySpace = new Map<string, { uploadCount: number; totalBytes: number }>();
-  for (const row of ((uploadUsageRes.data || []) as UploadUsageRow[])) {
+  const uploadUsageBySpace = new Map<string, { uploadCount: number; uploadBytes: number }>();
+  for (const row of uploadUsageRows) {
     if (!row.space_id) continue;
     uploadUsageBySpace.set(row.space_id, {
       uploadCount: Number(row.upload_count || 0) || 0,
-      totalBytes: Number(row.total_bytes || 0) || 0,
+      uploadBytes: Number(row.total_bytes || 0) || 0,
     });
   }
   if (uploadUsageBySpace.size === 0) {
     for (const row of state.filter((entry) => entry.kind === "upload")) {
-      const prev = uploadUsageBySpace.get(row.space_id) || { uploadCount: 0, totalBytes: 0 };
+      const prev = uploadUsageBySpace.get(row.space_id) || { uploadCount: 0, uploadBytes: 0 };
       uploadUsageBySpace.set(row.space_id, {
         uploadCount: prev.uploadCount + 1,
-        totalBytes: prev.totalBytes + stateSize(row),
+        uploadBytes: prev.uploadBytes + stateSize(row),
       });
     }
   }
 
   const spacesByOwner = new Map<string, number>();
+  const actionsByUser = new Map<string, number>();
+  const aiByUser = new Map<string, number>();
+  const lastSeenByUser = new Map<string, string>();
+  const timeline: TimelineEntry[] = [];
+
+  function markSeen(userId: string | null | undefined, createdAt: string) {
+    if (!userId) return;
+    const current = lastSeenByUser.get(userId);
+    if (!current || new Date(createdAt).getTime() > new Date(current).getTime()) {
+      lastSeenByUser.set(userId, createdAt);
+    }
+  }
+
   for (const space of spaces) {
     if (!space.owner_id) continue;
     spacesByOwner.set(space.owner_id, (spacesByOwner.get(space.owner_id) || 0) + 1);
+    markSeen(space.owner_id, space.created_at);
+    timeline.push({
+      id: `space:${space.id}`,
+      userId: space.owner_id,
+      label: "Projekt erstellt",
+      detail: space.title || space.id,
+      at: space.created_at,
+      href: `/s/${space.id}`,
+    });
   }
 
-  const actionsByActor = new Map<string, number>();
-  for (const entry of state) {
-    const key = `${entry.actor_kind}:${entry.actor_id}`;
-    actionsByActor.set(key, (actionsByActor.get(key) || 0) + 1);
+  for (const row of state) {
+    if (row.actor_kind !== "user") continue;
+    actionsByUser.set(row.actor_id, (actionsByUser.get(row.actor_id) || 0) + 1);
+    markSeen(row.actor_id, row.created_at);
+    timeline.push({
+      id: `state:${row.space_id}:${row.kind}:${row.created_at}`,
+      userId: row.actor_id,
+      label: `Element-Aktion: ${row.kind}`,
+      detail: row.space_id,
+      at: row.created_at,
+      href: `/s/${row.space_id}`,
+    });
   }
 
-  const aiByUser = new Map<string, number>();
   for (const event of aiEvents) {
-    const key = event.user_id ? `user:${event.user_id}` : event.anon_id ? `anon:${event.anon_id}` : "";
-    if (!key) continue;
-    aiByUser.set(key, (aiByUser.get(key) || 0) + 1);
+    if (!event.user_id) continue;
+    aiByUser.set(event.user_id, (aiByUser.get(event.user_id) || 0) + 1);
+    markSeen(event.user_id, event.created_at);
+    timeline.push({
+      id: `ai:${event.id}`,
+      userId: event.user_id,
+      label: `KI: ${event.event_type}`,
+      detail: event.status,
+      at: event.created_at,
+      href: event.space_id ? `/s/${event.space_id}` : undefined,
+    });
   }
 
-  const users = profiles.map((profile) => ({
-    ...profile,
+  for (const event of appEvents) {
+    const userId = event.user_id || (event.actor_kind === "user" ? event.actor_id : null);
+    if (!userId) continue;
+    markSeen(userId, event.created_at);
+    timeline.push({
+      id: `app:${event.id}`,
+      userId,
+      label: `System: ${event.event_type}`,
+      detail: event.status,
+      at: event.created_at,
+      href: event.space_id ? `/s/${event.space_id}` : undefined,
+    });
+  }
+
+  const tickets: AdminTicket[] = supportRows.map((ticket) => {
+    markSeen(ticket.user_id, ticket.created_at);
+    timeline.push({
+      id: `support:${ticket.id}`,
+      userId: ticket.user_id,
+      label: "Support-Ticket",
+      detail: ticket.message.slice(0, 90),
+      at: ticket.created_at,
+      href: ticket.space_id ? `/s/${ticket.space_id}` : undefined,
+    });
+    return {
+      id: ticket.id,
+      userId: ticket.user_id,
+      email: ticket.email,
+      type: ticket.type,
+      status: ticket.status,
+      message: ticket.message,
+      route: ticket.route,
+      spaceId: ticket.space_id,
+      lastError: ticket.last_error,
+      createdAt: ticket.created_at,
+      doneAt: ticket.done_at,
+    };
+  });
+
+  const users: AdminUser[] = profiles.map((profile) => ({
+    id: profile.id,
+    displayName: profile.display_name || `user-${profile.id.slice(-6)}`,
+    email: emailByUser.get(profile.id) || null,
+    avatarUrl: profile.avatar_url,
+    createdAt: profile.created_at,
+    plan: profile.plan || "free",
+    accountStatus: profile.account_status || "active",
+    adminNotes: profile.admin_notes || "",
     spaces: spacesByOwner.get(profile.id) || 0,
-    actions: actionsByActor.get(`user:${profile.id}`) || 0,
-    aiRuns: aiByUser.get(`user:${profile.id}`) || 0,
+    actions: actionsByUser.get(profile.id) || 0,
+    aiRuns: aiByUser.get(profile.id) || 0,
+    lastSeen: lastSeenByUser.get(profile.id) || profile.created_at,
   }));
 
-  const anonActors = [...actionsByActor.entries()]
-    .filter(([key]) => key.startsWith("anon:"))
-    .slice(0, 40)
-    .map(([key, actions]) => ({
-      id: key.replace("anon:", ""),
-      actions,
-      aiRuns: aiByUser.get(key) || 0,
-    }));
+  const adminSpaces: AdminSpace[] = spaces.map((space) => {
+    const usage = uploadUsageBySpace.get(space.id) || { uploadCount: 0, uploadBytes: 0 };
+    return {
+      id: space.id,
+      title: space.title || space.id,
+      ownerId: space.owner_id,
+      phase: phaseLabel(space),
+      segment: space.segment,
+      moduleCount: Array.isArray(space.modules) ? space.modules.length : 0,
+      uploadCount: usage.uploadCount,
+      uploadBytes: usage.uploadBytes,
+      createdAt: space.created_at,
+      archivedAt: space.archived_at,
+      deletedAt: space.deleted_at,
+    };
+  });
 
-  const totalTokens = aiEvents.reduce((sum, event) => sum + (event.tokens_in || 0) + (event.tokens_out || 0), 0);
-  const errors = aiEvents.filter((event) => event.status === "error").length;
-  const totalUploadCount = [...uploadUsageBySpace.values()].reduce((sum, row) => sum + row.uploadCount, 0);
-  const totalUploadBytes = [...uploadUsageBySpace.values()].reduce((sum, row) => sum + row.totalBytes, 0);
-  const appErrors = appEvents.filter((event) => event.status === "error").length;
-  const slowEvents = appEvents.filter((event) => (event.latency_ms || 0) >= 3000).length;
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const activeUsers7d = new Set(
+    [...lastSeenByUser.entries()]
+      .filter(([, at]) => new Date(at).getTime() >= sevenDaysAgo)
+      .map(([id]) => id),
+  ).size;
 
   return {
-    profiles: users,
-    anonActors,
-    spaces,
-    aiEvents,
-    appEvents,
-    aiEventsMissing,
-    appEventsMissing,
-    uploadUsageMissing,
-    uploadUsageBySpace,
-    totalTokens,
-    errors,
-    totalUploadCount,
-    totalUploadBytes,
-    appErrors,
-    slowEvents,
-    flags: featureFlagSnapshot(),
+    signedInAs,
+    migrationWarnings,
+    metrics: {
+      users: users.length,
+      activeUsers7d,
+      spaces: adminSpaces.length,
+      spaces7d: adminSpaces.filter((space) => new Date(space.createdAt).getTime() >= sevenDaysAgo).length,
+      openTickets: tickets.filter((ticket) => ticket.status === "new").length,
+      aiErrors: aiEvents.filter((event) => event.status === "error").length,
+      appErrors: appEvents.filter((event) => event.status === "error").length,
+      uploadedBytes: [...uploadUsageBySpace.values()].reduce((sum, usage) => sum + usage.uploadBytes, 0),
+    },
+    users,
+    spaces: adminSpaces,
+    tickets,
+    timeline: timeline.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 1200),
   };
 }
 
 function GateMessage({ reason }: { reason: NonNullable<Awaited<ReturnType<typeof requireAdmin>>["reason"]> }) {
   if (reason === "signed_out") {
     return (
-      <main className="min-h-screen grid place-items-center bg-[#f6f6f3] text-[#111] px-6">
+      <main className="grid min-h-screen place-items-center bg-[#f4f4f1] px-6 text-[#17171a]">
         <div className="max-w-sm space-y-4">
-          <p className="mono text-[11px] tracking-widest uppercase opacity-50">MAGYC Admin</p>
-          <h1 className="text-2xl font-semibold">Sign in required</h1>
+          <p className="mono text-[11px] uppercase tracking-[0.28em] opacity-50">MAGYC Admin</p>
+          <h1 className="text-2xl font-semibold">Anmeldung erforderlich</h1>
           <SignInButton mode="modal">
-            <button className="mono text-[11px] tracking-widest uppercase border border-black/20 px-4 py-2">
-              sign in
+            <button className="rounded-full border border-black/20 px-5 py-3 text-sm">
+              Einloggen
             </button>
           </SignInButton>
         </div>
@@ -253,14 +373,14 @@ function GateMessage({ reason }: { reason: NonNullable<Awaited<ReturnType<typeof
   }
 
   return (
-    <main className="min-h-screen grid place-items-center bg-[#f6f6f3] text-[#111] px-6">
+    <main className="grid min-h-screen place-items-center bg-[#f4f4f1] px-6 text-[#17171a]">
       <div className="max-w-lg space-y-3">
-        <p className="mono text-[11px] tracking-widest uppercase opacity-50">MAGYC Admin</p>
+        <p className="mono text-[11px] uppercase tracking-[0.28em] opacity-50">MAGYC Admin</p>
         <h1 className="text-2xl font-semibold">
-          {reason === "not_configured" ? "Admin access is not configured" : "No admin access"}
+          {reason === "not_configured" ? "Admin-Zugriff ist nicht konfiguriert" : "Kein Admin-Zugriff"}
         </h1>
         <p className="text-sm leading-relaxed opacity-70">
-          Set `ADMIN_EMAILS` or `ADMIN_USER_IDS` in the deployment environment to enable this backend.
+          Setze `ADMIN_EMAILS` oder `ADMIN_USER_IDS` in Vercel, um dieses Cockpit freizuschalten.
         </p>
       </div>
     </main>
@@ -271,256 +391,7 @@ export default async function AdminPage() {
   const gate = await requireAdmin();
   if (!gate.ok) return <GateMessage reason={gate.reason || "forbidden"} />;
 
-  const data = await loadAdminData();
-  const latestSpaces = data.spaces.slice(0, 30);
-  const latestEvents = data.aiEvents.slice(0, 50);
-  const latestOps = data.appEvents.slice(0, 50);
-  const uploadUsage = [...data.uploadUsageBySpace.entries()]
-    .map(([spaceId, usage]) => ({ spaceId, ...usage }))
-    .sort((a, b) => b.totalBytes - a.totalBytes)
-    .slice(0, 30);
-
-  return (
-    <main className="min-h-screen bg-[#f6f6f3] text-[#111]">
-      <div className="mx-auto max-w-7xl px-5 py-6 space-y-6">
-        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-black/10 pb-5">
-          <div>
-            <p className="mono text-[11px] tracking-widest uppercase opacity-50">MAGYC Admin</p>
-            <h1 className="text-3xl font-semibold tracking-normal">Operations</h1>
-          </div>
-          <div className="mono text-[10px] tracking-widest uppercase opacity-55">
-            signed in as {gate.email || gate.userId}
-          </div>
-        </header>
-
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          <Metric label="users" value={data.profiles.length} />
-          <Metric label="spaces" value={data.spaces.length} />
-          <Metric label="contract" value={CONTRACT_VERSION} muted="current" />
-          <Metric label="ai events" value={data.aiEvents.length} muted={data.aiEventsMissing ? "migration pending" : undefined} />
-          <Metric label="tokens logged" value={data.totalTokens.toLocaleString("de-DE")} muted={`${data.errors} errors`} />
-          <Metric label="media" value={formatBytes(data.totalUploadBytes)} muted={`${data.totalUploadCount} uploads`} />
-          <Metric label="ops events" value={data.appEvents.length} muted={`${data.appErrors} errors · ${data.slowEvents} slow`} />
-        </section>
-
-        {data.aiEventsMissing && (
-          <div className="border border-amber-500/30 bg-amber-100/40 px-4 py-3 text-sm">
-            `ai_events` is not available yet. Apply `supabase/migrations/009_ai_events_admin.sql`
-            in Supabase to enable AI logs.
-          </div>
-        )}
-        {data.appEventsMissing && (
-          <div className="border border-amber-500/30 bg-amber-100/40 px-4 py-3 text-sm">
-            `app_events` is not available yet. Apply `supabase/migrations/020_operations_foundation.sql`
-            in Supabase to enable upload/signing/request observability.
-          </div>
-        )}
-        {data.uploadUsageMissing && (
-          <div className="border border-amber-500/30 bg-amber-100/40 px-4 py-3 text-sm">
-            The upload usage rollup function is not available yet. Admin falls back to the latest
-            `module_state` rows, which may undercount older uploads.
-          </div>
-        )}
-
-        <section className="grid gap-6 lg:grid-cols-[1fr_1.35fr]">
-          <Panel title="Users">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="mono text-[10px] tracking-widest uppercase opacity-50">
-                  <tr className="text-left border-b border-black/10">
-                    <th className="py-2 pr-3">name</th>
-                    <th className="py-2 pr-3">spaces</th>
-                    <th className="py-2 pr-3">actions</th>
-                    <th className="py-2 pr-3">ai</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.profiles.map((user) => (
-                    <tr key={user.id} className="border-b border-black/5">
-                      <td className="py-2 pr-3">
-                        <div className="font-medium">{user.display_name || user.id.slice(-8)}</div>
-                        <div className="mono text-[10px] opacity-45">{user.id}</div>
-                      </td>
-                      <td className="py-2 pr-3">{user.spaces}</td>
-                      <td className="py-2 pr-3">{user.actions}</td>
-                      <td className="py-2 pr-3">{user.aiRuns}</td>
-                    </tr>
-                  ))}
-                  {data.profiles.length === 0 && (
-                    <tr><td className="py-6 opacity-50" colSpan={4}>No signed-in users yet.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-
-          <Panel title="Spaces">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="mono text-[10px] tracking-widest uppercase opacity-50">
-                  <tr className="text-left border-b border-black/10">
-                    <th className="py-2 pr-3">space</th>
-                    <th className="py-2 pr-3">owner</th>
-                    <th className="py-2 pr-3">phase</th>
-                    <th className="py-2 pr-3">media</th>
-                    <th className="py-2 pr-3">created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {latestSpaces.map((space) => {
-                    const usage = data.uploadUsageBySpace.get(space.id) || { uploadCount: 0, totalBytes: 0 };
-                    return (
-                    <tr key={space.id} className="border-b border-black/5">
-                      <td className="py-2 pr-3 min-w-[220px]">
-                        <Link href={`/s/${space.id}`} className="font-medium underline decoration-black/20 underline-offset-2">
-                          {space.title || space.id}
-                        </Link>
-                        <div className="mono text-[10px] opacity-45">
-                          {space.id} · {Array.isArray(space.modules) ? space.modules.length : 0} modules · {space.language || "?"}
-                        </div>
-                      </td>
-                      <td className="py-2 pr-3 mono text-[10px] opacity-70">{space.owner_id || "draft"}</td>
-                      <td className="py-2 pr-3">{phaseLabel(space)}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">
-                        {usage.uploadCount ? `${usage.uploadCount} · ${formatBytes(usage.totalBytes)}` : "-"}
-                      </td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{formatDate(space.created_at)}</td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
-          <Panel title="Feature flags">
-            <div className="space-y-2">
-              {Object.entries(data.flags).map(([key, enabled]) => (
-                <div key={key} className="flex items-center justify-between border-b border-black/5 pb-2">
-                  <span className="mono text-[10px] tracking-widest uppercase opacity-65">{key}</span>
-                  <span className={`mono text-[10px] tracking-widest uppercase ${enabled ? "text-[#126b3f]" : "text-[#8a2a2a]"}`}>
-                    {enabled ? "on" : "off"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="AI logs">
-            <div className="space-y-3">
-              {latestEvents.map((event) => (
-                <article key={event.id} className="border-b border-black/8 pb-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="mono text-[10px] tracking-widest uppercase">{event.event_type}</span>
-                    <span className="mono text-[10px] opacity-50">{event.status}</span>
-                    <span className="mono text-[10px] opacity-50">{event.latency_ms ?? "-"}ms</span>
-                    <span className="mono text-[10px] opacity-50">
-                      {(event.tokens_in || 0) + (event.tokens_out || 0)} tok
-                    </span>
-                    {event.space_id && (
-                      <Link href={`/s/${event.space_id}`} className="mono text-[10px] underline opacity-60">
-                        {event.space_id}
-                      </Link>
-                    )}
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed opacity-75">{clip(event.input)}</p>
-                  {event.error ? (
-                    <p className="mt-1 text-sm text-[#7a1f1f]">{clip(event.error, 240)}</p>
-                  ) : (
-                    <p className="mt-1 text-xs leading-relaxed opacity-45">{clip(event.output, 240)}</p>
-                  )}
-                  <div className="mono mt-1 text-[10px] opacity-40">{formatDate(event.created_at)}</div>
-                </article>
-              ))}
-              {latestEvents.length === 0 && (
-                <p className="text-sm opacity-50">
-                  No AI logs yet. They will appear after the migration is applied and a new AI call runs.
-                </p>
-              )}
-            </div>
-          </Panel>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
-          <Panel title="Media usage">
-            <div className="space-y-2">
-              {uploadUsage.map((usage) => {
-                const space = data.spaces.find((s) => s.id === usage.spaceId);
-                return (
-                <div key={usage.spaceId} className="flex items-start justify-between gap-3 border-b border-black/5 pb-2">
-                  <div>
-                    <Link href={`/s/${usage.spaceId}`} className="text-sm font-medium underline decoration-black/20 underline-offset-2">
-                      {space?.title || usage.spaceId}
-                    </Link>
-                    <div className="mono text-[10px] opacity-45">{usage.spaceId}</div>
-                  </div>
-                  <span className="text-sm whitespace-nowrap">{usage.uploadCount} · {formatBytes(usage.totalBytes)}</span>
-                </div>
-                );
-              })}
-              {uploadUsage.length === 0 && <p className="text-sm opacity-50">No uploads logged yet.</p>}
-            </div>
-          </Panel>
-
-          <Panel title="Operations logs">
-            <div className="space-y-3">
-              {latestOps.map((event) => (
-                <article key={event.id} className="border-b border-black/8 pb-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="mono text-[10px] tracking-widest uppercase">{event.event_type}</span>
-                    <span className="mono text-[10px] opacity-50">{event.status}</span>
-                    <span className="mono text-[10px] opacity-50">{event.latency_ms ?? "-"}ms</span>
-                    {event.route && <span className="mono text-[10px] opacity-45">{event.method || ""} {event.route}</span>}
-                    {event.space_id && (
-                      <Link href={`/s/${event.space_id}`} className="mono text-[10px] underline opacity-60">
-                        {event.space_id}
-                      </Link>
-                    )}
-                  </div>
-                  {event.error && <p className="mt-1 text-sm text-[#7a1f1f]">{clip(event.error, 260)}</p>}
-                  <div className="mono mt-1 text-[10px] opacity-40">{formatDate(event.created_at)}</div>
-                </article>
-              ))}
-              {latestOps.length === 0 && <p className="text-sm opacity-50">No operations events yet.</p>}
-            </div>
-          </Panel>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
-          <Panel title="Anon actors">
-            <div className="space-y-2">
-              {data.anonActors.map((actor) => (
-                <div key={actor.id} className="flex items-center justify-between border-b border-black/5 pb-2">
-                  <span className="mono text-[10px] opacity-65">{actor.id}</span>
-                  <span className="text-sm">{actor.actions} actions · {actor.aiRuns} AI</span>
-                </div>
-              ))}
-              {data.anonActors.length === 0 && <p className="text-sm opacity-50">No anonymous actors yet.</p>}
-            </div>
-          </Panel>
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function Metric({ label, value, muted }: { label: string; value: string | number; muted?: string }) {
-  return (
-    <div className="border border-black/10 bg-white px-4 py-3">
-      <div className="mono text-[10px] tracking-widest uppercase opacity-45">{label}</div>
-      <div className="mt-2 text-3xl font-semibold">{value}</div>
-      {muted && <div className="mono mt-1 text-[10px] tracking-widest uppercase opacity-40">{muted}</div>}
-    </div>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="border border-black/10 bg-white p-4">
-      <h2 className="mono text-[11px] tracking-widest uppercase opacity-55 mb-3">{title}</h2>
-      {children}
-    </section>
-  );
+  const data = await loadAdminData(gate.email || gate.userId || "admin");
+  data.migrationWarnings.unshift(`Data Contract ${CONTRACT_VERSION}`);
+  return <AdminConsole initialData={data} />;
 }

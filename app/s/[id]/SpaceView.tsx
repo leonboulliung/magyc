@@ -38,6 +38,7 @@ import { StyleEditor } from "@/components/StyleEditor";
 import { AssistantDock } from "@/components/AssistantDock";
 import { DotField } from "@/components/DotField";
 import { RenderBoundary } from "@/components/ui/RenderBoundary";
+import { SupportWidget } from "@/components/support/SupportWidget";
 
 interface SpaceNotice {
   tone: "saving" | "success" | "error";
@@ -685,6 +686,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
         {/* Dev-only: persona switcher for simulating multiplayer.
             Hidden in production; enable on any space with ?dev=1. */}
         {devMode && <PersonaSwitcher />}
+        <SupportWidget spaceId={space.id} />
         <AssistantDock spaceId={space.id} onProjectChanged={refreshEverywhere} />
       </div>
     </WidgetContext.Provider>

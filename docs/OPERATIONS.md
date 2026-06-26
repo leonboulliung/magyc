@@ -16,8 +16,10 @@ Storage, observability, migration discipline, feature flags, and backup checks.
   Both are best-effort and must never block user workflows.
 - **Feature flags:** server-side operational flags live in `lib/featureFlags.ts`.
   Use `MAGYC_FEATURE_*` env vars for risky infrastructure rollouts.
-- **Admin:** `/admin` is the support surface for users, spaces, AI events,
-  media usage, feature flags, and app events.
+- **Admin:** `/admin` is the support surface for users, plans/account status,
+  one-way support tickets, read-only account inspection, spaces, media usage,
+  AI events, feature flags, and app events. Account/support actions are written
+  to `admin_audit_events` after migration 021.
 
 ## Migration protocol
 
@@ -26,7 +28,8 @@ Storage, observability, migration discipline, feature flags, and backup checks.
 3. Apply the SQL manually in the Supabase SQL editor.
 4. Run the verification query shown in the migration or in the handoff note.
 5. Run `npm run ops:backup-check` with production Supabase env vars.
-6. Check `/admin` for migration warnings and event visibility.
+6. Check `/admin` for migration warnings, support ticket visibility, and event
+   visibility.
 7. Record the result in `docs/BACKLOG.md` when the session ends.
 
 Manual migrations should be idempotent (`if not exists`, `on conflict`, tolerant

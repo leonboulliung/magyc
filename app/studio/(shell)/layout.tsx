@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DotField } from "@/components/DotField";
 import { StudioNav } from "@/components/studio/StudioNav";
 import { StudioAccountControls } from "@/components/studio/StudioAccountControls";
+import { SupportWidget } from "@/components/support/SupportWidget";
 
 /**
  * Studio shell — the account-area environment. A light, warm off-white base
@@ -41,6 +42,7 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
       </header>
 
       <main className="relative z-10">{children}</main>
+      <SupportWidget />
     </div>
   );
 }

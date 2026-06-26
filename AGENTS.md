@@ -236,6 +236,13 @@ lib/
   `lib/server/observability.ts` writes best-effort `app_events` rows after
   migration 020 for upload/signing/support visibility. Missing migrations log
   a warning once and must not break the product path.
+- **Admin/support:** `/admin` is the launch cockpit, not a customer-facing
+  product surface. User plan/status changes go through
+  `/api/admin/users/[id]`, apply Clerk lock/ban/unlock first, then update the
+  `profiles` operational snapshot. Support v1 is intentionally one-way:
+  signed-in users submit tickets via `/api/support`, admins mark them done via
+  `/api/admin/support/[id]`, and replies happen manually by email. Every admin
+  mutation should write `admin_audit_events` after migration 021.
 
 ---
 
