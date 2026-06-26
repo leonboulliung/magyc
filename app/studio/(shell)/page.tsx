@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { fetchSpacesByOwner } from "@/lib/db";
+import { fetchSpaceListByOwner } from "@/lib/db";
 import { ensureProfile } from "@/lib/server/profile";
 import { StudioHome, type StudioProjectCard } from "@/components/studio/StudioHome";
 
@@ -15,7 +15,7 @@ export default async function StudioDashboard() {
   if (!userId) return null; // middleware guards this; defensive.
 
   await ensureProfile(userId);
-  const all = (await fetchSpacesByOwner(userId).catch(() => [])).filter((s) => s.stage !== null);
+  const all = (await fetchSpaceListByOwner(userId).catch(() => [])).filter((s) => s.stage !== null);
   const now = Date.now();
   const card = (p: (typeof all)[number]): StudioProjectCard =>
     ({ id: p.id, title: p.title, stage: p.stage, createdAt: p.createdAt, shared: !!p.shared });

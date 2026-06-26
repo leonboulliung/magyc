@@ -401,7 +401,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                   <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Projekte</h3>
                   <div className="mt-3 space-y-2">
                     {modalSpaces.map((space) => (
-                      <Link key={space.id} href={`/s/${space.id}`} className="block rounded-[18px] border border-black/8 px-4 py-3 hover:bg-white">
+                      <Link key={space.id} href={`/admin/spaces/${space.id}`} className="block rounded-[18px] border border-black/8 px-4 py-3 hover:bg-white">
                         <div className="font-medium">{space.title}</div>
                         <div className="text-xs text-black/45">
                           {space.phase} · {space.moduleCount} Elemente · {formatDate(space.createdAt)}

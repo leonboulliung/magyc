@@ -5,10 +5,39 @@ import { ensureProfile } from "@/lib/server/profile";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { cleanSettings } from "@/lib/studioProfile";
 import { draftContract } from "@/lib/server/contractDraft";
-import type { Module } from "@/lib/types";
+import { buildProjectFacts } from "@/lib/projectFacts";
+import type { ActorKind, Module, ModuleStateEntry, ModuleStateKind } from "@/lib/types";
 
 // The drafter makes one gpt-4o-mini call — give headroom.
 export const maxDuration = 30;
+
+type StateRow = {
+  id: string;
+  space_id: string;
+  module_index: number;
+  actor_kind: ActorKind;
+  actor_id: string;
+  display_name: string | null;
+  kind: ModuleStateKind;
+  data: Record<string, unknown> | null;
+  created_at: string;
+};
+
+function mapState(row: StateRow): ModuleStateEntry {
+  return {
+    id: row.id,
+    spaceId: row.space_id,
+    moduleIndex: row.module_index,
+    actor: {
+      kind: row.actor_kind === "anon" ? "anon" : "user",
+      id: row.actor_id,
+      displayName: row.display_name || undefined,
+    },
+    kind: row.kind,
+    data: row.data ?? {},
+    createdAt: new Date(row.created_at).getTime(),
+  };
+}
 
 /**
  * POST /api/projects/[id]/contract/draft — owner-only. Assembles a reviewable
@@ -72,12 +101,20 @@ export async function POST(
 
   const modules = (Array.isArray(space.modules) ? space.modules : []) as Module[];
   const language = (space.language || "de").split("-")[0];
+  const { data: stateRows } = await admin
+    .from("module_state")
+    .select("id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at")
+    .eq("space_id", params.id)
+    .order("created_at", { ascending: true });
+  const state = ((stateRows || []) as StateRow[]).map(mapState);
+  const facts = buildProjectFacts(modules, state);
 
   const started = Date.now();
   let draft;
   try {
     draft = await draftContract({
       modules,
+      facts,
       conditions: settings.conditions,
       business: settings.business,
       parties,
@@ -94,7 +131,17 @@ export async function POST(
     spaceId: params.id,
     eventType: "contract_draft",
     model: draft.model,
-    input: { moduleTypes: modules.map((m) => m.type), language },
+    input: {
+      moduleTypes: modules.map((m) => m.type),
+      language,
+      factCounts: {
+        stateRows: state.length,
+        deliverables: facts.deliverables.length,
+        shots: facts.shots.length,
+        uploads: facts.uploads.length,
+        approvals: facts.approvals.length,
+      },
+    },
     output: { sectionCount: draft.sections.length, gapCount: draft.gaps.length },
     metadata: { source: "contract_draft" },
     latencyMs: Date.now() - started,

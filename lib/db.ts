@@ -72,6 +72,28 @@ type SpaceVersionRow = {
   created_at: string;
 };
 
+export interface SpaceListItem {
+  id: string;
+  title: string;
+  stage: ProjectStage | null;
+  segment: string | null;
+  shared: boolean;
+  archivedAt: number | null;
+  deletedAt: number | null;
+  createdAt: number;
+}
+
+type SpaceListRow = {
+  id: string;
+  title: string;
+  stage: string | null;
+  segment: string | null;
+  shared: boolean | null;
+  archived_at: string | null;
+  deleted_at: string | null;
+  created_at: string;
+};
+
 function mapProfile(row: ProfileRow | null, fallbackId = ""): Profile {
   if (!row) {
     return {
@@ -219,6 +241,21 @@ function mapSpace(row: SpaceRow): Space {
   };
 }
 
+function mapSpaceListItem(row: SpaceListRow): SpaceListItem {
+  return {
+    id: row.id,
+    title: row.title || "",
+    stage: (row.stage === "brief" || row.stage === "production" || row.stage === "handoff")
+      ? (row.stage as ProjectStage)
+      : null,
+    segment: row.segment ?? null,
+    shared: row.shared === true,
+    archivedAt: row.archived_at ? new Date(row.archived_at).getTime() : null,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at).getTime() : null,
+    createdAt: new Date(row.created_at).getTime(),
+  };
+}
+
 const SPACE_SELECT = `
   id, contract_version, modules_rev, input_text, title, language, vibe, modules, labels, style,
   stage, segment, shared, archived_at, deleted_at,
@@ -351,4 +388,14 @@ export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {
   }
   if (error) throw error;
   return ((data || []) as unknown as SpaceRow[]).map(mapSpace);
+}
+
+export async function fetchSpaceListByOwner(ownerId: string): Promise<SpaceListItem[]> {
+  const { data, error } = await supabase
+    .from("spaces")
+    .select("id, title, stage, segment, shared, archived_at, deleted_at, created_at")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data || []) as SpaceListRow[]).map(mapSpaceListItem);
 }

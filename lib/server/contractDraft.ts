@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { Module } from "@/lib/types";
+import { buildProjectFacts, type ProjectFacts } from "@/lib/projectFacts";
 import {
   type StudioConditions,
   type StudioBusiness,
@@ -28,48 +29,37 @@ import type {
 
 const MODEL = "gpt-4o-mini";
 
-interface ContractFacts {
-  title: string;
-  description: string;
-  dates: string[];
-  locations: string[];
-  deliverables: string[];
-  crew: string[];
-  shotCount: number;
-}
-
-function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const hasTime = /\d{2}:\d{2}/.test(iso);
-  return d.toLocaleString("de-DE", hasTime ? { dateStyle: "long", timeStyle: "short" } : { dateStyle: "long" });
-}
-
 function labelOf(list: { value: string; label: string }[], value: string): string {
   return list.find((o) => o.value === value)?.label ?? value;
 }
 
-export function extractContractFacts(modules: Module[]): ContractFacts {
-  const f: ContractFacts = { title: "", description: "", dates: [], locations: [], deliverables: [], crew: [], shotCount: 0 };
-  for (const m of modules) {
-    switch (m.type) {
-      case "heading": if (!f.title && m.text) f.title = m.text.trim(); break;
-      case "rich_text": if (!f.description && m.text) f.description = m.text.trim(); break;
-      case "appointment": if (m.datetime) f.dates.push(fmtDate(m.datetime)); break;
-      case "appointments": for (const e of m.entries || []) if (e.datetime) f.dates.push((e.label ? `${e.label}: ` : "") + fmtDate(e.datetime)); break;
-      case "date": if (m.date) f.dates.push(fmtDate(m.date)); break;
-      case "location_single": if (m.label) f.locations.push(m.label); break;
-      case "locations_multi": for (const l of m.locations || []) if (l.label) f.locations.push(l.label); break;
-      case "deliverables": for (const it of m.items || []) if (it.label) f.deliverables.push(it.quantity ? `${it.quantity}× ${it.label}` : it.label); break;
-      case "shot_list": f.shotCount += (m.shots || []).length; break;
-      case "crew": for (const r of m.roles || []) if (r.name) f.crew.push(r.name); break;
-      default: break;
-    }
-  }
-  return f;
+function itemLine(item: { label: string; quantity?: string; format?: string; due?: string; status?: string; details?: string }): string {
+  return [
+    item.quantity ? `${item.quantity}× ${item.label}` : item.label,
+    item.format,
+    item.due ? `fällig ${item.due}` : "",
+    item.status,
+    item.details,
+  ].filter(Boolean).join(" · ");
 }
 
-async function draftProse(facts: ContractFacts, conditions: StudioConditions, language: string): Promise<string> {
+function listPreview(values: string[], max = 8): string {
+  if (values.length <= max) return values.join(", ");
+  return `${values.slice(0, max).join(", ")} + ${values.length - max} weitere`;
+}
+
+function shotPreview(facts: ProjectFacts): string {
+  return facts.shots.slice(0, 10).map((shot) => [
+    shot.label,
+    shot.purpose,
+    shot.setup ? `Setup: ${shot.setup}` : "",
+    shot.location ? `Ort: ${shot.location}` : "",
+    shot.priority,
+    shot.status,
+  ].filter(Boolean).join(" · ")).join(" | ");
+}
+
+async function draftProse(facts: ProjectFacts, conditions: StudioConditions, language: string): Promise<string> {
   const fallback = conditions.service.description || facts.description || "";
   if (!process.env.OPENAI_API_KEY) return fallback;
   try {
@@ -83,8 +73,13 @@ async function draftProse(facts: ContractFacts, conditions: StudioConditions, la
       beschreibung: facts.description,
       termine: facts.dates,
       orte: facts.locations,
-      deliverables: facts.deliverables,
-      shotAnzahl: facts.shotCount,
+      deliverables: facts.deliverables.map(itemLine),
+      shotAnzahl: facts.shots.length,
+      shotlist: facts.shots.slice(0, 12),
+      moodboard: facts.moodboard,
+      freigaben: facts.approvals,
+      checklist: facts.checklist,
+      uploads: facts.uploads.map((upload) => upload.name).slice(0, 20),
       crew: facts.crew,
       studioLeistung: conditions.service.description,
     });
@@ -104,6 +99,7 @@ async function draftProse(facts: ContractFacts, conditions: StudioConditions, la
 
 export interface DraftInput {
   modules: Module[];
+  facts?: ProjectFacts;
   conditions: StudioConditions;
   business: StudioBusiness;
   parties: ContractParties;
@@ -112,7 +108,7 @@ export interface DraftInput {
 
 export async function draftContract(input: DraftInput): Promise<ContractDraft> {
   const { modules, conditions: c, parties, language } = input;
-  const facts = extractContractFacts(modules);
+  const facts = input.facts ?? buildProjectFacts(modules);
   const projectSummary = await draftProse(facts, c, language);
 
   const gaps: { clauseId: string; hint: string }[] = [];
@@ -129,6 +125,10 @@ export async function draftContract(input: DraftInput): Promise<ContractDraft> {
   const durationLabel = labelOf(LICENSE_DURATIONS, c.license.duration);
   const editLabel = labelOf(EDIT_LEVELS, c.deliverables.editLevel);
   const stornoText = c.cancellation.tiers.map((t) => `bis ${t.untilDaysBefore} Tage vorher: ${t.percent}%`).join(" · ");
+  const deliverables = facts.deliverables.map(itemLine);
+  const approvedCount = facts.approvals.filter((item) => item.approved || item.status === "approved").length;
+  const checklistDone = facts.checklist.filter((item) => item.checked).length;
+  const selectedCount = facts.selectedUploads.length;
 
   const sections: ContractSection[] = [
     {
@@ -175,14 +175,41 @@ export async function draftContract(input: DraftInput): Promise<ContractDraft> {
           "pr_deliverables",
           "Leistungen & Lieferung",
           [
-            facts.deliverables.length ? facts.deliverables.join(", ") : "",
+            deliverables.length ? deliverables.join(", ") : "",
             `Formate: ${c.deliverables.formats.join(", ")}`,
             `Bearbeitung: ${editLabel}`,
             `Lieferfrist: ${c.deliverables.turnaround}`,
           ].filter(Boolean).join(" · "),
-          facts.deliverables.length ? "module" : "conditions",
+          deliverables.length ? "module" : "conditions",
         ),
         facts.crew.length ? clause("pr_crew", "Beteiligte", facts.crew.join(", "), "module") : null,
+        facts.shots.length ? clause("pr_shotlist", "Shotlist", shotPreview(facts), "module") : null,
+        facts.moodboard.length
+          ? clause("pr_moodboard", "Visuelle Richtung", facts.moodboard.map((item) => [
+              item.label,
+              item.status,
+              item.note,
+            ].filter(Boolean).join(" · ")).join(" | "), "module")
+          : null,
+        facts.approvals.length
+          ? clause("pr_freigaben", "Freigaben", `${approvedCount}/${facts.approvals.length} freigegeben · ${facts.approvals.map((item) => [
+              item.label,
+              item.status,
+              item.due ? `fällig ${item.due}` : "",
+            ].filter(Boolean).join(" · ")).join(" | ")}`, "module")
+          : null,
+        facts.checklist.length
+          ? clause("pr_vorbereitung", "Vorbereitung", `${checklistDone}/${facts.checklist.length} erledigt · ${listPreview(facts.checklist.map((item) => `${item.checked ? "✓" : "○"} ${item.label}`), 10)}`, "module")
+          : null,
+        facts.uploads.length
+          ? clause("pr_uploads", "Referenzen & Anhänge", `${facts.uploads.length} Dateien${selectedCount ? ` · ${selectedCount} ausgewählt` : ""}: ${listPreview(facts.uploads.map((upload) => upload.name), 12)}`, "module")
+          : null,
+        facts.parts.length
+          ? clause("pr_utensilien", "Utensilien / Technik", listPreview(facts.parts.map((item) => [
+              item.quantity,
+              item.name,
+            ].filter(Boolean).join(" ")), 12), "module")
+          : null,
       ]),
     },
     {

@@ -225,7 +225,7 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
       label: "Projekt erstellt",
       detail: space.title || space.id,
       at: space.created_at,
-      href: `/s/${space.id}`,
+      href: `/admin/spaces/${space.id}`,
     });
   }
 
@@ -239,7 +239,7 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
       label: `Element-Aktion: ${row.kind}`,
       detail: row.space_id,
       at: row.created_at,
-      href: `/s/${row.space_id}`,
+      href: `/admin/spaces/${row.space_id}`,
     });
   }
 
@@ -253,7 +253,7 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
       label: `KI: ${event.event_type}`,
       detail: event.status,
       at: event.created_at,
-      href: event.space_id ? `/s/${event.space_id}` : undefined,
+      href: event.space_id ? `/admin/spaces/${event.space_id}` : undefined,
     });
   }
 
@@ -267,7 +267,7 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
       label: `System: ${event.event_type}`,
       detail: event.status,
       at: event.created_at,
-      href: event.space_id ? `/s/${event.space_id}` : undefined,
+      href: event.space_id ? `/admin/spaces/${event.space_id}` : undefined,
     });
   }
 
@@ -279,7 +279,7 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
       label: "Support-Ticket",
       detail: ticket.message.slice(0, 90),
       at: ticket.created_at,
-      href: ticket.space_id ? `/s/${ticket.space_id}` : undefined,
+      href: ticket.space_id ? `/admin/spaces/${ticket.space_id}` : undefined,
     });
     return {
       id: ticket.id,
