@@ -111,6 +111,13 @@ create index if not exists admin_audit_events_target_created_idx
 
 alter table public.admin_audit_events enable row level security;
 
-insert into public.ops_migration_log (name, applied_at)
-values ('021_admin_support_and_account_ops', now())
-on conflict (name) do update set applied_at = excluded.applied_at;
+insert into public.ops_migration_log (id, description, notes)
+values (
+  '021_admin_support_and_account_ops',
+  'Admin plan/status fields, support tickets, and admin audit events.',
+  'Apply manually in Supabase SQL editor after migration 020.'
+)
+on conflict (id) do update set
+  applied_at = now(),
+  description = excluded.description,
+  notes = excluded.notes;
