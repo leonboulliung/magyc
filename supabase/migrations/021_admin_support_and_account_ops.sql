@@ -111,6 +111,16 @@ create index if not exists admin_audit_events_target_created_idx
 
 alter table public.admin_audit_events enable row level security;
 
+create table if not exists public.ops_migration_log (
+  id text primary key,
+  description text not null,
+  applied_at timestamptz not null default now(),
+  applied_by text,
+  notes text
+);
+
+alter table public.ops_migration_log enable row level security;
+
 insert into public.ops_migration_log (id, description, notes)
 values (
   '021_admin_support_and_account_ops',

@@ -58,7 +58,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $$
+as $function$
   select
     ms.space_id,
     count(*)::bigint as upload_count,
@@ -74,7 +74,7 @@ as $$
   group by ms.space_id
   order by total_bytes desc
   limit greatest(1, least(coalesce(p_limit, 250), 1000));
-$$;
+$function$;
 
 create table if not exists ops_migration_log (
   id text primary key,
