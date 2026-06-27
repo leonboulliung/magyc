@@ -9,6 +9,38 @@ _Last updated: 2026-06-27 (Codex — state/admin/contract hardening)_
 
 ---
 
+## TODO — next operational step
+
+- [ ] **Apply migration 024**
+  (`supabase/migrations/024_state_compaction_and_admin_rollups.sql`) in the
+  production Supabase SQL editor. Then run its verification query and
+  `npm run ops:backup-check`. Until this is applied, the deployed application
+  remains migration-tolerant, but repeated edits are not compacted and Admin
+  activity counters fall back to bounded visible history.
+
+## Open engineering priorities
+
+1. **Strict private reads and scoped Realtime.** Replace direct anon-client
+   project reads and public `postgres_changes` with the role-gated transport in
+   `docs/REALTIME_SECURITY_PLAN.md`; only then revoke historical public-read
+   RLS policies. This is the largest remaining security architecture task.
+2. **Integration and multi-user test harness.** Unit tests now protect the
+   deterministic state/preset/facts layers, but authenticated API, Storage,
+   database migration, owner/editor/client/share-link, contract-signing, and
+   reconnect behavior still need automated production-like integration tests.
+3. **Production role-matrix acceptance test.** After migrations 022-024 are
+   confirmed, run one owner/editor/client project through preset creation,
+   media upload/removal, concurrent editing, Auswahl, contract release/signing,
+   Abschluss, archive, and Admin inspection. This is QA/operations rather than
+   new feature development, but it is launch-critical.
+
+Everything else currently listed below is a product/performance option rather
+than unfinished work from the hardening package: streamed project creation,
+anonymous draft recovery, deeper marketing content/SEO, and broader error-copy
+cleanup can be prioritized from real usage.
+
+---
+
 ## Done 2026-06-27 — state, admin and projection hardening
 
 - Upgraded the application to patched Next.js 15 and PostCSS releases; all
