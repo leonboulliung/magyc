@@ -20,7 +20,10 @@ _Last updated: 2026-06-27 (Codex — authorized reads and Realtime cutover)_
 - [ ] **After 024 and production role QA, apply migration 025**
   (`supabase/migrations/025_private_project_reads.sql`). It removes historical
   public project/profile SELECT policies and the old row-change publication.
-  Repeat the role matrix and policy verification immediately afterwards.
+  Code deployment `fb8deac` passed the production smoke suite: public snapshot
+  reads work and private/synthetic ids are concealed as JSON 404. The
+  authenticated owner/editor/client matrix is still required. Repeat it and
+  the policy verification immediately after applying 025.
 
 ## Open engineering priorities
 
