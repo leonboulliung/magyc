@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { fetchSpaceById, fetchHandoff } from "@/lib/db";
+import { fetchHandoffWithClient } from "@/lib/db";
 import { StudioWorkspace } from "@/components/studio/StudioWorkspace";
-import { claimPendingProjectMemberships, getProjectAccess } from "@/lib/server/projectAccess";
+import { claimPendingProjectMemberships } from "@/lib/server/projectAccess";
+import { readSpaceForViewer } from "@/lib/server/spaceRead";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // The workspace is the live project; never serve it from the data cache.
@@ -17,20 +18,16 @@ export const dynamic = "force-dynamic";
 export default async function StudioProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { userId } = await auth();
-  const space = await fetchSpaceById(id).catch(() => null);
-  if (!space || !userId) notFound();
+  if (!userId) notFound();
   const admin = supabaseAdmin();
   await claimPendingProjectMemberships(admin, userId);
-  const accessRole = await getProjectAccess(admin, {
-    spaceId: space.id,
-    ownerId: space.owner?.id ?? null,
-    shared: space.shared,
-    userId,
-  });
+  const result = await readSpaceForViewer(admin, { spaceId: id, userId }).catch(() => null);
+  if (!result) notFound();
+  const { space, role: accessRole } = result;
   if (accessRole !== "owner" && accessRole !== "editor" && accessRole !== "client") notFound();
 
-  // handoff lives behind a separate, migration-tolerant read (see fetchHandoff).
-  space.handoff = await fetchHandoff(space.id);
+  // Handoff lives behind a separate, migration-tolerant service-role read.
+  space.handoff = await fetchHandoffWithClient(admin, space.id);
 
   return <StudioWorkspace space={space} accessRole={accessRole} />;
 }

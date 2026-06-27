@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { fetchSpaceListByOwner } from "@/lib/db";
+import { fetchSpaceListByOwnerWithClient } from "@/lib/db";
 import { ensureProfile } from "@/lib/server/profile";
 import { claimPendingProjectMemberships } from "@/lib/server/projectAccess";
 import { fetchStudioProjectSummaries } from "@/lib/server/studioDashboard";
@@ -24,7 +24,8 @@ export default async function StudioDashboard() {
   try {
     all = (await fetchStudioProjectSummaries(admin, userId)).filter((space) => space.stage !== null);
   } catch {
-    const fallback = (await fetchSpaceListByOwner(userId).catch(() => [])).filter((space) => space.stage !== null);
+    const fallback = (await fetchSpaceListByOwnerWithClient(admin, userId).catch(() => []))
+      .filter((space) => space.stage !== null);
     all = fallback.map((space) => ({
       ...space,
       lastActivityAt: space.createdAt,

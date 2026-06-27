@@ -35,6 +35,10 @@ Storage, observability, migration discipline, feature flags, and backup checks.
   activity counters for the paginated Admin account view. The application also
   caps append-heavy state and removes private Storage objects when their upload
   entries are deleted.
+- **Private project reads:** migration 025 removes broad anon/authenticated
+  SELECT access from profiles, spaces, module state, and versions. Apply it only
+  after the authorized snapshot APIs and data-free Broadcast invalidations have
+  been verified in production, and only after migration 024.
 
 ## Migration protocol
 
@@ -50,7 +54,16 @@ Storage, observability, migration discipline, feature flags, and backup checks.
 8. For migration 024, edit the same checklist/note item repeatedly and confirm
    only one logical `edit` row remains; then verify Admin search/pagination and
    exact counters for that account.
-9. Record the result in `docs/BACKLOG.md` when the session ends.
+9. Before migration 025, verify owner/editor/client/share-link reads, an
+   anonymous Home Space, historical versions, same-account multi-tab sync, and
+   upload rendering. Apply 025, repeat the same matrix, then run the included
+   policy/grant verification queries.
+10. Record the result in `docs/BACKLOG.md` when the session ends.
+
+`npm run test:prod-smoke` checks public routes and signed-out auth gates against
+production. `npm run test:role-matrix` checks real owner/editor/client/private/
+shared access when supplied short-lived Clerk session tokens and the two fixture
+project ids documented by the script. Never commit those token values.
 
 Manual migrations should be idempotent (`if not exists`, `on conflict`, tolerant
 functions) because code may deploy before SQL is applied.

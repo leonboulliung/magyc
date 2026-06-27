@@ -2,15 +2,28 @@
 
 ## Why this remains a launch boundary
 
-Private project data is currently fetched and subscribed to by the browser with
-the public Supabase anon client. The application gates writes in server routes,
-but historical read policies on `spaces` and `module_state` still allow the
-public renderer and `postgres_changes` subscription to work. Project IDs are
-unguessable, but this is not strict database-level authorization.
+Historically, private project data was fetched and subscribed to by the browser
+with the public Supabase anon client. The code path has now moved to authorized
+server snapshots and data-free Broadcast invalidations, but the historical
+database grants remain until migration 025 is applied. Until then, knowing an
+unguessable project id can still bypass the application layer through direct
+Supabase REST access.
 
-Removing those policies in isolation would break initial Space reads, signed-in
-member access, share-link access, and collaborative Realtime. Privacy therefore
-has to move as one architecture change, not as a policy-only patch.
+Removing those policies before the code cutover would have broken initial
+reads, member/share-link access, and collaboration. Migration 025 is therefore
+kept manual until the deployed cutover passes the production role matrix.
+
+## Current implementation status
+
+- Server components and browser refreshes now read complete Spaces through
+  `GET /api/spaces/[id]`; historical modules use the scoped version endpoint.
+- The server checks a small access row before loading the full graph. Missing
+  and forbidden projects both return 404.
+- Project channels broadcast only `{ from: <tab id> }` invalidations. They no
+  longer subscribe to `module_state` row changes or transport project content.
+- Migration 025 is prepared but intentionally manual. It removes the historical
+  public SELECT policies/grants and the old `module_state` publication after
+  the production role matrix has passed.
 
 ## Target model
 
@@ -50,6 +63,11 @@ has to move as one architecture change, not as a policy-only patch.
   role-gated endpoint after reconnect or sequence gaps.
 - Keep optimistic local updates. Realtime is fan-out, not the source of truth.
 
+MVP implementation: public Broadcast channels currently carry data-free
+invalidations and all resulting reads are role-gated. Private channel
+authorization remains a defense-in-depth upgrade; it is no longer required to
+prevent project-row disclosure.
+
 ### Phase 3: read-path cutover
 
 - Replace client-side `fetchSpaceById` table reads with a role-gated project
@@ -57,6 +75,9 @@ has to move as one architecture change, not as a policy-only patch.
 - Remove direct browser reads for versions and any remaining project tables.
 - Add reconnect recovery: compare a revision/sequence and fetch a fresh snapshot
   when events may have been missed.
+
+The snapshot cutover is implemented. Revision/sequence-based gap detection is
+still a later optimization; current invalidations refetch the complete snapshot.
 
 ### Phase 4: policy lockdown
 

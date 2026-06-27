@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { CONTRACT_VERSION } from "./contract";
 import { sanitizeModules } from "./modules";
 import { AI_LABEL_KEYS } from "./labels";
@@ -65,7 +65,7 @@ type SpaceVersionRow = {
   space_id: string;
   version: number;
   title: string;
-  // Not loaded by the space query (only by fetchVersionModules on demand)
+  // Not loaded by the space query (only by the scoped version read on demand)
   // — the list query stays light. Absent → mapped to [].
   modules?: unknown[] | null;
   note: string | null;
@@ -296,8 +296,8 @@ function isMissingColumn(error: unknown, column: string): boolean {
 // Queries
 // ============================================================
 
-export async function fetchSpaceById(id: string): Promise<Space | null> {
-  const primary = await supabase
+export async function fetchSpaceByIdWithClient(client: SupabaseClient, id: string): Promise<Space | null> {
+  const primary = await client
     .from("spaces")
     .select(SPACE_SELECT)
     .eq("id", id)
@@ -305,7 +305,7 @@ export async function fetchSpaceById(id: string): Promise<Space | null> {
   let data: unknown = primary.data;
   let error: unknown = primary.error;
   if (error && isMissingColumn(error, "contract_version")) {
-    const fallback = await supabase
+    const fallback = await client
       .from("spaces")
       .select(SPACE_SELECT_WITHOUT_CONTRACT)
       .eq("id", id)
@@ -314,7 +314,7 @@ export async function fetchSpaceById(id: string): Promise<Space | null> {
     error = fallback.error;
   }
   if (error && isMissingColumn(error, "modules_rev")) {
-    const fallback = await supabase
+    const fallback = await client
       .from("spaces")
       .select(SPACE_SELECT_LEGACY)
       .eq("id", id)
@@ -332,9 +332,9 @@ export async function fetchSpaceById(id: string): Promise<Space | null> {
  * break — any error (incl. "column does not exist") falls back to empty. Kept
  * OUT of SPACE_SELECT so the main space read never depends on the new column.
  */
-export async function fetchHandoff(id: string): Promise<HandoffInfo> {
+export async function fetchHandoffWithClient(client: SupabaseClient, id: string): Promise<HandoffInfo> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("spaces")
       .select("handoff")
       .eq("id", id)
@@ -349,8 +349,12 @@ export async function fetchHandoff(id: string): Promise<HandoffInfo> {
 /** Load ONE historical version's modules on demand — the space query no
  *  longer ships every version's full module set, so viewing history
  *  fetches just the snapshot being opened. */
-export async function fetchVersionModules(spaceId: string, version: number): Promise<Module[] | null> {
-  const { data, error } = await supabase
+export async function fetchVersionModulesWithClient(
+  client: SupabaseClient,
+  spaceId: string,
+  version: number,
+): Promise<Module[] | null> {
+  const { data, error } = await client
     .from("space_versions")
     .select("modules")
     .eq("space_id", spaceId)
@@ -360,8 +364,8 @@ export async function fetchVersionModules(spaceId: string, version: number): Pro
   return sanitizeModules((data as { modules?: unknown[] | null }).modules ?? []);
 }
 
-export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {
-  const primary = await supabase
+export async function fetchSpacesByOwnerWithClient(client: SupabaseClient, ownerId: string): Promise<Space[]> {
+  const primary = await client
     .from("spaces")
     .select(SPACE_SELECT)
     .eq("owner_id", ownerId)
@@ -369,7 +373,7 @@ export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {
   let data: unknown = primary.data;
   let error: unknown = primary.error;
   if (error && isMissingColumn(error, "contract_version")) {
-    const fallback = await supabase
+    const fallback = await client
       .from("spaces")
       .select(SPACE_SELECT_WITHOUT_CONTRACT)
       .eq("owner_id", ownerId)
@@ -378,7 +382,7 @@ export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {
     error = fallback.error;
   }
   if (error && isMissingColumn(error, "modules_rev")) {
-    const fallback = await supabase
+    const fallback = await client
       .from("spaces")
       .select(SPACE_SELECT_LEGACY)
       .eq("owner_id", ownerId)
@@ -390,8 +394,11 @@ export async function fetchSpacesByOwner(ownerId: string): Promise<Space[]> {
   return ((data || []) as unknown as SpaceRow[]).map(mapSpace);
 }
 
-export async function fetchSpaceListByOwner(ownerId: string): Promise<SpaceListItem[]> {
-  const { data, error } = await supabase
+export async function fetchSpaceListByOwnerWithClient(
+  client: SupabaseClient,
+  ownerId: string,
+): Promise<SpaceListItem[]> {
+  const { data, error } = await client
     .from("spaces")
     .select("id, title, stage, segment, shared, archived_at, deleted_at, created_at")
     .eq("owner_id", ownerId)

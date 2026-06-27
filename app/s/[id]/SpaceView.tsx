@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useUser } from "@clerk/nextjs";
-import { fetchSpaceById, fetchVersionModules, mapStateRow, type ModuleStateRow } from "@/lib/db";
+import { fetchSpaceSnapshot, fetchVersionSnapshot } from "@/lib/client/spaceRead";
 import { supabase } from "@/lib/supabase";
 import { apiErrorMessage, withOwnerToken } from "@/lib/client/errors";
 import { readApiJson, showActionError } from "@/lib/client/feedback";
@@ -12,12 +12,12 @@ import {
   applyActionLocally,
   getSelfId,
   makeOptimisticEntry,
-  mergeRealtimeInsert,
   postState,
   setSelfUser,
 } from "@/lib/state";
 import { bodyContainer, heroIn } from "@/lib/anim";
 import { getSpaceOwnerToken } from "@/lib/anonId";
+import { newId } from "@/lib/id";
 import { colorForId } from "@/lib/palette";
 import { label } from "@/lib/labels";
 import { useIsOwner } from "@/lib/hooks";
@@ -70,12 +70,14 @@ export function SpaceView({
   hideLockedNotice = false,
   canEditOverride,
   onProjectDataChange,
+  disableRealtime = false,
 }: {
   id: string;
   initialSpace?: Space | null;
   hideLockedNotice?: boolean;
   canEditOverride?: boolean;
   onProjectDataChange?: (modules: Module[], state: ModuleStateEntry[]) => void;
+  disableRealtime?: boolean;
 }) {
   const { user } = useUser();
 
@@ -95,7 +97,7 @@ export function SpaceView({
   const [viewVersion, setViewVersion] = useState<number | null>(null);
 
   const refresh = useCallback(() => {
-    fetchSpaceById(id)
+    fetchSpaceSnapshot(id)
       .then((s) => { setSpace(s); setLoaded(true); })
       .catch(() => setLoaded(true));
   }, [id]);
@@ -152,21 +154,34 @@ export function SpaceView({
     if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
   }, []);
 
-  // Config-change fan-out. The spaces table is not in the realtime
-  // publication, so config edits (title, widget swaps, style, publish)
-  // are announced by the SAVING client as a broadcast on the shared
-  // channel; receivers refetch. Cheap, no DB setup, covers every edit
-  // made through the UI. (Channel is created in the realtime effect
-  // below.)
+  // Project-change fan-out carries invalidations only; project data is always
+  // re-read through the authorized snapshot API. A per-tab id is essential:
+  // two tabs signed into the same account must still synchronize each other.
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const configRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const broadcastConfigChange = useCallback(() => {
-    channelRef.current?.send({
+  const realtimeClientId = useRef(`tab-${newId()}`);
+  const channelReady = useRef(false);
+  const pendingBroadcasts = useRef(new Set<"config" | "state">());
+  const broadcastProjectChange = useCallback((event: "config" | "state") => {
+    const channel = channelRef.current;
+    if (!channel || !channelReady.current) {
+      pendingBroadcasts.current.add(event);
+      return;
+    }
+    void channel.send({
       type: "broadcast",
-      event: "config",
-      payload: { from: user?.id ?? getSelfId() },
+      event,
+      payload: { from: realtimeClientId.current },
+    }).then((status) => {
+      if (status !== "ok") pendingBroadcasts.current.add(event);
     });
-  }, [user?.id]);
+  }, []);
+  const broadcastConfigChange = useCallback(() => {
+    broadcastProjectChange("config");
+  }, [broadcastProjectChange]);
+  const broadcastStateChange = useCallback(() => {
+    broadcastProjectChange("state");
+  }, [broadcastProjectChange]);
 
   const saveModule = useCallback(
     async (
@@ -263,11 +278,9 @@ export function SpaceView({
   // ── Live collaborative state ────────────────────────────────────
   // `liveState` is the working copy of module_state: seeded from the
   // fetched space, updated (a) optimistically on own actions and
-  // (b) by the realtime channel for everyone's confirmed rows. This
-  // replaces the old pattern of re-fetching the entire space graph
-  // after every click.
+  // (b) by an authorized snapshot after another client broadcasts an
+  // invalidation. No project row is read directly with the anon DB client.
   const [liveState, setLiveState] = useState<ModuleStateEntry[]>(() => initialSpace?.state ?? []);
-  const realtimeUp = useRef(false);
   // Always-current snapshot of liveState, so an optimistic action can
   // roll back to the exact prior state on failure without a refetch.
   const liveStateRef = useRef<ModuleStateEntry[]>([]);
@@ -283,49 +296,39 @@ export function SpaceView({
   }, [liveState, localModules, onProjectDataChange, space]);
 
   useEffect(() => {
-    if (!space?.id) return;
-    const selfActorId = user?.id ?? getSelfId();
+    if (!space?.id || disableRealtime) return;
+    const scheduleRemoteRefresh = (msg: { payload?: unknown }) => {
+      const from = (msg.payload as { from?: string } | null)?.from;
+      if (from === realtimeClientId.current) return;
+      if (configRefreshTimer.current) clearTimeout(configRefreshTimer.current);
+      configRefreshTimer.current = setTimeout(() => refresh(), 350);
+    };
     const channel = supabase
       .channel(`ms-${space.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "module_state", filter: `space_id=eq.${space.id}` },
-        (payload) => {
-          const entry = mapStateRow(payload.new as ModuleStateRow);
-          setLiveState((prev) => mergeRealtimeInsert(prev, entry, selfActorId));
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "module_state", filter: `space_id=eq.${space.id}` },
-        (payload) => {
-          const oldId = (payload.old as { id?: string } | null)?.id;
-          if (oldId) setLiveState((prev) => prev.filter((e) => e.id !== oldId));
-        },
-      )
-      .on(
-        "broadcast",
-        { event: "config" },
-        (msg) => {
-          const from = (msg.payload as { from?: string } | null)?.from;
-          if (from && from === selfActorId) return;
-          // Trailing debounce — a drag-reorder or edit flurry collapses
-          // into one refetch.
-          if (configRefreshTimer.current) clearTimeout(configRefreshTimer.current);
-          configRefreshTimer.current = setTimeout(() => refresh(), 350);
-        },
-      )
+      .on("broadcast", { event: "config" }, scheduleRemoteRefresh)
+      .on("broadcast", { event: "state" }, scheduleRemoteRefresh)
       .subscribe((status) => {
-        realtimeUp.current = status === "SUBSCRIBED";
+        channelReady.current = status === "SUBSCRIBED";
+        if (status !== "SUBSCRIBED") return;
+        const queued = [...pendingBroadcasts.current];
+        pendingBroadcasts.current.clear();
+        for (const event of queued) {
+          void channel.send({
+            type: "broadcast",
+            event,
+            payload: { from: realtimeClientId.current },
+          });
+        }
       });
     channelRef.current = channel;
     return () => {
-      realtimeUp.current = false;
       channelRef.current = null;
+      channelReady.current = false;
+      pendingBroadcasts.current.clear();
       if (configRefreshTimer.current) clearTimeout(configRefreshTimer.current);
       supabase.removeChannel(channel);
     };
-  }, [space?.id, user?.id, refresh]);
+  }, [disableRealtime, space?.id, refresh]);
 
   /** Refresh + tell other open clients to do the same — for structural
    *  changes that already go through a refresh (add/remove/reorder,
@@ -341,10 +344,9 @@ export function SpaceView({
    *  Crucially it does NOT refetch on success — the local copy already
    *  matches what we just wrote, so a full space refetch would only
    *  replace an instant update with a slow one (the source of the
-   *  per-click delay on every widget, sketch included). Realtime
-   *  reconciles the temp row → real row in the background when the
-   *  channel is up; when it isn't, the optimistic entry simply stays.
-   *  On a server rejection we roll back to the exact prior state. */
+   *  per-click delay on every widget, sketch included). A successful write
+   *  broadcasts an invalidation so other clients refetch through the scoped
+   *  read API. On rejection we roll back to the exact prior state. */
   const act = useCallback(
     async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
       if (!space?.id) return false;
@@ -365,10 +367,12 @@ export function SpaceView({
         showActionError("Änderung nicht gespeichert", {
           description: apiErrorMessage(result.error),
         });
+      } else {
+        broadcastStateChange();
       }
       return result.ok;
     },
-    [space?.id, user],
+    [broadcastStateChange, space?.id, user],
   );
 
   // Direct uploads are committed by the upload endpoint rather than ctx.act.
@@ -388,7 +392,8 @@ export function SpaceView({
     setLiveState((current) => current.some((item) => item.id === fullEntry.id)
       ? current
       : [...current, fullEntry]);
-  }, [space?.id, user]);
+    broadcastStateChange();
+  }, [broadcastStateChange, space?.id, user]);
 
   // ── Visual style ────────────────────────────────────────────────
   // Local override lets the StyleEditor preview changes instantly
@@ -434,7 +439,7 @@ export function SpaceView({
   useEffect(() => {
     if (!space || !isOldVersion || versionModules[targetVersion]) return;
     let cancelled = false;
-    fetchVersionModules(space.id, targetVersion).then((mods) => {
+    fetchVersionSnapshot(space.id, targetVersion).then((mods) => {
       if (!cancelled && mods) setVersionModules((m) => ({ ...m, [targetVersion]: mods }));
     });
     return () => { cancelled = true; };
@@ -444,7 +449,7 @@ export function SpaceView({
   const { displayedModules, currentVersionNumber } = useMemo(() => {
     if (!space) return { displayedModules: [] as Module[], currentVersionNumber: 0 };
     if (isOldVersion) {
-      // [] while the snapshot loads; fills in when fetchVersionModules returns.
+      // [] while the authorized version snapshot loads.
       return { displayedModules: versionModules[targetVersion] ?? [], currentVersionNumber: targetVersion };
     }
     // Current version: prefer the optimistic local copy so a just-saved

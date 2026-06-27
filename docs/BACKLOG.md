@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-27 (Codex — state/admin/contract hardening)_
+_Last updated: 2026-06-27 (Codex — authorized reads and Realtime cutover)_
 
 ---
 
@@ -17,17 +17,23 @@ _Last updated: 2026-06-27 (Codex — state/admin/contract hardening)_
   `npm run ops:backup-check`. Until this is applied, the deployed application
   remains migration-tolerant, but repeated edits are not compacted and Admin
   activity counters fall back to bounded visible history.
+- [ ] **After 024 and production role QA, apply migration 025**
+  (`supabase/migrations/025_private_project_reads.sql`). It removes historical
+  public project/profile SELECT policies and the old row-change publication.
+  Repeat the role matrix and policy verification immediately afterwards.
 
 ## Open engineering priorities
 
-1. **Strict private reads and scoped Realtime.** Replace direct anon-client
-   project reads and public `postgres_changes` with the role-gated transport in
-   `docs/REALTIME_SECURITY_PLAN.md`; only then revoke historical public-read
-   RLS policies. This is the largest remaining security architecture task.
-2. **Integration and multi-user test harness.** Unit tests now protect the
-   deterministic state/preset/facts layers, but authenticated API, Storage,
-   database migration, owner/editor/client/share-link, contract-signing, and
-   reconnect behavior still need automated production-like integration tests.
+1. **Private-read cutover is code-complete; migration/QA remains.** Browser and
+   SSR project reads now use role-gated snapshot APIs, and Realtime transports
+   only data-free invalidations. Migration 025 performs the database lockdown
+   after the production role matrix passes. Private Broadcast channel auth and
+   sequence-based reconnect recovery remain defense-in-depth upgrades.
+2. **Integration and multi-user test harness.** Automated role-policy, snapshot
+   client, deterministic state/preset/facts tests, and a production smoke script
+   are present. Authenticated owner/editor/client, Storage, contract signing,
+   and reconnect tests still require dedicated Clerk test accounts plus a
+   disposable Supabase project or production-safe fixtures.
 3. **Production role-matrix acceptance test.** After migrations 022-024 are
    confirmed, run one owner/editor/client project through preset creation,
    media upload/removal, concurrent editing, Auswahl, contract release/signing,
@@ -527,12 +533,11 @@ Today: 2 sequential OpenAI calls finish before redirect (~10-15 s wait).
 placeholders and redirect immediately; Stage B authors content and fills
 widgets in, visible live. Turns the wait into a "magic build-up" moment.
 
-### 9. Realtime sync for config changes — broadcast shipped, pg_changes open
-Shipped 2026-06-13: the saving client broadcasts `config` on the shared
-channel; receivers refetch (debounced). Covers all UI-driven edits without
-DB setup. **Open upgrade:** `postgres_changes` on `spaces` UPDATE would also
-catch non-UI writes — needs `alter publication supabase_realtime add table
-spaces;` run manually in the Supabase SQL editor (no migration runner).
+### 9. Realtime sync for project changes — ✅ secure invalidation shipped 2026-06-27
+Config and state writes broadcast data-free invalidations; other tabs refetch
+through the authorized snapshot API. A per-tab sender id also fixes same-account
+multi-tab synchronization. Direct `postgres_changes` project-row subscriptions
+were removed; migration 025 removes the obsolete publication entry.
 
 ### 9. Share loop: OG images + favicon
 No favicon, no OG image — bare links. **Plan:** `@vercel/og` route rendering
@@ -593,10 +598,11 @@ cannot query the DB directly (prod API still works fine). The original
 rotation concern (key may have appeared in logs/context) may thereby
 already be resolved — confirm with Leon.
 
-### 13. `module_state` unbounded growth
-`SPACE_SELECT` loads ALL state rows; sketch strokes are up to 44 KB each.
-Will hurt load time on active spaces. **Plan:** cap per-widget query +
-lazy-load older rows; consider pruning superseded `edit` rows.
+### 13. `module_state` unbounded growth — ✅ bounded/compacted 2026-06-27
+Migration 024 transactionally compacts repeated item edits. Application limits
+cap append-heavy state per module (`voice`, `add`, `upload`, `stroke`), and
+upload deletion removes both state and private objects. Historical lazy-loading
+is unnecessary at current limits but can be revisited from production metrics.
 
 ### 14. Rate limiting on /state — ✅ done 2026-06-24
 `/api/spaces/[id]/state` now applies a cheap in-memory per-space/actor bucket

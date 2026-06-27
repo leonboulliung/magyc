@@ -49,7 +49,7 @@ export function StudioWorkspace({
           id={space.id}
           initialSpace={space}
           hideLockedNotice
-          canEditOverride={accessRole === "owner" || accessRole === "editor"}
+          canEditOverride={space.deletedAt === null && (accessRole === "owner" || accessRole === "editor")}
           onProjectDataChange={handleProjectDataChange}
         />
       ) : (

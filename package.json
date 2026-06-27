@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:prod-smoke": "node scripts/production-smoke.mjs",
+    "test:role-matrix": "node scripts/role-matrix-check.mjs",
     "ops:backup-check": "node scripts/backup-check.mjs"
   },
   "dependencies": {

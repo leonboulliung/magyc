@@ -2,9 +2,8 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { fetchSpaceById } from "@/lib/db";
 import { SpaceView } from "./SpaceView";
-import { getProjectAccess } from "@/lib/server/projectAccess";
+import { readSpaceForViewer } from "@/lib/server/spaceRead";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // Spaces are mutable: without this, Next.js may serve the Supabase fetch from
@@ -17,29 +16,18 @@ export const dynamic = "force-dynamic";
  * space, but it should only be fetched ONCE per request. React's cache()
  * memoizes the call across the metadata + render passes.
  */
-const getSpace = cache((id: string) => fetchSpaceById(id).catch(() => null));
-
-async function blocksPrivateSuiteLink(space: Awaited<ReturnType<typeof getSpace>>) {
-  if (!space || space.stage === null || space.shared) return false;
+const getSpaceAccess = cache(async (id: string) => {
   const { userId } = await auth();
-  if (!userId) return true;
-  const role = await getProjectAccess(supabaseAdmin(), {
-    spaceId: space.id,
-    ownerId: space.owner?.id ?? null,
-    userId,
-  });
-  return role === "none";
-}
+  return readSpaceForViewer(supabaseAdmin(), { spaceId: id, userId }).catch(() => null);
+});
 
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Metadata> {
   const { id } = await params;
-  const space = await getSpace(id);
-  if (!space) return { title: "—", robots: { index: false, follow: false } };
-  if (await blocksPrivateSuiteLink(space)) {
-    return { title: "—", robots: { index: false, follow: false } };
-  }
+  const result = await getSpaceAccess(id);
+  if (!result) return { title: "—", robots: { index: false, follow: false } };
+  const { space } = result;
   return {
     title: space.title || "MAGYC",
     description: space.inputText.slice(0, 200),
@@ -61,12 +49,16 @@ export async function generateMetadata(
  */
 export default async function SpacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const space = await getSpace(id);
+  const result = await getSpaceAccess(id);
+  if (!result) notFound();
 
-  // Suite projects are private until shared: a non-owner opening an
-  // unshared project's link gets a 404. Anonymous/published spaces
-  // (stage === null) are unaffected and stay public-by-id.
-  if (await blocksPrivateSuiteLink(space)) notFound();
-
-  return <SpaceView id={id} initialSpace={space} />;
+  const canEdit = result.space.deletedAt === null
+    && (result.role === "owner" || result.role === "editor");
+  return (
+    <SpaceView
+      id={id}
+      initialSpace={result.space}
+      canEditOverride={canEdit ? true : undefined}
+    />
+  );
 }

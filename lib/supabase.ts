@@ -5,7 +5,7 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const supabaseConfigured = Boolean(url && anonKey);
 
-/** Always-fresh fetch for supabase-js. On the server, Next 14 patches
+/** Always-fresh fetch for supabase-js. On the server, Next.js patches
  *  global fetch and may serve REST reads from its persistent Data Cache
  *  (observed in prod: edits invisible to SSR even under force-dynamic).
  *  An explicit no-store wins over every default. Harmless in browsers. */

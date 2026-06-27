@@ -130,7 +130,7 @@ their server/client semantics change.
 | Who | Owner + assigned editor while Planung is open | Owner, assigned members, or enabled share-link visitors |
 | API | `PUT/POST/PATCH/DELETE /api/spaces/[id]/widgets…` | `POST /api/spaces/[id]/state` |
 | Client write path | `ctx.saveModule(index, module, opts)` — optimistic patch, rollback on failure, "saved" toast with undo | `ctx.act(index, kind, data)` — optimistic apply via `applyActionLocally`, realtime echo reconciles |
-| Realtime | none yet (BACKLOG P2) | Supabase channel on `module_state` INSERT/DELETE |
+| Realtime | none yet (BACKLOG P2) | Data-free Supabase Broadcast invalidation; clients refetch through the authorized snapshot API |
 
 `WidgetContext` (lib/widgetContext.ts) carries `spaceId, isOwner, ownerToken,
 refresh, patchModule, saveModule, act` into every renderer. **Renderers must
@@ -144,6 +144,12 @@ actor+itemKey) · `claim` (one actor per slot, 409 if taken) · `voice`
 `upload` (Storage URL) · `stroke` (sketch path).
 Client-side mirror semantics live in `lib/state.ts` (`applyActionLocally`).
 If you change one side, change the other.
+
+Browser project reads must go through `GET /api/spaces/[id]` and
+`GET /api/spaces/[id]/versions/[version]`. These routes resolve the project
+role with the service client before returning data. Supabase Broadcast carries
+only invalidations, never project rows. Do not reintroduce anon REST reads or
+`postgres_changes` for project data; migration 025 removes those public grants.
 
 Migration 024 compacts repeated item edits through the service-role-only
 `upsert_module_edit` RPC. Append-heavy state is capped per module (`voice` 500,

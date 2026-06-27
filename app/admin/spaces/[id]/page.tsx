@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
-import { fetchHandoff, fetchSpaceById } from "@/lib/db";
+import { fetchHandoffWithClient, fetchSpaceByIdWithClient } from "@/lib/db";
 import { SpaceView } from "@/app/s/[id]/SpaceView";
 import { ProjectFactsSummary } from "@/components/projects/ProjectFactsSummary";
 import { buildProjectFacts } from "@/lib/projectFacts";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +14,10 @@ export default async function AdminSpaceInspectorPage({ params }: { params: Prom
   const gate = await requireAdmin();
   if (!gate.ok) notFound();
 
-  const space = await fetchSpaceById(id).catch(() => null);
+  const admin = supabaseAdmin();
+  const space = await fetchSpaceByIdWithClient(admin, id).catch(() => null);
   if (!space) notFound();
-  space.handoff = await fetchHandoff(space.id);
+  space.handoff = await fetchHandoffWithClient(admin, space.id);
   const facts = buildProjectFacts(space.modules, space.state);
 
   return (
@@ -34,7 +36,7 @@ export default async function AdminSpaceInspectorPage({ params }: { params: Prom
       <div className="mx-auto max-w-7xl px-5 pt-5">
         <ProjectFactsSummary facts={facts} title="Strukturierte Projektdaten" />
       </div>
-      <SpaceView id={space.id} initialSpace={space} hideLockedNotice />
+      <SpaceView id={space.id} initialSpace={space} hideLockedNotice disableRealtime />
     </main>
   );
 }
