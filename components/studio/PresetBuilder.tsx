@@ -5,7 +5,13 @@ import { Dialog } from "@/components/ui/Dialog";
 import { defaultWidget, widgetPickerSymbolFor } from "@/components/WidgetPicker";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { WidgetContext } from "@/lib/widgetContext";
-import { readApiJson, showApiError, showUnknownError } from "@/lib/client/feedback";
+import {
+  applyPresetStateAction,
+  presetStateForPreview,
+  removePresetModuleState,
+  type PresetStateEntry,
+} from "@/lib/presetState";
+import { readApiJson, showActionError, showApiError, showUnknownError } from "@/lib/client/feedback";
 import {
   cleanStudioPresets,
   createStudioPreset,
@@ -13,7 +19,7 @@ import {
   STUDIO_PRESETS_STORAGE_KEY,
   type StudioPreset,
 } from "@/lib/studioPresets";
-import type { Module, ModuleStateKind, ModuleType, SpaceLabels } from "@/lib/types";
+import type { Module, ModuleType, SpaceLabels } from "@/lib/types";
 
 const LABELS: Record<ModuleType, string> = {
   heading: "Titel", rich_text: "Text", tags: "Tags", wikipedia: "Wikipedia",
@@ -117,6 +123,7 @@ export function PresetBuilder() {
   }
   function addElement(type: ModuleType) {
     if (!editing) return;
+    if (editing.modules.some((module) => module.type === type)) return;
     const w = defaultWidget(type);
     if (!w) return;
     const next = [...editing.modules, { ...w, microTitle: w.microTitle || LABELS[type] }];
@@ -127,12 +134,21 @@ export function PresetBuilder() {
   function removeElement(i: number) {
     if (!editing) return;
     const next = editing.modules.filter((_, j) => j !== i);
-    patch(editing.id, { modules: next });
+    patch(editing.id, {
+      modules: next,
+      templateState: removePresetModuleState(editing.templateState, i),
+    });
     setActiveElementIndex((current) => Math.max(0, Math.min(current > i ? current - 1 : current, Math.max(0, next.length - 1))));
   }
   function setElement(i: number, module: Module) {
     if (!editing) return;
     patch(editing.id, { modules: editing.modules.map((existing, j) => (j === i ? module : existing)) });
+  }
+  function ingestStateEntry(id: string, entry: PresetStateEntry) {
+    setPresets((items) => items.map((preset) => {
+      if (preset.id !== id || preset.templateState.some((current) => current.id === entry.id)) return preset;
+      return { ...preset, templateState: [...preset.templateState, entry] };
+    }));
   }
   function setPrompt(i: number, value: string) {
     if (!editing) return;
@@ -142,8 +158,12 @@ export function PresetBuilder() {
   function removePrompt(i: number) { if (editing) patch(editing.id, { promptInjections: editing.promptInjections.filter((_, j) => j !== i) }); }
 
   function finish() {
-    // Empty presets are harmless — they're filtered out where presets are used
-    // (usablePresets requires modules.length > 0), so closing is always allowed.
+    if (editing && editing.modules.length === 0) {
+      showActionError("Preset noch unvollständig", {
+        description: "Wähle mindestens ein Element aus oder lösche das leere Preset.",
+      });
+      return;
+    }
     setEditingId(null);
     setPickerOpen(false);
   }
@@ -255,7 +275,7 @@ export function PresetBuilder() {
                   </button>
                   {pickerOpen && (
                     <div className="mt-2 grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-xl border border-black/10 bg-black/[0.04] p-1.5 sm:grid-cols-3">
-                      {PRESET_ELEMENT_TYPES.map((t) => (
+                      {PRESET_ELEMENT_TYPES.filter((type) => !editing.modules.some((module) => module.type === type)).map((t) => (
                         <button key={t} type="button" onClick={() => addElement(t)} className="flex min-w-0 items-center gap-2 rounded px-2.5 py-2 text-left text-[12px] text-black/70 transition-colors hover:bg-black/[0.06] hover:text-[#17171a]">
                           <span className="mono w-5 shrink-0 text-center text-[10px] text-black/45">{widgetPickerSymbolFor(t)}</span>
                           <span className="truncate">{LABELS[t]}</span>
@@ -273,7 +293,10 @@ export function PresetBuilder() {
                     presetId={editing.id}
                     module={activeModule}
                     index={activeElementIndex}
+                    templateState={editing.templateState}
                     onChange={(module) => setElement(activeElementIndex, module)}
+                    onStateChange={(templateState) => patch(editing.id, { templateState })}
+                    onIngest={(entry) => ingestStateEntry(editing.id, entry)}
                   />
                 ) : (
                   <div className="rounded-2xl border border-dashed border-black/12 bg-black/[0.03] px-4 py-8 text-center text-[13px] text-black/40">
@@ -323,13 +346,20 @@ function PresetModulePreview({
   presetId,
   module,
   index,
+  templateState,
   onChange,
+  onStateChange,
+  onIngest,
 }: {
   presetId: string;
   module: Module;
   index: number;
+  templateState: PresetStateEntry[];
   onChange: (module: Module) => void;
+  onStateChange: (entries: PresetStateEntry[]) => void;
+  onIngest: (entry: PresetStateEntry) => void;
 }) {
+  const previewState = presetStateForPreview(presetId, templateState, index);
   return (
     <div
       className="rounded-2xl border border-black/10 bg-[#0b0c0e] p-4"
@@ -362,147 +392,18 @@ function PresetModulePreview({
             return true;
           },
           act: async (_moduleIndex, kind, data) => {
-            onChange(applyPresetAction(module, kind, data));
+            onStateChange(applyPresetStateAction(templateState, index, kind, data));
             return true;
+          },
+          ingestStateEntry: (entry) => {
+            if (entry.moduleIndex === index) onIngest(entry);
           },
         }}
       >
         <div className="mx-auto max-w-[520px]">
-          <WidgetDispatcher module={module} index={index} state={[]} />
+          <WidgetDispatcher module={module} index={index} state={previewState} />
         </div>
       </WidgetContext.Provider>
     </div>
   );
-}
-
-function applyPresetAction(module: Module, kind: ModuleStateKind, data: Record<string, unknown>): Module {
-  if (module.type === "checklist" && kind === "add" && typeof data.text === "string") {
-    const text = data.text.trim();
-    return text ? { ...module, items: [...module.items, { text }] } : module;
-  }
-
-  if (module.type === "qa") {
-    if (kind === "voice" && data.role === "question" && typeof data.text === "string") {
-      const text = data.text.trim();
-      return text ? { ...module, questions: [...(module.questions ?? []), { text }] } : module;
-    }
-    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
-      const seedIndex = Number(data.id.slice(5));
-      if (!Number.isInteger(seedIndex) || seedIndex < 0) return module;
-      if (data.deleted === true) {
-        return { ...module, questions: (module.questions ?? []).filter((_, i) => i !== seedIndex) };
-      }
-    }
-  }
-
-  if (module.type === "shot_list") {
-    if (kind === "add" && typeof data.label === "string") {
-      const label = data.label.trim();
-      if (!label) return module;
-      return {
-        ...module,
-        shots: [
-          ...module.shots,
-          {
-            label,
-            priority: data.priority === "should" || data.priority === "nice" ? data.priority : "must",
-            status: data.status === "captured" || data.status === "selected" ? data.status : "planned",
-          },
-        ],
-      };
-    }
-    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
-      const seedIndex = Number(data.id.slice(5));
-      if (!Number.isInteger(seedIndex) || seedIndex < 0 || seedIndex >= module.shots.length) return module;
-      if (data.deleted === true) return { ...module, shots: module.shots.filter((_, i) => i !== seedIndex) };
-      return {
-        ...module,
-        shots: module.shots.map((shot, i) => {
-          if (i !== seedIndex) return shot;
-          return {
-            ...shot,
-            label: typeof data.label === "string" ? data.label.trim() : shot.label,
-            purpose: typeof data.purpose === "string" ? data.purpose.trim() || undefined : shot.purpose,
-            setup: typeof data.setup === "string" ? data.setup.trim() || undefined : shot.setup,
-            location: typeof data.location === "string" ? data.location.trim() || undefined : shot.location,
-            notes: typeof data.notes === "string" ? data.notes.trim() || undefined : shot.notes,
-            priority: data.priority === "must" || data.priority === "should" || data.priority === "nice" ? data.priority : shot.priority,
-            status: data.status === "planned" || data.status === "captured" || data.status === "selected" ? data.status : shot.status,
-          };
-        }).filter((shot) => shot.label.trim()),
-      };
-    }
-  }
-
-  if (module.type === "parts_list") {
-    if (kind === "add" && typeof data.name === "string") {
-      const name = data.name.trim();
-      if (!name) return module;
-      const quantity = typeof data.quantity === "string" ? data.quantity.trim() : "";
-      const imageUrl = typeof data.imageUrl === "string" && /^https?:\/\/[^\s]+$/i.test(data.imageUrl.trim())
-        ? data.imageUrl.trim()
-        : "";
-      return {
-        ...module,
-        items: [...module.items, { name, ...(quantity ? { quantity } : {}), ...(imageUrl ? { imageUrl } : {}) }],
-      };
-    }
-    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
-      const seedIndex = Number(data.id.slice(5));
-      if (!Number.isInteger(seedIndex) || seedIndex < 0 || seedIndex >= module.items.length) return module;
-      if (data.deleted === true) return { ...module, items: module.items.filter((_, i) => i !== seedIndex) };
-      return {
-        ...module,
-        items: module.items.map((item, i) => {
-          if (i !== seedIndex) return item;
-          const name = typeof data.name === "string" ? data.name.trim() : item.name;
-          const quantity = typeof data.quantity === "string" ? data.quantity.trim() || undefined : item.quantity;
-          const imageUrl = typeof data.imageUrl === "string" && /^https?:\/\/[^\s]+$/i.test(data.imageUrl.trim())
-            ? data.imageUrl.trim()
-            : item.imageUrl;
-          return { ...item, name, quantity, imageUrl };
-        }).filter((item) => item.name.trim()),
-      };
-    }
-  }
-
-  if (module.type === "moodboard") {
-    if (kind === "add" && typeof data.label === "string") {
-      const label = data.label.trim();
-      if (!label) return module;
-      return {
-        ...module,
-        directions: [
-          ...module.directions,
-          {
-            label,
-            status: data.status === "approved" || data.status === "avoid" ? data.status : "reference",
-          },
-        ],
-      };
-    }
-    if (kind === "edit" && typeof data.id === "string" && data.id.startsWith("seed-")) {
-      const index = Number(data.id.slice(5));
-      if (!Number.isInteger(index) || index < 0 || index >= module.directions.length) return module;
-      if (data.deleted === true) {
-        return { ...module, directions: module.directions.filter((_, i) => i !== index) };
-      }
-      return {
-        ...module,
-        directions: module.directions.map((direction, i) => {
-          if (i !== index) return direction;
-          return {
-            ...direction,
-            label: typeof data.label === "string" ? data.label : direction.label,
-            note: typeof data.note === "string" ? data.note : direction.note,
-            status: data.status === "reference" || data.status === "approved" || data.status === "avoid"
-              ? data.status
-              : direction.status,
-          };
-        }),
-      };
-    }
-  }
-
-  return module;
 }

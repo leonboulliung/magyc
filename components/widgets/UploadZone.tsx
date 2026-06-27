@@ -3,6 +3,9 @@
 import { useRef, useState } from "react";
 import { getAnonToken, getAnonDisplayName } from "@/lib/anonId";
 import { supabase } from "@/lib/supabase";
+import { assetApiBase } from "@/lib/client/assetRoutes";
+import { useWidgetContext } from "@/lib/widgetContext";
+import type { PresetStateEntry } from "@/lib/presetState";
 import {
   readApiJson,
   showActionError,
@@ -125,6 +128,7 @@ export function UploadZone({
   /** Slot for custom idle UI inside the zone. */
   children?: React.ReactNode;
 }) {
+  const ctx = useWidgetContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -174,7 +178,8 @@ export function UploadZone({
     for (const file of files) {
       try {
         const actor = { anonToken: getAnonToken(), anonName: getAnonDisplayName() };
-        const prepareRes = await fetch(`/api/spaces/${spaceId}/upload`, {
+        const apiBase = assetApiBase(spaceId);
+        const prepareRes = await fetch(`${apiBase}/upload`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -209,7 +214,7 @@ export function UploadZone({
           continue;
         }
 
-        const completeRes = await fetch(`/api/spaces/${spaceId}/upload`, {
+        const completeRes = await fetch(`${apiBase}/upload`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -222,7 +227,7 @@ export function UploadZone({
             ...actor,
           }),
         });
-        const completeJson = await readApiJson(completeRes) as { url?: unknown; path?: unknown; name?: unknown; size?: unknown; mimeType?: unknown };
+        const completeJson = await readApiJson(completeRes) as { url?: unknown; path?: unknown; name?: unknown; size?: unknown; mimeType?: unknown; entry?: unknown };
         if (completeRes.ok && completeJson.path) {
           results.push({
             url: typeof completeJson.url === "string" ? completeJson.url : "",
@@ -231,6 +236,9 @@ export function UploadZone({
             size: typeof completeJson.size === "number" ? completeJson.size : file.size,
             mimeType: typeof completeJson.mimeType === "string" ? completeJson.mimeType : normalizedMime(file),
           });
+          if (completeJson.entry && typeof completeJson.entry === "object") {
+            ctx.ingestStateEntry?.(completeJson.entry as PresetStateEntry);
+          }
         } else {
           const message = showApiError("Upload fehlgeschlagen", completeJson, {
             id: toastId,

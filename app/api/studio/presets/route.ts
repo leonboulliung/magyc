@@ -4,7 +4,10 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ensureProfile } from "@/lib/server/profile";
 import { cleanStudioPresets, type StudioPreset } from "@/lib/studioPresets";
+import { presetAssetPaths } from "@/lib/presetState";
 import { parseBody } from "@/lib/api/validate";
+import { removeAssetPaths } from "@/lib/server/storage";
+import { isAssetPathForPreset } from "@/lib/server/uploadSecurity";
 
 type PresetRow = {
   id: string;
@@ -13,6 +16,7 @@ type PresetRow = {
   modules: unknown[] | null;
   prompt_injections: unknown[] | null;
   allow_context_modules: boolean | null;
+  template_state?: unknown[] | null;
 };
 
 function mapRow(row: PresetRow): StudioPreset {
@@ -21,6 +25,7 @@ function mapRow(row: PresetRow): StudioPreset {
     name: row.name,
     description: row.description ?? "",
     modules: row.modules ?? [],
+    templateState: row.template_state ?? [],
     promptInjections: row.prompt_injections ?? [],
     allowContextModules: row.allow_context_modules !== false,
   }]);
@@ -29,6 +34,7 @@ function mapRow(row: PresetRow): StudioPreset {
     name: row.name || "Preset",
     description: row.description ?? "",
     modules: [],
+    templateState: [],
     promptInjections: [],
     allowContextModules: true,
   };
@@ -39,17 +45,28 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const admin = supabaseAdmin();
-  const { data, error } = await admin
+  const primary = await admin
     .from("studio_presets")
-    .select("id, name, description, modules, prompt_injections, allow_context_modules")
+    .select("id, name, description, modules, template_state, prompt_injections, allow_context_modules")
     .eq("owner_id", userId)
     .order("position", { ascending: true });
+  let data: PresetRow[] | null = primary.data as PresetRow[] | null;
+  let error = primary.error;
+  if (error && error.code === "42703") {
+    const fallback = await admin
+      .from("studio_presets")
+      .select("id, name, description, modules, prompt_injections, allow_context_modules")
+      .eq("owner_id", userId)
+      .order("position", { ascending: true });
+    data = fallback.data as PresetRow[] | null;
+    error = fallback.error;
+  }
   if (error) {
     console.error("[studio-presets] fetch failed:", error.message);
     return NextResponse.json({ error: "presets_failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ presets: ((data || []) as PresetRow[]).map(mapRow) });
+  return NextResponse.json({ presets: (data || []).map(mapRow) });
 }
 
 export async function PUT(req: Request) {
@@ -65,12 +82,41 @@ export async function PUT(req: Request) {
   await ensureProfile(userId);
 
   const admin = supabaseAdmin();
+  let existingRows: PresetRow[] = [];
+  let templateStateAvailable = true;
+  const existingResult = await admin
+    .from("studio_presets")
+    .select("id, owner_id, name, description, modules, template_state, prompt_injections, allow_context_modules")
+    .eq("owner_id", userId);
+  if (existingResult.error?.code === "42703") {
+    templateStateAvailable = false;
+    const fallback = await admin
+      .from("studio_presets")
+      .select("id, owner_id, name, description, modules, prompt_injections, allow_context_modules")
+      .eq("owner_id", userId);
+    if (fallback.error) {
+      console.error("[studio-presets] existing fetch failed:", fallback.error.message);
+      return NextResponse.json({ error: "presets_failed" }, { status: 500 });
+    }
+    existingRows = (fallback.data || []) as PresetRow[];
+  } else if (existingResult.error) {
+    console.error("[studio-presets] existing fetch failed:", existingResult.error.message);
+    return NextResponse.json({ error: "presets_failed" }, { status: 500 });
+  } else {
+    existingRows = (existingResult.data || []) as PresetRow[];
+  }
+
+  if (!templateStateAvailable && presets.some((preset) => preset.templateState.length > 0)) {
+    return NextResponse.json({ error: "preset_state_migration_required" }, { status: 503 });
+  }
+
   const rows = presets.map((preset, position) => ({
     id: preset.id,
     owner_id: userId,
     name: preset.name.slice(0, 120),
     description: preset.description.slice(0, 500),
     modules: preset.modules,
+    ...(templateStateAvailable ? { template_state: preset.templateState } : {}),
     prompt_injections: preset.promptInjections.slice(0, 12),
     allow_context_modules: preset.allowContextModules !== false,
     position,
@@ -107,6 +153,12 @@ export async function PUT(req: Request) {
   }
 
   const keepIds = rows.map((row) => row.id);
+  const incomingPaths = new Set(presets.flatMap((preset) => presetAssetPaths(preset.templateState)));
+  const stalePaths = existingRows.flatMap((row) => {
+    const preset = mapRow(row);
+    return presetAssetPaths(preset.templateState)
+      .filter((path) => isAssetPathForPreset(userId, row.id, path) && !incomingPaths.has(path));
+  });
   let staleQuery = admin.from("studio_presets").delete().eq("owner_id", userId);
   if (keepIds.length > 0) {
     const keepList = keepIds.map((id) => `"${id.replace(/"/g, "\"\"")}"`).join(",");
@@ -118,5 +170,13 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "presets_failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, presets });
+  if (stalePaths.length > 0) {
+    try {
+      await removeAssetPaths(admin, Array.from(new Set(stalePaths)));
+    } catch (error) {
+      console.error("[studio-presets] stale asset cleanup failed:", (error as Error).message);
+    }
+  }
+
+  return NextResponse.json({ ok: true, presets, templateStateAvailable });
 }

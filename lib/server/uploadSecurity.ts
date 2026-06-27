@@ -54,6 +54,19 @@ export function isAssetPathForSpace(spaceId: string, path: string): boolean {
   return path.startsWith(`${spaceId}/`) && !path.includes("..") && !path.startsWith("/") && path.length <= 400;
 }
 
+function storageSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 120);
+}
+
+export function presetAssetPrefix(ownerId: string, presetId: string): string {
+  return `presets/${storageSegment(ownerId)}/${storageSegment(presetId)}`;
+}
+
+export function isAssetPathForPreset(ownerId: string, presetId: string, path: string): boolean {
+  const prefix = `${presetAssetPrefix(ownerId, presetId)}/`;
+  return path.startsWith(prefix) && !path.includes("..") && !path.startsWith("/") && path.length <= 400;
+}
+
 export async function identifyUploadActor(input: {
   anonToken?: unknown;
   anonName?: unknown;

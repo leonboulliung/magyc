@@ -293,6 +293,7 @@ export function StudioHome({
           answers: payloadAnswers,
           configuredModules,
           presetName: selectedPreset?.name,
+          presetId: selectedPreset?.id,
           presetModules: selectedPreset?.modules,
           presetPromptInjections: selectedPreset?.promptInjections,
           presetAllowContextModules: selectedPreset?.allowContextModules,

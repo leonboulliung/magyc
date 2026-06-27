@@ -86,6 +86,12 @@ applying migrations that affect storage/events/core tables.
    Planung / Auswahl / Abgeschlossen. Presets must stay close to the real
    project architecture: their per-element preview/configuration renders the
    actual widget renderer through `WidgetDispatcher`, not a parallel form.
+   Preset module config lives in `studio_presets.modules`; real widget actions
+   and media references live in `studio_presets.template_state` (migration
+   022). On project creation the server loads the owned preset by id, maps its
+   state to the final module indexes, copies preset assets into the project
+   namespace, and inserts real `module_state` rows. Never trust a client preset
+   payload when an account preset id is available.
 3. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores all
    30 body module types 0–10 against the input (gpt-4o-mini); the **server**
    deterministically selects (threshold + redundancy caps: max one date
@@ -228,6 +234,9 @@ lib/
   `UploadZone` helpers; keep the client accept list and
   `lib/server/uploadSecurity.ts` allowlist in sync. The `space_assets` bucket
   is intended to be private after migration 019.
+  Preset media uses `presets/<owner>/<preset>/…` paths in that private bucket
+  and `/api/studio/presets/[id]/{upload,assets/sign}`. Project creation copies
+  those objects; projects never depend on mutable preset paths.
 - **Persistent limits**: cost/security limits must be durable across Vercel
   instances. Use the Supabase `take_rate_limit` RPC from migration 019 for
   AI, uploads, asset signing, and high-volume state writes; in-memory guards

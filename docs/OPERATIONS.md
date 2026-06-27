@@ -20,6 +20,10 @@ Storage, observability, migration discipline, feature flags, and backup checks.
   one-way support tickets, read-only account inspection, spaces, media usage,
   AI events, feature flags, and app events. Account/support actions are written
   to `admin_audit_events` after migration 021.
+- **Preset state/assets:** migration 022 adds `studio_presets.template_state`.
+  Preset media stays private under `presets/<owner>/<preset>/…` and is copied
+  to the project namespace during creation. Verify one media-heavy preset after
+  applying the migration; missing 022 does not break old module-only presets.
 
 ## Migration protocol
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAnonDisplayName, getAnonToken } from "@/lib/anonId";
 import { readApiJson } from "@/lib/client/feedback";
+import { assetApiBase } from "@/lib/client/assetRoutes";
 
 export function assetPathFromData(data: Record<string, unknown>): string {
   return typeof data.path === "string" ? data.path : "";
@@ -26,7 +27,7 @@ export function useAssetUrls(spaceId: string, paths: string[]): Record<string, s
       return;
     }
     let cancelled = false;
-    fetch(`/api/spaces/${spaceId}/assets/sign`, {
+    fetch(`${assetApiBase(spaceId)}/assets/sign`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

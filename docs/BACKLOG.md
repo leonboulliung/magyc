@@ -5,7 +5,21 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-26 (Codex — admin/support launch cockpit)_
+_Last updated: 2026-06-27 (Codex — first-class preset state/assets)_
+
+---
+
+## Done 2026-06-27 — first-class preset state and assets
+
+- Added migration 022 and a sanitized `studio_presets.template_state` plane.
+  The Preset editor now feeds real state into `WidgetDispatcher`; all widget
+  actions can be preconfigured without lossy per-element translation code.
+- Preset media now uploads into an owner-scoped private Storage namespace,
+  uses signed reads in the preview, and is garbage-collected when removed.
+- `/api/projects` resolves account presets server-side by id. It maps template
+  state to the classifier's final module indexes, remaps cross-entry ids,
+  copies media into the new project namespace, inserts real `module_state`,
+  and rolls the project back if materialization is incomplete.
 
 ---
 
@@ -37,13 +51,10 @@ MVP risks are not the first prompt, but the later projection layers.
    merges modules + module_state and feeds contract drafting. Remaining next
    slice: use the same facts in Abschluss/export/admin summaries and expand
    legal/product wording once real customer projects expose missing fields.
-2. **Preset previews are visually real but state-model shallow.** The editor
-   renders widgets via `WidgetDispatcher`, but it gives them an artificial
-   `spaceId` (`preset:<id>`) and maps only a few state actions back into module
-   config (`checklist`, `qa`, `shot_list`, `parts_list`, `moodboard`). Uploads
-   and many stateful widgets cannot persist real preset media/state. Next
-   slice: introduce first-class preset template state/assets instead of routing
-   preset widgets through fake space state.
+2. **Preset state/assets are now first-class.** Migration 022 adds the template
+   state plane; media is owner-scoped and copied into projects, while state is
+   remapped into real module indexes. Remaining validation is production UX
+   testing after migration 022 is applied, especially upload-heavy presets.
 3. **Admin cockpit is functional but not full ghost mode.** Plan/status/support
    actions are real, and project links now use admin-only read routes. Remaining
    next slice: replace bounded snapshots (profiles 250, spaces 400, state 1600)

@@ -66,3 +66,12 @@ export async function removeAssetPaths(admin: SupabaseClient, paths: string[]): 
   const { error } = await admin.storage.from(ASSET_BUCKET).remove(paths);
   if (error) throw storageError("storage_remove_failed", error.message);
 }
+
+export async function copyAssetPath(
+  admin: SupabaseClient,
+  fromPath: string,
+  toPath: string,
+): Promise<void> {
+  const { error } = await admin.storage.from(ASSET_BUCKET).copy(fromPath, toPath);
+  if (error) throw storageError("storage_copy_failed", error.message);
+}

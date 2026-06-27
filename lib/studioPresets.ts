@@ -1,4 +1,5 @@
 import { bodyTypes, sanitizeModule } from "@/lib/modules";
+import { cleanPresetState, type PresetStateEntry } from "@/lib/presetState";
 import type { Module, ModuleType } from "@/lib/types";
 
 export type StudioPreset = {
@@ -6,6 +7,7 @@ export type StudioPreset = {
   name: string;
   description: string;
   modules: Module[];
+  templateState: PresetStateEntry[];
   promptInjections: string[];
   allowContextModules: boolean;
 };
@@ -40,6 +42,7 @@ export const DEFAULT_STUDIO_PRESETS: StudioPreset[] = [
       { type: "deliverables", microTitle: "Deliverables", items: [{ label: "Webshop" }, { label: "Social Crops" }] },
       { type: "approvals", microTitle: "Freigaben", items: [{ text: "Look freigeben" }, { text: "Finale Auswahl freigeben" }] },
     ],
+    templateState: [],
     promptInjections: [
       "Plane wie ein kommerzieller Produktfotograf: Deliverables, Nutzungsrechte, Shotlist und Freigaben explizit machen.",
     ],
@@ -63,6 +66,7 @@ export const DEFAULT_STUDIO_PRESETS: StudioPreset[] = [
       { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Ablauf bestätigen" }, { text: "Kontaktperson klären" }] },
       { type: "deliverables", microTitle: "Übergabe", items: [{ label: "Online-Galerie" }, { label: "Highlight-Auswahl" }] },
     ],
+    templateState: [],
     promptInjections: ["Sensible Kommunikation, klare Timings und Must-have-Momente priorisieren."],
     allowContextModules: true,
   },
@@ -94,6 +98,7 @@ export const MARKETING_STARTER_PRESETS: StudioPreset[] = [
       ] },
       { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Produkte reinigen / vorbereiten" }, { text: "Referenzen einsammeln" }] },
     ],
+    templateState: [],
     promptInjections: [
       "Plane wie ein kommerzieller Produktfotograf in Deutschland: Bildsprache, Shotlist, Nutzungsrechte, Formate, Freigaben und Übergabetermin klar machen.",
     ],
@@ -119,6 +124,7 @@ export const MARKETING_STARTER_PRESETS: StudioPreset[] = [
       ] },
       { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Ablaufplan bestätigen" }, { text: "Gruppenbildliste einsammeln" }] },
     ],
+    templateState: [],
     promptInjections: [
       "Plane sensibel und zuverlässig für eine Hochzeit in Deutschland: Ablauf, Orte, Kontaktpersonen, Must-have-Motive, Backup-Plan und Bildübergabe priorisieren.",
     ],
@@ -146,6 +152,7 @@ export const MARKETING_STARTER_PRESETS: StudioPreset[] = [
         { label: "Website", format: "Querformat", status: "planned" },
       ] },
     ],
+    templateState: [],
     promptInjections: [
       "Plane Business-Portraits mit Fokus auf Wirkung, Vertrauen, Einsatzkanäle, Styling, Location und klare Auswahlrunde.",
     ],
@@ -171,6 +178,7 @@ export const MARKETING_STARTER_PRESETS: StudioPreset[] = [
         { label: "Gesamtübergabe", status: "planned" },
       ] },
     ],
+    templateState: [],
     promptInjections: [
       "Plane eine Event-Reportage mit Fokus auf Ablauf, Ansprechpartner, kritische Programmpunkte, schnelle Auswahl und saubere Übergabe.",
     ],
@@ -184,6 +192,7 @@ export function createStudioPreset(): StudioPreset {
     name: "Neues Preset",
     description: "",
     modules: [],
+    templateState: [],
     promptInjections: [""],
     allowContextModules: true,
   };
@@ -220,11 +229,28 @@ export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
   const parsed = raw
     .map((item, index) => {
       const candidate = item as Partial<StudioPreset>;
-      const modules = Array.isArray(candidate.modules)
+      const rawModules = Array.isArray(candidate.modules)
         ? candidate.modules
             .map(sanitizeModule)
             .filter((module): module is Module => !!module && PRESET_ELEMENT_TYPE_SET.has(module.type))
         : [];
+      const moduleIndexMap = new Map<number, number>();
+      const modules: Module[] = [];
+      rawModules.forEach((module, rawIndex) => {
+        const existingIndex = modules.findIndex((current) => current.type === module.type);
+        if (existingIndex >= 0) {
+          moduleIndexMap.set(rawIndex, existingIndex);
+          return;
+        }
+        moduleIndexMap.set(rawIndex, modules.length);
+        modules.push(module);
+      });
+      const templateState = cleanPresetState(candidate.templateState, rawModules.length)
+        .map((entry) => {
+          const moduleIndex = moduleIndexMap.get(entry.moduleIndex);
+          return moduleIndex === undefined ? null : { ...entry, moduleIndex };
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => !!entry);
       const id = cleanPresetId(candidate.id, index);
       const name = typeof candidate.name === "string"
         ? candidate.name.replace(/\s+/g, " ").trim().slice(0, 120)
@@ -234,6 +260,7 @@ export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
         name: name || "Unbenanntes Preset",
         description: typeof candidate.description === "string" ? candidate.description.slice(0, 500) : "",
         modules,
+        templateState: cleanPresetState(templateState, modules.length),
         promptInjections: Array.isArray(candidate.promptInjections)
           ? candidate.promptInjections
               .filter((prompt): prompt is string => typeof prompt === "string")

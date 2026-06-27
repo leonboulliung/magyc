@@ -12,9 +12,10 @@ import { newId, newAnonToken } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 import { cleanSettings } from "@/lib/studioProfile";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
+import { fetchOwnedPreset, materializePresetState } from "@/lib/server/presetMaterialization";
 
 // The classifier makes two gpt-4o-mini calls + geocoding — give headroom.
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 /**
  * POST /api/projects — create an account-first Creator-Suite project.
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
     answers: z.unknown().optional(),
     configuredModules: z.unknown().optional(),
     presetName: z.string().optional(),
+    presetId: z.string().optional(),
     presetModules: z.unknown().optional(),
     presetPromptInjections: z.unknown().optional(),
     presetAllowContextModules: z.boolean().optional(),
@@ -101,13 +103,29 @@ export async function POST(req: Request) {
   // Segment is currently always product (the only guided preset). Kept as a
   // field so more presets slot in without an API change.
   const segment = str(b.segment) || "product";
-  const presetName = str(b.presetName);
-  const presetModules = sanitizeModules(Array.isArray(b.presetModules) ? b.presetModules.slice(0, 24) : []);
+  const requestedPresetId = str(b.presetId).slice(0, 80);
+  let admin;
+  try {
+    admin = supabaseAdmin();
+  } catch {
+    return NextResponse.json({ error: "db_unavailable" }, { status: 503 });
+  }
+  let ownedPreset = null;
+  try {
+    ownedPreset = await fetchOwnedPreset(admin, userId, requestedPresetId);
+  } catch (error) {
+    console.error("[projects] preset fetch failed:", (error as Error).message);
+    return NextResponse.json({ error: "presets_failed" }, { status: 500 });
+  }
+  const presetName = ownedPreset?.name ?? str(b.presetName);
+  const presetModules = ownedPreset?.modules ?? sanitizeModules(Array.isArray(b.presetModules) ? b.presetModules.slice(0, 24) : []);
   const clarifyModules = sanitizeModules(Array.isArray(b.configuredModules) ? b.configuredModules.slice(0, 6) : []);
-  const presetAllowContextModules = b.presetAllowContextModules !== false;
-  const presetPromptInjections = Array.isArray(b.presetPromptInjections)
+  const presetAllowContextModules = ownedPreset
+    ? ownedPreset.allowContextModules !== false
+    : b.presetAllowContextModules !== false;
+  const presetPromptInjections = ownedPreset?.promptInjections ?? (Array.isArray(b.presetPromptInjections)
     ? b.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
-    : [];
+    : []);
   const projectMode = str(b.projectMode) || "photo_shoot";
   const answersRaw = Array.isArray(b.answers) ? b.answers : [];
   const answers: ClassifyAnswer[] = [];
@@ -130,12 +148,6 @@ export async function POST(req: Request) {
     if (seededTypes.has(module.type)) continue;
     seededTypes.add(module.type);
     seededModules.push(module);
-  }
-  let admin;
-  try {
-    admin = supabaseAdmin();
-  } catch {
-    return NextResponse.json({ error: "db_unavailable" }, { status: 503 });
   }
   const aiAllowed = await takePersistentRateLimit(admin, `ai-project:${userId}`, 60 * 60, 60);
   if (!aiAllowed) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
@@ -212,6 +224,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "create_failed" }, { status: 500 });
   }
 
+  let presetStateCount = 0;
+  if (ownedPreset?.templateState.length) {
+    try {
+      presetStateCount = await materializePresetState({
+        admin,
+        preset: ownedPreset,
+        projectId: id,
+        projectModules: result.modules,
+        ownerId: userId,
+      });
+    } catch (stateError) {
+      console.error("[projects] preset state materialization failed:", (stateError as Error).message);
+      await admin.from("spaces").delete().eq("id", id).eq("owner_id", userId);
+      return NextResponse.json({ error: "preset_materialization_failed" }, { status: 500 });
+    }
+  }
+
   await recordAiEvent({
     userId,
     spaceId: id,
@@ -221,11 +250,13 @@ export async function POST(req: Request) {
       input,
       segment,
       presetName: presetName || null,
+      presetId: ownedPreset?.id ?? null,
       answers,
       presetModuleTypes: presetModules.map((m) => m.type),
       clarifyModuleTypes: clarifyModules.map((m) => m.type),
       presetPromptInjections,
       presetAllowContextModules,
+      presetStateCount,
     },
     output: { title: result.title, moduleTypes: result.modules.map((m) => m.type) },
     metadata: {

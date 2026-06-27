@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type { Module, ModuleStateKind, SpaceLabels } from "./types";
+import type { PresetStateEntry } from "./presetState";
 
 /**
  * Per-space context shared by every widget renderer. Carries the
@@ -53,6 +54,9 @@ export interface WidgetContextValue {
    * which re-fetched the whole space graph on every click.
    */
   act: (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => Promise<boolean>;
+  /** Preset previews persist uploads in their own state plane. Normal spaces
+   * receive uploads through realtime and therefore leave this undefined. */
+  ingestStateEntry?: (entry: PresetStateEntry) => void;
 }
 
 export const WidgetContext = createContext<WidgetContextValue | null>(null);
