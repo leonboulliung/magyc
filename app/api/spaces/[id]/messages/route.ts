@@ -40,8 +40,9 @@ async function gateSpace(id: string) {
   return { admin, userId: userId ?? null };
 }
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const gate = await gateSpace(params.id);
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const gate = await gateSpace(id);
   if (gate.error) return gate.error;
   const { admin } = gate;
 
@@ -50,7 +51,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     let q = admin
       .from("project_messages")
       .select("id, channel, role, author_id, author_name, content, created_at")
-      .eq("space_id", params.id)
+      .eq("space_id", id)
       .order("created_at", { ascending: true })
       .limit(200);
     if (channel && CHANNELS.has(channel)) q = q.eq("channel", channel);
@@ -62,8 +63,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const gate = await gateSpace(params.id);
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const gate = await gateSpace(id);
   if (gate.error) return gate.error;
   const { admin, userId } = gate;
 
@@ -80,7 +82,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const row = {
     id: newId(),
-    space_id: params.id,
+    space_id: id,
     channel: b.channel,
     role: b.role === "assistant" ? "assistant" : "user",
     author_id: userId || b.anonToken || null,

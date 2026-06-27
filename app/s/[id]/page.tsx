@@ -7,7 +7,7 @@ import { SpaceView } from "./SpaceView";
 import { getProjectAccess } from "@/lib/server/projectAccess";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Spaces are mutable: without this, Next 14 serves the supabase fetch from
+// Spaces are mutable: without this, Next.js may serve the Supabase fetch from
 // its Data Cache and edits look lost after a reload (PUT 200, DB updated,
 // stale page). Always render from live data.
 export const dynamic = "force-dynamic";
@@ -32,9 +32,10 @@ async function blocksPrivateSuiteLink(space: Awaited<ReturnType<typeof getSpace>
 }
 
 export async function generateMetadata(
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<Metadata> {
-  const space = await getSpace(params.id);
+  const { id } = await params;
+  const space = await getSpace(id);
   if (!space) return { title: "—", robots: { index: false, follow: false } };
   if (await blocksPrivateSuiteLink(space)) {
     return { title: "—", robots: { index: false, follow: false } };
@@ -58,13 +59,14 @@ export async function generateMetadata(
  * client-side fetch waterfall. SpaceView then takes over for realtime +
  * optimistic edits.
  */
-export default async function SpacePage({ params }: { params: { id: string } }) {
-  const space = await getSpace(params.id);
+export default async function SpacePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const space = await getSpace(id);
 
   // Suite projects are private until shared: a non-owner opening an
   // unshared project's link gets a 404. Anonymous/published spaces
   // (stage === null) are unaffected and stay public-by-id.
   if (await blocksPrivateSuiteLink(space)) notFound();
 
-  return <SpaceView id={params.id} initialSpace={space} />;
+  return <SpaceView id={id} initialSpace={space} />;
 }

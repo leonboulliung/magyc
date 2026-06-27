@@ -11,8 +11,9 @@ import { newId, newAnonToken } from "@/lib/id";
  */
 export async function POST(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id: sourceId } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -20,7 +21,7 @@ export async function POST(
   const { data: src } = await admin
     .from("spaces")
     .select("owner_id, input_text, title, language, vibe, modules, labels, style, segment")
-    .eq("id", params.id)
+    .eq("id", sourceId)
     .maybeSingle();
   if (!src) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (src.owner_id !== userId) {

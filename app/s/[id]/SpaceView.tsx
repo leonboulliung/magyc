@@ -24,6 +24,7 @@ import { useIsOwner } from "@/lib/hooks";
 import { useDevMode } from "@/lib/devFlag";
 import { WidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleStateEntry, ModuleStateKind, Space, SpaceStyle } from "@/lib/types";
+import type { PresetStateEntry } from "@/lib/presetState";
 import { DEFAULT_STYLE, styleVars } from "@/lib/style";
 import { findFont, fontStack, googleFontsHref } from "@/lib/fonts";
 import { MagyCBadge } from "@/components/MagyCBadge";
@@ -68,11 +69,13 @@ export function SpaceView({
   initialSpace = null,
   hideLockedNotice = false,
   canEditOverride,
+  onProjectDataChange,
 }: {
   id: string;
   initialSpace?: Space | null;
   hideLockedNotice?: boolean;
   canEditOverride?: boolean;
+  onProjectDataChange?: (modules: Module[], state: ModuleStateEntry[]) => void;
 }) {
   const { user } = useUser();
 
@@ -263,7 +266,7 @@ export function SpaceView({
   // (b) by the realtime channel for everyone's confirmed rows. This
   // replaces the old pattern of re-fetching the entire space graph
   // after every click.
-  const [liveState, setLiveState] = useState<ModuleStateEntry[]>([]);
+  const [liveState, setLiveState] = useState<ModuleStateEntry[]>(() => initialSpace?.state ?? []);
   const realtimeUp = useRef(false);
   // Always-current snapshot of liveState, so an optimistic action can
   // roll back to the exact prior state on failure without a refetch.
@@ -273,6 +276,11 @@ export function SpaceView({
   useEffect(() => {
     if (space) setLiveState(space.state);
   }, [space]);
+
+  useEffect(() => {
+    if (!space || !onProjectDataChange) return;
+    onProjectDataChange(localModules ?? space.modules, liveState);
+  }, [liveState, localModules, onProjectDataChange, space]);
 
   useEffect(() => {
     if (!space?.id) return;
@@ -351,12 +359,36 @@ export function SpaceView({
         displayName: user?.username ?? user?.fullName ?? undefined,
       });
       setLiveState((prev) => applyActionLocally(prev, entry));
-      const ok = await postState(space.id, moduleIndex, kind, data);
-      if (!ok) setLiveState(snapshot); // targeted rollback — no refetch
-      return ok;
+      const result = await postState(space.id, moduleIndex, kind, data);
+      if (!result.ok) {
+        setLiveState(snapshot); // targeted rollback — no refetch
+        showActionError("Änderung nicht gespeichert", {
+          description: apiErrorMessage(result.error),
+        });
+      }
+      return result.ok;
     },
     [space?.id, user],
   );
+
+  // Direct uploads are committed by the upload endpoint rather than ctx.act.
+  // Ingest the returned state row immediately so the uploader does not depend
+  // on a Realtime round-trip (or on Realtime being available at all).
+  const ingestStateEntry = useCallback((entry: PresetStateEntry) => {
+    if (!space?.id) return;
+    const fullEntry: ModuleStateEntry = {
+      ...entry,
+      spaceId: space.id,
+      actor: {
+        kind: user ? "user" : "anon",
+        id: user?.id ?? getSelfId(),
+        displayName: user?.username ?? user?.fullName ?? undefined,
+      },
+    };
+    setLiveState((current) => current.some((item) => item.id === fullEntry.id)
+      ? current
+      : [...current, fullEntry]);
+  }, [space?.id, user]);
 
   // ── Visual style ────────────────────────────────────────────────
   // Local override lets the StyleEditor preview changes instantly
@@ -499,6 +531,7 @@ export function SpaceView({
         patchModule,
         saveModule,
         act,
+        ingestStateEntry,
       }}
     >
       <div

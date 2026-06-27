@@ -5,8 +5,10 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 import { SINGLE_ACTIVE_RULES } from "@/lib/stateDedup";
-import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
+import { isAssetPathForSpace, takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { getProjectAccess } from "@/lib/server/projectAccess";
+import { appendStateLimit, hasStateCapacity, type LimitedStateKind } from "@/lib/server/stateLimits";
+import { removeAssetPaths } from "@/lib/server/storage";
 import type { ModuleStateKind } from "@/lib/types";
 
 /**
@@ -79,10 +81,18 @@ function sanitizeData(d: unknown): Record<string, unknown> {
   return out;
 }
 
+function editRpcUnavailable(error: unknown): boolean {
+  const value = error as { code?: string; message?: string } | null;
+  return value?.code === "PGRST202"
+    || value?.code === "42883"
+    || (value?.message || "").includes("upsert_module_edit");
+}
+
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params: paramsPromise }: { params: Promise<{ id: string }> },
 ) {
+  const params = await paramsPromise;
   const parsed = await parseBody(req, z.object({
     moduleIndex: z.number().optional(),
     kind: z.string().optional(),
@@ -101,6 +111,7 @@ export async function POST(
   if (typeof kind !== "string" || !ALLOWED_KINDS.has(kind as ModuleStateKind)) {
     return NextResponse.json({ error: "bad_kind" }, { status: 400 });
   }
+  const stateKind = kind as ModuleStateKind;
   const rawData = body.data && typeof body.data === "object" ? body.data : {};
   const data = sanitizeData(rawData);
 
@@ -168,6 +179,27 @@ export async function POST(
         })
       : (space.shared ? "link" : "none");
     if (role === "none") return NextResponse.json({ error: "not_shared" }, { status: 403 });
+  }
+
+  const appendLimit = appendStateLimit(stateKind);
+  if (appendLimit !== null) {
+    try {
+      const hasCapacity = await hasStateCapacity(
+        admin,
+        params.id,
+        moduleIndex,
+        stateKind as LimitedStateKind,
+      );
+      if (!hasCapacity) {
+        return NextResponse.json(
+          { error: "state_limit_reached", kind: stateKind, limit: appendLimit },
+          { status: 409 },
+        );
+      }
+    } catch (error) {
+      console.error("[state] capacity check failed:", (error as Error).message);
+      return NextResponse.json({ error: "state_check_failed" }, { status: 500 });
+    }
   }
 
   // ── vote ──────────────────────────────────────────────────────────────
@@ -326,14 +358,60 @@ export async function POST(
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: "edit_empty" }, { status: 400 });
     }
+    const itemId = typeof data.id === "string" ? data.id.trim().slice(0, 120) : "";
+
+    // Removing an upload should remove the actual object and row, not append a
+    // tombstone forever. This also releases the project's storage quota.
+    if (itemId && data.deleted === true) {
+      const { data: target, error: targetError } = await admin
+        .from("module_state")
+        .select("id, kind, data")
+        .eq("id", itemId)
+        .eq("space_id", params.id)
+        .eq("module_index", moduleIndex)
+        .maybeSingle();
+      if (targetError) return NextResponse.json({ error: "state_check_failed" }, { status: 500 });
+      if (target?.kind === "upload") {
+        const path = typeof target.data?.path === "string" ? target.data.path : "";
+        try {
+          if (path && isAssetPathForSpace(params.id, path)) await removeAssetPaths(admin, [path]);
+        } catch (error) {
+          console.error("[state] asset removal failed:", (error as Error).message);
+          return NextResponse.json({ error: "asset_delete_failed" }, { status: 500 });
+        }
+        const { error: deleteError } = await admin.from("module_state").delete().eq("id", itemId);
+        if (deleteError) return NextResponse.json({ error: "state_cleanup_failed" }, { status: 500 });
+        return NextResponse.json({ ok: true });
+      }
+    }
+
+    const rowId = newId();
+    if (itemId) {
+      const { error: rpcError } = await admin.rpc("upsert_module_edit", {
+        p_id: rowId,
+        p_space_id: params.id,
+        p_module_index: moduleIndex,
+        p_actor_kind: actorKind,
+        p_actor_id: actorId,
+        p_display_name: displayName,
+        p_data: data,
+      });
+      if (!rpcError) return NextResponse.json({ ok: true });
+      if (!editRpcUnavailable(rpcError)) {
+        console.error("[state] edit compaction failed:", rpcError.message);
+        return NextResponse.json({ error: "state_write_failed" }, { status: 500 });
+      }
+    }
+
+    // Migration-tolerant fallback: old databases retain append-only behavior.
     const { error } = await admin.from("module_state").insert({
-      id: newId(),
+      id: rowId,
       space_id: params.id,
       module_index: moduleIndex,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,
-      kind,
+      kind: stateKind,
       data,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -13,8 +13,9 @@ export const dynamic = "force-dynamic";
  * separate surface from the planning dot-grid (document-like, with a "← Zur
  * Planung" reference). Owner always; a client only when the space is shared.
  */
-export default async function ContractPage({ params }: { params: { id: string } }) {
-  const space = await fetchSpaceById(params.id).catch(() => null);
+export default async function ContractPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const space = await fetchSpaceById(id).catch(() => null);
   if (!space) notFound();
 
   const { userId } = await auth();

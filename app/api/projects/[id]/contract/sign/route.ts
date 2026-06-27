@@ -12,7 +12,8 @@ import { getProjectAccess } from "@/lib/server/projectAccess";
  * Captures name + server timestamp + IP + user-agent into signers[] + audit.
  * When BOTH parties have signed, the contract is locked (immutable).
  */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const parsed = await parseBody(req, z.object({
     name: z.string().min(1).max(120),
     // Optional drawn-signature mode (photographer can opt in): a place + an
@@ -31,13 +32,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const { data: space } = await admin
     .from("spaces")
     .select("id, owner_id, shared")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { userId } = await auth();
   const accessRole = await getProjectAccess(admin, {
-    spaceId: params.id,
+    spaceId: id,
     ownerId: space.owner_id,
     shared: space.shared,
     userId,
@@ -50,7 +51,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const { data: contract } = await admin
     .from("project_contracts")
     .select("status, locked, signers, audit, content_hash, owner_signed_at, client_signed_at")
-    .eq("space_id", params.id)
+    .eq("space_id", id)
     .maybeSingle();
   if (!contract) return NextResponse.json({ error: "no_contract" }, { status: 409 });
   if (contract.locked) return NextResponse.json({ error: "locked" }, { status: 409 });
@@ -93,7 +94,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     update.audit = audit;
   }
 
-  const { error } = await admin.from("project_contracts").update(update).eq("space_id", params.id);
+  const { error } = await admin.from("project_contracts").update(update).eq("space_id", id);
   if (error) {
     console.error("[contract-sign] failed:", error.message);
     return NextResponse.json({ error: "sign_failed", detail: error.message }, { status: 500 });

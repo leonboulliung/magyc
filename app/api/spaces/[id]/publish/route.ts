@@ -27,8 +27,9 @@ import { parseBody } from "@/lib/api/validate";
  */
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -46,7 +47,7 @@ export async function POST(
   const { data: space, error: fetchErr } = await admin
     .from("spaces")
     .select("id, anon_owner_token, owner_id, visibility, modules, title")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (fetchErr) {
     console.error("[publish] fetch failed:", fetchErr.message);
@@ -80,21 +81,21 @@ export async function POST(
       visibility: "public",
       published_at: nowIso,
     })
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id");
   if (upErr) {
     console.error("[publish] update failed:", upErr.message);
     return NextResponse.json({ error: "publish_failed" }, { status: 500 });
   }
   if (!updated || updated.length === 0) {
-    console.error("[publish] update matched no rows:", params.id);
+    console.error("[publish] update matched no rows:", id);
     return NextResponse.json({ error: "publish_failed" }, { status: 500 });
   }
 
   // Snapshot v1.
   const { error: vErr } = await admin.from("space_versions").insert({
     id: newId(),
-    space_id: params.id,
+    space_id: id,
     version: 1,
     title: space.title || "",
     modules: space.modules || [],

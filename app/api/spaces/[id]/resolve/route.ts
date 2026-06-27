@@ -19,13 +19,14 @@ export const maxDuration = 15;
 
 export async function POST(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const admin = supabaseAdmin();
   const { data: space, error } = await admin
     .from("spaces")
     .select("id, modules, language")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -51,7 +52,7 @@ export async function POST(
   const { data: updated, error: upErr } = await admin
     .from("spaces")
     .update({ modules: resolved })
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id");
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
   if (!updated || updated.length === 0) {

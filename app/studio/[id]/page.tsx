@@ -14,9 +14,10 @@ export const dynamic = "force-dynamic";
  * administration owner-only. This route is OUTSIDE the (shell) group, so the
  * surface gets the full screen.
  */
-export default async function StudioProjectPage({ params }: { params: { id: string } }) {
+export default async function StudioProjectPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
-  const space = await fetchSpaceById(params.id).catch(() => null);
+  const space = await fetchSpaceById(id).catch(() => null);
   if (!space || !userId) notFound();
   const admin = supabaseAdmin();
   await claimPendingProjectMemberships(admin, userId);

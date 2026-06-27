@@ -8,7 +8,8 @@ import { supabaseAdmin } from "@/lib/supabase";
  * vorbereitet" page (see docs/CONTRACT_PHASE.md); afterwards both parties can
  * sign. Owner-only; refused once the contract is locked.
  */
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -16,7 +17,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const { data: space } = await admin
     .from("spaces")
     .select("id, owner_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (space.owner_id !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -24,7 +25,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const { data: contract } = await admin
     .from("project_contracts")
     .select("status, locked")
-    .eq("space_id", params.id)
+    .eq("space_id", id)
     .maybeSingle();
   if (!contract) return NextResponse.json({ error: "no_contract" }, { status: 409 });
   if (contract.locked) return NextResponse.json({ error: "locked" }, { status: 409 });
@@ -32,7 +33,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const { error } = await admin
     .from("project_contracts")
     .update({ status: "released", updated_at: new Date().toISOString() })
-    .eq("space_id", params.id);
+    .eq("space_id", id);
   if (error) {
     console.error("[contract-release] failed:", error.message);
     return NextResponse.json({ error: "release_failed", detail: error.message }, { status: 500 });

@@ -139,7 +139,8 @@ async function persistModulesWithRev(
   return { ok: true };
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const { userId } = await auth();
   const parsed = await parseBody(req, z.object({
     question: z.string().trim().min(1).max(MAX_QUESTION_CHARS),

@@ -49,7 +49,7 @@ same commit.
 
 | Layer | What | Access / notes |
 |---|---|---|
-| Framework | Next.js 14 App Router, React 18, TS, Tailwind | |
+| Framework | Next.js 15 App Router, React 18, TS, Tailwind | Dynamic route `params`/`searchParams` are promises and must be awaited |
 | Hosting | Vercel, region `fra1` (vercel.json), domain magyc.site | `vercel` CLI is logged in locally |
 | DB + Realtime + Storage | Supabase Postgres/Realtime/Storage, project ref `zpkgofpkksetnbuizvhi` (eu-central-1) | client: anon key; API routes: `supabaseAdmin()` (service_role, bypasses RLS); media uses signed direct uploads + signed reads through `lib/server/storage.ts` |
 | Auth | Clerk (`@clerk/nextjs`), email OTP | publish binds a draft to a Clerk account |
@@ -69,6 +69,11 @@ DB schema: `supabase/migrations/` (current), `supabase/migrations-archive/`
 Supabase SQL editor — there is no migration runner wired up. Operational
 checks live in `docs/OPERATIONS.md`; run `npm run ops:backup-check` after
 applying migrations that affect storage/events/core tables.
+
+Required local verification before every push: `npm test`,
+`npm run typecheck`, and `npm run build`. Vitest covers the deterministic state,
+preset, error, and ProjectFacts projection layers; extend those tests whenever
+their server/client semantics change.
 
 ---
 
@@ -139,6 +144,12 @@ actor+itemKey) · `claim` (one actor per slot, 409 if taken) · `voice`
 `upload` (Storage URL) · `stroke` (sketch path).
 Client-side mirror semantics live in `lib/state.ts` (`applyActionLocally`).
 If you change one side, change the other.
+
+Migration 024 compacts repeated item edits through the service-role-only
+`upsert_module_edit` RPC. Append-heavy state is capped per module (`voice` 500,
+`add` 500, `upload` 250, `stroke` 1200); upload deletion removes both the row
+and private object so quota is released. Keep limits centralized in
+`lib/server/stateLimits.ts` and surface rejected optimistic actions visibly.
 
 ---
 

@@ -9,16 +9,18 @@ export function generateStaticParams() {
   return AREAS.map((a) => ({ area: a.slug }));
 }
 
-export function generateMetadata({ params }: { params: { area: string } }): Metadata {
-  const area = areaBySlug(params.area);
+export async function generateMetadata({ params }: { params: Promise<{ area: string }> }): Promise<Metadata> {
+  const { area: areaSlug } = await params;
+  const area = areaBySlug(areaSlug);
   return {
     title: area ? `MAGYC for ${area.label}` : "MAGYC",
     description: area?.tagline,
   };
 }
 
-export default function AreaPage({ params }: { params: { area: string } }) {
-  const area = areaBySlug(params.area);
+export default async function AreaPage({ params }: { params: Promise<{ area: string }> }) {
+  const { area: areaSlug } = await params;
+  const area = areaBySlug(areaSlug);
   if (!area) notFound();
 
   return (

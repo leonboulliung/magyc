@@ -79,6 +79,15 @@ function liveAdds(state: ModuleStateEntry[], moduleIndex: number): ModuleStateEn
     .filter((entry) => !deleted.has(typeof entry.data.id === "string" ? entry.data.id : entry.id));
 }
 
+function liveUploads(state: ModuleStateEntry[], moduleIndex: number): ModuleStateEntry[] {
+  const entries = stateFor(state, moduleIndex);
+  const deleted = new Set(entries
+    .filter((entry) => entry.kind === "edit" && entry.data.deleted === true)
+    .map((entry) => clean(entry.data.id, 120))
+    .filter(Boolean));
+  return entries.filter((entry) => entry.kind === "upload" && !deleted.has(entry.id));
+}
+
 function itemChecked(state: ModuleStateEntry[], moduleIndex: number, itemKey: string): boolean {
   const checks = stateFor(state, moduleIndex)
     .filter((entry) => entry.kind === "check" && entry.data.itemKey === itemKey);
@@ -305,21 +314,44 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
         facts.shots.push(...shots.map(({ id: _id, ...shot }) => shot));
         break;
       }
-      case "parts_list":
-        facts.parts.push(...module.items.map((item) => ({
+      case "parts_list": {
+        const seeded = module.items.map((item, index) => ({
+          id: `seed-${index}`,
           name: clean(item.name, 140),
           quantity: clean(item.quantity, 80) || undefined,
           imageUrl: clean(item.imageUrl, 600) || undefined,
-        })).filter((item) => item.name));
-        facts.parts.push(...liveAdds(state, moduleIndex).map((entry) => ({
+        })).filter((item) => item.name);
+        const added = liveAdds(state, moduleIndex).map((entry) => ({
+          id: clean(entry.data.id, 120) || entry.id,
           name: clean(entry.data.name, 140),
           quantity: clean(entry.data.quantity, 80) || undefined,
           imageUrl: clean(entry.data.imageUrl, 600) || undefined,
-        })).filter((item) => item.name));
+        })).filter((item) => item.name);
+        const items = applyEdits([...seeded, ...added], state, moduleIndex, (item, data) => ({
+          ...item,
+          name: typeof data.name === "string" ? clean(data.name, 140) || item.name : item.name,
+          quantity: typeof data.quantity === "string" ? clean(data.quantity, 80) || undefined : item.quantity,
+          imageUrl: typeof data.imageUrl === "string" ? clean(data.imageUrl, 600) || undefined : item.imageUrl,
+        }));
+        facts.parts.push(...items.map(({ id: _id, ...item }) => item));
         break;
-      case "notes":
-        facts.notes.push(...entries.filter((entry) => entry.kind === "add").map((entry) => clean(entry.data.text, 500)).filter(Boolean));
+      }
+      case "notes": {
+        const notes = applyEdits(
+          liveAdds(state, moduleIndex).map((entry) => ({
+            id: clean(entry.data.id, 120) || entry.id,
+            text: clean(entry.data.text, 500),
+          })).filter((entry) => entry.text),
+          state,
+          moduleIndex,
+          (note, data) => ({
+            ...note,
+            text: typeof data.text === "string" ? clean(data.text, 500) : note.text,
+          }),
+        );
+        facts.notes.push(...notes.map((note) => note.text).filter(Boolean));
         break;
+      }
       case "qa": {
         const deleted = new Set(entries.filter((entry) => entry.kind === "edit" && entry.data.deleted === true).map((entry) => clean(entry.data.id, 120)));
         const questions = [
@@ -356,7 +388,7 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
       case "images":
       case "audio":
       case "selection":
-        facts.uploads.push(...entries.filter((entry) => entry.kind === "upload").map((entry) => ({
+        facts.uploads.push(...liveUploads(state, moduleIndex).map((entry) => ({
           name: clean(entry.data.name, 220) || "Datei",
           mimeType: clean(entry.data.mimeType, 120) || undefined,
           size: typeof entry.data.size === "number" ? entry.data.size : undefined,

@@ -63,7 +63,7 @@ export async function postState(
   moduleIndex: number,
   kind: ModuleStateKind,
   data: Record<string, unknown>,
-): Promise<boolean> {
+): Promise<{ ok: boolean; error?: unknown }> {
   const res = await fetch(`/api/spaces/${spaceId}/state`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -78,7 +78,9 @@ export async function postState(
       anonName: getAnonDisplayName(),
     }),
   });
-  return res.ok;
+  if (res.ok) return { ok: true };
+  const error = await res.json().catch(() => ({ error: "state_write_failed" }));
+  return { ok: false, error };
 }
 
 // ============================================================

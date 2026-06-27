@@ -38,7 +38,8 @@ type PresetRow = {
   template_state: unknown[] | null;
 };
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const parsed = await parseBody(req, bodySchema);
@@ -49,13 +50,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   const admin = supabaseAdmin();
-  const allowed = await takePersistentRateLimit(admin, `preset-upload:${userId}:${params.id}`, 60, 90);
+  const allowed = await takePersistentRateLimit(admin, `preset-upload:${userId}:${id}`, 60, 90);
   if (!allowed) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const { data, error } = await admin
     .from("studio_presets")
     .select("id, owner_id, modules, template_state")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("owner_id", userId)
     .maybeSingle();
   if (error?.code === "42703") {
@@ -79,7 +80,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (body.phase === "prepare") {
     const ext = extensionFromName(body.name);
     const baseName = cleanFileName(body.name.replace(/\.[^.]+$/, ""));
-    const path = `${presetAssetPrefix(userId, params.id)}/${body.moduleIndex}/${newId()}-${baseName}.${ext}`;
+    const path = `${presetAssetPrefix(userId, id)}/${body.moduleIndex}/${newId()}-${baseName}.${ext}`;
     try {
       const signed = await createAssetUploadUrl(admin, path);
       return NextResponse.json({ ok: true, ...signed, maxSize: MAX_UPLOAD_SIZE_BYTES });
@@ -90,7 +91,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   const path = body.path || "";
-  if (!isAssetPathForPreset(userId, params.id, path)) {
+  if (!isAssetPathForPreset(userId, id, path)) {
     return NextResponse.json({ error: "bad_asset_path" }, { status: 400 });
   }
   try {
@@ -115,7 +116,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const { data: saved, error: saveError } = await admin
     .from("studio_presets")
     .update({ template_state: nextState, updated_at: new Date().toISOString() })
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("owner_id", userId)
     .select("id");
   if (saveError || !saved?.length) {

@@ -15,8 +15,9 @@ import { isSpaceOwner, forbidden } from "@/lib/api/auth";
  */
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const parsed = await parseBody(req, z.object({
     style: z.unknown().optional(),
     anonOwnerToken: z.string().nullish(),
@@ -31,7 +32,7 @@ export async function PUT(
   const { data: space } = await admin
     .from("spaces")
     .select("id, anon_owner_token, owner_id, visibility")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
@@ -42,7 +43,7 @@ export async function PUT(
   const { data: updated, error } = await admin
     .from("spaces")
     .update({ style })
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!updated || updated.length === 0) {

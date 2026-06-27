@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 import { recordAppEvent } from "@/lib/server/observability";
+import { hasStateCapacity } from "@/lib/server/stateLimits";
 import {
   assertAssetExists,
   createAssetUploadUrl,
@@ -55,8 +56,9 @@ const bodySchema = z.object({
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params: paramsPromise }: { params: Promise<{ id: string }> },
 ) {
+  const params = await paramsPromise;
   const startedAt = Date.now();
   const parsed = await parseBody(req, bodySchema);
   if (!parsed.ok) return parsed.response;
@@ -117,6 +119,21 @@ export async function POST(
     return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }
 
+  try {
+    const hasUploadCapacity = await hasStateCapacity(admin, params.id, b.moduleIndex, "upload");
+    if (!hasUploadCapacity) {
+      if (b.phase === "complete" && b.path && isAssetPathForSpace(params.id, b.path)) {
+        await removeAssetPaths(admin, [b.path]).catch(() => {});
+      }
+      await logEvent("warn", "state_limit_reached");
+      return NextResponse.json({ error: "state_limit_reached", kind: "upload", limit: 250 }, { status: 409 });
+    }
+  } catch (error) {
+    console.error("[upload] capacity check failed:", (error as Error).message);
+    await logEvent("error", error);
+    return NextResponse.json({ error: "state_check_failed" }, { status: 500 });
+  }
+
   const usage = await readSpaceUploadUsage(admin, params.id);
   if (usage + b.size > PROJECT_UPLOAD_QUOTA_BYTES) {
     await logEvent("warn", "storage_quota_exceeded", { usage });
@@ -168,20 +185,24 @@ export async function POST(
     return NextResponse.json({ error: "storage_sign_failed" }, { status: 500 });
   }
 
+  const stateId = newId();
+  const createdAt = new Date();
+  const stateData = {
+    path,
+    name: b.name.slice(0, 200),
+    size: b.size,
+    mimeType: b.mimeType,
+  };
   const { error: stateErr } = await admin.from("module_state").insert({
-    id: newId(),
+    id: stateId,
     space_id: params.id,
     module_index: b.moduleIndex,
     actor_kind: actor.kind,
     actor_id: actor.id,
     display_name: actor.displayName,
     kind: "upload",
-    data: {
-      path,
-      name: b.name.slice(0, 200),
-      size: b.size,
-      mimeType: b.mimeType,
-    },
+    data: stateData,
+    created_at: createdAt.toISOString(),
   });
   if (stateErr) {
     console.error("[upload] state insert failed:", stateErr.message);
@@ -203,5 +224,12 @@ export async function POST(
     name: b.name,
     size: b.size,
     mimeType: b.mimeType,
+    entry: {
+      id: stateId,
+      moduleIndex: b.moduleIndex,
+      kind: "upload",
+      data: stateData,
+      createdAt: createdAt.getTime(),
+    },
   });
 }

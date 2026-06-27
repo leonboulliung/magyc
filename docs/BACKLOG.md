@@ -5,7 +5,27 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-27 (Codex — dashboard summaries + project roles)_
+_Last updated: 2026-06-27 (Codex — state/admin/contract hardening)_
+
+---
+
+## Done 2026-06-27 — state, admin and projection hardening
+
+- Upgraded the application to patched Next.js 15 and PostCSS releases; all
+  dynamic page/API parameters now follow the asynchronous Next.js contract.
+  Added Vitest and deterministic coverage for collaborative state, preset
+  remapping/sanitization, error translation, state limits, and ProjectFacts.
+- Added migration 024. Repeated item edits are transactionally compacted,
+  append-heavy module state has explicit ceilings, removed uploads delete their
+  private Storage object, and direct uploads enter optimistic UI immediately.
+- Replaced the Admin's fixed user/project snapshots with Clerk-backed search and
+  pagination plus exact per-page database activity rollups. Abschluss and Admin
+  inspection now share the deterministic ProjectFacts projection, including
+  live edits/deletions instead of stale initial values.
+- Documented the remaining strict-privacy architecture in
+  `docs/REALTIME_SECURITY_PLAN.md`. Public-read RLS cannot be removed safely
+  until direct anon reads and `postgres_changes` are replaced by a scoped,
+  role-gated transport.
 
 ---
 
@@ -65,19 +85,20 @@ clarification answers, prompt injections and the `allow_context_modules` flag
 into the classifier. Signed upload infrastructure is also real. The remaining
 MVP risks are not the first prompt, but the later projection layers.
 
-1. **Contract facts were too narrow.** First pass is done: `ProjectFacts` now
-   merges modules + module_state and feeds contract drafting. Remaining next
-   slice: use the same facts in Abschluss/export/admin summaries and expand
-   legal/product wording once real customer projects expose missing fields.
+1. **Contract facts were too narrow.** `ProjectFacts` now merges modules +
+   module_state and feeds contract drafting, Abschluss, and Admin inspection.
+   Edited/deleted notes, equipment, uploads, deliverables and other live state
+   are projected consistently. Expand legal/product wording only when real
+   customer projects expose concrete missing fields.
 2. **Preset state/assets are now first-class.** Migration 022 adds the template
    state plane; media is owner-scoped and copied into projects, while state is
    remapped into real module indexes. Remaining validation is production UX
    testing after migration 022 is applied, especially upload-heavy presets.
-3. **Admin cockpit is functional but not full ghost mode.** Plan/status/support
-   actions are real, and project links now use admin-only read routes. Remaining
-   next slice: replace bounded snapshots (profiles 250, spaces 400, state 1600)
-   with paginated/searchable account inspection and, if needed, admin contract
-   inspection.
+3. **Admin cockpit is functional and paginated.** Plan/status/support actions
+   are real, project links use admin-only read routes, Clerk supplies searchable
+   account pages, and migration 024 supplies exact per-account activity totals.
+   Admin contract inspection remains optional until support work demonstrates a
+   concrete need.
 4. **Studio dashboard metrics are now RPC-backed.** Migration 023 returns lean
    counts, last activity and access role for owned/member projects.
 5. **Multi-user collaboration now has account membership.** Migration 023 adds

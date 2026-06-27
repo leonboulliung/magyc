@@ -47,8 +47,9 @@ function mapState(row: StateRow): ModuleStateEntry {
  */
 export async function POST(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -62,7 +63,7 @@ export async function POST(
   const { data: space } = await admin
     .from("spaces")
     .select("id, owner_id, modules, language")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (space.owner_id !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -104,7 +105,7 @@ export async function POST(
   const { data: stateRows } = await admin
     .from("module_state")
     .select("id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at")
-    .eq("space_id", params.id)
+    .eq("space_id", id)
     .order("created_at", { ascending: true });
   const state = ((stateRows || []) as StateRow[]).map(mapState);
   const facts = buildProjectFacts(modules, state);
@@ -128,7 +129,7 @@ export async function POST(
 
   await recordAiEvent({
     userId,
-    spaceId: params.id,
+    spaceId: id,
     eventType: "contract_draft",
     model: draft.model,
     input: {

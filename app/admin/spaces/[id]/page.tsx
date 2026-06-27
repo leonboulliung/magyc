@@ -3,16 +3,20 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { fetchHandoff, fetchSpaceById } from "@/lib/db";
 import { SpaceView } from "@/app/s/[id]/SpaceView";
+import { ProjectFactsSummary } from "@/components/projects/ProjectFactsSummary";
+import { buildProjectFacts } from "@/lib/projectFacts";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSpaceInspectorPage({ params }: { params: { id: string } }) {
+export default async function AdminSpaceInspectorPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const gate = await requireAdmin();
   if (!gate.ok) notFound();
 
-  const space = await fetchSpaceById(params.id).catch(() => null);
+  const space = await fetchSpaceById(id).catch(() => null);
   if (!space) notFound();
   space.handoff = await fetchHandoff(space.id);
+  const facts = buildProjectFacts(space.modules, space.state);
 
   return (
     <main className="min-h-screen bg-[#f4f4f1]">
@@ -26,6 +30,9 @@ export default async function AdminSpaceInspectorPage({ params }: { params: { id
             Zurück
           </Link>
         </div>
+      </div>
+      <div className="mx-auto max-w-7xl px-5 pt-5">
+        <ProjectFactsSummary facts={facts} title="Strukturierte Projektdaten" />
       </div>
       <SpaceView id={space.id} initialSpace={space} hideLockedNotice />
     </main>

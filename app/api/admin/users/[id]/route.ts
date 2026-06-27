@@ -36,8 +36,9 @@ async function applyClerkStatus(userId: string, status: AccountStatus): Promise<
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const gate = await requireAdmin();
   if (!gate.ok || !gate.userId) {
     return NextResponse.json({ error: gate.reason || "forbidden" }, { status: gate.reason === "signed_out" ? 401 : 403 });
@@ -53,18 +54,18 @@ export async function PATCH(
   }
   if (parsed.data.status) {
     try {
-      await applyClerkStatus(params.id, parsed.data.status);
+      await applyClerkStatus(id, parsed.data.status);
     } catch (error) {
       await recordAppEvent({
         eventType: "admin.user.status.clerk_failed",
         status: "error",
-        route: `/api/admin/users/${params.id}`,
+        route: `/api/admin/users/${id}`,
         method: "PATCH",
         userId: gate.userId,
         actorKind: "user",
         actorId: gate.userId,
         error,
-        metadata: { targetUserId: params.id, requestedStatus: parsed.data.status },
+        metadata: { targetUserId: id, requestedStatus: parsed.data.status },
       });
       return NextResponse.json({ error: "clerk_update_failed" }, { status: 502 });
     }
@@ -84,7 +85,7 @@ export async function PATCH(
   const { data, error } = await admin
     .from("profiles")
     .update(update)
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id");
 
   if (error) {
@@ -99,19 +100,19 @@ export async function PATCH(
     adminUserId: gate.userId,
     action: "user.updated",
     targetType: "user",
-    targetId: params.id,
+    targetId: id,
     reason: parsed.data.reason || null,
     metadata: update,
   });
   await recordAppEvent({
     eventType: "admin.user.updated",
     status: "ok",
-    route: `/api/admin/users/${params.id}`,
+    route: `/api/admin/users/${id}`,
     method: "PATCH",
     userId: gate.userId,
     actorKind: "user",
     actorId: gate.userId,
-    metadata: { targetUserId: params.id, changed: Object.keys(update) },
+    metadata: { targetUserId: id, changed: Object.keys(update) },
   });
 
   return NextResponse.json({ ok: true });

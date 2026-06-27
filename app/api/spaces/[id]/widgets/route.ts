@@ -80,8 +80,9 @@ async function persistModules(
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params: paramsPromise }: { params: Promise<{ id: string }> },
 ) {
+  const params = await paramsPromise;
   const parsed = await parseBody(req, z.object({
     widget: z.unknown().optional(),
     modulesRev: z.number().int().nonnegative().optional(),
@@ -113,8 +114,9 @@ export async function POST(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params: paramsPromise }: { params: Promise<{ id: string }> },
 ) {
+  const params = await paramsPromise;
   const parsed = await parseBody(req, z.object({
     modules: z.unknown().optional(),
     modulesRev: z.number().int().nonnegative().optional(),
@@ -177,8 +179,9 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params: paramsPromise }: { params: Promise<{ id: string }> },
 ) {
+  const params = await paramsPromise;
   const parsed = await parseBody(req, z.object({
     index: z.number().optional(),
     modulesRev: z.number().int().nonnegative().optional(),

@@ -30,6 +30,11 @@ Storage, observability, migration discipline, feature flags, and backup checks.
   no browser RLS policy; invitations and role changes go through owner-gated
   API routes. Team members can edit open planning widgets, clients can
   collaborate and sign, and project administration remains owner-only.
+- **State growth + admin rollups:** migration 024 compacts repeated item edits,
+  adds indexes for project/actor state access, and provides exact per-user
+  activity counters for the paginated Admin account view. The application also
+  caps append-heavy state and removes private Storage objects when their upload
+  entries are deleted.
 
 ## Migration protocol
 
@@ -42,7 +47,10 @@ Storage, observability, migration discipline, feature flags, and backup checks.
    visibility.
 7. For migration 023, invite one Team and one Kunde account, sign in with both,
    and verify dashboard visibility plus role boundaries before launch.
-8. Record the result in `docs/BACKLOG.md` when the session ends.
+8. For migration 024, edit the same checklist/note item repeatedly and confirm
+   only one logical `edit` row remains; then verify Admin search/pagination and
+   exact counters for that account.
+9. Record the result in `docs/BACKLOG.md` when the session ends.
 
 Manual migrations should be idempotent (`if not exists`, `on conflict`, tolerant
 functions) because code may deploy before SQL is applied.
@@ -80,6 +88,9 @@ For a real restore drill:
   IDs as unguessable but do not call this strict database-level privacy. A later
   hardening slice should move Space reads/realtime authorization behind scoped
   Supabase JWTs or a server/BFF before sensitive customer data is promised.
+  The staged cutover and acceptance criteria are defined in
+  `docs/REALTIME_SECURITY_PLAN.md`; do not tighten the policies separately from
+  the read and Realtime transport migration.
 - Do not introduce another storage provider until media volume, CDN needs, or
   delivery-size requirements justify it. The adapter boundary is ready for that
   move.

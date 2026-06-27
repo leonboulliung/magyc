@@ -54,8 +54,9 @@ export interface WidgetContextValue {
    * which re-fetched the whole space graph on every click.
    */
   act: (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => Promise<boolean>;
-  /** Preset previews persist uploads in their own state plane. Normal spaces
-   * receive uploads through realtime and therefore leave this undefined. */
+  /** Ingest an upload row returned by the direct-upload endpoint immediately.
+   * Presets use their template state plane; spaces add the confirmed row to
+   * live state without waiting for Realtime. */
   ingestStateEntry?: (entry: PresetStateEntry) => void;
 }
 

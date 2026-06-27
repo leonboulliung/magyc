@@ -15,8 +15,9 @@ const bodySchema = z.object({
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const gate = await requireAdmin();
   if (!gate.ok || !gate.userId) {
     return NextResponse.json({ error: gate.reason || "forbidden" }, { status: gate.reason === "signed_out" ? 401 : 403 });
@@ -35,7 +36,7 @@ export async function PATCH(
   const { data, error } = await admin
     .from("support_tickets")
     .update(update)
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id");
 
   if (error) {
@@ -50,19 +51,19 @@ export async function PATCH(
     adminUserId: gate.userId,
     action: `support.${parsed.data.status}`,
     targetType: "support_ticket",
-    targetId: params.id,
+    targetId: id,
     reason: parsed.data.reason || null,
     metadata: { status: parsed.data.status },
   });
   await recordAppEvent({
     eventType: "admin.support.updated",
     status: "ok",
-    route: `/api/admin/support/${params.id}`,
+    route: `/api/admin/support/${id}`,
     method: "PATCH",
     userId: gate.userId,
     actorKind: "user",
     actorId: gate.userId,
-    metadata: { ticketId: params.id, status: parsed.data.status },
+    metadata: { ticketId: id, status: parsed.data.status },
   });
 
   return NextResponse.json({ ok: true });

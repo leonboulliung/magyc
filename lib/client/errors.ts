@@ -20,6 +20,7 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "modules_conflict") return "Das Projekt wurde gerade an anderer Stelle geaendert. Bitte kurz neu laden.";
   if (raw === "slot_taken") return "Dieser Platz wurde gerade von jemand anderem uebernommen.";
   if (raw === "rate_limited") return "Zu viele Aenderungen auf einmal. Bitte kurz warten.";
+  if (raw === "state_limit_reached") return "Dieses Element enthält sehr viele Einträge. Entferne nicht mehr benötigte Inhalte, bevor du weitere hinzufügst.";
   if (raw === "presets_failed") return "Die Presets konnten gerade nicht gespeichert werden.";
   if (raw === "preset_state_migration_required") return "Preset-Inhalte brauchen noch das Datenbank-Update 022.";
   if (raw === "preset_not_saved") return "Das Preset wird noch gespeichert. Bitte den Upload gleich erneut versuchen.";
@@ -30,15 +31,18 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "support_failed") return "Deine Support-Anfrage konnte gerade nicht gesendet werden.";
   if (raw === "clerk_update_failed") return "Der Account-Status konnte bei Clerk gerade nicht geaendert werden.";
   if (raw === "upload_failed") return "Der Upload konnte gerade nicht vorbereitet werden.";
+  if (raw === "mime_not_allowed") return "Dieser Dateityp ist für das Element nicht erlaubt.";
   if (raw === "upload_state_failed") return "Die Datei wurde nicht vollstaendig im Projekt gespeichert. Bitte erneut versuchen.";
   if (raw === "storage_sign_failed" || raw === "asset_sign_failed") return "Die Datei konnte gerade nicht sicher freigegeben werden. Bitte erneut versuchen.";
   if (raw === "storage_missing") return "Die Datei wurde nicht vollstaendig hochgeladen. Bitte erneut versuchen.";
+  if (raw === "asset_delete_failed") return "Die Datei konnte nicht vollständig entfernt werden. Bitte erneut versuchen.";
   if (raw === "storage_quota_exceeded") return "Der Speicherplatz fuer dieses Projekt ist erreicht.";
   if (raw === "bad_asset_path" || raw === "upload_reference_required") return "Diese Datei konnte nicht eindeutig zugeordnet werden.";
   if (raw === "module_out_of_range") return "Dieses Element existiert nicht mehr. Bitte die Seite neu laden.";
   if (raw === "state_cleanup_failed" || raw === "state_check_failed") {
     return "Die Aenderung konnte nicht konsistent gespeichert werden. Bitte erneut versuchen.";
   }
+  if (raw === "state_write_failed") return "Die Änderung konnte nicht konsistent gespeichert werden. Bitte erneut versuchen.";
   if (raw === "contract_signed") return "Unterschriebene Projekte sind gesperrt — der Plan kann nicht mehr geaendert werden.";
   if (raw === "bad_stage") return "Diese Projektphase ist nicht gueltig.";
   if (raw === "nothing_to_update") return "Es gab keine Aenderung zum Speichern.";

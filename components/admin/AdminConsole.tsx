@@ -84,6 +84,12 @@ export type AdminConsoleData = {
   spaces: AdminSpace[];
   tickets: AdminTicket[];
   timeline: TimelineEntry[];
+  pagination: {
+    query: string;
+    page: number;
+    pageSize: number;
+    total: number;
+  };
 };
 
 function formatDate(value: string | null | undefined) {
@@ -150,6 +156,14 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
     [tickets, modalUserId],
   );
   const openTickets = tickets.filter((ticket) => ticket.status === "new");
+  const pageCount = Math.max(1, Math.ceil(initialData.pagination.total / initialData.pagination.pageSize));
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams();
+    if (initialData.pagination.query) params.set("q", initialData.pagination.query);
+    if (page > 1) params.set("page", String(page));
+    const query = params.toString();
+    return query ? `/admin?${query}` : "/admin";
+  };
 
   function openUser(userId: string) {
     setSelectedUserId(userId);
@@ -300,6 +314,20 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
         </section>
 
         <Panel title="Nutzerverwaltung" className="mt-6">
+          <div className="mb-4 flex flex-col gap-3 border-b border-black/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <form action="/admin" method="get" className="flex w-full max-w-lg gap-2">
+              <input
+                name="q"
+                defaultValue={initialData.pagination.query}
+                placeholder="Name, E-Mail oder Nutzer-ID suchen"
+                className="min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/35"
+              />
+              <button type="submit" className="rounded-lg bg-[#17171a] px-4 py-2 text-sm text-white">Suchen</button>
+            </form>
+            <span className="mono shrink-0 text-[10px] uppercase tracking-[0.18em] text-black/40">
+              {initialData.pagination.total} Accounts · Seite {initialData.pagination.page}/{pageCount}
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-sm">
               <thead className="mono text-[10px] uppercase tracking-[0.24em] text-black/40">
@@ -367,6 +395,16 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
               </tbody>
             </table>
           </div>
+          {pageCount > 1 && (
+            <div className="mt-4 flex items-center justify-end gap-2">
+              {initialData.pagination.page > 1 && (
+                <Link href={pageHref(initialData.pagination.page - 1)} className="rounded-lg border border-black/15 px-3 py-2 text-sm">Zurück</Link>
+              )}
+              {initialData.pagination.page < pageCount && (
+                <Link href={pageHref(initialData.pagination.page + 1)} className="rounded-lg border border-black/15 px-3 py-2 text-sm">Weiter</Link>
+              )}
+            </div>
+          )}
         </Panel>
       </div>
 

@@ -16,7 +16,19 @@ type ProfileRow = {
   plan?: AdminPlan | null;
   account_status?: AccountStatus | null;
   admin_notes?: string | null;
+  email?: string | null;
+  clerk_last_active_at?: string | null;
 };
+
+type ActivityRollupRow = {
+  user_id: string;
+  space_count: number | string | null;
+  action_count: number | string | null;
+  ai_run_count: number | string | null;
+  last_seen: string | null;
+};
+
+const ADMIN_PAGE_SIZE = 40;
 
 type SpaceRow = {
   id: string;
@@ -95,25 +107,110 @@ function stateSize(row: StateRow): number {
   return 0;
 }
 
-async function loadProfiles(admin: ReturnType<typeof supabaseAdmin>) {
-  const rich = await admin
-    .from("profiles")
-    .select("id, display_name, avatar_url, created_at, plan, account_status, admin_notes")
-    .order("created_at", { ascending: false })
-    .limit(250);
-
-  if (!rich.error) return { profiles: (rich.data || []) as ProfileRow[], warning: null };
-
-  const fallback = await admin
-    .from("profiles")
-    .select("id, display_name, avatar_url, created_at")
-    .order("created_at", { ascending: false })
-    .limit(250);
-  if (fallback.error) throw fallback.error;
-  return {
-    profiles: (fallback.data || []) as ProfileRow[],
-    warning: "Migration 021 fehlt noch: Plan, Account-Status und Admin-Notizen werden mit Standardwerten angezeigt.",
-  };
+async function loadProfiles(
+  admin: ReturnType<typeof supabaseAdmin>,
+  options: { query: string; page: number },
+) {
+  const offset = (options.page - 1) * ADMIN_PAGE_SIZE;
+  try {
+    const client = await clerkClient();
+    const [pageResult, activeResult, totalUsers] = await Promise.all([
+      client.users.getUserList({
+        query: options.query || undefined,
+        limit: ADMIN_PAGE_SIZE,
+        offset,
+        orderBy: "-created_at",
+      }),
+      client.users.getUserList({
+        last_active_at_since: Date.now() - 7 * 24 * 60 * 60 * 1000,
+        limit: 1,
+        offset: 0,
+      }),
+      client.users.getCount(),
+    ]);
+    const ids = pageResult.data.map((user) => user.id);
+    let rows: ProfileRow[] = [];
+    let warning: string | null = null;
+    if (ids.length) {
+      const rich = await admin
+        .from("profiles")
+        .select("id, display_name, avatar_url, created_at, plan, account_status, admin_notes")
+        .in("id", ids);
+      if (!rich.error) {
+        rows = (rich.data || []) as ProfileRow[];
+      } else {
+        const fallback = await admin
+          .from("profiles")
+          .select("id, display_name, avatar_url, created_at")
+          .in("id", ids);
+        if (fallback.error) throw fallback.error;
+        rows = (fallback.data || []) as ProfileRow[];
+        warning = "Migration 021 fehlt noch: Plan, Account-Status und Admin-Notizen werden mit Standardwerten angezeigt.";
+      }
+    }
+    const rowById = new Map(rows.map((row) => [row.id, row]));
+    const profiles: ProfileRow[] = pageResult.data.map((user) => {
+      const row = rowById.get(user.id);
+      const email = user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId)?.emailAddress
+        || user.emailAddresses[0]?.emailAddress
+        || null;
+      const clerkName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "";
+      return {
+        id: user.id,
+        display_name: row?.display_name || clerkName || `user-${user.id.slice(-6)}`,
+        avatar_url: row?.avatar_url || user.imageUrl || null,
+        created_at: row?.created_at || new Date(user.createdAt).toISOString(),
+        plan: row?.plan,
+        account_status: row?.account_status,
+        admin_notes: row?.admin_notes,
+        email,
+        clerk_last_active_at: user.lastActiveAt ? new Date(user.lastActiveAt).toISOString() : null,
+      };
+    });
+    return {
+      profiles,
+      warning,
+      totalCount: totalUsers,
+      filteredCount: pageResult.totalCount,
+      activeUsers7d: activeResult.totalCount,
+    };
+  } catch (error) {
+    console.warn("[admin] Clerk pagination unavailable, using profile fallback:", (error as Error).message);
+    let query = admin
+      .from("profiles")
+      .select("id, display_name, avatar_url, created_at, plan, account_status, admin_notes", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + ADMIN_PAGE_SIZE - 1);
+    if (options.query) query = query.ilike("display_name", `%${options.query}%`);
+    const result = await query;
+    let fallbackWarning = "Clerk war nicht erreichbar; die Nutzerliste zeigt vorübergehend nur Supabase-Profile.";
+    let fallbackProfiles: ProfileRow[];
+    let filteredCount: number;
+    if (result.error) {
+      let basicQuery = admin
+        .from("profiles")
+        .select("id, display_name, avatar_url, created_at", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + ADMIN_PAGE_SIZE - 1);
+      if (options.query) basicQuery = basicQuery.ilike("display_name", `%${options.query}%`);
+      const basic = await basicQuery;
+      if (basic.error) throw basic.error;
+      fallbackProfiles = (basic.data || []) as ProfileRow[];
+      filteredCount = basic.count || 0;
+      fallbackWarning = "Clerk war nicht erreichbar; Migration 021 ist ebenfalls nicht vollständig verfügbar.";
+    } else {
+      fallbackProfiles = (result.data || []) as ProfileRow[];
+      filteredCount = result.count || 0;
+    }
+    const totalResult = await admin.from("profiles").select("id", { count: "exact", head: true });
+    return {
+      profiles: fallbackProfiles,
+      warning: fallbackWarning,
+      totalCount: totalResult.count || filteredCount,
+      filteredCount,
+      activeUsers7d: 0,
+    };
+  }
 }
 
 async function loadOptionalTable<T>(
@@ -128,42 +225,50 @@ async function loadOptionalTable<T>(
   return { rows: (res.data || []) as T[], warning: null };
 }
 
-async function clerkEmails(userIds: string[]) {
-  const client = await clerkClient();
-  const entries = await Promise.allSettled(
-    userIds.slice(0, 120).map(async (id) => {
-      const user = await client.users.getUser(id);
-      const email =
-        user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId)?.emailAddress ||
-        user.emailAddresses[0]?.emailAddress ||
-        null;
-      return [id, email] as const;
-    }),
-  );
-  const map = new Map<string, string | null>();
-  for (const entry of entries) {
-    if (entry.status === "fulfilled") map.set(entry.value[0], entry.value[1]);
-  }
-  return map;
-}
-
-async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
+async function loadAdminData(
+  signedInAs: string,
+  options: { query: string; page: number },
+): Promise<AdminConsoleData> {
   const admin = supabaseAdmin();
   const migrationWarnings: string[] = [];
 
-  const profilesRes = await loadProfiles(admin);
+  const profilesRes = await loadProfiles(admin, options);
   if (profilesRes.warning) migrationWarnings.push(profilesRes.warning);
+  const profiles = profilesRes.profiles;
+  const userIds = profiles.map((profile) => profile.id);
+  const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [spacesRes, stateRes, aiEventsRes, appEventsRes, uploadUsageRes, supportRes] = await Promise.all([
-    admin.from("spaces").select("id, title, owner_id, stage, segment, archived_at, deleted_at, modules, created_at").order("created_at", { ascending: false }).limit(400),
-    admin.from("module_state").select("space_id, actor_kind, actor_id, kind, data, created_at").order("created_at", { ascending: false }).limit(1600),
-    admin.from("ai_events").select("id, user_id, space_id, event_type, status, created_at").order("created_at", { ascending: false }).limit(400),
+  const spacesQuery = admin
+    .from("spaces")
+    .select("id, title, owner_id, stage, segment, archived_at, deleted_at, modules, created_at")
+    .order("created_at", { ascending: false });
+  const stateQuery = admin
+    .from("module_state")
+    .select("space_id, actor_kind, actor_id, kind, data, created_at")
+    .eq("actor_kind", "user")
+    .order("created_at", { ascending: false })
+    .limit(1200);
+  const aiQuery = admin
+    .from("ai_events")
+    .select("id, user_id, space_id, event_type, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(600);
+
+  const [spacesRes, stateRes, aiEventsRes, appEventsRes, uploadUsageRes, supportRes, activityRes, spacesTotalRes, spaces7dRes, aiErrorsRes, appErrorsRes] = await Promise.all([
+    userIds.length ? spacesQuery.in("owner_id", userIds) : spacesQuery.eq("owner_id", "__none__"),
+    userIds.length ? stateQuery.in("actor_id", userIds) : stateQuery.eq("actor_id", "__none__"),
+    userIds.length ? aiQuery.in("user_id", userIds) : aiQuery.eq("user_id", "__none__"),
     admin.from("app_events").select("id, user_id, actor_kind, actor_id, space_id, event_type, status, created_at").order("created_at", { ascending: false }).limit(600),
-    admin.rpc("space_upload_usage_by_space", { p_limit: 400 }),
+    admin.rpc("space_upload_usage_by_space", { p_limit: 1000 }),
     loadOptionalTable<SupportTicketRow>(
       admin.from("support_tickets").select("id, user_id, email, type, status, message, route, space_id, last_error, created_at, done_at").order("created_at", { ascending: false }).limit(250),
       "Migration 021 fehlt noch: Support-Tickets sind im Admin noch nicht sichtbar.",
     ),
+    admin.rpc("admin_user_activity_rollup", { p_user_ids: userIds }),
+    admin.from("spaces").select("id", { count: "exact", head: true }),
+    admin.from("spaces").select("id", { count: "exact", head: true }).gte("created_at", sevenDaysAgoIso),
+    admin.from("ai_events").select("id", { count: "exact", head: true }).eq("status", "error"),
+    admin.from("app_events").select("id", { count: "exact", head: true }).eq("status", "error"),
   ]);
 
   if (spacesRes.error) throw spacesRes.error;
@@ -178,10 +283,10 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
   if (uploadUsageRes.error) migrationWarnings.push("Upload-Rollup ist nicht lesbar. Es wird aus aktuellen State-Zeilen angenaehert.");
   if (supportRes.warning) migrationWarnings.push(supportRes.warning);
 
-  const profiles = profilesRes.profiles;
   const spaces = (spacesRes.data || []) as SpaceRow[];
   const state = (stateRes.data || []) as StateRow[];
-  const emailByUser = await clerkEmails(profiles.map((profile) => profile.id));
+  const activityRows = activityRes.error ? [] : ((activityRes.data || []) as ActivityRollupRow[]);
+  if (activityRes.error) migrationWarnings.push("Migration 024 fehlt noch: Aktivitätszahlen sind auf den sichtbaren Verlauf begrenzt.");
 
   const uploadUsageBySpace = new Map<string, { uploadCount: number; uploadBytes: number }>();
   for (const row of uploadUsageRows) {
@@ -206,6 +311,10 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
   const aiByUser = new Map<string, number>();
   const lastSeenByUser = new Map<string, string>();
   const timeline: TimelineEntry[] = [];
+
+  for (const profile of profiles) {
+    if (profile.clerk_last_active_at) lastSeenByUser.set(profile.id, profile.clerk_last_active_at);
+  }
 
   function markSeen(userId: string | null | undefined, createdAt: string) {
     if (!userId) return;
@@ -259,7 +368,7 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
 
   for (const event of appEvents) {
     const userId = event.user_id || (event.actor_kind === "user" ? event.actor_id : null);
-    if (!userId) continue;
+    if (!userId || !userIds.includes(userId)) continue;
     markSeen(userId, event.created_at);
     timeline.push({
       id: `app:${event.id}`,
@@ -269,6 +378,13 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
       at: event.created_at,
       href: event.space_id ? `/admin/spaces/${event.space_id}` : undefined,
     });
+  }
+
+  for (const row of activityRows) {
+    spacesByOwner.set(row.user_id, Number(row.space_count || 0) || 0);
+    actionsByUser.set(row.user_id, Number(row.action_count || 0) || 0);
+    aiByUser.set(row.user_id, Number(row.ai_run_count || 0) || 0);
+    if (row.last_seen) markSeen(row.user_id, row.last_seen);
   }
 
   const tickets: AdminTicket[] = supportRows.map((ticket) => {
@@ -299,7 +415,7 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
   const users: AdminUser[] = profiles.map((profile) => ({
     id: profile.id,
     displayName: profile.display_name || `user-${profile.id.slice(-6)}`,
-    email: emailByUser.get(profile.id) || null,
+    email: profile.email || null,
     avatarUrl: profile.avatar_url,
     createdAt: profile.created_at,
     plan: profile.plan || "free",
@@ -329,29 +445,30 @@ async function loadAdminData(signedInAs: string): Promise<AdminConsoleData> {
   });
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const activeUsers7d = new Set(
-    [...lastSeenByUser.entries()]
-      .filter(([, at]) => new Date(at).getTime() >= sevenDaysAgo)
-      .map(([id]) => id),
-  ).size;
 
   return {
     signedInAs,
     migrationWarnings,
     metrics: {
-      users: users.length,
-      activeUsers7d,
-      spaces: adminSpaces.length,
-      spaces7d: adminSpaces.filter((space) => new Date(space.createdAt).getTime() >= sevenDaysAgo).length,
+      users: profilesRes.totalCount,
+      activeUsers7d: profilesRes.activeUsers7d,
+      spaces: spacesTotalRes.count ?? adminSpaces.length,
+      spaces7d: spaces7dRes.count ?? adminSpaces.filter((space) => new Date(space.createdAt).getTime() >= sevenDaysAgo).length,
       openTickets: tickets.filter((ticket) => ticket.status === "new").length,
-      aiErrors: aiEvents.filter((event) => event.status === "error").length,
-      appErrors: appEvents.filter((event) => event.status === "error").length,
+      aiErrors: aiErrorsRes.count ?? aiEvents.filter((event) => event.status === "error").length,
+      appErrors: appErrorsRes.count ?? appEvents.filter((event) => event.status === "error").length,
       uploadedBytes: [...uploadUsageBySpace.values()].reduce((sum, usage) => sum + usage.uploadBytes, 0),
     },
     users,
     spaces: adminSpaces,
     tickets,
     timeline: timeline.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 1200),
+    pagination: {
+      query: options.query,
+      page: options.page,
+      pageSize: ADMIN_PAGE_SIZE,
+      total: profilesRes.filteredCount,
+    },
   };
 }
 
@@ -387,11 +504,19 @@ function GateMessage({ reason }: { reason: NonNullable<Awaited<ReturnType<typeof
   );
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string; page?: string }>;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
   const gate = await requireAdmin();
   if (!gate.ok) return <GateMessage reason={gate.reason || "forbidden"} />;
 
-  const data = await loadAdminData(gate.email || gate.userId || "admin");
+  const query = typeof resolvedSearchParams.q === "string" ? resolvedSearchParams.q.trim().slice(0, 120) : "";
+  const rawPage = Number.parseInt(resolvedSearchParams.page || "1", 10);
+  const page = Number.isFinite(rawPage) ? Math.max(1, Math.min(rawPage, 10_000)) : 1;
+  const data = await loadAdminData(gate.email || gate.userId || "admin", { query, page });
   data.migrationWarnings.unshift(`Data Contract ${CONTRACT_VERSION}`);
   return <AdminConsole initialData={data} />;
 }

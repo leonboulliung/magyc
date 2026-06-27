@@ -14,8 +14,9 @@ const VALID_STAGES = new Set(["brief", "production", "handoff"]);
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -71,7 +72,7 @@ export async function PATCH(
   const { data: space } = await admin
     .from("spaces")
     .select("id, owner_id, modules")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (space.owner_id !== userId) {
@@ -86,7 +87,7 @@ export async function PATCH(
     const { data: contract } = await admin
       .from("project_contracts")
       .select("locked")
-      .eq("space_id", params.id)
+      .eq("space_id", id)
       .maybeSingle();
     if (contract?.locked) {
       return NextResponse.json({ error: "contract_signed" }, { status: 409 });
@@ -105,14 +106,14 @@ export async function PATCH(
   const { data: updated, error } = await admin
     .from("spaces")
     .update(update)
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id");
   if (error) {
     console.error("[projects] update failed:", error.message);
     return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }
   if (!updated || updated.length === 0) {
-    console.error("[projects] update matched no rows:", params.id);
+    console.error("[projects] update matched no rows:", id);
     return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }
 
@@ -125,8 +126,9 @@ export async function PATCH(
  */
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -134,7 +136,7 @@ export async function DELETE(
   const { data: space } = await admin
     .from("spaces")
     .select("id, owner_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (space.owner_id !== userId) {
@@ -144,14 +146,14 @@ export async function DELETE(
   const { data: updated, error } = await admin
     .from("spaces")
     .update({ deleted_at: new Date().toISOString(), archived_at: null })
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id");
   if (error) {
     console.error("[projects] delete failed:", error.message);
     return NextResponse.json({ error: "delete_failed" }, { status: 500 });
   }
   if (!updated || updated.length === 0) {
-    console.error("[projects] delete matched no rows:", params.id);
+    console.error("[projects] delete matched no rows:", id);
     return NextResponse.json({ error: "delete_failed" }, { status: 500 });
   }
 

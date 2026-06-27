@@ -29,8 +29,9 @@ const RATE_WINDOW_MS = 8_000;
  */
 export async function POST(
   req: Request,
-  { params }: { params: { id: string; index: string } },
+  { params: paramsPromise }: { params: Promise<{ id: string; index: string }> },
 ) {
+  const params = await paramsPromise;
   const { userId } = await auth();
   const widgetIndex = Number.parseInt(params.index, 10);
   if (!Number.isFinite(widgetIndex) || widgetIndex < 0 || widgetIndex > 64) {

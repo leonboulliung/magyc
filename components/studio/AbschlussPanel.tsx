@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { HandoffInfo } from "@/lib/types";
+import type { ProjectFacts } from "@/lib/projectFacts";
 import { readApiJson, showApiError, showActionSuccess, showUnknownError } from "@/lib/client/feedback";
+import { ProjectFactsSummary } from "@/components/projects/ProjectFactsSummary";
 
 /**
  * AbschlussPanel — the closing surface of a project. The photographer attaches
@@ -15,6 +17,7 @@ export function AbschlussPanel({
   id,
   isOwner,
   initial,
+  facts,
   planHref,
   contractHref,
   onView,
@@ -22,6 +25,7 @@ export function AbschlussPanel({
   id: string;
   isOwner: boolean;
   initial: HandoffInfo;
+  facts?: ProjectFacts;
   /** Used for the client (separate routes). Ignored when onView is given. */
   planHref?: string;
   contractHref?: string;
@@ -78,6 +82,8 @@ export function AbschlussPanel({
             : "Das Projekt ist abgeschlossen. Unten findest du die finalen Referenzen deiner Fotograf:in."}
         </p>
       </div>
+
+      {facts && <ProjectFactsSummary facts={facts} title="Abschließender Projektstand" className="mt-6" />}
 
       {/* Note */}
       <div className="mt-5">

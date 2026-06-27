@@ -42,8 +42,9 @@ async function fetchWidgetSpace(admin: ReturnType<typeof supabaseAdmin>, spaceId
  */
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string; index: string } },
+  { params: paramsPromise }: { params: Promise<{ id: string; index: string }> },
 ) {
+  const params = await paramsPromise;
   const widgetIndex = Number.parseInt(params.index, 10);
   if (!Number.isFinite(widgetIndex) || widgetIndex < 0 || widgetIndex > 64) {
     return NextResponse.json({ error: "bad_widget_index" }, { status: 400 });

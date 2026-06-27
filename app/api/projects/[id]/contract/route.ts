@@ -20,18 +20,19 @@ function contentHash(payload: unknown): string {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
     .select("id, owner_id, shared, title, stage")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { userId } = await auth();
   const accessRole = await getProjectAccess(admin, {
-    spaceId: params.id,
+    spaceId: id,
     ownerId: space.owner_id,
     shared: space.shared,
     userId,
@@ -44,14 +45,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const { data: contract } = await admin
     .from("project_contracts")
     .select("*")
-    .eq("space_id", params.id)
+    .eq("space_id", id)
     .maybeSingle();
 
   // handoff column (migration 016) read tolerantly so a pre-migration deploy
   // doesn't break the contract page.
   let handoff = { note: "", links: [] as { label: string; url: string }[] };
   try {
-    const { data: h, error } = await admin.from("spaces").select("handoff").eq("id", params.id).maybeSingle();
+    const { data: h, error } = await admin.from("spaces").select("handoff").eq("id", id).maybeSingle();
     if (!error && h) handoff = mapHandoff((h as { handoff?: unknown }).handoff);
   } catch { /* column not present yet */ }
 
@@ -66,7 +67,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   });
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -74,7 +76,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const { data: space } = await admin
     .from("spaces")
     .select("id, owner_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (space.owner_id !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -92,14 +94,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const { data: existing } = await admin
     .from("project_contracts")
     .select("locked")
-    .eq("space_id", params.id)
+    .eq("space_id", id)
     .maybeSingle();
   if (existing?.locked) return NextResponse.json({ error: "locked" }, { status: 409 });
 
   const hash = contentHash({ parties: body.parties, clauses: body.clauses });
   const { error } = await admin.from("project_contracts").upsert(
     {
-      space_id: params.id,
+      space_id: id,
       parties: body.parties ?? {},
       clauses: body.clauses ?? [],
       conditions_snapshot: body.conditionsSnapshot ?? {},

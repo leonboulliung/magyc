@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { SpaceView } from "@/app/s/[id]/SpaceView";
 import { ContractView } from "@/app/s/[id]/vertrag/ContractView";
 import { AbschlussPanel } from "@/components/studio/AbschlussPanel";
 import { StudioProjectBar } from "@/components/studio/StudioProjectBar";
-import type { ProjectStage, Space } from "@/lib/types";
+import { buildProjectFacts } from "@/lib/projectFacts";
+import type { Module, ModuleStateEntry, ProjectStage, Space } from "@/lib/types";
 import type { ProjectAccessRole } from "@/lib/server/projectAccess";
 
 /**
@@ -26,6 +27,10 @@ export function StudioWorkspace({
 }) {
   const stage: ProjectStage = (space.stage ?? "brief") as ProjectStage;
   const [view, setView] = useState<ProjectStage>(stage);
+  const [projectFacts, setProjectFacts] = useState(() => buildProjectFacts(space.modules, space.state));
+  const handleProjectDataChange = useCallback((modules: Module[], state: ModuleStateEntry[]) => {
+    setProjectFacts(buildProjectFacts(modules, state));
+  }, []);
 
   return (
     <>
@@ -45,6 +50,7 @@ export function StudioWorkspace({
           initialSpace={space}
           hideLockedNotice
           canEditOverride={accessRole === "owner" || accessRole === "editor"}
+          onProjectDataChange={handleProjectDataChange}
         />
       ) : (
         <div
@@ -53,7 +59,13 @@ export function StudioWorkspace({
         >
           <div className="pt-14 sm:pt-16">
             {view === "handoff" ? (
-              <AbschlussPanel id={space.id} isOwner={accessRole === "owner"} initial={space.handoff} onView={setView} />
+              <AbschlussPanel
+                id={space.id}
+                isOwner={accessRole === "owner"}
+                initial={space.handoff}
+                facts={projectFacts}
+                onView={setView}
+              />
             ) : (
               <ContractView id={space.id} spaceTitle={space.title} embedded />
             )}

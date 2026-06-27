@@ -21,8 +21,9 @@ const bodySchema = z.object({
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const startedAt = Date.now();
   const parsed = await parseBody(req, bodySchema);
   if (!parsed.ok) return parsed.response;
@@ -39,7 +40,7 @@ export async function POST(
       status,
       route: "/api/spaces/[id]/assets/sign",
       method: "POST",
-      spaceId: params.id,
+      spaceId: id,
       userId: actor.userId,
       anonId: actor.kind === "anon" ? actor.id : null,
       actorKind: actor.kind,
@@ -52,7 +53,7 @@ export async function POST(
         ...metadata,
       },
     });
-  const allowed = await takePersistentRateLimit(admin, `asset-sign:${params.id}:${actor.kind}:${actor.id}`, 60, 240);
+  const allowed = await takePersistentRateLimit(admin, `asset-sign:${id}:${actor.kind}:${actor.id}`, 60, 240);
   if (!allowed) {
     await logEvent("warn", "rate_limited");
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
@@ -60,7 +61,7 @@ export async function POST(
 
   let space;
   try {
-    space = await fetchSpaceForUpload(admin, params.id);
+    space = await fetchSpaceForUpload(admin, id);
   } catch (error) {
     console.error("[assets/sign] space fetch failed:", (error as Error).message);
     return NextResponse.json({ error: "asset_sign_failed" }, { status: 500 });
@@ -71,7 +72,7 @@ export async function POST(
     return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }
 
-  const paths = Array.from(new Set(b.paths.filter((path) => isAssetPathForSpace(params.id, path)))).slice(0, 80);
+  const paths = Array.from(new Set(b.paths.filter((path) => isAssetPathForSpace(id, path)))).slice(0, 80);
   if (paths.length === 0) {
     await logEvent("warn", "bad_asset_path");
     return NextResponse.json({ error: "bad_asset_path" }, { status: 400 });

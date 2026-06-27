@@ -27,27 +27,29 @@ async function ownerGate(spaceId: string, userId: string) {
   return { admin };
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const gate = await ownerGate(params.id, userId);
+  const gate = await ownerGate(id, userId);
   if (gate.response) return gate.response;
   const { data, error } = await gate.admin!
     .from("project_members")
     .select("id, user_id, email, display_name, role, created_at")
-    .eq("space_id", params.id)
+    .eq("space_id", id)
     .order("created_at", { ascending: true });
   if (projectMembershipsUnavailable(error)) return NextResponse.json({ members: [], migrationRequired: true });
   if (error) return NextResponse.json({ error: "members_failed" }, { status: 500 });
   return NextResponse.json({ members: data ?? [] });
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const parsed = await parseBody(req, memberInput);
   if (!parsed.ok) return parsed.response;
-  const gate = await ownerGate(params.id, userId);
+  const gate = await ownerGate(id, userId);
   if (gate.response) return gate.response;
   const admin = gate.admin!;
   const email = parsed.data.email.toLowerCase();
@@ -71,7 +73,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const row = {
     id: newId(),
-    space_id: params.id,
+    space_id: id,
     user_id: invitedUserId,
     email,
     display_name: displayName || null,
@@ -84,7 +86,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const existing = await admin
       .from("project_members")
       .select("id")
-      .eq("space_id", params.id)
+      .eq("space_id", id)
       .eq("user_id", invitedUserId)
       .maybeSingle();
     query = existing.data
@@ -106,7 +108,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ ok: true, member: saved });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const parsed = await parseBody(req, z.object({
@@ -114,13 +117,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     role: z.enum(["editor", "client"]),
   }));
   if (!parsed.ok) return parsed.response;
-  const gate = await ownerGate(params.id, userId);
+  const gate = await ownerGate(id, userId);
   if (gate.response) return gate.response;
   const { data, error } = await gate.admin!
     .from("project_members")
     .update({ role: parsed.data.role, updated_at: new Date().toISOString() })
     .eq("id", parsed.data.memberId)
-    .eq("space_id", params.id)
+    .eq("space_id", id)
     .select("id");
   if (projectMembershipsUnavailable(error)) {
     return NextResponse.json({ error: "project_members_migration_required" }, { status: 503 });
@@ -129,18 +132,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const parsed = await parseBody(req, z.object({ memberId: z.string().min(1).max(120) }));
   if (!parsed.ok) return parsed.response;
-  const gate = await ownerGate(params.id, userId);
+  const gate = await ownerGate(id, userId);
   if (gate.response) return gate.response;
   const { error } = await gate.admin!
     .from("project_members")
     .delete()
     .eq("id", parsed.data.memberId)
-    .eq("space_id", params.id);
+    .eq("space_id", id);
   if (projectMembershipsUnavailable(error)) {
     return NextResponse.json({ error: "project_members_migration_required" }, { status: 503 });
   }
