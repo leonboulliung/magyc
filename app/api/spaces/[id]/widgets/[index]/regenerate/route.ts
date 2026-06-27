@@ -9,6 +9,7 @@ import { sanitizeModule } from "@/lib/modules";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
+import { canEditProject, getProjectAccess } from "@/lib/server/projectAccess";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 8_000;
@@ -69,10 +70,16 @@ export async function POST(
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  // Private suite project: stale shared links must not be able to inspect
-  // context or generate paid alternatives once sharing is switched off.
-  if (space.stage && !space.shared && (!userId || space.owner_id !== userId)) {
-    return NextResponse.json({ error: "not_shared" }, { status: 403 });
+  if (space.stage) {
+    const accessRole = await getProjectAccess(admin, {
+      spaceId: params.id,
+      ownerId: space.owner_id,
+      shared: space.shared,
+      userId,
+    });
+    if (!canEditProject(accessRole)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
   }
 
   const modules = Array.isArray(space.modules) ? space.modules : [];

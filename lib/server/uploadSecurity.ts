@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getProjectAccess } from "@/lib/server/projectAccess";
 
 export const ASSET_BUCKET = "space_assets";
 export const MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
@@ -116,10 +117,20 @@ export async function fetchSpaceForUpload(admin: SupabaseClient, spaceId: string
   return data as SpaceForUpload | null;
 }
 
-export function canAccessSpace(space: SpaceForUpload, actor: UploadActor): boolean {
-  // Private suite project: only the owner can access media until shared.
-  if (space.stage && !space.shared) return actor.kind === "user" && actor.id === space.owner_id;
-  return true;
+export async function canAccessSpace(
+  admin: SupabaseClient,
+  space: SpaceForUpload,
+  actor: UploadActor,
+): Promise<boolean> {
+  if (!space.stage) return true;
+  if (actor.kind === "anon") return space.shared === true;
+  const role = await getProjectAccess(admin, {
+    spaceId: space.id,
+    ownerId: space.owner_id,
+    shared: space.shared,
+    userId: actor.id,
+  });
+  return role !== "none";
 }
 
 export function moduleExists(space: SpaceForUpload, moduleIndex: number): boolean {

@@ -6,6 +6,7 @@ import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 import { SINGLE_ACTIVE_RULES } from "@/lib/stateDedup";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
+import { getProjectAccess } from "@/lib/server/projectAccess";
 import type { ModuleStateKind } from "@/lib/types";
 
 /**
@@ -155,10 +156,18 @@ export async function POST(
   if (!Array.isArray(space.modules) || moduleIndex >= space.modules.length) {
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
   }
-  // Private suite project (stage set, not shared): only the owner may
-  // contribute. Once shared, anyone with the link contributes as today.
-  if (space.stage && !space.shared && (actorKind !== "user" || actorId !== space.owner_id)) {
-    return NextResponse.json({ error: "not_shared" }, { status: 403 });
+  // Suite projects accept signed owners/members. Anonymous collaboration is
+  // available only while the explicit share link is enabled.
+  if (space.stage) {
+    const role = actorKind === "user"
+      ? await getProjectAccess(admin, {
+          spaceId: params.id,
+          ownerId: space.owner_id,
+          shared: space.shared,
+          userId: actorId,
+        })
+      : (space.shared ? "link" : "none");
+    if (role === "none") return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }
 
   // ── vote ──────────────────────────────────────────────────────────────

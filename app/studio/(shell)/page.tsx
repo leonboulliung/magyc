@@ -1,6 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { fetchSpaceListByOwner } from "@/lib/db";
 import { ensureProfile } from "@/lib/server/profile";
+import { claimPendingProjectMemberships } from "@/lib/server/projectAccess";
+import { fetchStudioProjectSummaries } from "@/lib/server/studioDashboard";
+import { supabaseAdmin } from "@/lib/supabase";
 import { StudioHome, type StudioProjectCard } from "@/components/studio/StudioHome";
 
 // Projects are mutable; never serve a stale dashboard from the data cache.
@@ -15,10 +18,36 @@ export default async function StudioDashboard() {
   if (!userId) return null; // middleware guards this; defensive.
 
   await ensureProfile(userId);
-  const all = (await fetchSpaceListByOwner(userId).catch(() => [])).filter((s) => s.stage !== null);
+  const admin = supabaseAdmin();
+  await claimPendingProjectMemberships(admin, userId);
+  let all;
+  try {
+    all = (await fetchStudioProjectSummaries(admin, userId)).filter((space) => space.stage !== null);
+  } catch {
+    const fallback = (await fetchSpaceListByOwner(userId).catch(() => [])).filter((space) => space.stage !== null);
+    all = fallback.map((space) => ({
+      ...space,
+      lastActivityAt: space.createdAt,
+      stateCount: 0,
+      uploadCount: 0,
+      memberCount: 0,
+      accessRole: "owner" as const,
+    }));
+  }
   const now = Date.now();
   const card = (p: (typeof all)[number]): StudioProjectCard =>
-    ({ id: p.id, title: p.title, stage: p.stage, createdAt: p.createdAt, shared: !!p.shared });
+    ({
+      id: p.id,
+      title: p.title,
+      stage: p.stage,
+      createdAt: p.createdAt,
+      lastActivityAt: p.lastActivityAt,
+      shared: !!p.shared,
+      stateCount: p.stateCount,
+      uploadCount: p.uploadCount,
+      memberCount: p.memberCount,
+      accessRole: p.accessRole,
+    });
 
   const projects = all.filter((p) => !p.deletedAt && !p.archivedAt).map(card);
   const archived = all.filter((p) => p.archivedAt && !p.deletedAt).map(card);

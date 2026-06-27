@@ -112,7 +112,7 @@ export async function POST(
     await logEvent("warn", "module_out_of_range");
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
   }
-  if (!canAccessSpace(space, actor)) {
+  if (!await canAccessSpace(admin, space, actor)) {
     await logEvent("warn", "not_shared");
     return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }

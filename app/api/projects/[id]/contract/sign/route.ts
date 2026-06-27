@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { parseBody } from "@/lib/api/validate";
+import { getProjectAccess } from "@/lib/server/projectAccess";
 
 /**
  * POST /api/projects/[id]/contract/sign — record a click-consent signature
@@ -35,9 +36,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { userId } = await auth();
-  const isOwner = !!userId && userId === space.owner_id;
-  if (!isOwner && !space.shared) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  const role: "photographer" | "client" = isOwner ? "photographer" : "client";
+  const accessRole = await getProjectAccess(admin, {
+    spaceId: params.id,
+    ownerId: space.owner_id,
+    shared: space.shared,
+    userId,
+  });
+  if (accessRole === "none" || accessRole === "editor") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  const role: "photographer" | "client" = accessRole === "owner" ? "photographer" : "client";
 
   const { data: contract } = await admin
     .from("project_contracts")

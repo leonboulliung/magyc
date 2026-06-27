@@ -66,7 +66,7 @@ export async function POST(
     return NextResponse.json({ error: "asset_sign_failed" }, { status: 500 });
   }
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (!canAccessSpace(space, actor)) {
+  if (!await canAccessSpace(admin, space, actor)) {
     await logEvent("warn", "not_shared");
     return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }

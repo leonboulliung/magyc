@@ -24,6 +24,9 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "preset_state_migration_required") return "Preset-Inhalte brauchen noch das Datenbank-Update 022.";
   if (raw === "preset_not_saved") return "Das Preset wird noch gespeichert. Bitte den Upload gleich erneut versuchen.";
   if (raw === "preset_materialization_failed") return "Die Preset-Inhalte konnten nicht vollständig in das Projekt übernommen werden.";
+  if (raw === "members_failed") return "Der Projektzugang konnte gerade nicht gespeichert werden.";
+  if (raw === "project_members_migration_required") return "Projektrollen brauchen noch das Datenbank-Update 023.";
+  if (raw === "member_is_owner") return "Die Inhaber:in hat bereits vollständigen Projektzugang.";
   if (raw === "support_failed") return "Deine Support-Anfrage konnte gerade nicht gesendet werden.";
   if (raw === "clerk_update_failed") return "Der Account-Status konnte bei Clerk gerade nicht geaendert werden.";
   if (raw === "upload_failed") return "Der Upload konnte gerade nicht vorbereitet werden.";

@@ -63,7 +63,17 @@ interface SpaceNotice {
  * Rich Text, and Tags as real editable renderers; everything else
  * falls to a pending placeholder which is replaced phase by phase.
  */
-export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }: { id: string; initialSpace?: Space | null; hideLockedNotice?: boolean }) {
+export function SpaceView({
+  id,
+  initialSpace = null,
+  hideLockedNotice = false,
+  canEditOverride,
+}: {
+  id: string;
+  initialSpace?: Space | null;
+  hideLockedNotice?: boolean;
+  canEditOverride?: boolean;
+}) {
   const { user } = useUser();
 
   // Bridge the signed-in identity into the plain-function state layer so
@@ -96,6 +106,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
   }, []);
 
   const isOwner = useIsOwner(space);
+  const canStructure = canEditOverride ?? isOwner;
   const devMode = useDevMode();
 
   const ownerToken = useMemo(() => {
@@ -462,7 +473,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
   // Once a project leaves the Planung stage it is locked: the plan is frozen
   // (it becomes the contract), so the page is read-only for everyone.
   const locked = space.stage === "production" || space.stage === "handoff";
-  const editable = isOwner && !locked;
+  const editable = canStructure && !locked;
 
   // The floating top-right pill should only appear when it actually holds a
   // control. Style edit + publish are owner-only AND only while editable.
@@ -517,7 +528,7 @@ export function SpaceView({ id, initialSpace = null, hideLockedNotice = false }:
               {label(space.labels, "backToCurrent")}
             </button>
           )}
-          {isOwner && !isHistorical && (
+          {editable && !isHistorical && (
             <StyleEditor
               style={effectiveStyle}
               spaceId={space.id}

@@ -38,6 +38,7 @@ export function StudioProjectBar({
   view,
   onView,
   onAdvance,
+  canManage = true,
 }: {
   id: string;
   stage: ProjectStage | null;
@@ -48,6 +49,7 @@ export function StudioProjectBar({
   onView: (s: ProjectStage) => void;
   /** Called after a successful forward advance, with the new stage. */
   onAdvance: (s: ProjectStage) => void;
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [current, setCurrent] = useState<ProjectStage>(stage ?? "brief");
@@ -62,6 +64,7 @@ export function StudioProjectBar({
   function tabKind(s: ProjectStage): "view" | "advance" | "locked" {
     const i = ORDER.indexOf(s);
     if (i <= currentIdx) return "view";
+    if (!canManage) return "locked";
     if (i === currentIdx + 1) return "advance";
     return "locked";
   }
@@ -182,14 +185,16 @@ export function StudioProjectBar({
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={() => setShareOpen(true)}
-        className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[12px] text-white/80 backdrop-blur-md transition-colors hover:text-white"
-      >
-        <span aria-hidden>↗</span>
-        <span className="hidden sm:inline">{shared ? "Geteilt" : "Teilen"}</span>
-      </button>
+      {canManage && (
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[12px] text-white/80 backdrop-blur-md transition-colors hover:text-white"
+        >
+          <span aria-hidden>↗</span>
+          <span className="hidden sm:inline">{shared ? "Geteilt" : "Teilen"}</span>
+        </button>
+      )}
 
       {segment && (
         <span className="mono hidden rounded-full border border-white/12 bg-black/50 px-2.5 py-1 text-[10px] uppercase tracking-widest text-white/40 backdrop-blur-md lg:inline">

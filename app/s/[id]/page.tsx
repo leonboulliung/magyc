@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { fetchSpaceById } from "@/lib/db";
 import { SpaceView } from "./SpaceView";
+import { getProjectAccess } from "@/lib/server/projectAccess";
+import { supabaseAdmin } from "@/lib/supabase";
 
 // Spaces are mutable: without this, Next 14 serves the supabase fetch from
 // its Data Cache and edits look lost after a reload (PUT 200, DB updated,
@@ -20,7 +22,13 @@ const getSpace = cache((id: string) => fetchSpaceById(id).catch(() => null));
 async function blocksPrivateSuiteLink(space: Awaited<ReturnType<typeof getSpace>>) {
   if (!space || space.stage === null || space.shared) return false;
   const { userId } = await auth();
-  return !userId || space.owner?.id !== userId;
+  if (!userId) return true;
+  const role = await getProjectAccess(supabaseAdmin(), {
+    spaceId: space.id,
+    ownerId: space.owner?.id ?? null,
+    userId,
+  });
+  return role === "none";
 }
 
 export async function generateMetadata(

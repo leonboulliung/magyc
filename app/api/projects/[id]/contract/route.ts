@@ -5,6 +5,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { mapHandoff } from "@/lib/db";
 import { parseBody } from "@/lib/api/validate";
+import { getProjectAccess } from "@/lib/server/projectAccess";
 
 /**
  * GET/PUT /api/projects/[id]/contract — the Absegnung contract record.
@@ -29,8 +30,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { userId } = await auth();
-  const isOwner = !!userId && userId === space.owner_id;
-  if (!isOwner && !space.shared) {
+  const accessRole = await getProjectAccess(admin, {
+    spaceId: params.id,
+    ownerId: space.owner_id,
+    shared: space.shared,
+    userId,
+  });
+  const isOwner = accessRole === "owner";
+  if (accessRole === "none") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
@@ -51,6 +58,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({
     contract: contract ?? null,
     isOwner,
+    accessRole,
+    canSign: accessRole === "owner" || accessRole === "client" || accessRole === "link",
     spaceTitle: space.title,
     stage: space.stage ?? null,
     handoff,

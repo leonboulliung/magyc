@@ -32,7 +32,12 @@ export interface StudioProjectCard {
   title: string;
   stage: "brief" | "production" | "handoff" | null;
   createdAt: number;
+  lastActivityAt: number;
   shared: boolean;
+  stateCount: number;
+  uploadCount: number;
+  memberCount: number;
+  accessRole: "owner" | "editor" | "client";
 }
 
 const STAGE_LABEL: Record<"brief" | "production" | "handoff", string> = {
@@ -624,12 +629,25 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
           <span className="mt-1 line-clamp-2 text-[16px] font-medium leading-snug text-white">
             {p.title || "Unbenanntes Projekt"}
           </span>
-          <span className="mt-1 text-[12px] text-white/55">{relTime(p.createdAt)}</span>
+          <span className="mt-1 text-[12px] text-white/55">Aktiv {relTime(p.lastActivityAt)}</span>
+          {(p.memberCount > 0 || p.uploadCount > 0) && (
+            <span className="mono mt-2 text-[9px] uppercase tracking-widest text-white/45">
+              {p.memberCount > 0 ? `${p.memberCount} Beteiligte` : ""}
+              {p.memberCount > 0 && p.uploadCount > 0 ? " · " : ""}
+              {p.uploadCount > 0 ? `${p.uploadCount} Uploads` : ""}
+            </span>
+          )}
         </div>
       </Link>
-      <div className="absolute right-2 top-2">
-        <ProjectCardActions id={p.id} title={p.title} shared={p.shared} context={context} />
-      </div>
+      {p.accessRole === "owner" ? (
+        <div className="absolute right-2 top-2">
+          <ProjectCardActions id={p.id} title={p.title} shared={p.shared} context={context} />
+        </div>
+      ) : (
+        <span className="mono absolute right-2 top-2 rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[9px] uppercase tracking-widest text-white/65 backdrop-blur-md">
+          {p.accessRole === "editor" ? "Team" : "Kunde"}
+        </span>
+      )}
     </div>
   );
 }

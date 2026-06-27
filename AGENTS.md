@@ -92,6 +92,9 @@ applying migrations that affect storage/events/core tables.
    state to the final module indexes, copies preset assets into the project
    namespace, and inserts real `module_state` rows. Never trust a client preset
    payload when an account preset id is available.
+   Dashboard cards come from the service-role-only
+   `studio_project_summaries(user_id)` RPC (migration 023), which returns lean
+   activity/count data for owned and explicitly assigned projects.
 3. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores all
    30 body module types 0–10 against the input (gpt-4o-mini); the **server**
    deterministically selects (threshold + redundancy caps: max one date
@@ -102,10 +105,16 @@ applying migrations that affect storage/events/core tables.
    `initialSpace` to the client `SpaceView`). Three zones: header
    (heading + rich_text + tags), **GridZone** (body widgets, masonry,
    drag-reorder), participants bar.
-5. **Ownership**: a draft space belongs to whoever holds its
+5. **Ownership and project roles**: a draft space belongs to whoever holds its
    `anonOwnerToken` (localStorage, `magyc.space_owner.<id>`). Publishing
-   requires Clerk sign-in and binds `owner_id`. Published spaces: structural
-   edits are owner-only; collaborative interaction is open to everyone.
+   requires Clerk sign-in and binds `owner_id`. Studio projects also support
+   first-class `project_members` (migration 023): `editor` may change the open
+   planning structure and use AI editing tools; `client` may read and perform
+   collaborative actions such as feedback/uploads and sign as the client.
+   Only the owner may share, rename, archive/delete, advance lifecycle stages,
+   edit/release the contract, or administer members. A public share link remains
+   a separate `link` role for low-friction guest collaboration. Pending email
+   memberships are attached to a Clerk account when that address signs in.
 
 ### The two state planes — never mix them
 
@@ -113,7 +122,7 @@ applying migrations that affect storage/events/core tables.
 |---|---|---|
 | What | The widget's own definition (poll question, heading text, map pins) | Collaborative actions (votes, checks, claims, messages, strokes, uploads) |
 | Table | `spaces.modules` (JSONB array) | `module_state` (one row per action) |
-| Who | Owner only | Every visitor (anon token or Clerk) |
+| Who | Owner + assigned editor while Planung is open | Owner, assigned members, or enabled share-link visitors |
 | API | `PUT/POST/PATCH/DELETE /api/spaces/[id]/widgets…` | `POST /api/spaces/[id]/state` |
 | Client write path | `ctx.saveModule(index, module, opts)` — optimistic patch, rollback on failure, "saved" toast with undo | `ctx.act(index, kind, data)` — optimistic apply via `applyActionLocally`, realtime echo reconciles |
 | Realtime | none yet (BACKLOG P2) | Supabase channel on `module_state` INSERT/DELETE |

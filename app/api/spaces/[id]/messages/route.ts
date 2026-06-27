@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
+import { getProjectAccess } from "@/lib/server/projectAccess";
 
 /**
  * GET/POST /api/spaces/[id]/messages — the persistent project thread.
@@ -27,8 +28,13 @@ async function gateSpace(id: string) {
     .maybeSingle();
   if (!space) return { error: NextResponse.json({ error: "not_found" }, { status: 404 }) };
   const { userId } = await auth();
-  const isOwner = !!userId && userId === space.owner_id;
-  if (!isOwner && !space.shared) {
+  const role = await getProjectAccess(admin, {
+    spaceId: id,
+    ownerId: space.owner_id,
+    shared: space.shared,
+    userId,
+  });
+  if (role === "none") {
     return { error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
   }
   return { admin, userId: userId ?? null };

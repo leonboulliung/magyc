@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { fetchSpaceById } from "@/lib/db";
 import { ContractView } from "./ContractView";
+import { getProjectAccess } from "@/lib/server/projectAccess";
+import { supabaseAdmin } from "@/lib/supabase";
 
 // The contract is mutable + access-gated; never serve from the data cache.
 export const dynamic = "force-dynamic";
@@ -16,8 +18,13 @@ export default async function ContractPage({ params }: { params: { id: string } 
   if (!space) notFound();
 
   const { userId } = await auth();
-  const isOwner = !!userId && space.owner?.id === userId;
-  if (!isOwner && !space.shared) notFound();
+  const accessRole = await getProjectAccess(supabaseAdmin(), {
+    spaceId: space.id,
+    ownerId: space.owner?.id ?? null,
+    shared: space.shared,
+    userId,
+  });
+  if (accessRole === "none") notFound();
 
   return <ContractView id={space.id} spaceTitle={space.title || ""} />;
 }

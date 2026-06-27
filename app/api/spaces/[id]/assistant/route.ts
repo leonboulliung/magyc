@@ -8,6 +8,7 @@ import { sanitizeModule } from "@/lib/modules";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
+import { canEditProject, getProjectAccess } from "@/lib/server/projectAccess";
 import type { Module, ModuleType } from "@/lib/types";
 
 /**
@@ -165,14 +166,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const isOwner = !!userId && space.owner_id === userId;
-  if (space.stage && !space.shared && !isOwner) {
+  const accessRole = await getProjectAccess(admin, {
+    spaceId: params.id,
+    ownerId: space.owner_id,
+    shared: space.shared,
+    userId,
+  });
+  const isOwner = accessRole === "owner";
+  if (space.stage && accessRole === "none") {
     return NextResponse.json({ error: "not_shared" }, { status: 403 });
   }
   if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
 
   const locked = space.stage === "production" || space.stage === "handoff";
-  const canEdit = isOwner && !locked;
+  const canEdit = canEditProject(accessRole) && !locked;
 
   // The acting tool — only present for an owner on an open project, so the
   // agent literally cannot offer to change a closed/foreign project.

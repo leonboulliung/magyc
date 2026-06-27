@@ -24,6 +24,12 @@ Storage, observability, migration discipline, feature flags, and backup checks.
   Preset media stays private under `presets/<owner>/<preset>/…` and is copied
   to the project namespace during creation. Verify one media-heavy preset after
   applying the migration; missing 022 does not break old module-only presets.
+- **Project roles + dashboard:** migration 023 adds `project_members`,
+  `spaces.updated_at`, and the service-role-only
+  `studio_project_summaries(user_id)` RPC. Membership rows intentionally have
+  no browser RLS policy; invitations and role changes go through owner-gated
+  API routes. Team members can edit open planning widgets, clients can
+  collaborate and sign, and project administration remains owner-only.
 
 ## Migration protocol
 
@@ -34,7 +40,9 @@ Storage, observability, migration discipline, feature flags, and backup checks.
 5. Run `npm run ops:backup-check` with production Supabase env vars.
 6. Check `/admin` for migration warnings, support ticket visibility, and event
    visibility.
-7. Record the result in `docs/BACKLOG.md` when the session ends.
+7. For migration 023, invite one Team and one Kunde account, sign in with both,
+   and verify dashboard visibility plus role boundaries before launch.
+8. Record the result in `docs/BACKLOG.md` when the session ends.
 
 Manual migrations should be idempotent (`if not exists`, `on conflict`, tolerant
 functions) because code may deploy before SQL is applied.
@@ -63,6 +71,15 @@ For a real restore drill:
 - Realtime is viable for MVP, but every open project tab joins a Supabase
   channel. Monitor Supabase connection/message usage once customer invites
   become common.
+- Membership APIs and the Studio summary RPC are database-backed and safe for
+  the initial concurrency target. Invitation emails are not sent yet: an email
+  membership is stored and claimed automatically when a matching Clerk account
+  signs in.
+- `spaces` and `module_state` still retain historical public-read RLS policies
+  because the public Space renderer reads them through the anon client. Treat
+  IDs as unguessable but do not call this strict database-level privacy. A later
+  hardening slice should move Space reads/realtime authorization behind scoped
+  Supabase JWTs or a server/BFF before sensitive customer data is promised.
 - Do not introduce another storage provider until media volume, CDN needs, or
   delivery-size requirements justify it. The adapter boundary is ready for that
   move.

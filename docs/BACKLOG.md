@@ -5,7 +5,25 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-27 (Codex — first-class preset state/assets)_
+_Last updated: 2026-06-27 (Codex — dashboard summaries + project roles)_
+
+---
+
+## Done 2026-06-27 — dashboard summaries and project roles
+
+- Added migration 023 with first-class `project_members`, role indexes,
+  `spaces.updated_at`, and a service-role-only Studio summary RPC. Dashboard
+  cards now include real last activity, uploads, collaborators and the viewer's
+  role without loading complete project graphs.
+- Added owner-managed Team/Kunde project access. Editors can configure an open
+  Planung and use AI editing; clients can interact, upload, view/sign contracts
+  and follow project phases. Lifecycle, sharing, contract administration,
+  archive/delete and member administration remain owner-only. Pending email
+  invitations bind automatically when the matching Clerk account signs in.
+- Remaining security hardening is explicit: historical public-read RLS on
+  `spaces`/`module_state` is still required by the anon-client renderer and must
+  later be replaced by scoped database authorization for strict private-data
+  guarantees.
 
 ---
 
@@ -60,14 +78,12 @@ MVP risks are not the first prompt, but the later projection layers.
    next slice: replace bounded snapshots (profiles 250, spaces 400, state 1600)
    with paginated/searchable account inspection and, if needed, admin contract
    inspection.
-4. **Studio dashboard overfetch was reduced.** `/studio` now uses a lean list
-   query. Remaining next slice: add counts/last-activity through RPC when those
-   metrics become visible in the list.
-5. **Multi-user collaboration is link-based, not account-member based.**
-   Realtime `module_state` collaboration is coherent for early client feedback,
-   but permissions are still mostly owner vs. shared-link contributor. Team
-   members, client roles and per-project account membership remain a later
-   product/data-model layer.
+4. **Studio dashboard metrics are now RPC-backed.** Migration 023 returns lean
+   counts, last activity and access role for owned/member projects.
+5. **Multi-user collaboration now has account membership.** Migration 023 adds
+   Team/Kunde roles alongside the existing share-link path. Remaining launch
+   validation: apply the migration and test one owner/editor/client trio in
+   production, including uploads, contract visibility and signature boundaries.
 
 ---
 

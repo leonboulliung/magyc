@@ -31,6 +31,8 @@ function fmt(ts: string): string {
 export function ContractView({ id, spaceTitle, embedded = false }: { id: string; spaceTitle: string; embedded?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [accessRole, setAccessRole] = useState<"owner" | "editor" | "client" | "link">("link");
+  const [maySign, setMaySign] = useState(true);
   const [contract, setContract] = useState<SavedContract | null>(null);
   const [draft, setDraft] = useState<ContractDraft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,9 +48,11 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
     setLoading(true);
     try {
       const res = await fetch(`/api/projects/${id}/contract`, { cache: "no-store" });
-      const json = await readApiJson(res) as { isOwner?: boolean; contract?: SavedContract | null; stage?: ProjectStage | null; handoff?: HandoffInfo };
+      const json = await readApiJson(res) as { isOwner?: boolean; accessRole?: "owner" | "editor" | "client" | "link"; canSign?: boolean; contract?: SavedContract | null; stage?: ProjectStage | null; handoff?: HandoffInfo };
       if (res.ok) {
         setIsOwner(!!json.isOwner);
+        if (json.accessRole) setAccessRole(json.accessRole);
+        setMaySign(json.canSign !== false);
         setContract(json.contract ?? null);
         setStage(json.stage ?? null);
         if (json.handoff) setHandoff(json.handoff);
@@ -174,7 +178,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   // The owner's plan lives in the workspace (/studio/[id], which carries the
   // project bar + stage stepper); the client's lives at the public /s/[id].
   // Sending the owner to /s/[id] would strip their nav and trap them.
-  const planHref = isOwner ? `/studio/${id}` : `/s/${id}`;
+  const planHref = accessRole === "owner" || accessRole === "editor" ? `/studio/${id}` : `/s/${id}`;
 
   const inner = (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
@@ -347,7 +351,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             )}
 
             {/* Sign-off (released, not locked, and this viewer hasn't signed) */}
-            {released && !editing && !iSigned && (
+            {released && maySign && !editing && !iSigned && (
               <div className="mt-6 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[14px] font-medium">Verbindlich freigeben ({myRole === "photographer" ? "Fotograf:in" : "Kunde"})</div>

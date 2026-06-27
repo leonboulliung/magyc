@@ -32,12 +32,84 @@ export function ShareDialog({
   const [shared, setShared] = useState(initialShared);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [memberBusy, setMemberBusy] = useState(false);
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [role, setRole] = useState<"editor" | "client">("client");
 
   const link = typeof window !== "undefined" ? `${window.location.origin}/s/${id}` : `/s/${id}`;
 
   useEffect(() => {
     setShared(initialShared);
   }, [initialShared, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    fetch(`/api/projects/${id}/members`, { cache: "no-store" })
+      .then(readApiJson)
+      .then((json) => setMembers(Array.isArray(json.members) ? json.members as ProjectMember[] : []))
+      .catch(() => setMembers([]));
+  }, [id, open]);
+
+  async function addMember() {
+    if (memberBusy || !email.trim()) return;
+    setMemberBusy(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/members`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, displayName, role }),
+      });
+      const json = await readApiJson(res);
+      if (!res.ok || !json.member) {
+        showApiError("Einladung nicht gespeichert", json);
+        return;
+      }
+      setMembers((current) => [
+        ...current.filter((member) => member.id !== (json.member as ProjectMember).id && member.email !== (json.member as ProjectMember).email),
+        json.member as ProjectMember,
+      ]);
+      setEmail("");
+      setDisplayName("");
+      showActionSuccess("Projektzugang gespeichert");
+      router.refresh();
+    } catch (error) {
+      showUnknownError("Einladung nicht gespeichert", error);
+    } finally {
+      setMemberBusy(false);
+    }
+  }
+
+  async function updateMember(memberId: string, nextRole: "editor" | "client") {
+    const previous = members;
+    setMembers((current) => current.map((member) => member.id === memberId ? { ...member, role: nextRole } : member));
+    const res = await fetch(`/api/projects/${id}/members`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ memberId, role: nextRole }),
+    });
+    if (!res.ok) {
+      setMembers(previous);
+      showApiError("Rolle nicht geändert", await readApiJson(res));
+    }
+  }
+
+  async function removeMember(memberId: string) {
+    const previous = members;
+    setMembers((current) => current.filter((member) => member.id !== memberId));
+    const res = await fetch(`/api/projects/${id}/members`, {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ memberId }),
+    });
+    if (!res.ok) {
+      setMembers(previous);
+      showApiError("Zugang nicht entfernt", await readApiJson(res));
+    } else {
+      router.refresh();
+    }
+  }
 
   async function toggle(next: boolean) {
     if (busy) return;
@@ -90,7 +162,7 @@ export function ShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="Projekt teilen" maxWidth={460}>
-      <div className="rounded-2xl border border-black/12 bg-[#0c0c0c] p-6 text-[#17171a] shadow-2xl">
+      <div className="max-h-[85vh] overflow-y-auto rounded-2xl border border-black/12 bg-white p-6 text-[#17171a] shadow-2xl">
         <h2 className="font-brand text-[20px] font-bold tracking-[-0.01em]">Projekt teilen</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-black/60">
           Wer den Link hat, kann das Projekt sehen und mitarbeiten (kommentieren, abstimmen,
@@ -144,6 +216,50 @@ export function ShareDialog({
           </div>
         )}
 
+        <div className="mt-5 border-t border-black/10 pt-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <div>
+              <h3 className="text-[14px] font-medium text-[#17171a]">Direkter Projektzugang</h3>
+              <p className="mt-0.5 text-[12px] text-black/45">Team bearbeitet die Planung, Kunden arbeiten an Auswahl und Feedback.</p>
+            </div>
+            <span className="mono text-[10px] text-black/35">{members.length}</span>
+          </div>
+
+          {members.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              {members.map((member) => (
+                <div key={member.id} className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-medium text-[#17171a]">{member.display_name || member.email}</div>
+                    <div className="truncate text-[11px] text-black/40">{member.email}{member.user_id ? " · Account verbunden" : " · Einladung vorgemerkt"}</div>
+                  </div>
+                  <select
+                    value={member.role}
+                    onChange={(event) => void updateMember(member.id, event.target.value as "editor" | "client")}
+                    className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[11px] text-black/65 outline-none"
+                  >
+                    <option value="editor">Team</option>
+                    <option value="client">Kunde</option>
+                  </select>
+                  <button type="button" onClick={() => void removeMember(member.id)} aria-label="Zugang entfernen" className="grid h-7 w-7 place-items-center text-[14px] text-black/35 hover:text-black">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="E-Mail-Adresse" className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
+            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Name (optional)" className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
+            <select value={role} onChange={(event) => setRole(event.target.value as "editor" | "client")} className="rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none">
+              <option value="client">Kunde</option>
+              <option value="editor">Team</option>
+            </select>
+          </div>
+          <button type="button" onClick={() => void addMember()} disabled={memberBusy || !email.trim()} className="mt-2 rounded-full bg-[#17171a] px-4 py-2 text-[12px] font-medium text-white disabled:opacity-35">
+            Zugang hinzufügen
+          </button>
+        </div>
+
         <div className="mt-6 flex justify-end">
           <button
             type="button"
@@ -156,4 +272,13 @@ export function ShareDialog({
       </div>
     </Dialog>
   );
+}
+
+interface ProjectMember {
+  id: string;
+  user_id: string | null;
+  email: string;
+  display_name: string | null;
+  role: "editor" | "client";
+  created_at: string;
 }
