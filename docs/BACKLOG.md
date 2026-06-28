@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-27 (Codex — authorized reads and Realtime cutover)_
+_Last updated: 2026-06-28 (Leon/Codex — invitation and permission hardening)_
 
 ---
 
@@ -27,17 +27,31 @@ _Last updated: 2026-06-27 (Codex — authorized reads and Realtime cutover)_
 
 ## Open engineering priorities
 
-1. **Private-read cutover is code-complete; migration/QA remains.** Browser and
+1. **P0 — Invitation and permission system must be stabilized.** Entering an
+   existing email currently creates/claims project access immediately. Replace
+   this with an explicit pending invitation that grants no access until the
+   recipient accepts; add deduplication, revoke/decline, expiry and rate limits
+   so accounts cannot be spammed by arbitrary email entry. Recipient wording
+   must describe perspective (`Als Kunde eingeladen`, `Deine Rolle: Team`)
+   instead of the ambiguous owner-facing label `Kunde`. Re-test the complete UI
+   and API matrix: Owner, Team/editor, Kunde/client, share-link and signed-out.
+   Leon observed that an account switched to Team still behaved essentially
+   like a customer. Current policy intentionally keeps lifecycle/phase changes
+   owner-only, so the product decision must be made explicitly: whether Team may
+   advance phases, and which structural/content actions clearly distinguish it
+   from Kunde. Whatever is chosen must be enforced identically in navigation,
+   project UI, snapshot reads, widgets/state/uploads, contracts and APIs.
+2. **Private-read cutover is code-complete; migration/QA remains.** Browser and
    SSR project reads now use role-gated snapshot APIs, and Realtime transports
    only data-free invalidations. Migration 025 performs the database lockdown
    after the production role matrix passes. Private Broadcast channel auth and
    sequence-based reconnect recovery remain defense-in-depth upgrades.
-2. **Integration and multi-user test harness.** Automated role-policy, snapshot
+3. **Integration and multi-user test harness.** Automated role-policy, snapshot
    client, deterministic state/preset/facts tests, and a production smoke script
    are present. Authenticated owner/editor/client, Storage, contract signing,
    and reconnect tests still require dedicated Clerk test accounts plus a
    disposable Supabase project or production-safe fixtures.
-3. **Production role-matrix acceptance test.** After migrations 022-024 are
+4. **Production role-matrix acceptance test.** After migrations 022-024 are
    confirmed, run one owner/editor/client project through preset creation,
    media upload/removal, concurrent editing, Auswahl, contract release/signing,
    Abschluss, archive, and Admin inspection. This is QA/operations rather than
