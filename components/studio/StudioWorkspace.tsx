@@ -43,6 +43,7 @@ export function StudioWorkspace({
         onView={setView}
         onAdvance={setView}
         canManage={accessRole === "owner"}
+        canAdvance={accessRole === "owner" || accessRole === "editor"}
       />
       {view === "brief" ? (
         <SpaceView

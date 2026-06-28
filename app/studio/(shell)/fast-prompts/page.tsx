@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@iconify/react";
 import { useStudioProfile } from "@/components/studio/useStudioProfile";
+import { Popover } from "@/components/ui/Popover";
 import { FAST_PROMPT_COLORS, type FastPrompt } from "@/lib/studioProfile";
 
 /**
@@ -67,7 +69,7 @@ export default function FastPromptsPage() {
               >
                 <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: fp.color ?? "rgba(0,0,0,0.28)" }} />
                 <span className="flex-1 text-[14px] leading-snug text-black/85">{fp.text}</span>
-                <Swatches value={fp.color} onPick={(c) => recolor(i, c)} />
+                <ColorSelect value={fp.color} onPick={(c) => recolor(i, c)} />
                 <button type="button" onClick={() => remove(i)} aria-label="Entfernen" className="text-black/30 opacity-0 transition-opacity hover:text-[#17171a] group-hover:opacity-100">×</button>
               </div>
             ))}
@@ -81,7 +83,7 @@ export default function FastPromptsPage() {
               maxLength={200}
               className="min-w-[180px] flex-1 rounded-xl border border-black/12 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 focus:border-black/35"
             />
-            <Swatches value={color} onPick={setColor} />
+            <ColorSelect value={color} onPick={setColor} showLabel />
             <button type="button" onClick={add} disabled={!input.trim()} className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40">
               Hinzufügen
             </button>
@@ -92,34 +94,77 @@ export default function FastPromptsPage() {
   );
 }
 
-/** A compact row of colour swatches + a "no colour" option. */
-function Swatches({ value, onPick }: { value: string | undefined; onPick: (c: string | undefined) => void }) {
+/** A single quiet trigger; the palette only appears when colour is relevant. */
+function ColorSelect({
+  value,
+  onPick,
+  showLabel = false,
+}: {
+  value: string | undefined;
+  onPick: (c: string | undefined) => void;
+  showLabel?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const choose = (next: string | undefined) => {
+    onPick(next);
+    setOpen(false);
+  };
   return (
-    <div className="flex items-center gap-1">
-      <button
-        type="button"
-        onClick={() => onPick(undefined)}
-        aria-label="Keine Farbe"
-        className="h-5 w-5 rounded-full border border-black/20 text-[10px] leading-none text-black/40"
-        style={{ outline: value === undefined ? "2px solid rgba(0,0,0,0.38)" : "none", outlineOffset: 2 }}
-      >
-        ×
-      </button>
-      {FAST_PROMPT_COLORS.map((c) => (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      side="bottom"
+      width={210}
+      contentStyle={{
+        background: "#fff",
+        border: "1px solid rgba(0,0,0,0.12)",
+        borderRadius: 16,
+        color: "#17171a",
+      }}
+      trigger={
         <button
-          key={c}
           type="button"
-          onClick={() => onPick(c)}
-          aria-label={`Farbe ${c}`}
-          className="h-5 w-5 rounded-full"
-          style={{
-            background: c,
-            outline: value === c ? "2px solid rgba(0,0,0,0.38)" : "none",
-            outlineOffset: 2,
-            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.5)",
-          }}
-        />
-      ))}
-    </div>
+          className={`inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-black/12 bg-white text-[12px] text-black/55 transition-colors hover:border-black/25 hover:text-black ${showLabel ? "px-3" : "w-9"}`}
+          aria-label="Farbe auswählen"
+        >
+          <span
+            className="h-3.5 w-3.5 rounded-full border border-black/15"
+            style={{ background: value ?? "transparent" }}
+          />
+          {showLabel && <span>{value ? "Farbe" : "Keine Farbe"}</span>}
+          {showLabel && <Icon icon="lucide:chevron-down" className="h-3.5 w-3.5" />}
+        </button>
+      }
+    >
+      <div className="p-2">
+        <button
+          type="button"
+          onClick={() => choose(undefined)}
+          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-black/[0.04] ${value === undefined ? "bg-black/[0.05] text-black" : "text-black/60"}`}
+        >
+          <span className="grid h-5 w-5 place-items-center rounded-full border border-black/20 bg-white">
+            <Icon icon="lucide:minus" className="h-3 w-3 text-black/40" />
+          </span>
+          Keine Farbe
+        </button>
+        <div className="mt-1 grid grid-cols-4 gap-1 p-1">
+          {FAST_PROMPT_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => choose(c)}
+              aria-label={`Farbe ${c}`}
+              className="grid h-10 place-items-center rounded-xl transition-colors hover:bg-black/[0.04]"
+            >
+              <span
+                className="h-6 w-6 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.14)]"
+                style={{ background: c, outline: value === c ? "2px solid #17171a" : "none", outlineOffset: 2 }}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    </Popover>
   );
 }

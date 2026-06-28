@@ -8,7 +8,13 @@ import { supportTypeLabel, type SupportType } from "@/lib/adminAccount";
 
 const TYPES: SupportType[] = ["problem", "question", "wish", "other"];
 
-export function SupportWidget({ spaceId }: { spaceId?: string | null }) {
+export function SupportWidget({
+  spaceId,
+  variant = "project",
+}: {
+  spaceId?: string | null;
+  variant?: "studio" | "project";
+}) {
   const { isSignedIn } = useUser();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<SupportType>("problem");
@@ -58,10 +64,13 @@ export function SupportWidget({ spaceId }: { spaceId?: string | null }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 left-5 z-40 inline-flex h-11 items-center gap-2 rounded-full border border-black/10 bg-white px-4 text-sm font-medium text-[#17171a] shadow-[0_14px_40px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:border-black/20"
+        title="Support"
+        aria-label="Support öffnen"
+        className={variant === "studio"
+          ? "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black/45 transition-colors hover:border-black/25 hover:bg-black/[0.04] hover:text-black"
+          : "fixed bottom-4 left-4 z-40 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/55 text-white/60 backdrop-blur-md transition-colors hover:border-white/30 hover:bg-black/75 hover:text-white"}
       >
         <Icon icon="lucide:circle-help" className="h-4 w-4" />
-        Hilfe
       </button>
 
       {open && (
@@ -78,7 +87,7 @@ export function SupportWidget({ spaceId }: { spaceId?: string | null }) {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/15 text-black/55 hover:text-black"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/15 text-black/55 transition-colors hover:bg-black/[0.05] hover:text-black"
                 aria-label="Support schließen"
               >
                 <Icon icon="lucide:x" className="h-4 w-4" />
@@ -94,7 +103,7 @@ export function SupportWidget({ spaceId }: { spaceId?: string | null }) {
                   className={`rounded-full border px-4 py-2 text-sm transition ${
                     type === item
                       ? "border-[#17171a] bg-[#17171a] text-white"
-                      : "border-black/15 bg-white/60 text-black/60 hover:border-black/30"
+                      : "border-black/15 bg-white/60 text-black/60 hover:border-black/30 hover:bg-white hover:text-black"
                   }`}
                 >
                   {supportTypeLabel(item)}
@@ -116,7 +125,7 @@ export function SupportWidget({ spaceId }: { spaceId?: string | null }) {
                 type="button"
                 onClick={submit}
                 disabled={!canSend}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-[#17171a] px-5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-[#17171a] px-5 text-sm font-medium text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Icon icon="lucide:send" className="h-4 w-4" />
                 Senden

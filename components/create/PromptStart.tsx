@@ -62,7 +62,7 @@ export function PromptStart({
   className?: string;
 }) {
   const [fastPromptsOpen, setFastPromptsOpen] = useState(true);
-  const usablePresets = presets.filter((preset) => preset.modules.length > 0);
+  const showPresetChoice = presets.length > 0;
 
   return (
     <div className={className}>
@@ -78,7 +78,7 @@ export function PromptStart({
         highlight={highlight}
         placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
         theme="light"
-        topSlot={
+        topSlot={showPresetChoice ? (
           <div className="flex flex-wrap gap-2">
             <PresetChip
               active={selectedPresetId === "none"}
@@ -86,7 +86,7 @@ export function PromptStart({
               label="Ohne Preset"
               disabled={disabled}
             />
-            {usablePresets.map((preset) => (
+            {presets.map((preset) => (
               <PresetChip
                 key={preset.id}
                 active={selectedPresetId === preset.id}
@@ -96,7 +96,7 @@ export function PromptStart({
               />
             ))}
           </div>
-        }
+        ) : undefined}
       />
 
       {showFastPrompts && fastPrompts.length > 0 && (

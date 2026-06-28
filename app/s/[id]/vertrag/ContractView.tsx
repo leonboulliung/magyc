@@ -21,6 +21,8 @@ interface SavedContract {
   signers: Signer[];
   owner_signed_at: string | null;
   client_signed_at: string | null;
+  mode?: "click" | "draw" | string;
+  draft_meta?: { model?: string; generatedAt?: number; gaps?: ContractDraft["gaps"]; signatureMode?: "click" | "draw" } | null;
 }
 
 function fmt(ts: string): string {
@@ -38,7 +40,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   const [busy, setBusy] = useState(false);
   const [signName, setSignName] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [sigMode, setSigMode] = useState<"click" | "draw">("click");
+  const [releaseSignatureMode, setReleaseSignatureMode] = useState<"click" | "draw" | null>(null);
   const [sigPlace, setSigPlace] = useState("");
   const [sigData, setSigData] = useState<string | null>(null);
   const [stage, setStage] = useState<ProjectStage | null>(null);
@@ -53,7 +55,23 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
         setIsOwner(!!json.isOwner);
         if (json.accessRole) setAccessRole(json.accessRole);
         setMaySign(json.canSign !== false);
-        setContract(json.contract ?? null);
+        const nextContract = json.contract ?? null;
+        setContract(nextContract);
+        if (json.isOwner && nextContract && !nextContract.locked && (nextContract.status === "draft" || nextContract.status === "sent")) {
+          setDraft({
+            language: "de",
+            title: spaceTitle,
+            parties: nextContract.parties,
+            sections: nextContract.clauses,
+            gaps: Array.isArray(nextContract.draft_meta?.gaps) ? nextContract.draft_meta.gaps : [],
+            generatedAt: nextContract.draft_meta?.generatedAt || Date.now(),
+            model: nextContract.draft_meta?.model || "",
+          });
+          const storedMode = nextContract.draft_meta?.signatureMode;
+          setReleaseSignatureMode(storedMode === "click" || storedMode === "draw" ? storedMode : null);
+        } else {
+          setDraft(null);
+        }
         setStage(json.stage ?? null);
         if (json.handoff) setHandoff(json.handoff);
       }
@@ -62,7 +80,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, spaceTitle]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -73,7 +91,11 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
       const json = await readApiJson(res);
       if (!res.ok) { showApiError("Entwurf fehlgeschlagen", json, { fallback: "Der Vertragsentwurf konnte nicht erzeugt werden." }); return; }
       const d = (json as { draft?: ContractDraft }).draft;
-      if (d) setDraft(d);
+      if (d) {
+        setDraft(d);
+        setReleaseSignatureMode(null);
+        await load();
+      }
     } catch (e) { showUnknownError("Entwurf fehlgeschlagen", e); }
     finally { setBusy(false); }
   }
@@ -81,6 +103,9 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   function editClause(si: number, ci: number, value: string) {
     setDraft((d) => d ? {
       ...d,
+      gaps: value.trim()
+        ? d.gaps.filter((gap) => gap.clauseId !== d.sections[si]?.clauses[ci]?.id)
+        : d.gaps,
       sections: d.sections.map((s, i) => i !== si ? s : {
         ...s,
         clauses: s.clauses.map((c, j) => j !== ci ? c : { ...c, value, source: c.source === "needs_input" && value ? "generated" : c.source }),
@@ -88,7 +113,12 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
     } : d);
   }
   function editClient(field: keyof ContractDraft["parties"]["client"], value: string) {
-    setDraft((d) => d ? { ...d, parties: { ...d.parties, client: { ...d.parties.client, [field]: value } } } : d);
+    const gapId = field === "name" ? "ku_name" : field === "email" ? "ku_email" : null;
+    setDraft((d) => d ? {
+      ...d,
+      gaps: value.trim() && gapId ? d.gaps.filter((gap) => gap.clauseId !== gapId) : d.gaps,
+      parties: { ...d.parties, client: { ...d.parties.client, [field]: value } },
+    } : d);
   }
 
   // Re-open an already-saved (but not yet released) contract for further edits.
@@ -99,17 +129,31 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
       title: spaceTitle,
       parties: contract.parties,
       sections: contract.clauses,
-      gaps: [],
-      generatedAt: Date.now(),
-      model: "",
+      gaps: Array.isArray(contract.draft_meta?.gaps) ? contract.draft_meta.gaps : [],
+      generatedAt: contract.draft_meta?.generatedAt || Date.now(),
+      model: contract.draft_meta?.model || "",
     });
   }
 
   async function release() {
-    if (busy) return;
+    if (busy || !draft || !releaseSignatureMode) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/projects/${id}/contract/release`, { method: "POST" });
+      const res = await fetch(`/api/projects/${id}/contract/release`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          parties: draft.parties,
+          clauses: draft.sections,
+          draftMeta: {
+            model: draft.model,
+            generatedAt: draft.generatedAt,
+            gaps: draft.gaps,
+            signatureMode: releaseSignatureMode,
+          },
+          signatureMode: releaseSignatureMode,
+        }),
+      });
       const json = await readApiJson(res);
       if (!res.ok) { showApiError("Freigabe fehlgeschlagen", json, { fallback: "Der Vertrag konnte nicht freigegeben werden." }); return; }
       showActionSuccess("Vertrag zur Unterschrift freigegeben");
@@ -118,26 +162,9 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
     finally { setBusy(false); }
   }
 
-  async function finalize() {
-    if (!draft) return;
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/projects/${id}/contract`, {
-        method: "PUT", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ parties: draft.parties, clauses: draft.sections, draftMeta: { model: draft.model, generatedAt: draft.generatedAt } }),
-      });
-      const json = await readApiJson(res);
-      if (!res.ok) { showApiError("Nicht gespeichert", json, { fallback: "Der Vertrag konnte nicht festgelegt werden." }); return; }
-      showActionSuccess("Vertrag festgelegt");
-      setDraft(null);
-      await load();
-    } catch (e) { showUnknownError("Nicht gespeichert", e); }
-    finally { setBusy(false); }
-  }
-
-  // The photographer may opt into a hand-drawn signature (+ place); the client
-  // always uses click-consent. Drawn mode needs ink instead of the checkbox.
-  const drawMode = isOwner && sigMode === "draw";
+  // The photographer chooses one method before release; both parties then use
+  // that same documented signing method.
+  const drawMode = contract?.mode === "draw";
   const canSign = !!signName.trim() && !busy && (drawMode ? !!sigData : agreed);
 
   async function sign() {
@@ -180,6 +207,29 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   // Sending the owner to /s/[id] would strip their nav and trap them.
   const planHref = accessRole === "owner" || accessRole === "editor" ? `/studio/${id}` : `/s/${id}`;
 
+  // Draft edits are persisted quietly; release still sends the complete
+  // reviewed document atomically so a stale autosave can never be signed.
+  useEffect(() => {
+    if (!draft || !isOwner || !preparing || contract?.locked) return;
+    const timer = window.setTimeout(() => {
+      void fetch(`/api/projects/${id}/contract`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          parties: draft.parties,
+          clauses: draft.sections,
+          draftMeta: {
+            model: draft.model,
+            generatedAt: draft.generatedAt,
+            gaps: draft.gaps,
+            signatureMode: releaseSignatureMode,
+          },
+        }),
+      });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [contract?.locked, draft, id, isOwner, preparing, releaseSignatureMode]);
+
   const inner = (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
         {/* Reference header */}
@@ -208,11 +258,11 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
           <div className="mt-8 rounded-2xl border border-black/12 bg-white p-6 sm:p-8 print:hidden">
             <p className="text-[15px] leading-relaxed text-black/70">
               MAGYC erstellt aus deinem Plan und deinen hinterlegten Konditionen
-              automatisch einen Vertragsentwurf. Du prüfst ihn, ergänzt das Honorar
-              und gibst ihn frei.
+              automatisch einen Vertragsentwurf. Falls die automatische Erstellung
+              unterbrochen wurde, kannst du sie hier erneut anstoßen.
             </p>
             <button type="button" onClick={generate} disabled={busy} className="mt-5 rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50">
-              {busy ? "Entwurf wird erzeugt …" : "Vertragsentwurf erzeugen"}
+              {busy ? "Entwurf wird erzeugt …" : "Entwurf erneut vorbereiten"}
             </button>
           </div>
         ) : (
@@ -314,19 +364,29 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
               })}
             </div>
 
-            {/* Owner: gaps + finalize */}
+            {/* Owner: edit, choose the signing method, release in one step. */}
             {editing && (
-              <div className="mt-5 print:hidden">
+              <div className="mt-5 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 {draft && draft.gaps.length > 0 && (
-                  <p className="mb-3 text-[13px] text-amber-300/80">{draft.gaps.length} Feld(er) brauchen noch deine Eingabe (gelb markiert).</p>
+                  <p className="mb-4 text-[13px] text-amber-700">{draft.gaps.length} Feld(er) brauchen noch deine Eingabe (gelb markiert).</p>
                 )}
-                <div className="flex flex-wrap gap-3">
-                  <button type="button" onClick={finalize} disabled={busy} className="rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50">
-                    {busy ? "…" : "Vertrag festlegen"}
+                <div className="text-[14px] font-medium">Wie wird unterschrieben?</div>
+                <p className="mt-1 text-[12px] leading-relaxed text-black/50">Diese Wahl gilt für Fotograf:in und Kund:in und wird im Prüfprotokoll dokumentiert.</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button type="button" onClick={() => setReleaseSignatureMode("click")} className={`rounded-xl border px-4 py-3 text-left transition-colors ${releaseSignatureMode === "click" ? "border-[#17171a] bg-[#17171a] text-white" : "border-black/12 text-black/65 hover:border-black/30 hover:text-black"}`}>
+                    <span className="block text-[13px] font-medium">Textbestätigung</span>
+                    <span className={`mt-0.5 block text-[11px] ${releaseSignatureMode === "click" ? "text-white/65" : "text-black/40"}`}>Name, Zustimmung und Zeitstempel</span>
                   </button>
-                  <button type="button" onClick={() => setDraft(null)} className="mono rounded-full border border-black/15 px-4 py-2.5 text-[12px] tracking-widest text-black/55 hover:text-[#17171a]">
-                    Verwerfen
+                  <button type="button" onClick={() => setReleaseSignatureMode("draw")} className={`rounded-xl border px-4 py-3 text-left transition-colors ${releaseSignatureMode === "draw" ? "border-[#17171a] bg-[#17171a] text-white" : "border-black/12 text-black/65 hover:border-black/30 hover:text-black"}`}>
+                    <span className="block text-[13px] font-medium">Gezeichnete Unterschrift</span>
+                    <span className={`mt-0.5 block text-[11px] ${releaseSignatureMode === "draw" ? "text-white/65" : "text-black/40"}`}>Signatur, Ort und Zeitstempel</span>
                   </button>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button type="button" onClick={release} disabled={busy || !releaseSignatureMode} className="rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-35">
+                    {busy ? "…" : "Zur Unterschrift freigeben"}
+                  </button>
+                  <span className="mono text-[10px] tracking-widest text-black/35">Änderungen werden automatisch gespeichert</span>
                 </div>
               </div>
             )}
@@ -340,9 +400,6 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                   Mit der Freigabe wird der Vertrag für beide zur Unterschrift geöffnet.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <button type="button" onClick={release} disabled={busy} className="rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50">
-                    {busy ? "…" : "Zur Unterschrift freigeben"}
-                  </button>
                   <button type="button" onClick={editSaved} disabled={busy} className="mono rounded-full border border-black/15 px-4 py-2.5 text-[12px] tracking-widest text-black/55 hover:text-[#17171a] disabled:opacity-50">
                     Bearbeiten
                   </button>
@@ -355,12 +412,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
               <div className="mt-6 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[14px] font-medium">Verbindlich freigeben ({myRole === "photographer" ? "Fotograf:in" : "Kunde"})</div>
-                  {isOwner && (
-                    <div className="inline-flex rounded-full border border-black/12 bg-white p-0.5 text-[11px]">
-                      <button type="button" onClick={() => setSigMode("click")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "click" ? "bg-[#17171a] text-white" : "text-black/55 hover:text-[#17171a]"}`}>Klick</button>
-                      <button type="button" onClick={() => setSigMode("draw")} className={`rounded-full px-2.5 py-1 transition-colors ${sigMode === "draw" ? "bg-[#17171a] text-white" : "text-black/55 hover:text-[#17171a]"}`}>Signatur</button>
-                    </div>
-                  )}
+                  <span className="mono text-[10px] uppercase tracking-widest text-black/35">{drawMode ? "Unterschrift" : "Textbestätigung"}</span>
                 </div>
                 <input value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Dein vollständiger Name" maxLength={120} className={`${fieldClass} mt-3`} />
 
@@ -371,7 +423,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                   </div>
                 ) : (
                   <button type="button" onClick={() => setAgreed((a) => !a)} className="mt-3 flex w-full items-start gap-2.5 text-left">
-                    <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "#fff" : "rgba(255,255,255,0.3)"}`, background: agreed ? "#fff" : "transparent", color: "#000" }}>{agreed ? "✓" : ""}</span>
+                    <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "#17171a" : "rgba(0,0,0,0.28)"}`, background: agreed ? "#17171a" : "transparent", color: "#fff" }}>{agreed ? "✓" : ""}</span>
                     <span className="text-[13px] leading-snug text-black/60">Ich habe den Vertrag gelesen und stimme ihm verbindlich zu.</span>
                   </button>
                 )}
@@ -428,7 +480,7 @@ function PartyBlock({ title, lines }: { title: string; lines: (string | undefine
       <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">{title}</div>
       <div className="space-y-0.5">
         {lines.filter(Boolean).map((l, i) => (
-          <div key={i} className={`text-[13px] ${i === 0 ? "font-medium text-white" : "text-black/60"}`}>{l}</div>
+          <div key={i} className={`text-[13px] ${i === 0 ? "font-medium text-black/85" : "text-black/60"}`}>{l}</div>
         ))}
         {lines.filter(Boolean).length === 0 && <div className="text-[13px] text-black/35">—</div>}
       </div>

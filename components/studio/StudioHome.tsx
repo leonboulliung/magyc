@@ -9,6 +9,7 @@ import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { MoodGradient } from "@/components/MoodGradient";
 import { ProjectCardActions } from "@/components/studio/ProjectCardActions";
+import { ProjectInvitations } from "@/components/studio/ProjectInvitations";
 import {
   readApiJson,
   showActionError,
@@ -115,8 +116,7 @@ export function StudioHome({
   const [presetId, setPresetId] = useState("none");
   const [fastPrompts, setFastPrompts] = useState<FastPrompt[]>([]);
 
-  const usablePresets = useMemo(() => presets.filter((p) => p.modules.length > 0), [presets]);
-  const selectedPreset = usablePresets.find((p) => p.id === presetId) || null;
+  const selectedPreset = useMemo(() => presets.find((p) => p.id === presetId) || null, [presetId, presets]);
   const totalSteps = steps.length;
   const currentStep: ClarifyStep | null = steps[stepIndex] ?? null;
   const isLastStep = stepIndex === totalSteps - 1;
@@ -357,7 +357,7 @@ export function StudioHome({
                 autoFocus
                 rows={5}
                 highlight={promptNudge}
-                presets={usablePresets}
+                presets={presets}
                 selectedPresetId={presetId}
                 onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
                 fastPrompts={fastPrompts}
@@ -576,6 +576,7 @@ export function StudioHome({
 
       {/* Projects */}
       {stage === "input" && <div className="mt-12">
+        <ProjectInvitations />
         <div className="mb-4 flex items-center justify-between">
           <p className="mono text-[11px] uppercase tracking-[0.2em] text-black/45">Deine Projekte</p>
           {projects.length > 0 && (
@@ -645,7 +646,7 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
         </div>
       ) : (
         <span className="mono absolute right-2 top-2 rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[9px] uppercase tracking-widest text-white/65 backdrop-blur-md">
-          {p.accessRole === "editor" ? "Team" : "Kunde"}
+          {p.accessRole === "editor" ? "Du bist im Team" : "Du bist Kund:in"}
         </span>
       )}
     </div>

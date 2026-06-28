@@ -4,13 +4,16 @@ import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { mapHandoff } from "@/lib/db";
 import { parseBody } from "@/lib/api/validate";
+import { canAdvanceProject, getProjectAccess, isForwardStageTransition } from "@/lib/server/projectAccess";
+import { ensureProjectContractDraft } from "@/lib/server/projectContract";
 
 /**
  * PATCH /api/projects/[id] — update a Creator-Suite project's lifecycle,
- * sharing, archive, or soft-delete state. Owner-only (the Clerk owner
- * bound at creation).
+ * sharing, archive, or soft-delete state. Administration stays owner-only;
+ * an accepted editor membership may submit a stage-only forward transition.
  */
 const VALID_STAGES = new Set(["brief", "production", "handoff"]);
+export const maxDuration = 30;
 
 export async function PATCH(
   req: Request,
@@ -71,12 +74,26 @@ export async function PATCH(
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, owner_id, modules")
+    .select("id, owner_id, shared, modules, stage")
     .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (space.owner_id !== userId) {
+  const accessRole = await getProjectAccess(admin, {
+    spaceId: id,
+    ownerId: space.owner_id,
+    shared: space.shared,
+    userId,
+  });
+  const stageOnly = Object.keys(update).every((key) => key === "stage");
+  if (accessRole !== "owner" && !(stageOnly && canAdvanceProject(accessRole))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  if (update.stage) {
+    const currentStage = VALID_STAGES.has(space.stage) ? space.stage as "brief" | "production" | "handoff" : null;
+    if (!isForwardStageTransition(currentStage, update.stage as "brief" | "production" | "handoff")) {
+      return NextResponse.json({ error: "invalid_stage_transition" }, { status: 409 });
+    }
   }
 
   // Signed projects can be archived but never trashed — the agreement is a
@@ -100,6 +117,21 @@ export async function PATCH(
     update.archived_at = new Date().toISOString();
   }
 
+  // Selection starts with an editable, persisted contract draft. Generation
+  // happens before the irreversible phase update so a failed AI call never
+  // leaves the project in a half-entered phase.
+  let contractDraftCreated = false;
+  if (update.stage === "production") {
+    try {
+      const result = await ensureProjectContractDraft({ admin, spaceId: id });
+      contractDraftCreated = result.created;
+    } catch (cause) {
+      const detail = cause instanceof Error ? cause.message : "draft_failed";
+      console.error("[projects] automatic contract draft failed:", detail);
+      return NextResponse.json({ error: "contract_draft_failed" }, { status: 502 });
+    }
+  }
+
   // The Absegnung stage no longer seeds a grid widget — the sign-off lives on
   // a dedicated contract page (see docs/CONTRACT_PHASE.md), built separately.
 
@@ -117,7 +149,7 @@ export async function PATCH(
     return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, contractDraftCreated });
 }
 
 /**

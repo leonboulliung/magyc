@@ -39,6 +39,7 @@ export function StudioProjectBar({
   onView,
   onAdvance,
   canManage = true,
+  canAdvance = canManage,
 }: {
   id: string;
   stage: ProjectStage | null;
@@ -50,6 +51,8 @@ export function StudioProjectBar({
   /** Called after a successful forward advance, with the new stage. */
   onAdvance: (s: ProjectStage) => void;
   canManage?: boolean;
+  /** Team members may move work forward without gaining share/admin rights. */
+  canAdvance?: boolean;
 }) {
   const router = useRouter();
   const [current, setCurrent] = useState<ProjectStage>(stage ?? "brief");
@@ -64,7 +67,7 @@ export function StudioProjectBar({
   function tabKind(s: ProjectStage): "view" | "advance" | "locked" {
     const i = ORDER.indexOf(s);
     if (i <= currentIdx) return "view";
-    if (!canManage) return "locked";
+    if (!canAdvance) return "locked";
     if (i === currentIdx + 1) return "advance";
     return "locked";
   }
@@ -94,7 +97,10 @@ export function StudioProjectBar({
         });
         return;
       }
-      showActionSuccess("Phase gespeichert", { id: `stage-${id}` });
+      showActionSuccess(next === "production" ? "Auswahl vorbereitet" : "Phase gespeichert", {
+        id: `stage-${id}`,
+        description: next === "production" ? "Der Vertragsentwurf wurde automatisch angelegt." : undefined,
+      });
       setCurrent(next);
       onAdvance(next); // workspace moves the view forward to the new stage
       router.refresh();
@@ -216,7 +222,7 @@ export function StudioProjectBar({
             <p className="text-[13px] leading-relaxed text-white/65">
               {advancingToHandoff
                 ? "Danach ist das Projekt abgeschlossen. Frühere Phasen kannst du weiter ansehen, aber die Phase lässt sich nicht mehr zurücksetzen."
-                : "Danach ist die Projektseite gesperrt — am Plan sind keine Änderungen mehr möglich, und die Phase lässt sich nicht zurücksetzen. Du arbeitest ab dann am Vertrag und gibst ihn selbst zur Unterschrift frei."}
+                : "Danach ist die Projektseite gesperrt und MAGYC erstellt automatisch den Vertragsentwurf. Du prüfst ihn, wählst die Unterschriftsart und gibst ihn anschließend frei."}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-white/10 bg-black/30 px-5 py-3.5">

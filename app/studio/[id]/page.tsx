@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { fetchHandoffWithClient } from "@/lib/db";
 import { StudioWorkspace } from "@/components/studio/StudioWorkspace";
-import { claimPendingProjectMemberships } from "@/lib/server/projectAccess";
 import { readSpaceForViewer } from "@/lib/server/spaceRead";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -20,7 +19,6 @@ export default async function StudioProjectPage({ params }: { params: Promise<{ 
   const { userId } = await auth();
   if (!userId) notFound();
   const admin = supabaseAdmin();
-  await claimPendingProjectMemberships(admin, userId);
   const result = await readSpaceForViewer(admin, { spaceId: id, userId }).catch(() => null);
   if (!result) notFound();
   const { space, role: accessRole } = result;

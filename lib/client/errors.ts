@@ -27,7 +27,11 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "preset_materialization_failed") return "Die Preset-Inhalte konnten nicht vollständig in das Projekt übernommen werden.";
   if (raw === "members_failed") return "Der Projektzugang konnte gerade nicht gespeichert werden.";
   if (raw === "project_members_migration_required") return "Projektrollen brauchen noch das Datenbank-Update 023.";
+  if (raw === "project_invitations_migration_required") return "Sichere Einladungen brauchen noch das Datenbank-Update 026.";
+  if (raw === "invitation_not_available") return "Diese Einladung ist nicht mehr offen oder gehört zu einer anderen Adresse.";
+  if (raw === "invitations_failed") return "Die Einladung konnte gerade nicht verarbeitet werden.";
   if (raw === "member_is_owner") return "Die Inhaber:in hat bereits vollständigen Projektzugang.";
+  if (raw === "member_already_active") return "Diese Adresse hat bereits aktiven Projektzugang.";
   if (raw === "support_failed") return "Deine Support-Anfrage konnte gerade nicht gesendet werden.";
   if (raw === "clerk_update_failed") return "Der Account-Status konnte bei Clerk gerade nicht geaendert werden.";
   if (raw === "upload_failed") return "Der Upload konnte gerade nicht vorbereitet werden.";
@@ -45,6 +49,10 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "state_write_failed") return "Die Änderung konnte nicht konsistent gespeichert werden. Bitte erneut versuchen.";
   if (raw === "contract_signed") return "Unterschriebene Projekte sind gesperrt — der Plan kann nicht mehr geaendert werden.";
   if (raw === "bad_stage") return "Diese Projektphase ist nicht gueltig.";
+  if (raw === "invalid_stage_transition") return "Projektphasen können nur nacheinander abgeschlossen werden.";
+  if (raw === "contract_draft_failed") return "Der Vertragsentwurf konnte nicht vorbereitet werden. Das Projekt bleibt in der Planung.";
+  if (raw === "contract_already_released") return "Der Vertrag ist bereits zur Unterschrift freigegeben und kann nicht mehr als Entwurf überschrieben werden.";
+  if (raw === "signature_required") return "Für diesen Vertrag ist eine gezeichnete Unterschrift erforderlich.";
   if (raw === "nothing_to_update") return "Es gab keine Aenderung zum Speichern.";
   if (raw === "owner_token_required" || raw === "owner_token_mismatch") {
     return "Dieser Entwurf kann in diesem Browser nicht mehr eindeutig zugeordnet werden.";

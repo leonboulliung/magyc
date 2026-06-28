@@ -735,7 +735,7 @@ export function SpaceView({
         {/* Dev-only: persona switcher for simulating multiplayer.
             Hidden in production; enable on any space with ?dev=1. */}
         {devMode && <PersonaSwitcher />}
-        <SupportWidget spaceId={space.id} />
+        <SupportWidget spaceId={space.id} variant="project" />
         <AssistantDock spaceId={space.id} onProjectChanged={refreshEverywhere} />
       </div>
     </WidgetContext.Provider>

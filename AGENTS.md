@@ -116,10 +116,12 @@ their server/client semantics change.
    first-class `project_members` (migration 023): `editor` may change the open
    planning structure and use AI editing tools; `client` may read and perform
    collaborative actions such as feedback/uploads and sign as the client.
-   Only the owner may share, rename, archive/delete, advance lifecycle stages,
-   edit/release the contract, or administer members. A public share link remains
-   a separate `link` role for low-friction guest collaboration. Pending email
-   memberships are attached to a Clerk account when that address signs in.
+   Owner and editor may advance lifecycle stages; only the owner may share,
+   rename, archive/delete, edit/release the contract, or administer members. A
+   public share link remains a separate `link` role for low-friction guest
+   collaboration. Pending email invitations live separately from memberships
+   (migration 026) and grant no access until a verified matching Clerk account
+   explicitly accepts them in Studio.
 
 ### The two state planes — never mix them
 
@@ -278,6 +280,11 @@ lib/
   signed-in users submit tickets via `/api/support`, admins mark them done via
   `/api/admin/support/[id]`, and replies happen manually by email. Every admin
   mutation should write `admin_audit_events` after migration 021.
+- **Contract transition:** advancing Planung → Auswahl generates and persists
+  the editable contract draft before the stage update succeeds. Draft edits
+  autosave; release is one atomic request containing the reviewed document and
+  the owner's explicit signing method (`click` or `draw`). Never reintroduce a
+  separate "Festlegen" state between draft and release.
 
 ---
 

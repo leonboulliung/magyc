@@ -1,24 +1,20 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createHash } from "crypto";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { mapHandoff } from "@/lib/db";
 import { parseBody } from "@/lib/api/validate";
 import { getProjectAccess } from "@/lib/server/projectAccess";
+import { contractContentHash } from "@/lib/server/projectContract";
 
 /**
  * GET/PUT /api/projects/[id]/contract — the Absegnung contract record.
  *
  * GET  — owner always; a non-owner only when the space is shared (the client
  *        with the link). Returns the contract row or null.
- * PUT  — owner only. Freezes the reviewed draft into the contract (status
- *        "sent", ready for signatures). Rejected once the contract is locked.
+ * PUT  — owner-only autosave while status is draft/sent. Release is a separate
+ *        atomic write and prevents any later draft autosave from winning.
  */
-
-function contentHash(payload: unknown): string {
-  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
-}
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -93,28 +89,41 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   // Don't overwrite a signed/locked contract.
   const { data: existing } = await admin
     .from("project_contracts")
-    .select("locked")
+    .select("status, locked")
     .eq("space_id", id)
     .maybeSingle();
   if (existing?.locked) return NextResponse.json({ error: "locked" }, { status: 409 });
+  if (existing && existing.status !== "draft" && existing.status !== "sent") {
+    return NextResponse.json({ error: "contract_already_released" }, { status: 409 });
+  }
 
-  const hash = contentHash({ parties: body.parties, clauses: body.clauses });
-  const { error } = await admin.from("project_contracts").upsert(
-    {
+  const hash = contractContentHash({ parties: body.parties, clauses: body.clauses });
+  const values: Record<string, unknown> = {
       space_id: id,
       parties: body.parties ?? {},
       clauses: body.clauses ?? [],
-      conditions_snapshot: body.conditionsSnapshot ?? {},
       draft_meta: body.draftMeta ?? null,
-      status: "sent",
+      status: "draft",
       content_hash: hash,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "space_id" },
-  );
+  };
+  if (body.conditionsSnapshot !== undefined || !existing) {
+    values.conditions_snapshot = body.conditionsSnapshot ?? {};
+  }
+  const result = existing
+    ? await admin.from("project_contracts")
+        .update(values)
+        .eq("space_id", id)
+        .in("status", ["draft", "sent"])
+        .select("space_id")
+    : await admin.from("project_contracts")
+        .insert(values)
+        .select("space_id");
+  const { data: saved, error } = result;
   if (error) {
     console.error("[contract] save failed:", error.message);
     return NextResponse.json({ error: "save_failed", detail: error.message }, { status: 500 });
   }
+  if (!saved?.length) return NextResponse.json({ error: "contract_already_released" }, { status: 409 });
   return NextResponse.json({ ok: true });
 }

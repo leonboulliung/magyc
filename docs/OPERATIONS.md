@@ -39,6 +39,10 @@ Storage, observability, migration discipline, feature flags, and backup checks.
   SELECT access from profiles, spaces, module state, and versions. Apply it only
   after the authorized snapshot APIs and data-free Broadcast invalidations have
   been verified in production, and only after migration 024.
+- **Explicit project invitations:** migration 026 separates pending invitations
+  from accepted memberships. Pending rows grant no access; a verified matching
+  Clerk account must accept through Studio before the membership RPC creates a
+  `project_members` row.
 
 ## Migration protocol
 
@@ -58,7 +62,11 @@ Storage, observability, migration discipline, feature flags, and backup checks.
    anonymous Home Space, historical versions, same-account multi-tab sync, and
    upload rendering. Apply 025, repeat the same matrix, then run the included
    policy/grant verification queries.
-10. Record the result in `docs/BACKLOG.md` when the session ends.
+10. For migration 026, invite one Team and one Kunde address. Confirm neither
+    project appears before acceptance, decline one invite, accept the other,
+    and verify only Team can advance a phase while only the owner can share,
+    archive, delete, manage users or release the contract.
+11. Record the result in `docs/BACKLOG.md` when the session ends.
 
 `npm run test:prod-smoke` checks public routes and signed-out auth gates against
 production. `npm run test:role-matrix` checks real owner/editor/client/private/

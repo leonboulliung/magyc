@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useReverification, useUser } from "@clerk/nextjs";
 import { useStudioProfile } from "@/components/studio/useStudioProfile";
 import { PageHeader, Card, Field, Input, Textarea, TagEditor } from "@/components/studio/formKit";
 import { showActionError, showActionSuccess, showUnknownError } from "@/lib/client/feedback";
@@ -16,6 +16,14 @@ export default function StudioProfilePage() {
   const { user } = useUser();
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [pendingEmailId, setPendingEmailId] = useState<string | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const createEmailAddress = useReverification(async (nextEmail: string) => {
+    if (!user) throw new Error("account_unavailable");
+    return user.createEmailAddress({ email: nextEmail });
+  });
 
   async function uploadAvatar(file: File | null) {
     if (!file || !user || avatarBusy) return;
@@ -34,6 +42,66 @@ export default function StudioProfilePage() {
     } finally {
       setAvatarBusy(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function beginEmailChange() {
+    const nextEmail = email.trim().toLowerCase();
+    if (!user || !nextEmail || emailBusy) return;
+    if (user.emailAddresses.some((item) => item.emailAddress.toLowerCase() === nextEmail)) {
+      showActionError("E-Mail-Adresse nicht geändert", { description: "Diese Adresse gehört bereits zu deinem Account." });
+      return;
+    }
+    setEmailBusy(true);
+    try {
+      const created = await createEmailAddress(nextEmail);
+      await created.prepareVerification({ strategy: "email_code" });
+      setPendingEmailId(created.id);
+      setEmailCode("");
+      showActionSuccess("Bestätigungscode gesendet", { description: `Prüfe ${nextEmail}.` });
+    } catch (error) {
+      showUnknownError("E-Mail-Adresse nicht geändert", error, { fallback: "Clerk konnte die neue Adresse nicht vorbereiten." });
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function confirmEmailChange() {
+    if (!user || !pendingEmailId || emailCode.trim().length < 4 || emailBusy) return;
+    setEmailBusy(true);
+    try {
+      let target = user.emailAddresses.find((item) => item.id === pendingEmailId);
+      if (!target) {
+        await user.reload();
+        target = user.emailAddresses.find((item) => item.id === pendingEmailId);
+      }
+      if (!target) throw new Error("email_address_missing");
+      const verified = await target.attemptVerification({ code: emailCode.trim() });
+      if (verified.verification.status !== "verified") throw new Error("verification_failed");
+      await user.update({ primaryEmailAddressId: verified.id });
+      await user.reload();
+      setEmail("");
+      setEmailCode("");
+      setPendingEmailId(null);
+      showActionSuccess("E-Mail-Adresse aktualisiert");
+    } catch (error) {
+      showUnknownError("Code nicht bestätigt", error, { fallback: "Prüfe den Code und versuche es erneut." });
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function cancelEmailChange() {
+    if (!user || !pendingEmailId || emailBusy) return;
+    const pending = user.emailAddresses.find((item) => item.id === pendingEmailId);
+    setPendingEmailId(null);
+    setEmailCode("");
+    if (!pending || pending.verification.status === "verified") return;
+    try {
+      await pending.destroy();
+      await user.reload();
+    } catch {
+      // Cancellation is local-first; Clerk can still expire the unused entry.
     }
   }
 
@@ -83,6 +151,72 @@ export default function StudioProfilePage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </Card>
+
+          <Card title="Account-E-Mail" hint="Die neue Adresse wird erst nach einem Bestätigungscode als primär gesetzt.">
+            <div className="space-y-3">
+              <div className="rounded-xl border border-black/10 bg-black/[0.02] px-3.5 py-2.5">
+                <span className="mono block text-[9px] uppercase tracking-widest text-black/35">Aktuell</span>
+                <span className="mt-1 block text-[14px] text-black/75">
+                  {user?.primaryEmailAddress?.emailAddress || "Wird geladen …"}
+                </span>
+              </div>
+              {!pendingEmailId ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void beginEmailChange(); } }}
+                    placeholder="Neue E-Mail-Adresse"
+                    autoComplete="email"
+                    className="min-w-0 flex-1 rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 focus:border-black/45"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void beginEmailChange()}
+                    disabled={emailBusy || !email.trim()}
+                    className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-40"
+                  >
+                    Code senden
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-black/10 p-3.5">
+                  <p className="text-[13px] leading-relaxed text-black/55">
+                    Gib den Code ein, den Clerk an <span className="text-black/80">{email.trim()}</span> gesendet hat.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={emailCode}
+                      onChange={(event) => setEmailCode(event.target.value.replace(/\s/g, ""))}
+                      onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void confirmEmailChange(); } }}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="Bestätigungscode"
+                      maxLength={12}
+                      className="min-w-0 flex-1 rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 focus:border-black/45"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void confirmEmailChange()}
+                      disabled={emailBusy || emailCode.trim().length < 4}
+                      className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-40"
+                    >
+                      Bestätigen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void cancelEmailChange()}
+                      disabled={emailBusy}
+                      className="rounded-xl px-3 py-2.5 text-[13px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
 

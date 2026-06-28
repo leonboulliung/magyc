@@ -33,6 +33,7 @@ export function ShareDialog({
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [invitations, setInvitations] = useState<ProjectInvitation[]>([]);
   const [memberBusy, setMemberBusy] = useState(false);
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -48,8 +49,11 @@ export function ShareDialog({
     if (!open) return;
     fetch(`/api/projects/${id}/members`, { cache: "no-store" })
       .then(readApiJson)
-      .then((json) => setMembers(Array.isArray(json.members) ? json.members as ProjectMember[] : []))
-      .catch(() => setMembers([]));
+      .then((json) => {
+        setMembers(Array.isArray(json.members) ? json.members as ProjectMember[] : []);
+        setInvitations(Array.isArray(json.invitations) ? json.invitations as ProjectInvitation[] : []);
+      })
+      .catch(() => { setMembers([]); setInvitations([]); });
   }, [id, open]);
 
   async function addMember() {
@@ -62,17 +66,17 @@ export function ShareDialog({
         body: JSON.stringify({ email, displayName, role }),
       });
       const json = await readApiJson(res);
-      if (!res.ok || !json.member) {
+      if (!res.ok || !json.invitation) {
         showApiError("Einladung nicht gespeichert", json);
         return;
       }
-      setMembers((current) => [
-        ...current.filter((member) => member.id !== (json.member as ProjectMember).id && member.email !== (json.member as ProjectMember).email),
-        json.member as ProjectMember,
+      setInvitations((current) => [
+        ...current.filter((item) => item.id !== (json.invitation as ProjectInvitation).id && item.email !== (json.invitation as ProjectInvitation).email),
+        json.invitation as ProjectInvitation,
       ]);
       setEmail("");
       setDisplayName("");
-      showActionSuccess("Projektzugang gespeichert");
+      showActionSuccess("Einladung erstellt", { description: "Zugriff entsteht erst nach der Annahme." });
       router.refresh();
     } catch (error) {
       showUnknownError("Einladung nicht gespeichert", error);
@@ -81,30 +85,41 @@ export function ShareDialog({
     }
   }
 
-  async function updateMember(memberId: string, nextRole: "editor" | "client") {
-    const previous = members;
-    setMembers((current) => current.map((member) => member.id === memberId ? { ...member, role: nextRole } : member));
+  async function updateMember(memberId: string, nextRole: "editor" | "client", kind: "member" | "invitation") {
+    const previousMembers = members;
+    const previousInvitations = invitations;
+    const pending = invitations.some((item) => item.id === memberId);
+    if (pending) {
+      setInvitations((current) => current.map((item) => item.id === memberId ? { ...item, role: nextRole } : item));
+    } else {
+      setMembers((current) => current.map((member) => member.id === memberId ? { ...member, role: nextRole } : member));
+    }
     const res = await fetch(`/api/projects/${id}/members`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ memberId, role: nextRole }),
+      body: JSON.stringify({ memberId, role: nextRole, kind }),
     });
     if (!res.ok) {
-      setMembers(previous);
+      setMembers(previousMembers);
+      setInvitations(previousInvitations);
       showApiError("Rolle nicht geändert", await readApiJson(res));
     }
   }
 
-  async function removeMember(memberId: string) {
-    const previous = members;
-    setMembers((current) => current.filter((member) => member.id !== memberId));
+  async function removeMember(memberId: string, kind: "member" | "invitation") {
+    const previousMembers = members;
+    const previousInvitations = invitations;
+    const pending = invitations.some((item) => item.id === memberId);
+    if (pending) setInvitations((current) => current.filter((item) => item.id !== memberId));
+    else setMembers((current) => current.filter((member) => member.id !== memberId));
     const res = await fetch(`/api/projects/${id}/members`, {
       method: "DELETE",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ memberId }),
+      body: JSON.stringify({ memberId, kind }),
     });
     if (!res.ok) {
-      setMembers(previous);
+      setMembers(previousMembers);
+      setInvitations(previousInvitations);
       showApiError("Zugang nicht entfernt", await readApiJson(res));
     } else {
       router.refresh();
@@ -173,6 +188,8 @@ export function ShareDialog({
           type="button"
           onClick={() => toggle(!shared)}
           disabled={busy}
+          role="switch"
+          aria-checked={shared}
           className="mt-5 flex w-full items-center justify-between rounded-xl border border-black/12 bg-white px-4 py-3 text-left transition-colors hover:border-black/25 disabled:opacity-60"
         >
           <span>
@@ -185,12 +202,15 @@ export function ShareDialog({
           </span>
           {/* toggle pill */}
           <span
-            className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-            style={{ background: shared ? "#fff" : "rgba(255,255,255,0.18)" }}
+            className="relative h-6 w-11 shrink-0 rounded-full border transition-colors"
+            style={{
+              background: shared ? "#17171a" : "rgba(0,0,0,0.12)",
+              borderColor: shared ? "#17171a" : "rgba(0,0,0,0.18)",
+            }}
           >
             <span
-              className="absolute top-0.5 h-5 w-5 rounded-full transition-all"
-              style={{ left: shared ? 22 : 2, background: shared ? "#000" : "#fff" }}
+              className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all"
+              style={{ left: shared ? 22 : 2 }}
             />
           </span>
         </button>
@@ -222,26 +242,31 @@ export function ShareDialog({
               <h3 className="text-[14px] font-medium text-[#17171a]">Direkter Projektzugang</h3>
               <p className="mt-0.5 text-[12px] text-black/45">Team bearbeitet die Planung, Kunden arbeiten an Auswahl und Feedback.</p>
             </div>
-            <span className="mono text-[10px] text-black/35">{members.length}</span>
+            <span className="mono text-[10px] text-black/35">{members.length + invitations.length}</span>
           </div>
 
-          {members.length > 0 && (
+          {(members.length > 0 || invitations.length > 0) && (
             <div className="mt-3 space-y-1.5">
-              {members.map((member) => (
-                <div key={member.id} className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2">
+              {[
+                ...members.map((member) => ({ ...member, kind: "member" as const, pending: false })),
+                ...invitations.map((item) => ({ ...item, user_id: null, kind: item.legacy ? "member" as const : "invitation" as const, pending: true })),
+              ].map((member) => (
+                <div key={`${member.kind}:${member.id}`} className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium text-[#17171a]">{member.display_name || member.email}</div>
-                    <div className="truncate text-[11px] text-black/40">{member.email}{member.user_id ? " · Account verbunden" : " · Einladung vorgemerkt"}</div>
+                    <div className="truncate text-[11px] text-black/40">
+                      {member.email} · {member.pending ? "Einladung ausstehend" : "Zugang aktiv"}
+                    </div>
                   </div>
                   <select
                     value={member.role}
-                    onChange={(event) => void updateMember(member.id, event.target.value as "editor" | "client")}
+                    onChange={(event) => void updateMember(member.id, event.target.value as "editor" | "client", member.kind)}
                     className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[11px] text-black/65 outline-none"
                   >
                     <option value="editor">Team</option>
                     <option value="client">Kunde</option>
                   </select>
-                  <button type="button" onClick={() => void removeMember(member.id)} aria-label="Zugang entfernen" className="grid h-7 w-7 place-items-center text-[14px] text-black/35 hover:text-black">×</button>
+                  <button type="button" onClick={() => void removeMember(member.id, member.kind)} aria-label={member.pending ? "Einladung zurückziehen" : "Zugang entfernen"} className="grid h-7 w-7 place-items-center text-[14px] text-black/35 hover:text-black">×</button>
                 </div>
               ))}
             </div>
@@ -256,7 +281,7 @@ export function ShareDialog({
             </select>
           </div>
           <button type="button" onClick={() => void addMember()} disabled={memberBusy || !email.trim()} className="mt-2 rounded-full bg-[#17171a] px-4 py-2 text-[12px] font-medium text-white disabled:opacity-35">
-            Zugang hinzufügen
+            Einladung senden
           </button>
         </div>
 
@@ -281,4 +306,15 @@ interface ProjectMember {
   display_name: string | null;
   role: "editor" | "client";
   created_at: string;
+}
+
+interface ProjectInvitation {
+  id: string;
+  email: string;
+  display_name: string | null;
+  role: "editor" | "client";
+  status: "pending";
+  expires_at: string;
+  created_at: string;
+  legacy?: boolean;
 }

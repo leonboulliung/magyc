@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { fetchSpaceListByOwnerWithClient } from "@/lib/db";
 import { ensureProfile } from "@/lib/server/profile";
-import { claimPendingProjectMemberships } from "@/lib/server/projectAccess";
 import { fetchStudioProjectSummaries } from "@/lib/server/studioDashboard";
 import { supabaseAdmin } from "@/lib/supabase";
 import { StudioHome, type StudioProjectCard } from "@/components/studio/StudioHome";
@@ -19,7 +18,6 @@ export default async function StudioDashboard() {
 
   await ensureProfile(userId);
   const admin = supabaseAdmin();
-  await claimPendingProjectMemberships(admin, userId);
   let all;
   try {
     all = (await fetchStudioProjectSummaries(admin, userId)).filter((space) => space.stage !== null);

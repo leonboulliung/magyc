@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: contract } = await admin
     .from("project_contracts")
-    .select("status, locked, signers, audit, content_hash, owner_signed_at, client_signed_at")
+    .select("status, mode, locked, signers, audit, content_hash, owner_signed_at, client_signed_at")
     .eq("space_id", id)
     .maybeSingle();
   if (!contract) return NextResponse.json({ error: "no_contract" }, { status: 409 });
@@ -60,6 +60,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const signable = new Set(["released", "owner_signed", "client_signed"]);
   if (!signable.has(contract.status)) {
     return NextResponse.json({ error: "not_released" }, { status: 409 });
+  }
+  const signatureMode = contract.mode === "draw" ? "draw" : "click";
+  if (signatureMode === "draw" && !signature) {
+    return NextResponse.json({ error: "signature_required" }, { status: 400 });
   }
 
   const now = new Date().toISOString();
@@ -71,9 +75,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // One signature per role — replace an earlier one from the same role.
   const nextSigners = [
     ...signers.filter((s: { role?: string }) => s?.role !== role),
-    { role, name, place, signature, ip, ua, signedAt: now, contentHash: contract.content_hash ?? null },
+    { role, name, place, signature: signatureMode === "draw" ? signature : "", ip, ua, signedAt: now, contentHash: contract.content_hash ?? null },
   ];
-  audit.push({ event: `${role}_signed`, role, name, place, mode: signature ? "drawn" : "click", ts: now, ip, ua, contentHash: contract.content_hash ?? null });
+  audit.push({ event: `${role}_signed`, role, name, place, mode: signatureMode, ts: now, ip, ua, contentHash: contract.content_hash ?? null });
 
   const ownerSignedAt = role === "photographer" ? now : contract.owner_signed_at;
   const clientSignedAt = role === "client" ? now : contract.client_signed_at;

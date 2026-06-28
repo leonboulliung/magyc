@@ -37,12 +37,14 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
             </Link>
             <StudioNav />
           </div>
-          <StudioAccountControls />
+          <div className="flex shrink-0 items-center gap-2">
+            <SupportWidget variant="studio" />
+            <StudioAccountControls />
+          </div>
         </div>
       </header>
 
       <main className="relative z-10">{children}</main>
-      <SupportWidget />
     </div>
   );
 }

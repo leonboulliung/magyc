@@ -27,20 +27,12 @@ _Last updated: 2026-06-28 (Leon/Codex — invitation and permission hardening)_
 
 ## Open engineering priorities
 
-1. **P0 — Invitation and permission system must be stabilized.** Entering an
-   existing email currently creates/claims project access immediately. Replace
-   this with an explicit pending invitation that grants no access until the
-   recipient accepts; add deduplication, revoke/decline, expiry and rate limits
-   so accounts cannot be spammed by arbitrary email entry. Recipient wording
-   must describe perspective (`Als Kunde eingeladen`, `Deine Rolle: Team`)
-   instead of the ambiguous owner-facing label `Kunde`. Re-test the complete UI
-   and API matrix: Owner, Team/editor, Kunde/client, share-link and signed-out.
-   Leon observed that an account switched to Team still behaved essentially
-   like a customer. Current policy intentionally keeps lifecycle/phase changes
-   owner-only, so the product decision must be made explicitly: whether Team may
-   advance phases, and which structural/content actions clearly distinguish it
-   from Kunde. Whatever is chosen must be enforced identically in navigation,
-   project UI, snapshot reads, widgets/state/uploads, contracts and APIs.
+1. **Apply migration 026 and run the invitation/role acceptance matrix.** Code
+   now stores pending invites separately, requires explicit acceptance by a
+   verified matching Clerk email, rate-limits invitation creation and lets Team
+   (but not Kunde) advance phases. Until migration 026 is applied, new secure
+   invitations return a clear migration-required error and legacy pending rows
+   remain revocable but cannot be accepted.
 2. **Private-read cutover is code-complete; migration/QA remains.** Browser and
    SSR project reads now use role-gated snapshot APIs, and Realtime transports
    only data-free invalidations. Migration 025 performs the database lockdown
@@ -61,6 +53,24 @@ Everything else currently listed below is a product/performance option rather
 than unfinished work from the hardening package: streamed project creation,
 anonymous draft recovery, deeper marketing content/SEO, and broader error-copy
 cleanup can be prioritized from real usage.
+
+---
+
+## Done 2026-06-28 — account workflow and contract simplification
+
+- Replaced implicit email claiming with explicit, expiring project invitations.
+  Accepting a verified invite creates membership transactionally; pending
+  invitations never appear as projects. Team can advance phases while sharing,
+  member administration, deletion and contract release remain owner-only.
+- Auswahl now generates and persists the contract draft before the project
+  advances. The editable draft autosaves, the owner chooses text confirmation
+  or drawn signatures before release, and one atomic release replaces the old
+  generate → set → release sequence.
+- Account presets are no longer hidden because they contain zero modules; the
+  prompt hides its entire preset row when the account has none. Schnellbaustein
+  colours moved into a compact popover with no colour as the default. Support,
+  sharing toggles and perspective labels were reduced and clarified. Profile
+  now supports Clerk's verified email-code change flow.
 
 ---
 
