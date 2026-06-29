@@ -54,3 +54,20 @@ export async function ensureProfile(userId: string): Promise<void> {
     throw new Error("profile_upsert_failed");
   }
 }
+
+/**
+ * The project-page canvas theme chosen by a project's OWNER (account setting),
+ * applied for both the owner and the clients viewing the shared link so a
+ * project looks consistent. Tolerant: any failure → "dark" (the default).
+ */
+export async function fetchProjectTheme(ownerId: string | null | undefined): Promise<"dark" | "light"> {
+  if (!ownerId) return "dark";
+  try {
+    const admin = supabaseAdmin();
+    const { data } = await admin.from("profiles").select("settings").eq("id", ownerId).maybeSingle();
+    const theme = (data?.settings as { projectTheme?: unknown } | null)?.projectTheme;
+    return theme === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}

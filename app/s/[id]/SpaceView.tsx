@@ -71,6 +71,7 @@ export function SpaceView({
   canEditOverride,
   onProjectDataChange,
   disableRealtime = false,
+  themeMode = "dark",
 }: {
   id: string;
   initialSpace?: Space | null;
@@ -78,6 +79,8 @@ export function SpaceView({
   canEditOverride?: boolean;
   onProjectDataChange?: (modules: Module[], state: ModuleStateEntry[]) => void;
   disableRealtime?: boolean;
+  /** Canvas theme for the project page ("stage"). Owner's account preference. */
+  themeMode?: "dark" | "light";
 }) {
   const { user } = useUser();
 
@@ -417,8 +420,8 @@ export function SpaceView({
   }, [effectiveStyle.font]);
 
   const rootStyleVars = useMemo(
-    () => styleVars(effectiveStyle, fontStack(findFont(effectiveStyle.font))),
-    [effectiveStyle],
+    () => styleVars(effectiveStyle, fontStack(findFont(effectiveStyle.font)), themeMode),
+    [effectiveStyle, themeMode],
   );
 
   useEffect(() => {
@@ -543,8 +546,15 @@ export function SpaceView({
         className={`vibe-root vibe-${space.vibe} relative min-h-screen flex flex-col overflow-hidden`}
         style={{ ...rootStyleVars, background: "var(--v-page, var(--v-bg))" }}
       >
-        <DotField color="255,255,255" className="pointer-events-none fixed inset-0 z-0 opacity-[0.13]" />
-        <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0),rgba(0,0,0,0.52))]" />
+        <DotField color={themeMode === "light" ? "0,0,0" : "255,255,255"} className="pointer-events-none fixed inset-0 z-0 opacity-[0.08] sm:opacity-[0.13]" />
+        <div
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{
+            background: themeMode === "light"
+              ? "linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.05))"
+              : "linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.52))",
+          }}
+        />
 
         {/* Floating top-right controls — only when there is one to show. */}
         {showTopControls && (

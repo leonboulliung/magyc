@@ -122,19 +122,39 @@ export function normalizeStyle(style: SpaceStyle): SpaceStyle {
  *   --v-rule   = translucent glass border
  *   --v-muted  = subdued white copy
  */
-export function styleVars(style: SpaceStyle, fontStackValue: string): React.CSSProperties {
+export type ProjectThemeMode = "dark" | "light";
+
+export function styleVars(
+  style: SpaceStyle,
+  fontStackValue: string,
+  mode: ProjectThemeMode = "dark",
+): React.CSSProperties {
   const accent = normHex(style.color2);
+  const base = mode === "light"
+    ? {
+        ["--v-fg" as string]: "#17171a",
+        ["--v-page" as string]: "#f4f4f1",
+        ["--v-bg" as string]: "#ffffff",
+        ["--v-rule" as string]: "rgba(0,0,0,0.12)",
+        ["--v-muted" as string]: "rgba(0,0,0,0.55)",
+        ["--v-card" as string]: "#ffffff",
+        ["--v-widget" as string]: `color-mix(in srgb, ${accent} 9%, #ffffff)`,
+        ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 38%, rgba(0,0,0,0.14))`,
+      }
+    : {
+        ["--v-fg" as string]: "#ffffff",
+        ["--v-page" as string]: "#000000",
+        ["--v-bg" as string]: "#050505",
+        ["--v-rule" as string]: "rgba(255,255,255,0.22)",
+        ["--v-muted" as string]: "rgba(255,255,255,0.68)",
+        ["--v-card" as string]: "#101010",
+        ["--v-widget" as string]: `color-mix(in srgb, ${accent} 20%, #171717)`,
+        ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 44%, rgba(255,255,255,0.28))`,
+      };
   return {
     // Custom props — cast through a record so TS accepts the css vars.
-    ["--v-fg" as string]: "#ffffff",
     ["--v-accent" as string]: accent,
-    ["--v-page" as string]: "#000000",
-    ["--v-bg" as string]: "#050505",
-    ["--v-rule" as string]: "rgba(255,255,255,0.22)",
-    ["--v-muted" as string]: "rgba(255,255,255,0.68)",
-    ["--v-card" as string]: "#101010",
-    ["--v-widget" as string]: `color-mix(in srgb, ${accent} 20%, #171717)`,
-    ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 44%, rgba(255,255,255,0.28))`,
+    ...base,
     ["--v-radius" as string]: "28px",
     ["--v-font" as string]: fontStackValue,
     ["--v-heading" as string]: fontStackValue,

@@ -2,7 +2,7 @@
 
 import { useStudioProfile } from "@/components/studio/useStudioProfile";
 import { LANGUAGE_OPTIONS } from "@/lib/studioProfile";
-import { PageHeader, Card, Field, Select, Toggle } from "@/components/studio/formKit";
+import { PageHeader, Card, Field, Select, Toggle, Segmented } from "@/components/studio/formKit";
 
 /**
  * Einstellungen — account-wide defaults for new projects (language, sharing).
@@ -44,6 +44,18 @@ export default function StudioSettingsPage() {
                 hint="Projekte starten mit aktivem Teilen-Link statt privat."
               />
             </div>
+          </Card>
+
+          <Card title="Darstellung">
+            <Field label="Projektseite" hint="Die Leinwand deiner Projektseiten. Die projektbezogene Akzentfarbe bleibt; nur Hintergrund und Schrift wechseln. Gilt auch für deine Kunden.">
+              <div className="mt-1.5">
+                <Segmented
+                  options={[{ value: "dark", label: "Dunkel" }, { value: "light", label: "Hell" }]}
+                  value={settings.projectTheme}
+                  onChange={(v) => set({ projectTheme: v })}
+                />
+              </div>
+            </Field>
           </Card>
         </div>
       )}

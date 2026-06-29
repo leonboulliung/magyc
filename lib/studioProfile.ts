@@ -27,6 +27,10 @@ export interface StudioSettings {
   defaultLanguage: string;
   /** New projects start shared (link-accessible) instead of private. */
   defaultShared: boolean;
+  /** Canvas theme for the photographer's project pages (the "stage"). The
+   *  per-space accent stays; only the canvas/ink flip. Applies to owner + the
+   *  clients viewing the shared link, so a project looks consistent. */
+  projectTheme: "dark" | "light";
   /** Legal identity used on contracts (Dienstleister-Daten). */
   business: StudioBusiness;
   /** Reusable contract conditions — the photographer's "contract DNA",
@@ -227,6 +231,7 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   fastPrompts: [],
   defaultLanguage: "de",
   defaultShared: false,
+  projectTheme: "dark",
   business: DEFAULT_BUSINESS,
   conditions: DEFAULT_CONDITIONS,
 };
@@ -271,6 +276,7 @@ export function cleanSettings(raw: unknown): StudioSettings {
     fastPrompts: cleanFastPrompts(o.fastPrompts),
     defaultLanguage: LANGUAGE_OPTIONS.some((l) => l.value === lang) ? lang : DEFAULT_SETTINGS.defaultLanguage,
     defaultShared: o.defaultShared === true,
+    projectTheme: o.projectTheme === "light" ? "light" : "dark",
     business: cleanBusiness(o.business),
     conditions: cleanConditions(o.conditions),
   };

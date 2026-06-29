@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { fetchHandoffWithClient } from "@/lib/db";
 import { StudioWorkspace } from "@/components/studio/StudioWorkspace";
 import { readSpaceForViewer } from "@/lib/server/spaceRead";
+import { fetchProjectTheme } from "@/lib/server/profile";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // The workspace is the live project; never serve it from the data cache.
@@ -26,6 +27,7 @@ export default async function StudioProjectPage({ params }: { params: Promise<{ 
 
   // Handoff lives behind a separate, migration-tolerant service-role read.
   space.handoff = await fetchHandoffWithClient(admin, space.id);
+  const themeMode = await fetchProjectTheme(space.owner?.id);
 
-  return <StudioWorkspace space={space} accessRole={accessRole} />;
+  return <StudioWorkspace space={space} accessRole={accessRole} themeMode={themeMode} />;
 }

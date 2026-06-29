@@ -21,9 +21,11 @@ import type { ProjectAccessRole } from "@/lib/server/projectAccess";
 export function StudioWorkspace({
   space,
   accessRole = "owner",
+  themeMode = "dark",
 }: {
   space: Space;
   accessRole?: Extract<ProjectAccessRole, "owner" | "editor" | "client">;
+  themeMode?: "dark" | "light";
 }) {
   const stage: ProjectStage = (space.stage ?? "brief") as ProjectStage;
   const [view, setView] = useState<ProjectStage>(stage);
@@ -52,6 +54,7 @@ export function StudioWorkspace({
           hideLockedNotice
           canEditOverride={space.deletedAt === null && (accessRole === "owner" || accessRole === "editor")}
           onProjectDataChange={handleProjectDataChange}
+          themeMode={themeMode}
         />
       ) : (
         <div

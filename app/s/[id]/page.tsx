@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { SpaceView } from "./SpaceView";
 import { readSpaceForViewer } from "@/lib/server/spaceRead";
+import { fetchProjectTheme } from "@/lib/server/profile";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // Spaces are mutable: without this, Next.js may serve the Supabase fetch from
@@ -54,11 +55,13 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
 
   const canEdit = result.space.deletedAt === null
     && (result.role === "owner" || result.role === "editor");
+  const themeMode = await fetchProjectTheme(result.space.owner?.id);
   return (
     <SpaceView
       id={id}
       initialSpace={result.space}
       canEditOverride={canEdit ? true : undefined}
+      themeMode={themeMode}
     />
   );
 }
