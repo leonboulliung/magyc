@@ -1,4 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { deDE } from "@clerk/localizations";
 import type { Metadata, Viewport } from "next";
 import { AppToaster } from "@/components/AppToaster";
 import "./globals.css";
@@ -39,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#f4f4f1] text-[#17171a] antialiased">
-        <ClerkProvider appearance={clerkAppearance}>
+        <ClerkProvider appearance={clerkAppearance} localization={deDE}>
           {children}
           <AppToaster />
         </ClerkProvider>
