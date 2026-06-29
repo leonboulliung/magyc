@@ -616,10 +616,10 @@ export function StudioHome({
 function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" | "archived" | "deleted" }) {
   const dim = context !== "active";
   return (
-    <div className={`group relative ${dim ? "opacity-75" : ""}`}>
+    <div className={`group relative transform-gpu rounded-2xl transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(0,0,0,0.13)] ${dim ? "opacity-75" : ""}`}>
       <Link
         href={`/studio/${p.id}`}
-        className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-black/10 transition-transform hover:-translate-y-0.5"
+        className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-black/10"
       >
         <MoodGradient seed={p.id} className={`absolute inset-0 transition-transform duration-500 group-hover:scale-105 ${dim ? "saturate-[0.6]" : ""}`} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />

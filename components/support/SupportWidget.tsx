@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useUser } from "@clerk/nextjs";
 import { Icon } from "@iconify/react";
 import { readApiJson, showActionSuccess, showApiError, showUnknownError } from "@/lib/client/feedback";
@@ -22,6 +23,12 @@ export function SupportWidget({
   const [busy, setBusy] = useState(false);
 
   const canSend = useMemo(() => message.trim().length >= 10 && !busy, [busy, message]);
+
+  // Portal target: the modal must escape the studio header's `backdrop-blur`
+  // ancestor — backdrop-filter makes that header a containing block, which
+  // would otherwise trap `position: fixed` inside the nav bar.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   if (!isSignedIn) return null;
 
@@ -73,9 +80,9 @@ export function SupportWidget({
         <Icon icon="lucide:circle-help" className="h-4 w-4" />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-4">
-          <section className="w-full max-w-lg rounded-[28px] border border-black/10 bg-[#f4f4f1] p-5 text-[#17171a] shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
+      {open && mounted && createPortal(
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/45 px-4" onClick={() => setOpen(false)}>
+          <section onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-[28px] border border-black/10 bg-[#f4f4f1] p-5 text-[#17171a] shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="mono text-[11px] uppercase tracking-[0.28em] text-black/45">Support</p>
@@ -132,7 +139,8 @@ export function SupportWidget({
               </button>
             </div>
           </section>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

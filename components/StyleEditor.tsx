@@ -239,6 +239,12 @@ function ColorRow({
   value: string;
   onChange: (hex: string) => void;
 }) {
+  // Local draft so the field can be typed char-by-char; commit only a complete
+  // valid hex. Without this the controlled input rejects every partial keystroke
+  // (only paste of a full value worked).
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const valid = (v: string) => /^#([0-9a-fA-F]{6})$/.test(v.trim());
   return (
     <div className="flex items-center gap-3 min-w-0">
       <label className="relative shrink-0" style={{ width: 28, height: 28 }}>
@@ -258,13 +264,17 @@ function ColorRow({
         <div className="mono text-[9px] tracking-wide mt-0.5" style={{ color: "var(--v-muted)" }}>{hint}</div>
       </div>
       <input
-        value={value}
+        value={text}
         onChange={(e) => {
-          const v = e.target.value.trim();
-          if (/^#([0-9a-fA-F]{6})$/.test(v)) onChange(v);
+          let v = e.target.value;
+          if (v && !v.startsWith("#")) v = `#${v.replace(/#/g, "")}`;
+          setText(v);
+          if (valid(v)) onChange(v.trim());
         }}
+        onBlur={() => { if (!valid(text)) setText(value); }}
+        spellCheck={false}
         maxLength={7}
-        className="mono text-[10px] w-[72px] shrink-0 px-1.5 py-1 rounded-[var(--v-radius)] bg-transparent outline-none text-right"
+        className="mono text-[10px] w-[64px] shrink-0 px-1.5 py-1 rounded-[var(--v-radius)] bg-transparent outline-none text-center uppercase"
         style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
       />
     </div>

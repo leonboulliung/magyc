@@ -65,6 +65,7 @@ export function SiteNav() {
             ),
           )}
           <SignedOut>
+            {/* One CTA: Clerk sign-in (which also offers sign-up). */}
             <SignInButton
               mode="modal"
               forceRedirectUrl={signInTarget}
@@ -72,20 +73,14 @@ export function SiteNav() {
               signUpForceRedirectUrl={signInTarget}
               signUpFallbackRedirectUrl={signInTarget}
             >
-              <button type="button" className="rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
-                Anmelden
+              <button type="button" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
+                Studio Login
               </button>
             </SignInButton>
-            <Link href="/#start" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
-              Kostenlos testen
-            </Link>
           </SignedOut>
           <SignedIn>
-            <Link href="/studio" className="rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
-              Studio
-            </Link>
-            <Link href="/studio/new" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
-              Neues Projekt
+            <Link href="/studio" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
+              Zum Studio
             </Link>
           </SignedIn>
         </nav>
@@ -135,18 +130,12 @@ export function SiteNav() {
                   signUpForceRedirectUrl={signInTarget}
                   signUpFallbackRedirectUrl={signInTarget}
                 >
-                  <button type="button" className="font-body text-[15px] text-black/60 hover:text-black">Anmelden</button>
+                  <button type="button" className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">Studio Login</button>
                 </SignInButton>
-                <Link href="/#start" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">
-                  Kostenlos testen
-                </Link>
               </SignedOut>
               <SignedIn>
-                <Link href="/studio" onClick={() => setOpen(false)} className="font-body text-[15px] text-black/60 hover:text-black">
-                  Studio
-                </Link>
-                <Link href="/studio/new" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">
-                  Neues Projekt
+                <Link href="/studio" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">
+                  Zum Studio
                 </Link>
               </SignedIn>
             </div>

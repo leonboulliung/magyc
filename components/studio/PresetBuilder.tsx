@@ -238,8 +238,8 @@ export function PresetBuilder() {
                   <span className="block text-[14px] text-black/85">Kontext-Elemente erlauben</span>
                   <span className="mt-0.5 block text-[12px] leading-snug text-black/40">MAGYC darf passende Elemente ergänzen.</span>
                 </span>
-                <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "#fff" : "rgba(255,255,255,0.15)" }}>
-                  <span className="absolute top-0.5 h-5 w-5 rounded-full transition-transform" style={{ left: 2, background: editing.allowContextModules !== false ? "#000" : "#fff", transform: editing.allowContextModules !== false ? "translateX(20px)" : "none" }} />
+                <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "#17171a" : "rgba(0,0,0,0.18)" }}>
+                  <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform" style={{ left: 2, transform: editing.allowContextModules !== false ? "translateX(20px)" : "none" }} />
                 </span>
               </button>
 
