@@ -41,6 +41,10 @@ function Eyebrow({ children }: { children: ReactNode }) {
 /** Shared headline class — clear, bold brand grotesk (no italic). */
 const H = "font-brand font-bold tracking-[-0.02em]";
 
+/** Warm brand accents that give the segment pages energy. */
+const WARM = "linear-gradient(135deg, #ffb347, #ff7ea8, #9b8cff)";
+const WARM_TEXT = "linear-gradient(120deg, #ff8a5b, #f4719b)";
+
 /**
  * SegmentLanding — one renderer for every photography-segment marketing
  * page. Content comes from a Segment (lib/segments.ts); the engine story
@@ -53,8 +57,13 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
   return (
     <div style={{ color: brand.ink }}>
       {/* ── Hero ───────────────────────────────────────────────── */}
-      <Container className="pt-28 sm:pt-36 pb-12 sm:pb-20">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+      <Container className="relative pt-28 sm:pt-36 pb-12 sm:pb-20">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-8 right-0 h-[440px] w-[680px] max-w-full opacity-90"
+          style={{ background: "radial-gradient(closest-side, rgba(255,140,90,0.18), transparent), radial-gradient(closest-side at 25% 55%, rgba(155,140,255,0.16), transparent)" }}
+        />
+        <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
             <Eyebrow>{segment.hero.eyebrow}</Eyebrow>
             <h1 className={`mt-5 ${H} text-[38px] leading-[1.03] sm:text-[60px]`}>
@@ -94,10 +103,10 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
           <h2 className={`mt-4 max-w-3xl ${H} text-[28px] leading-[1.1] sm:text-[42px]`}>
             {segment.problem.heading}
           </h2>
-          <div className="mt-10 grid gap-px overflow-hidden rounded-2xl sm:grid-cols-3" style={{ border: `1px solid ${brand.rule}`, background: brand.rule }}>
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {segment.problem.cards.map((c) => (
-              <div key={c.big} className="p-6" style={{ background: brand.surface }}>
-                <div className={`${H} text-[22px] sm:text-[26px]`}>{c.big}</div>
+              <div key={c.big} className="rounded-2xl border border-black/[0.08] bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
+                <div className={`${H} text-[22px] sm:text-[26px]`} style={{ background: WARM_TEXT, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{c.big}</div>
                 <p className="mt-3 text-[14px] leading-relaxed" style={{ color: brand.muted }}>{c.small}</p>
               </div>
             ))}
@@ -135,8 +144,8 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
           </h2>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {segment.lifecycle.steps.map((s) => (
-              <div key={s.n} className="rounded-2xl p-6" style={{ border: `1px solid ${brand.rule}`, background: brand.surface }}>
-                <div className="mono text-[12px] tracking-widest" style={{ color: brand.muted }}>{s.n}</div>
+              <div key={s.n} className="rounded-2xl border border-black/[0.08] bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.06)]">
+                <div className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-semibold text-white" style={{ background: brand.ink }}>{s.n}</div>
                 <h3 className={`mt-3 ${H} text-[22px]`}>{s.title}</h3>
                 <p className="mt-3 text-[15px] leading-relaxed" style={{ color: brand.ink, opacity: 0.72 }}>{s.lead}</p>
                 <p className="mt-4 text-[13px] leading-relaxed" style={{ color: brand.muted }}>{s.note}</p>
@@ -154,10 +163,10 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
             {segment.blocks.heading}
           </h2>
           <p className="mt-5 max-w-2xl text-[17px] leading-relaxed" style={{ color: brand.muted }}>{segment.blocks.lead}</p>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl sm:grid-cols-2 lg:grid-cols-3" style={{ border: `1px solid ${brand.rule}`, background: brand.rule }}>
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {segment.blocks.items.map((b) => (
-              <div key={b.name} className="p-6 transition-opacity duration-200 hover:opacity-80" style={{ background: brand.surface }}>
-                <div style={{ color: brand.ink }}><Icon k={b.icon} /></div>
+              <div key={b.name} className="group rounded-2xl border border-black/[0.08] bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
+                <div className="grid h-10 w-10 place-items-center rounded-xl text-white transition-transform duration-300 group-hover:scale-105" style={{ background: WARM }}><Icon k={b.icon} /></div>
                 <h3 className="mt-4 font-body text-[16px] font-medium">{b.name}</h3>
                 <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: brand.muted }}>{b.role}</p>
               </div>
@@ -201,13 +210,18 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
 
       {/* ── CTA + andere Segmente ──────────────────────────────── */}
       <Container className="pb-28 pt-8 text-center sm:pb-36">
-        <h2 className={`mx-auto max-w-2xl ${H} text-[30px] leading-[1.06] sm:text-[48px]`}>
-          {segment.cta.headline}
-        </h2>
-        <div className="mt-9 flex items-center justify-center">
-          <Link href="/#start" className="rounded-full px-6 py-3 font-body text-sm font-medium transition-all duration-200 active:scale-[0.98]" style={{ background: brand.ink, color: brand.bg }}>
-            {segment.cta.button}
-          </Link>
+        <div className="relative overflow-hidden rounded-[32px] px-6 py-16 sm:px-12 sm:py-20" style={{ background: brand.ink }}>
+          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70" style={{ background: "radial-gradient(60% 80% at 50% 0%, rgba(255,140,90,0.34), transparent 70%), radial-gradient(50% 70% at 80% 100%, rgba(155,140,255,0.32), transparent 70%)" }} />
+          <div className="relative">
+            <h2 className={`mx-auto max-w-2xl ${H} text-[30px] leading-[1.06] text-white sm:text-[48px]`}>
+              {segment.cta.headline}
+            </h2>
+            <div className="mt-9 flex items-center justify-center">
+              <Link href="/#start" className="rounded-full bg-white px-6 py-3 font-body text-sm font-medium text-[#17171a] transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]">
+                {segment.cta.button}
+              </Link>
+            </div>
+          </div>
         </div>
         {others.length > 0 && (
           <div className="mt-14">
