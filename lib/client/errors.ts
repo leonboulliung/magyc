@@ -48,6 +48,7 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   }
   if (raw === "state_write_failed") return "Die Änderung konnte nicht konsistent gespeichert werden. Bitte erneut versuchen.";
   if (raw === "contract_signed") return "Unterschriebene Projekte sind gesperrt — der Plan kann nicht mehr geaendert werden.";
+  if (raw === "project_inactive") return "Archivierte oder geloeschte Projekte koennen die Phase nicht wechseln. Stelle das Projekt zuerst wieder her.";
   if (raw === "bad_stage") return "Diese Projektphase ist nicht gueltig.";
   if (raw === "invalid_stage_transition") return "Projektphasen können nur nacheinander abgeschlossen werden.";
   if (raw === "contract_draft_failed") return "Der Vertragsentwurf konnte nicht vorbereitet werden. Das Projekt bleibt in der Planung.";

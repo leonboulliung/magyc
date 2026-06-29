@@ -40,6 +40,7 @@ export function StudioProjectBar({
   onAdvance,
   canManage = true,
   canAdvance = canManage,
+  surface = "dark",
 }: {
   id: string;
   stage: ProjectStage | null;
@@ -53,7 +54,20 @@ export function StudioProjectBar({
   canManage?: boolean;
   /** Team members may move work forward without gaining share/admin rights. */
   canAdvance?: boolean;
+  /** Lightness of the surface the bar floats over, so its pills stay legible. */
+  surface?: "light" | "dark";
 }) {
+  const light = surface === "light";
+  // Pill chrome + tab states adapt to the surface below the bar.
+  const chip = light
+    ? "border-black/12 bg-white/85 text-black/70 backdrop-blur-md hover:text-black"
+    : "border-white/15 bg-black/78 text-white/80 hover:text-white";
+  const activeTab = light ? "bg-[#17171a] text-white" : "bg-white text-black";
+  const inactiveTab = light ? "text-black/55 hover:text-black" : "text-white/55 hover:text-white";
+  const lockedTab = light ? "text-black/25" : "text-white/25";
+  const arrowMuted = light ? "text-black/40" : "text-white/40";
+  const menuBg = light ? "#ffffff" : "#16181b";
+  const menuBorder = light ? "border-black/10" : "border-white/12";
   const router = useRouter();
   const [current, setCurrent] = useState<ProjectStage>(stage ?? "brief");
   const [busy, setBusy] = useState(false);
@@ -121,7 +135,7 @@ export function StudioProjectBar({
       <Link
         href="/studio"
         aria-label="Zurück zum Studio"
-        className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/78 px-3 text-[12px] text-white/80 transition-colors hover:text-white"
+        className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] transition-colors ${chip}`}
       >
         <span aria-hidden>←</span>
         <span className="hidden sm:inline">Studio</span>
@@ -133,15 +147,15 @@ export function StudioProjectBar({
           type="button"
           onClick={() => setStageMenuOpen((o) => !o)}
           disabled={busy}
-          className="mono flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/78 px-3 text-[10px] uppercase tracking-widest text-white/80 transition-colors hover:text-white disabled:opacity-60"
+          className={`mono flex h-8 items-center gap-1.5 rounded-full border px-3 text-[10px] uppercase tracking-widest transition-colors disabled:opacity-60 ${chip}`}
         >
           {viewLabel}
-          <span aria-hidden className="text-[8px] text-white/40">▾</span>
+          <span aria-hidden className={`text-[8px] ${arrowMuted}`}>▾</span>
         </button>
         {stageMenuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setStageMenuOpen(false)} />
-            <div className="absolute left-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-white/12 py-1 shadow-2xl" style={{ background: "#16181b", minWidth: "150px" }}>
+            <div className={`absolute left-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border py-1 shadow-2xl ${menuBorder}`} style={{ background: menuBg, minWidth: "150px" }}>
               {STAGES.map((s) => {
                 const kind = tabKind(s.id);
                 const active = s.id === view;
@@ -151,11 +165,11 @@ export function StudioProjectBar({
                     type="button"
                     onClick={() => onTab(s.id)}
                     disabled={busy || kind === "locked"}
-                    className={`mono block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-widest transition-colors disabled:opacity-30 ${active ? "text-white" : "text-white/50 hover:text-white"}`}
+                    className={`mono block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-widest transition-colors disabled:opacity-30 ${active ? (light ? "text-black" : "text-white") : (light ? "text-black/55 hover:text-black" : "text-white/50 hover:text-white")}`}
                   >
                     {active && <span className="mr-2 text-[8px]">●</span>}
                     {s.label}
-                    {kind === "advance" && <span className="ml-2 text-white/40">→</span>}
+                    {kind === "advance" && <span className={`ml-2 ${arrowMuted}`}>→</span>}
                   </button>
                 );
               })}
@@ -165,7 +179,7 @@ export function StudioProjectBar({
       </div>
 
       {/* Desktop: 3-stage stepper (view / advance / locked) */}
-      <div className="hidden sm:flex items-center gap-1 rounded-full border border-white/15 bg-black/78 p-1">
+      <div className={`hidden sm:flex items-center gap-1 rounded-full border p-1 ${light ? "border-black/12 bg-white/85 backdrop-blur-md" : "border-white/15 bg-black/78"}`}>
         {STAGES.map((s) => {
           const kind = tabKind(s.id);
           const active = s.id === view;
@@ -178,10 +192,10 @@ export function StudioProjectBar({
               title={kind === "locked" ? "Erst die vorige Phase abschließen" : undefined}
               className={`mono rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest transition-colors disabled:cursor-not-allowed ${
                 active
-                  ? "bg-white text-black"
+                  ? activeTab
                   : kind === "locked"
-                    ? "text-white/25"
-                    : "text-white/55 hover:text-white"
+                    ? lockedTab
+                    : inactiveTab
               }`}
             >
               {s.label}
@@ -195,7 +209,7 @@ export function StudioProjectBar({
         <button
           type="button"
           onClick={() => setShareOpen(true)}
-          className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/78 px-3 text-[12px] text-white/80 transition-colors hover:text-white"
+          className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] transition-colors ${chip}`}
         >
           <span aria-hidden>↗</span>
           <span className="hidden sm:inline">{shared ? "Geteilt" : "Teilen"}</span>
@@ -203,7 +217,7 @@ export function StudioProjectBar({
       )}
 
       {segment && (
-        <span className="mono hidden rounded-full border border-white/12 bg-black/72 px-2.5 py-1 text-[10px] uppercase tracking-widest text-white/40 lg:inline">
+        <span className={`mono hidden rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-widest lg:inline ${light ? "border-black/12 bg-white/80 text-black/45 backdrop-blur-md" : "border-white/12 bg-black/72 text-white/40"}`}>
           {segment}
         </span>
       )}

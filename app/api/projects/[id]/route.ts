@@ -74,7 +74,7 @@ export async function PATCH(
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, owner_id, shared, modules, stage")
+    .select("id, owner_id, shared, modules, stage, archived_at, deleted_at")
     .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -87,6 +87,12 @@ export async function PATCH(
   const stageOnly = Object.keys(update).every((key) => key === "stage");
   if (accessRole !== "owner" && !(stageOnly && canAdvanceProject(accessRole))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // An archived or trashed project is out of the active flow — its phase must
+  // not advance. (Restoring it via archived/deleted:false is still allowed.)
+  if (update.stage && (space.archived_at !== null || space.deleted_at !== null)) {
+    return NextResponse.json({ error: "project_inactive" }, { status: 409 });
   }
 
   if (update.stage) {
