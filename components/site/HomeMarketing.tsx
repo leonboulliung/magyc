@@ -61,7 +61,7 @@ const ELEMENTS = [
 
 const STEPS = [
   { n: "1", title: "Kundenanfrage kommt rein", body: "Eine vage Nachricht genügt — ein Satz reicht.", media: "behindScenes" as const },
-  { n: "2", title: "MAGYC baut die Projektseite", body: "Aus der Idee wird eine klare Seite aus passenden Elementen.", media: "projectPage" as const },
+  { n: "2", title: "MAGYC baut die Projektseite", body: "Aus der Idee wird eine klare Seite aus passenden Elementen.", media: "projectPageStill" as const },
   { n: "3", title: "Kunde & Team stimmen ab", body: "Ein Link: kommentieren, wählen, freigeben — gemeinsam.", media: "alignment" as const },
   { n: "4", title: "Klarer Auftrag & Übergabe", body: "Vertrag unterschrieben, Bilder übergeben — sauber abgeschlossen.", media: "handoff" as const },
 ];

@@ -24,6 +24,7 @@ export type MediaKey =
   | "shootingSetup"
   | "moodboard"
   | "projectPage"
+  | "projectPageStill"
   | "alignment"
   | "handoff"
   | "productTile"
@@ -60,6 +61,11 @@ export const SITE_MEDIA: Record<MediaKey, SiteMedia> = {
     kind: "video",
     src: "/media/marketing/projektseiten-preview.mp4",
     posterSrc: "/media/marketing/projektseite-preview.png",
+  },
+  projectPageStill: {
+    label: "Projektseiten Preview",
+    alt: "Vorschau einer strukturierten MAGYC-Projektseite",
+    src: "/media/marketing/projektseite-preview.png",
   },
   alignment: {
     label: "Kunde/Fotograf-Abstimmung",
