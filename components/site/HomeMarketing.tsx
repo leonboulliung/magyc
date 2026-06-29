@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { MediaFrame } from "@/components/site/MediaFrame";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { USE_CASES } from "@/lib/site";
+import type { MediaKey } from "@/lib/siteMedia";
 
 /**
  * HomeMarketing — the scrollable marketing story rendered below the hero tool
@@ -64,6 +65,14 @@ const STEPS = [
   { n: "3", title: "Kunde & Team stimmen ab", body: "Ein Link: kommentieren, wählen, freigeben — gemeinsam.", media: "alignment" as const },
   { n: "4", title: "Klarer Auftrag & Übergabe", body: "Vertrag unterschrieben, Bilder übergeben — sauber abgeschlossen.", media: "handoff" as const },
 ];
+
+const USE_CASE_MEDIA: Record<string, MediaKey> = {
+  "/product": "productTile",
+  "/event": "eventTile",
+  "/wedding": "weddingTile",
+  "/corporate": "corporateTile",
+  "/fashion": "fashionTile",
+};
 
 /* ── Composition ───────────────────────────────────────────────────────── */
 
@@ -215,7 +224,7 @@ export function HomeMarketing() {
           {USE_CASES.map((u, i) => (
             <Reveal key={u.href} delay={i * 0.06}>
               <Link href={u.href} className="group block overflow-hidden rounded-2xl border border-black/[0.08] bg-white transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
-                <MediaFrame media="shootingSetup" ratio="4 / 5" sizes="(max-width:1024px) 50vw, 20vw" />
+                <MediaFrame media={USE_CASE_MEDIA[u.href] ?? "shootingSetup"} ratio="4 / 5" sizes="(max-width:1024px) 50vw, 20vw" />
                 <div className="flex items-center justify-between gap-2 px-4 py-3">
                   <span className="text-[15px] font-semibold" style={{ color: INK }}>{u.label}</span>
                   <span aria-hidden className="text-black/35 transition-transform group-hover:translate-x-0.5">→</span>

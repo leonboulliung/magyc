@@ -1,5 +1,6 @@
 import { SITE_MEDIA, type MediaKey } from "@/lib/siteMedia";
 import { SiteImage } from "./SiteImage";
+import { SiteVideo } from "./SiteVideo";
 import { MediaPlaceholder } from "./MediaPlaceholder";
 
 /**
@@ -24,6 +25,9 @@ export function MediaFrame({
 }) {
   const m = SITE_MEDIA[media];
   if (m.src) {
+    if (m.kind === "video") {
+      return <SiteVideo src={m.src} alt={m.alt} ratio={ratio} caption={caption} className={className} posterSrc={m.posterSrc} />;
+    }
     return <SiteImage src={m.src} alt={m.alt} ratio={ratio} caption={caption} className={className} priority={priority} sizes={sizes} />;
   }
   return <MediaPlaceholder label={m.label} ratio={ratio} caption={caption} className={className} />;
