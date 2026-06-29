@@ -56,7 +56,7 @@ export function StudioWorkspace({
       ) : (
         <div
           className="min-h-screen text-[#17171a]"
-          style={{ background: "radial-gradient(circle at 50% -8%, #ffffff, #f4f4f1 55%)" }}
+          style={{ background: "#f4f4f1" }}
         >
           <div className="pt-14 sm:pt-16">
             {view === "handoff" ? (

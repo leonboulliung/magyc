@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import { newLocalId } from "@/lib/id";
+import { displayActorName } from "@/lib/state";
 import type { DiscussionWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -161,7 +162,7 @@ function MessageNode({
       <div className="flex items-start gap-2.5">
         <ActorDot
           color={typeof entry.data.color === "string" ? (entry.data.color as string) : undefined}
-          displayName={entry.actor.displayName}
+          displayName={displayActorName(entry.actor)}
           size={16}
         />
         <div className="flex-1 min-w-0">
@@ -170,7 +171,7 @@ function MessageNode({
           </div>
           <div className="flex items-center gap-3 mt-1">
             <div className="mono text-[9px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>
-              {entry.actor.displayName || "anon"}
+              {displayActorName(entry.actor)}
             </div>
             {depth < MAX_DEPTH && (
               <button

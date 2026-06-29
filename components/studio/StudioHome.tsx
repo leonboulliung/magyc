@@ -645,7 +645,7 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
           <ProjectCardActions id={p.id} title={p.title} shared={p.shared} context={context} />
         </div>
       ) : (
-        <span className="mono absolute right-2 top-2 rounded-full border border-white/15 bg-black/45 px-2 py-1 text-[9px] uppercase tracking-widest text-white/65 backdrop-blur-md">
+        <span className="mono absolute right-2 top-2 rounded-full border border-white/15 bg-black/72 px-2 py-1 text-[9px] uppercase tracking-widest text-white/65">
           {p.accessRole === "editor" ? "Du bist im Team" : "Du bist Kund:in"}
         </span>
       )}

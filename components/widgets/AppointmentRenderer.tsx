@@ -33,7 +33,7 @@ export function AppointmentRenderer({
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        <div className="flex items-center justify-center gap-4 py-3">
+        <div className="flex min-h-[180px] items-center justify-center py-4">
           {editing ? (
             <input
               autoFocus
@@ -52,29 +52,24 @@ export function AppointmentRenderer({
               type="button"
               onClick={() => { if (ctx.isOwner) setEditing(true); }}
               disabled={!ctx.isOwner}
-              className="flex items-center gap-4 text-left"
+              className="w-full text-center"
               style={{ cursor: ctx.isOwner ? "text" : "default" }}
             >
-              <div className="text-center leading-none shrink-0">
-                <div className="mono text-[9px] tracking-widest opacity-60" style={{ color: "var(--v-muted)" }}>
+              <div className="leading-none">
+                <div className="mono text-[11px] tracking-[0.28em] opacity-60" style={{ color: "var(--v-muted)" }}>
                   {parts.weekday}
                 </div>
-                <div className="font-black text-[28px] leading-none mt-0.5" style={{ color: "var(--v-fg)" }}>
+                <div className="mt-2 font-black text-[56px] leading-none" style={{ color: "var(--v-fg)" }}>
                   {parts.day}
                 </div>
-                <div className="mono text-[9px] tracking-widest mt-0.5" style={{ color: "var(--v-muted)" }}>
+                <div className="mono mt-2 text-[12px] tracking-[0.24em]" style={{ color: "var(--v-muted)" }}>
                   {parts.monthYear}
                 </div>
-              </div>
-              <div className="leading-tight">
-                <div className="mono text-[10px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>
-                  ◷
-                </div>
-                <div className="text-[18px] mt-0.5" style={{ color: "var(--v-fg)" }}>
+                <div className="mono mt-4 text-[18px] tracking-[0.18em]" style={{ color: "var(--v-fg)" }}>
                   {parts.time}
                 </div>
                 {m.timezone && (
-                  <div className="mono text-[9px] tracking-widest mt-0.5 opacity-60" style={{ color: "var(--v-muted)" }}>
+                  <div className="mono mt-1 text-[10px] tracking-[0.16em] opacity-60" style={{ color: "var(--v-muted)" }}>
                     {m.timezone}
                   </div>
                 )}

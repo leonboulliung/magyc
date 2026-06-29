@@ -188,7 +188,7 @@ function NoteCard({
         </button>
       )}
       <div className="flex items-start gap-2.5">
-        <ActorDot color={note.authorColor} displayName={note.authorName} size={16} />
+        <ActorDot color={note.authorColor} displayName={note.authorName || "Mitglied"} size={16} />
         {editing ? (
           <div className="min-w-0 flex-1 space-y-1.5">
             <textarea

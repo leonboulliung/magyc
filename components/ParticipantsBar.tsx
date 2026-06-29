@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import type { ModuleStateEntry, Profile } from "@/lib/types";
 import { ActorDot } from "./widgets/WidgetCard";
+import { displayActorName } from "@/lib/state";
 
 /**
  * ParticipantsBar — a strip near the top of a space showing everyone
@@ -52,7 +53,7 @@ export function ParticipantsBar({
     const id = e.actor.id;
     if (!id) continue;
     const color = typeof e.data.color === "string" ? (e.data.color as string) : undefined;
-    const name = e.actor.displayName || (e.actor.kind === "anon" ? "anon" : `user-${id.slice(-4)}`);
+    const name = displayActorName(e.actor);
     const existing = byId.get(id);
     if (existing) {
       // Keep the name; refresh colour if we have one.

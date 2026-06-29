@@ -28,7 +28,7 @@ const LABELS: Record<ModuleType, string> = {
   date: "Datum", appointment: "Termin", appointments: "Termine", range: "Von - Bis",
   crew: "Team & Rollen", work_packages: "Aufgaben", deliverables: "Deliverables",
   approvals: "Freigaben", notes: "Notizen", qa: "Fragen", poll: "Umfrage",
-  discussion: "MAGYC-Chat (alt)", phases: "Phasen", checklist: "Checkliste",
+  discussion: "Diskussion (alt)", phases: "Phasen", checklist: "Checkliste",
   attachments: "Dateien", images: "Bilder", moodboard: "Moodboard",
   selection: "Auswahl", audio: "Audio", sketch: "Skizze",
   table: "Tabelle / Technikliste", shot_list: "Shotlist",

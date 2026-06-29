@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyActionLocally, mergeRealtimeInsert } from "@/lib/state";
+import { applyActionLocally, displayActorName, mergeRealtimeInsert, setSelfUser } from "@/lib/state";
 import type { ModuleStateEntry, ModuleStateKind } from "@/lib/types";
 
 function entry(
@@ -41,5 +41,14 @@ describe("collaborative state semantics", () => {
     const confirmed = entry("db-1", "add", { id: "note-1", text: "Text" });
     const merged = mergeRealtimeInsert([optimistic], confirmed, "user-a");
     expect(merged).toEqual([confirmed]);
+  });
+
+  it("resolves actor names without leaking anon or user-id placeholders", () => {
+    setSelfUser({ id: "user-a", name: "Leon" });
+    expect(displayActorName({ id: "user-a", kind: "user" })).toBe("Du");
+    expect(displayActorName({ id: "user-b", kind: "user" })).toBe("Mitglied");
+    expect(displayActorName({ id: "anon-a", kind: "anon" })).toBe("Gast");
+    expect(displayActorName({ id: "user-c", kind: "user", displayName: "Mara" })).toBe("Mara");
+    setSelfUser(null);
   });
 });

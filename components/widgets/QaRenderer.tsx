@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import { newLocalId } from "@/lib/id";
+import { displayActorName } from "@/lib/state";
 import type { ModuleStateEntry, QAWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -57,6 +58,8 @@ export function QaRenderer({
       text: String(e.data.text ?? ""),
       seeded: false,
       actor: {
+        id: e.actor.id,
+        kind: e.actor.kind,
         displayName: e.actor.displayName,
         color: typeof e.data.color === "string" ? (e.data.color as string) : undefined,
       },
@@ -195,7 +198,7 @@ function QuestionBlock({
     text: string;
     answerHint?: string;
     seeded: boolean;
-    actor?: { displayName?: string; color?: string };
+    actor?: { id: string; kind: "anon" | "user"; displayName?: string; color?: string };
   };
   answers: ModuleStateEntry[];
   onAnswer: (text: string) => Promise<void> | void;
@@ -243,7 +246,7 @@ function QuestionBlock({
         ) : (
           <ActorDot
             color={question.actor?.color}
-            displayName={question.actor?.displayName}
+            displayName={question.actor ? displayActorName(question.actor) : undefined}
             size={16}
           />
         )}
@@ -251,9 +254,9 @@ function QuestionBlock({
           <div className="whitespace-pre-wrap break-words text-[13px] leading-snug [overflow-wrap:anywhere]" style={{ color: "var(--v-fg)" }}>
             {question.text}
           </div>
-          {!question.seeded && question.actor?.displayName && (
+          {!question.seeded && question.actor && (
             <div className="mono text-[9px] tracking-widest mt-1 opacity-60" style={{ color: "var(--v-muted)" }}>
-              {question.actor.displayName}
+              {displayActorName(question.actor)}
             </div>
           )}
         </div>
@@ -267,7 +270,7 @@ function QuestionBlock({
               <li key={a.id} className="group/a flex items-start gap-2.5">
                 <ActorDot
                   color={typeof a.data.color === "string" ? (a.data.color as string) : undefined}
-                  displayName={a.actor.displayName}
+                  displayName={displayActorName(a.actor)}
                   size={14}
                 />
                 <div className="flex-1 min-w-0">
@@ -275,7 +278,7 @@ function QuestionBlock({
                     {String(a.data.text ?? "")}
                   </div>
                   <div className="mono text-[9px] tracking-widest mt-0.5 opacity-50" style={{ color: "var(--v-muted)" }}>
-                    {a.actor.displayName || "anon"}
+                    {displayActorName(a.actor)}
                   </div>
                 </div>
                 <button

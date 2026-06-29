@@ -121,7 +121,7 @@ export function StudioProjectBar({
       <Link
         href="/studio"
         aria-label="Zurück zum Studio"
-        className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[12px] text-white/80 backdrop-blur-md transition-colors hover:text-white"
+        className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/78 px-3 text-[12px] text-white/80 transition-colors hover:text-white"
       >
         <span aria-hidden>←</span>
         <span className="hidden sm:inline">Studio</span>
@@ -133,7 +133,7 @@ export function StudioProjectBar({
           type="button"
           onClick={() => setStageMenuOpen((o) => !o)}
           disabled={busy}
-          className="mono flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[10px] uppercase tracking-widest text-white/80 backdrop-blur-md transition-colors hover:text-white disabled:opacity-60"
+          className="mono flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/78 px-3 text-[10px] uppercase tracking-widest text-white/80 transition-colors hover:text-white disabled:opacity-60"
         >
           {viewLabel}
           <span aria-hidden className="text-[8px] text-white/40">▾</span>
@@ -165,7 +165,7 @@ export function StudioProjectBar({
       </div>
 
       {/* Desktop: 3-stage stepper (view / advance / locked) */}
-      <div className="hidden sm:flex items-center gap-1 rounded-full border border-white/15 bg-black/60 p-1 backdrop-blur-md">
+      <div className="hidden sm:flex items-center gap-1 rounded-full border border-white/15 bg-black/78 p-1">
         {STAGES.map((s) => {
           const kind = tabKind(s.id);
           const active = s.id === view;
@@ -195,7 +195,7 @@ export function StudioProjectBar({
         <button
           type="button"
           onClick={() => setShareOpen(true)}
-          className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[12px] text-white/80 backdrop-blur-md transition-colors hover:text-white"
+          className="flex h-8 items-center gap-1.5 rounded-full border border-white/15 bg-black/78 px-3 text-[12px] text-white/80 transition-colors hover:text-white"
         >
           <span aria-hidden>↗</span>
           <span className="hidden sm:inline">{shared ? "Geteilt" : "Teilen"}</span>
@@ -203,7 +203,7 @@ export function StudioProjectBar({
       )}
 
       {segment && (
-        <span className="mono hidden rounded-full border border-white/12 bg-black/50 px-2.5 py-1 text-[10px] uppercase tracking-widest text-white/40 backdrop-blur-md lg:inline">
+        <span className="mono hidden rounded-full border border-white/12 bg-black/72 px-2.5 py-1 text-[10px] uppercase tracking-widest text-white/40 lg:inline">
           {segment}
         </span>
       )}

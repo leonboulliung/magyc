@@ -93,7 +93,7 @@ export function ProjectCardActions({
         onClick={() => setOpen((o) => !o)}
         aria-label="Projekt-Aktionen"
         className="flex h-8 w-8 items-center justify-center rounded-full text-[16px] leading-none text-white transition-colors hover:bg-white/30"
-        style={{ background: "rgba(0,0,0,0.54)", border: "1px solid rgba(255,255,255,0.32)", backdropFilter: "blur(8px)" }}
+        style={{ background: "rgba(0,0,0,0.72)", border: "1px solid rgba(255,255,255,0.32)" }}
       >
         ⋯
       </button>

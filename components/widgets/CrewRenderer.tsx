@@ -1,21 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
-import { getSelfId } from "@/lib/state";
+import { displayActorName, getSelfId } from "@/lib/state";
 import type { CrewWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
 import { InlineText } from "./InlineText";
 
 /**
- * Crew — roles the team needs. Each role can be claimed by collaborators.
+ * Crew — assignable roles / people involved in the shoot.
  *
- * Claims live in module_state as `claim` actions carrying { slotLabel }.
- * Multiple actors may claim the same role; the renderer stacks them.
- * The segment-share link ?role=<slug> highlights one role and lets a
- * new arrival claim it in one click.
+ * The photographer should be able to understand one row at a glance:
+ * role name, who already claimed it, and one clear action to take it.
+ * No shifting hover chrome, no cryptic initials on their own.
  */
 export function CrewRenderer({
   module: m,
@@ -27,191 +25,210 @@ export function CrewRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
-
-  // Bucket claims per role.
-  // Track latest per (actor, role) so an actor unclaiming is reflected.
-  const latestPerActorRole = new Map<string, ModuleStateEntry>();
-  for (const e of state) {
-    if (e.kind !== "claim") continue;
-    const slot = typeof e.data.slotLabel === "string" ? (e.data.slotLabel as string) : "";
-    if (!slot) continue;
-    latestPerActorRole.set(`${e.actor.id}::${slot}`, e);
-  }
-  const buckets = new Map<string, ModuleStateEntry[]>();
-  for (const [, e] of latestPerActorRole) {
-    if (e.data.claimed === false) continue;
-    const slot = (e.data.slotLabel as string) || "";
-    const arr = buckets.get(slot) || [];
-    arr.push(e);
-    buckets.set(slot, arr);
-  }
-
   const myId = getSelfId();
 
-  function iClaimed(slot: string): boolean {
-    return (buckets.get(slot) || []).some((e) => e.actor.id === myId);
+  const claimsByRole = new Map<string, ModuleStateEntry[]>();
+  const latestPerActorRole = new Map<string, ModuleStateEntry>();
+  for (const entry of state) {
+    if (entry.kind !== "claim") continue;
+    const slot = typeof entry.data.slotLabel === "string" ? entry.data.slotLabel : "";
+    if (!slot) continue;
+    latestPerActorRole.set(`${entry.actor.id}::${slot}`, entry);
+  }
+  for (const [, entry] of latestPerActorRole) {
+    if (entry.data.claimed === false) continue;
+    const slot = typeof entry.data.slotLabel === "string" ? entry.data.slotLabel : "";
+    if (!slot) continue;
+    const bucket = claimsByRole.get(slot) || [];
+    bucket.push(entry);
+    claimsByRole.set(slot, bucket);
   }
 
-  async function toggleClaim(slot: string) {
-    const next = !iClaimed(slot);
-    await ctx.act(index, "claim", { slotLabel: slot, claimed: next });
+  function save(next: CrewWidget) {
+    return ctx.saveModule(index, next, { errorMessage: "Die Rollen konnten nicht gespeichert werden." });
   }
 
-  async function shareRole(slot: string) {
-    const url = `${window.location.origin}${window.location.pathname}?role=${encodeURIComponent(slot)}`;
+  function setRole(roleIndex: number, name: string) {
+    const roles = m.roles.map((role, currentIndex) => (
+      currentIndex === roleIndex ? { ...role, name } : role
+    ));
+    void save({ ...m, roles });
+  }
+
+  function addRole() {
+    void save({ ...m, roles: [...m.roles, { name: "" }] });
+  }
+
+  function removeRole(roleIndex: number) {
+    const roles = m.roles.filter((_, currentIndex) => currentIndex !== roleIndex);
+    void save({ ...m, roles });
+  }
+
+  async function toggleClaim(slotLabel: string) {
+    const mine = (claimsByRole.get(slotLabel) || []).some((entry) => entry.actor.id === myId);
+    await ctx.act(index, "claim", { slotLabel, claimed: !mine });
+  }
+
+  async function copyRoleLink(slotLabel: string) {
+    const url = `${window.location.origin}${window.location.pathname}?role=${encodeURIComponent(slotLabel)}`;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
-      // no-op
+      // Best-effort only.
     }
   }
-
-  // Owner config edits (role names + add/remove) via saveModule.
-  function save(next: CrewWidget) { ctx.saveModule(index, next); }
-  function setRole(i: number, name: string) {
-    const roles = m.roles.map((r, j) => (j === i ? { ...r, name } : r));
-    save({ ...m, roles });
-  }
-  function addRole() { save({ ...m, roles: [...m.roles, { name: "Neue Rolle" }] }); }
-  function removeRole(i: number) {
-    if (m.roles.length <= 1) return;
-    save({ ...m, roles: m.roles.filter((_, j) => j !== i) });
-  }
-
-  // Hover state for per-row affordance reveal.
-  const [hoverRow, setHoverRow] = useState<string | null>(null);
 
   return (
     <WidgetShell
       module={m}
       index={index}
-      renderSuggestion={(s) =>
-        s.type === "crew" ? (
+      canRegenerate
+      regenerateLabel="Alternativ"
+      renderSuggestion={(suggestion) =>
+        suggestion.type === "crew" ? (
           <div className="mono text-[10px] tracking-widest opacity-70 truncate">
-            {s.roles.map((r) => r.name).join(" · ")}
+            {suggestion.roles.map((role) => role.name || "Rolle").join(" · ")}
           </div>
         ) : null
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        <p className="mono text-[9px] tracking-widest opacity-40 mb-2" style={{ color: "var(--v-muted)" }}>
-          ○ → ●
-        </p>
-        <ul className="space-y-1.5">
-          <AnimatePresence initial={false}>
-            {m.roles.map((role, i) => {
-              const claimers = buckets.get(role.name) || [];
-              const mine = iClaimed(role.name);
-              return (
-                <motion.li
-                  key={i}
-                  layout
-                  initial={{ opacity: 0, y: 3 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 3 }}
-                  transition={{ duration: 0.15 }}
-                  onMouseEnter={() => setHoverRow(role.name)}
-                  onMouseLeave={() => setHoverRow(null)}
-                  className="flex items-center gap-3 py-1.5 px-1"
-                  style={{ borderBottom: "1px solid var(--v-rule)" }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleClaim(role.name)}
-                    aria-label={mine ? "release" : "claim"}
-                    className="inline-flex items-center justify-center shrink-0 transition-all"
+        {m.roles.length === 0 ? (
+          <button
+            type="button"
+            onClick={ctx.isOwner ? addRole : undefined}
+            disabled={!ctx.isOwner}
+            className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left transition-colors"
+            style={{
+              border: "1px dashed var(--v-rule)",
+              color: "var(--v-muted)",
+              cursor: ctx.isOwner ? "pointer" : "default",
+            }}
+          >
+            <div className="mono text-[11px] tracking-widest">Noch keine Rollen angelegt.</div>
+            {ctx.isOwner && (
+              <div className="mono mt-2 text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>
+                + Mitglied hinzufügen
+              </div>
+            )}
+          </button>
+        ) : (
+          <ul className="space-y-2">
+            <AnimatePresence initial={false}>
+              {m.roles.map((role, roleIndex) => {
+                const slotLabel = role.name || `role-${roleIndex}`;
+                const claimers = claimsByRole.get(slotLabel) || [];
+                const mine = claimers.some((entry) => entry.actor.id === myId);
+                return (
+                  <motion.li
+                    key={`${roleIndex}-${role.name || "empty"}`}
+                    layout
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.15 }}
+                    className="rounded-[var(--v-radius)] p-3"
                     style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: "9999px",
-                      border: `1.5px solid ${mine ? "var(--v-fg)" : "var(--v-rule)"}`,
-                      background: mine ? "var(--v-fg)" : "transparent",
+                      border: "1px solid var(--v-rule)",
+                      background: "#181818",
+                      boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08)",
                     }}
                   >
-                    {mine && (
-                      <span className="mono text-[8px]" style={{ color: "var(--v-bg)" }}>●</span>
-                    )}
-                  </button>
-                  <InlineText
-                    value={role.name}
-                    isOwner={ctx.isOwner}
-                    onSave={(v) => setRole(i, v)}
-                    placeholder="Rolle …"
-                    className="flex-1 text-[13px]"
-                  />
-
-                  {claimers.length > 0 && (
-                    <div className="flex -space-x-1.5">
-                      {claimers.slice(0, 4).map((e) => (
-                        <span
-                          key={e.id}
-                          style={{ border: "1.5px solid var(--v-bg)", borderRadius: "9999px" }}
-                        >
-                          <ActorDot
-                            color={typeof e.data.color === "string" ? (e.data.color as string) : undefined}
-                            displayName={e.actor.displayName}
-                            size={18}
-                          />
-                        </span>
-                      ))}
-                      {claimers.length > 4 && (
-                        <span
-                          className="mono text-[9px] tabular-nums ml-2 self-center"
-                          style={{ color: "var(--v-muted)" }}
-                        >
-                          +{claimers.length - 4}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  <AnimatePresence>
-                    {hoverRow === role.name && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.12 }}
-                        className="flex items-center gap-1"
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleClaim(slotLabel)}
+                        aria-label={mine ? "Zuteilung aufheben" : "Mir zuweisen"}
+                        className="mt-0.5 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full transition-all"
+                        style={{
+                          border: `1.5px solid ${mine ? "var(--v-fg)" : "var(--v-rule)"}`,
+                          background: mine ? "var(--v-fg)" : "transparent",
+                        }}
                       >
-                        <button
-                          type="button"
-                          onClick={() => shareRole(role.name)}
-                          aria-label="share role"
-                          title="copy share link"
-                          className="mono text-[11px] px-1.5 opacity-60 hover:opacity-100"
-                          style={{ color: "var(--v-fg)" }}
-                        >
-                          ⎘
-                        </button>
-                        {ctx.isOwner && m.roles.length > 1 && (
+                        {mine && (
+                          <span className="mono text-[9px]" style={{ color: "var(--v-bg)" }}>
+                            ✓
+                          </span>
+                        )}
+                      </button>
+
+                      <div className="min-w-0 flex-1">
+                        <InlineText
+                          value={role.name}
+                          isOwner={ctx.isOwner}
+                          onSave={(next) => setRole(roleIndex, next)}
+                          placeholder="Rolle oder Person benennen"
+                          className="block text-[13px] leading-snug"
+                        />
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {claimers.length > 0 ? (
+                            claimers.map((entry) => {
+                              const name = displayActorName(entry.actor);
+                              return (
+                                <div
+                                  key={entry.id}
+                                  className="inline-flex items-center gap-2 rounded-full px-2.5 py-1"
+                                  style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+                                >
+                                  <ActorDot
+                                    color={typeof entry.data.color === "string" ? entry.data.color : undefined}
+                                    displayName={name}
+                                    size={18}
+                                  />
+                                  <span className="mono text-[10px] tracking-widest">{name}</span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <span className="mono text-[10px] tracking-widest opacity-55" style={{ color: "var(--v-muted)" }}>
+                              Noch niemand zugeteilt.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1">
+                        {!!role.name && (
                           <button
                             type="button"
-                            onClick={() => removeRole(i)}
+                            onClick={() => copyRoleLink(role.name)}
+                            aria-label="Rollenlink kopieren"
+                            title="Rollenlink kopieren"
+                            className="mono rounded-full px-2 py-1 text-[10px] tracking-widest transition-opacity hover:opacity-100"
+                            style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)", opacity: 0.72 }}
+                          >
+                            ⎘
+                          </button>
+                        )}
+                        {ctx.isOwner && (
+                          <button
+                            type="button"
+                            onClick={() => removeRole(roleIndex)}
                             aria-label="Rolle entfernen"
-                            className="mono text-[13px] px-1 opacity-50 hover:opacity-100"
-                            style={{ color: "var(--v-muted)" }}
+                            className="mono rounded-full px-2 py-1 text-[12px] transition-opacity hover:opacity-100"
+                            style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)", opacity: 0.72 }}
                           >
                             ×
                           </button>
                         )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
+                      </div>
+                    </div>
+                  </motion.li>
+                );
+              })}
+            </AnimatePresence>
+          </ul>
+        )}
 
-        {ctx.isOwner && (
+        {ctx.isOwner && m.roles.length > 0 && (
           <button
             type="button"
             onClick={addRole}
-            className="mono mt-2 rounded-full px-2.5 py-1 text-[10px] tracking-widest opacity-60 hover:opacity-100"
-            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+            className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest transition-opacity hover:opacity-100"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)", opacity: 0.72 }}
           >
-            + Rolle
+            + Mitglied hinzufügen
           </button>
         )}
       </WidgetCard>

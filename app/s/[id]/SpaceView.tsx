@@ -544,16 +544,15 @@ export function SpaceView({
         style={{ ...rootStyleVars, background: "var(--v-page, var(--v-bg))" }}
       >
         <DotField color="255,255,255" className="pointer-events-none fixed inset-0 z-0 opacity-[0.13]" />
-        <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.09),transparent_34%),linear-gradient(to_bottom,rgba(0,0,0,0),rgba(0,0,0,0.64))]" />
+        <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0),rgba(0,0,0,0.52))]" />
 
         {/* Floating top-right controls — only when there is one to show. */}
         {showTopControls && (
         <div
           className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 px-1.5 py-1 rounded-full"
           style={{
-            background: "rgba(255,255,255,0.045)",
+            background: "rgba(18,18,18,0.94)",
             border: "1px solid var(--v-rule)",
-            backdropFilter: "blur(24px)",
             boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 12px 34px rgba(0,0,0,0.2)",
           }}
         >
@@ -587,7 +586,6 @@ export function SpaceView({
                 background: "color-mix(in srgb, var(--v-bg) 94%, transparent)",
                 border: "1px solid var(--v-rule)",
                 color: notice.tone === "error" ? "var(--v-fg)" : "var(--v-muted)",
-                backdropFilter: "blur(10px)",
               }}
             >
               <span className="mono text-[10px] tracking-widest">

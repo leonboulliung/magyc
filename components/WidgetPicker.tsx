@@ -203,10 +203,10 @@ export function defaultWidget(type: ModuleType): Module | null {
     case "notes":                return { type };
     case "qa":                   return { type };
     case "poll":                 return { type, question: "", options: [] };
-    case "crew":                 return { type, roles: [{ name: "Rolle" }] };
-    case "work_packages":        return { type, packages: [{ label: "Aufgabe" }] };
-    case "deliverables":         return { type, items: [{ label: "Ergebnis" }] };
-    case "approvals":            return { type, items: [{ text: "Freigabe" }] };
+    case "crew":                 return { type, roles: [] };
+    case "work_packages":        return { type, packages: [] };
+    case "deliverables":         return { type, items: [] };
+    case "approvals":            return { type, items: [] };
     case "checklist":            return { type, items: [] };
     case "date":                 return { type, date: today };
     case "appointment":          return { type, datetime: now };

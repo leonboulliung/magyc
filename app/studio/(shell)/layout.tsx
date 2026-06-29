@@ -19,10 +19,6 @@ export default function StudioShellLayout({ children }: { children: ReactNode })
       {/* Environment: faint dot grid + soft tint, the light counterpart of the
           marketing hero, so the prompt field feels at home. */}
       <DotField color="0,0,0" className="pointer-events-none fixed inset-0 z-0 opacity-[0.05]" />
-      <div
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{ background: "radial-gradient(circle at 50% -8%, rgba(0,0,0,0.04), transparent 42%)" }}
-      />
 
       {/* Menu bar */}
       <header

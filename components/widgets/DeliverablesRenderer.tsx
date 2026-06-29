@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { newLocalId } from "@/lib/id";
-import { getSelfId } from "@/lib/state";
+import { displayActorName, getSelfId } from "@/lib/state";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type {
   DeliverableStatus,
@@ -46,7 +46,6 @@ interface DeliverableView {
   details?: string;
   quantity?: string;
   format?: string;
-  due?: string;
   status: DeliverableStatus;
 }
 
@@ -67,7 +66,7 @@ export function DeliverablesRenderer({
 
   async function updateItem(
     itemKey: string,
-    patch: Partial<Pick<DeliverableView, "label" | "due" | "status">>,
+    patch: Partial<Pick<DeliverableView, "label" | "details" | "quantity" | "format" | "status">>,
   ) {
     await ctx.act(index, "edit", { id: itemKey, ...patch });
   }
@@ -109,13 +108,25 @@ export function DeliverablesRenderer({
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
+        {items.length === 0 ? (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
+          >
+            <div className="mono text-[11px] tracking-widest">Noch keine Deliverables angelegt.</div>
+            <div className="mono mt-2 text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>
+              + Eintrag hinzufügen
+            </div>
+          </button>
+        ) : (
         <div className="space-y-2">
           <AnimatePresence initial={false}>
             {items.map((item) => {
               const tone = statusTone(item.status);
               const owner = owners.get(item.key);
               const mine = owner?.actorId === myId;
-              const meta = [item.quantity, item.format].filter(Boolean);
               return (
                 <motion.div
                   key={item.key}
@@ -148,33 +159,41 @@ export function DeliverablesRenderer({
                     <div className="flex-1 min-w-0">
                       <InlineWorkflowText
                         value={item.label}
-                        placeholder="Ergebnis benennen ..."
+                        placeholder="Ergebnis benennen"
                         onSave={(next) => updateItem(item.key, { label: next })}
                         className="text-[13px] leading-snug"
                       />
-                      {meta.length > 0 && (
-                        <div className="mono text-[10px] tracking-widest mt-1 opacity-60" style={{ color: "var(--v-muted)" }}>
-                          {meta.join(" · ")}
-                        </div>
-                      )}
-                      {item.details && (
-                        <div className="text-[12px] leading-snug mt-2" style={{ color: "var(--v-muted)" }}>
-                          {item.details}
-                        </div>
-                      )}
-
                       <div className="mt-2 flex flex-wrap gap-2">
                         <InlineWorkflowText
-                          value={item.due ?? ""}
-                          placeholder={lex.due}
-                          onSave={(next) => updateItem(item.key, { due: next })}
+                          value={item.quantity ?? ""}
+                          placeholder="Menge"
+                          onSave={(next) => updateItem(item.key, { quantity: next })}
                           allowEmpty
                           className="mono text-[9px] tracking-widest uppercase"
                           buttonStyle={{
                             border: "1px dashed var(--v-rule)",
                             borderRadius: 999,
                             padding: "4px 10px",
-                            color: item.due ? "var(--v-fg)" : "var(--v-muted)",
+                            color: item.quantity ? "var(--v-fg)" : "var(--v-muted)",
+                          }}
+                          inputStyle={{
+                            border: "1px dashed var(--v-rule)",
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                          }}
+                        />
+
+                        <InlineWorkflowText
+                          value={item.format ?? ""}
+                          placeholder="Format"
+                          onSave={(next) => updateItem(item.key, { format: next })}
+                          allowEmpty
+                          className="mono text-[9px] tracking-widest uppercase"
+                          buttonStyle={{
+                            border: "1px dashed var(--v-rule)",
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                            color: item.format ? "var(--v-fg)" : "var(--v-muted)",
                           }}
                           inputStyle={{
                             border: "1px dashed var(--v-rule)",
@@ -196,9 +215,9 @@ export function DeliverablesRenderer({
                         >
                           {owner ? (
                             <>
-                              <ActorDot color={owner.color} displayName={owner.name} size={16} />
+                              <ActorDot color={owner.color} displayName={displayActorName({ id: owner.actorId, kind: "user", displayName: owner.name })} size={16} />
                               <span className="mono text-[9px] tracking-widest uppercase">
-                                {mine ? lex.release : owner.name || lex.assign}
+                                {mine ? lex.release : displayActorName({ id: owner.actorId, kind: "user", displayName: owner.name })}
                               </span>
                             </>
                           ) : (
@@ -208,6 +227,16 @@ export function DeliverablesRenderer({
                           )}
                         </button>
                       </div>
+
+                      <div className="mt-2">
+                        <InlineWorkflowText
+                          value={item.details ?? ""}
+                          placeholder="Kanal, Motivgruppe oder Übergabehinweis"
+                          onSave={(next) => updateItem(item.key, { details: next })}
+                          allowEmpty
+                          className="text-[12px] leading-snug"
+                        />
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -215,8 +244,9 @@ export function DeliverablesRenderer({
             })}
           </AnimatePresence>
         </div>
+        )}
 
-        <div className="mt-3">
+        <div className={`mt-3 ${items.length === 0 && !adding ? "hidden" : ""}`}>
           {adding ? (
             <input
               autoFocus
@@ -256,12 +286,11 @@ function buildDeliverables(module: DeliverablesWidget, state: ModuleStateEntry[]
     byId.set(`seed-${i}`, {
       key: `seed-${i}`,
       label: item.label,
-      details: item.details,
-      quantity: item.quantity,
-      format: item.format,
-      due: item.due,
-      status: item.status ?? "planned",
-    });
+        details: item.details,
+        quantity: item.quantity,
+        format: item.format,
+        status: item.status ?? "planned",
+      });
   });
 
   state
@@ -277,7 +306,6 @@ function buildDeliverables(module: DeliverablesWidget, state: ModuleStateEntry[]
         details: typeof e.data.details === "string" ? e.data.details : undefined,
         quantity: typeof e.data.quantity === "string" ? e.data.quantity : undefined,
         format: typeof e.data.format === "string" ? e.data.format : undefined,
-        due: typeof e.data.due === "string" && e.data.due.trim() ? (e.data.due as string) : undefined,
         status: isDeliverableStatus(e.data.status) ? e.data.status : "planned",
       });
     });
@@ -291,7 +319,9 @@ function buildDeliverables(module: DeliverablesWidget, state: ModuleStateEntry[]
       const item = byId.get(id);
       if (!item) return;
       if (typeof e.data.label === "string" && e.data.label.trim()) item.label = e.data.label;
-      if (typeof e.data.due === "string") item.due = e.data.due.trim() ? e.data.due : undefined;
+      if (typeof e.data.details === "string") item.details = e.data.details.trim() ? e.data.details : undefined;
+      if (typeof e.data.quantity === "string") item.quantity = e.data.quantity.trim() ? e.data.quantity : undefined;
+      if (typeof e.data.format === "string") item.format = e.data.format.trim() ? e.data.format : undefined;
       if (isDeliverableStatus(e.data.status)) item.status = e.data.status;
     });
 

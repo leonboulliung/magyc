@@ -68,13 +68,13 @@ export function SupportWidget({
         aria-label="Support öffnen"
         className={variant === "studio"
           ? "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black/45 transition-colors hover:border-black/25 hover:bg-black/[0.04] hover:text-black"
-          : "fixed bottom-4 left-4 z-40 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/55 text-white/60 backdrop-blur-md transition-colors hover:border-white/30 hover:bg-black/75 hover:text-white"}
+          : "fixed bottom-4 left-4 z-40 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/80 text-white/60 transition-colors hover:border-white/30 hover:bg-black hover:text-white"}
       >
         <Icon icon="lucide:circle-help" className="h-4 w-4" />
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-4">
           <section className="w-full max-w-lg rounded-[28px] border border-black/10 bg-[#f4f4f1] p-5 text-[#17171a] shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
             <div className="flex items-start justify-between gap-4">
               <div>

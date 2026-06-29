@@ -34,7 +34,7 @@ export function DateRenderer({
   return (
     <WidgetShell module={m} index={index} canRegenerate={false}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        <div className="flex items-center justify-center py-2">
+        <div className="flex min-h-[180px] items-center justify-center py-4">
           {editing ? (
             <input
               autoFocus
@@ -53,16 +53,16 @@ export function DateRenderer({
               type="button"
               onClick={() => { if (ctx.isOwner) setEditing(true); }}
               disabled={!ctx.isOwner}
-              className="text-center leading-none"
+              className="w-full text-center leading-none"
               style={{ cursor: ctx.isOwner ? "text" : "default" }}
             >
-              <div className="mono text-[10px] tracking-widest opacity-60" style={{ color: "var(--v-muted)" }}>
+              <div className="mono text-[11px] tracking-[0.28em] opacity-60" style={{ color: "var(--v-muted)" }}>
                 {parts.weekday}
               </div>
-              <div className="font-black text-[44px] leading-none mt-1" style={{ color: "var(--v-fg)" }}>
+              <div className="mt-2 font-black text-[64px] leading-none" style={{ color: "var(--v-fg)" }}>
                 {parts.day}
               </div>
-              <div className="mono text-[10px] tracking-widest mt-1" style={{ color: "var(--v-muted)" }}>
+              <div className="mono mt-2 text-[12px] tracking-[0.26em]" style={{ color: "var(--v-muted)" }}>
                 {parts.monthYear}
               </div>
             </button>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { newLocalId } from "@/lib/id";
-import { getSelfId } from "@/lib/state";
+import { displayActorName, getSelfId } from "@/lib/state";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { ModuleStateEntry, SelectionWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -88,7 +88,7 @@ export function SelectionRenderer({
     const text = typeof e.data.text === "string" ? (e.data.text as string) : "";
     if (!parentId || !text) continue;
     const arr = commentsByPhoto.get(parentId) || [];
-    arr.push({ id: e.id, text, author: e.actor.displayName || "—", createdAt: e.createdAt });
+    arr.push({ id: e.id, text, author: displayActorName(e.actor), createdAt: e.createdAt });
     commentsByPhoto.set(parentId, arr);
   }
 

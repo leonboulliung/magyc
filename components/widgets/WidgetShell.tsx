@@ -43,10 +43,11 @@ export function WidgetShell({
   children,
   className,
   /** When true, shows the ⇆ alternatives affordance on hover. */
-  canRegenerate = true,
+  canRegenerate = false,
   /** Glyph for the alternatives affordance. ↻ reads as "reload";
    *  ⇆ reads as "swap to another option". Per-widget choice. */
   regenerateGlyph = "↻",
+  regenerateLabel,
   /** When true, shows the ✦ prompt-edit affordance. */
   promptEditable = false,
   /** If provided, the prompt-edit bubble also offers a ✎ "edit by
@@ -64,6 +65,7 @@ export function WidgetShell({
   className?: string;
   canRegenerate?: boolean;
   regenerateGlyph?: string;
+  regenerateLabel?: string;
   promptEditable?: boolean;
   onManualEdit?: () => void;
   renderSuggestion?: (s: Module) => React.ReactNode;
@@ -185,11 +187,10 @@ export function WidgetShell({
           style={{
             opacity: clusterVisible ? 1 : 0,
             pointerEvents: clusterVisible ? "auto" : "none",
-            background: "rgba(255,255,255,0.055)",
+            background: "rgba(20,20,20,0.94)",
             border: "1px solid var(--v-rule)",
             borderRadius: 999,
             boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 10px 28px rgba(0,0,0,0.22)",
-            backdropFilter: "blur(18px)",
           }}
         >
           {cell && (
@@ -292,10 +293,10 @@ export function WidgetShell({
                   disabled={busy}
                   aria-label="alternatives"
                   title="Alternatives"
-                  className={`${barBtn} text-[13px]`}
+                  className={`${regenerateLabel ? "h-7 px-3 hover:bg-white/[0.08] transition-colors disabled:opacity-30 text-[11px]" : `${barBtn} text-[13px]`} mono flex items-center justify-center tracking-widest`}
                   style={{ background: altOpen ? "var(--v-fg)" : "transparent", color: altOpen ? "var(--v-bg)" : "var(--v-muted)" }}
                 >
-                  {busy ? "…" : regenerateGlyph}
+                  {busy ? "…" : (regenerateLabel || regenerateGlyph)}
                 </button>
               }
             >

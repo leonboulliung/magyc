@@ -232,12 +232,13 @@ export function sanitizeModule(raw: unknown): Module | null {
       const raw = Array.isArray(r.roles) ? r.roles : [];
       const roles: { name: string }[] = [];
       for (const x of raw) {
-        if (!x) continue;
-        const name = typeof x === "string" ? clean(x, 60) : clean((x as { name?: unknown }).name, 60);
-        if (name) roles.push({ name });
+        if (typeof x === "string") {
+          roles.push({ name: clean(x, 60) });
+        } else if (x && typeof x === "object") {
+          roles.push({ name: clean((x as { name?: unknown }).name, 60) });
+        }
         if (roles.length >= 12) break;
       }
-      if (roles.length === 0) return null;
       return { type, ...b, roles };
     }
     case "work_packages": {
@@ -247,12 +248,10 @@ export function sanitizeModule(raw: unknown): Module | null {
         if (!x || typeof x !== "object") continue;
         const xr = x as Record<string, unknown>;
         const label = clean(xr.label, 120);
-        if (!label) continue;
         const description = clean(xr.description, 240) || undefined;
         packages.push(description ? { label, description } : { label });
         if (packages.length >= 12) break;
       }
-      if (packages.length === 0) return null;
       return { type, ...b, packages };
     }
     case "deliverables": {
@@ -269,7 +268,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         if (!x || typeof x !== "object") continue;
         const xr = x as Record<string, unknown>;
         const label = clean(xr.label, 120);
-        if (!label) continue;
         const details = clean(xr.details, 240) || undefined;
         const quantity = clean(xr.quantity, 60) || undefined;
         const format = clean(xr.format, 80) || undefined;
@@ -288,7 +286,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         });
         if (items.length >= 16) break;
       }
-      if (items.length === 0) return null;
       return { type, ...b, items };
     }
     case "approvals": {
@@ -301,14 +298,11 @@ export function sanitizeModule(raw: unknown): Module | null {
         status?: "pending" | "requested" | "approved";
       }[] = [];
       for (const x of raw) {
-        if (!x) continue;
         if (typeof x === "string") {
-          const text = clean(x, 200);
-          if (text) items.push({ text });
-        } else if (typeof x === "object") {
+          items.push({ text: clean(x, 200) });
+        } else if (x && typeof x === "object") {
           const xr = x as Record<string, unknown>;
           const text = clean(xr.text, 200);
-          if (!text) continue;
           const description = clean(xr.description, 240) || undefined;
           const due = clean(xr.due, 80) || undefined;
           const audience =
@@ -329,7 +323,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         }
         if (items.length >= 16) break;
       }
-      if (items.length === 0) return null;
       return { type, ...b, items };
     }
     case "notes": {

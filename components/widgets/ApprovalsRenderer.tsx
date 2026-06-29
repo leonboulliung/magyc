@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { newLocalId } from "@/lib/id";
-import { getSelfId } from "@/lib/state";
+import { displayActorName, getSelfId } from "@/lib/state";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type {
   ApprovalAudience,
@@ -39,7 +39,6 @@ interface ApprovalView {
   key: string;
   text: string;
   description?: string;
-  due?: string;
   audience?: ApprovalAudience;
   status: ApprovalStatus;
 }
@@ -62,7 +61,7 @@ export function ApprovalsRenderer({
 
   async function updateItem(
     itemKey: string,
-    patch: Partial<Pick<ApprovalView, "text" | "due" | "status">>,
+    patch: Partial<Pick<ApprovalView, "text" | "status">>,
   ) {
     await ctx.act(index, "edit", { id: itemKey, ...patch });
   }
@@ -110,6 +109,19 @@ export function ApprovalsRenderer({
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
+        {items.length === 0 ? (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
+          >
+            <div className="mono text-[11px] tracking-widest">Noch keine Freigaben angelegt.</div>
+            <div className="mono mt-2 text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>
+              + Eintrag hinzufügen
+            </div>
+          </button>
+        ) : (
         <div className="space-y-2">
           <AnimatePresence initial={false}>
             {items.map((item) => {
@@ -201,25 +213,6 @@ export function ApprovalsRenderer({
                       )}
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <InlineWorkflowText
-                          value={item.due ?? ""}
-                          placeholder={lex.due}
-                          onSave={(next) => updateItem(item.key, { due: next })}
-                          allowEmpty
-                          className="mono text-[9px] tracking-widest uppercase"
-                          buttonStyle={{
-                            border: "1px dashed var(--v-rule)",
-                            borderRadius: 999,
-                            padding: "4px 10px",
-                            color: item.due ? "var(--v-fg)" : "var(--v-muted)",
-                          }}
-                          inputStyle={{
-                            border: "1px dashed var(--v-rule)",
-                            borderRadius: 999,
-                            padding: "4px 10px",
-                          }}
-                        />
-
                         <button
                           type="button"
                           onClick={() => toggleOwner(item.key)}
@@ -233,9 +226,9 @@ export function ApprovalsRenderer({
                         >
                           {owner ? (
                             <>
-                              <ActorDot color={owner.color} displayName={owner.name} size={16} />
+                              <ActorDot color={owner.color} displayName={displayActorName({ id: owner.actorId, kind: "user", displayName: owner.name })} size={16} />
                               <span className="mono text-[9px] tracking-widest uppercase">
-                                {mine ? lex.release : owner.name || lex.assign}
+                                {mine ? lex.release : displayActorName({ id: owner.actorId, kind: "user", displayName: owner.name })}
                               </span>
                             </>
                           ) : (
@@ -255,7 +248,7 @@ export function ApprovalsRenderer({
                             >
                               <ActorDot
                                 color={checker.color}
-                                displayName={checker.name}
+                                displayName={displayActorName({ id: checker.actorId, kind: "user", displayName: checker.name })}
                                 size={18}
                               />
                             </span>
@@ -274,8 +267,9 @@ export function ApprovalsRenderer({
             })}
           </AnimatePresence>
         </div>
+        )}
 
-        <div className="mt-3">
+        <div className={`mt-3 ${items.length === 0 && !adding ? "hidden" : ""}`}>
           {adding ? (
             <input
               autoFocus
@@ -316,7 +310,6 @@ function buildApprovals(module: ApprovalsWidget, state: ModuleStateEntry[]): App
       key: `seed-${i}`,
       text: item.text,
       description: item.description,
-      due: item.due,
       audience: item.audience,
       status: item.status ?? "pending",
     });
@@ -333,7 +326,6 @@ function buildApprovals(module: ApprovalsWidget, state: ModuleStateEntry[]): App
         key: id,
         text,
         description: typeof e.data.description === "string" ? e.data.description : undefined,
-        due: typeof e.data.due === "string" && e.data.due.trim() ? (e.data.due as string) : undefined,
         audience: isApprovalAudience(e.data.audience) ? e.data.audience : undefined,
         status: isApprovalStatus(e.data.status) ? e.data.status : "pending",
       });
@@ -348,7 +340,6 @@ function buildApprovals(module: ApprovalsWidget, state: ModuleStateEntry[]): App
       const item = byId.get(id);
       if (!item) return;
       if (typeof e.data.text === "string" && e.data.text.trim()) item.text = e.data.text;
-      if (typeof e.data.due === "string") item.due = e.data.due.trim() ? e.data.due : undefined;
       if (isApprovalStatus(e.data.status)) item.status = e.data.status;
     });
 

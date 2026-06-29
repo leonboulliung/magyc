@@ -37,6 +37,14 @@ export function getSelfName(): string | null {
   return selfUserName;
 }
 
+export function getSelfDisplayName(): string {
+  const namedUser = selfUserName?.trim();
+  if (namedUser) return namedUser;
+  const namedAnon = getAnonDisplayName()?.trim();
+  if (namedAnon) return namedAnon;
+  return "Du";
+}
+
 /** Stable colour for the current actor — persona swatch if a persona
  *  is active, else a deterministic pick from the actor id (Clerk user id
  *  when signed in, else the anon token — matching the server's profile
@@ -75,7 +83,10 @@ export async function postState(
       // back through entry.data.color.
       data: { ...data, color: getMyColor() },
       anonToken: getAnonToken(),
-      anonName: getAnonDisplayName(),
+      // Signed-in actions should still persist a readable actor label even if
+      // the profile row has not been enriched yet. Anonymous viewers keep
+      // their optional local alias only.
+      anonName: selfUserName?.trim() || getAnonDisplayName() || undefined,
     }),
   });
   if (res.ok) return { ok: true };
@@ -107,7 +118,7 @@ export function makeOptimisticEntry(
     actor: {
       kind: currentActor.kind,
       id: currentActor.id,
-      displayName: currentActor.displayName,
+      displayName: currentActor.displayName || getSelfDisplayName(),
       color: getMyColor(),
     },
     kind,
@@ -278,7 +289,18 @@ export function addsFor(
 }
 
 export function actorLabel(e: ModuleStateEntry): string {
-  return e.actor.displayName || (e.actor.kind === "anon" ? "anon" : `user-${e.actor.id.slice(-6)}`);
+  return displayActorName(e.actor);
+}
+
+export function displayActorName(
+  actor: { id: string; kind: "anon" | "user"; displayName?: string | null },
+  options?: { selfLabel?: string },
+): string {
+  const ownId = getSelfId();
+  if (actor.id === ownId) return options?.selfLabel || "Du";
+  const explicit = actor.displayName?.trim();
+  if (explicit) return explicit;
+  return actor.kind === "user" ? "Mitglied" : "Gast";
 }
 
 export { getAnonToken };
