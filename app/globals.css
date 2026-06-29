@@ -388,3 +388,21 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Safari/Chrome */
 }
+
+/* ── Print: clean contract → PDF via the browser "Save as PDF" ──────────
+   The contract page hides its app chrome via `print:hidden`; this gives the
+   printed document A4 margins, a forced white canvas, exact colours (so the
+   signature image + coloured rules survive), and avoids awkward mid-row
+   page breaks. */
+@media print {
+  @page { size: A4; margin: 18mm 16mm; }
+  html, body {
+    background: #fff !important;
+    color: #17171a !important;
+  }
+  /* Let the document use the full print width instead of the on-screen column. */
+  .print-document { max-width: 100% !important; padding: 0 !important; }
+  /* Keep clauses and party blocks from splitting across pages. */
+  .print-keep { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}

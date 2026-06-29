@@ -231,7 +231,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
   }, [contract?.locked, draft, id, isOwner, preparing, releaseSignatureMode]);
 
   const inner = (
-    <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+    <div className="print-document mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
         {/* Reference header */}
         <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/40">Aus dem Projektplan</p>
         <h1 className="mt-2 font-brand text-[26px] font-bold tracking-[-0.02em] sm:text-[34px]">
@@ -317,7 +317,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {/* The document */}
             <div className="mt-6 overflow-hidden rounded-2xl border border-black/12">
               {parties?.photographer && parties?.client && (
-                <div className="grid gap-px bg-white/10 sm:grid-cols-2">
+                <div className="print-keep grid gap-px bg-white/10 sm:grid-cols-2">
                   <PartyBlock title="Dienstleister" lines={[parties.photographer.studio || parties.photographer.name, parties.photographer.name, parties.photographer.email, parties.photographer.address, parties.photographer.vatId ? `USt-IdNr. ${parties.photographer.vatId}` : (parties.photographer.kleinunternehmer19 ? "Kleinunternehmer §19 UStG" : "")]} />
                   {editing ? (
                     <div className="bg-white p-4">
@@ -337,7 +337,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
               {sections.filter((s) => s.id !== "dienstleister" && s.id !== "kunde").map((section, si) => {
                 const realIndex = sections.indexOf(section);
                 return (
-                  <div key={section.id} className="border-t border-black/10 p-4 sm:p-5">
+                  <div key={section.id} className="print-keep border-t border-black/10 p-4 sm:p-5">
                     <div className="mono mb-3 text-[10px] uppercase tracking-[0.2em] text-black/40">{section.title}</div>
                     <dl className="space-y-3">
                       {section.clauses.map((c, ci) => (
@@ -460,7 +460,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             ← Zur Planung
           </Link>
           <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">Auswahl · Vertrag</span>
-          {contract?.locked ? (
+          {contract ? (
             <button type="button" onClick={() => window.print()} className="mono rounded-full bg-[#17171a] px-3.5 py-1.5 text-[12px] tracking-widest text-white transition-colors hover:opacity-90">
               Als PDF
             </button>
