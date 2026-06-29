@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -12,6 +13,7 @@ import { DEFAULT_CREATE_FAST_PROMPTS, PromptStart } from "@/components/create/Pr
 import type { ProjectModeId } from "@/lib/projectModes";
 import { MARKETING_STARTER_PRESETS } from "@/lib/studioPresets";
 import { SiteNav } from "@/components/site/SiteNav";
+import { HomeMarketing } from "@/components/site/HomeMarketing";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { apiError, fetchJsonWithTimeout, formatFlowError } from "@/lib/home/flow";
 
@@ -356,6 +358,20 @@ export default function HomePage() {
                   mounted ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
                 }`}
               >
+                <div className="mb-1">
+                  <p className="mono text-[11px] uppercase tracking-[0.24em] text-black/45">
+                    Für Fotograf:innen &amp; kreative Freelancer
+                  </p>
+                  <h1 className="mt-3 font-brand text-[34px] font-bold leading-[1.04] tracking-[-0.02em] text-[#17171a] sm:text-[52px]">
+                    Aus einer vagen Kundenidee wird ein klarer Shoot.
+                  </h1>
+                  <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-black/60 sm:text-[18px]">
+                    MAGYC verwandelt grobe Anfragen in strukturierte Projektseiten — mit
+                    Moodboard, Shotlist, Locations, Aufgaben, Freigaben und Vertrag. Damit
+                    kreative Projekte klar starten und professionell enden.
+                  </p>
+                </div>
+
                 <PromptStart
                   id="start"
                   inputRef={inputRef}
@@ -383,6 +399,13 @@ export default function HomePage() {
                     </p>
                   </div>
                 )}
+
+                <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-black/55">
+                  <span>Kostenlos. Ohne Setup. In Sekunden.</span>
+                  <Link href="/showcase" className="font-medium text-black/75 underline-offset-4 transition-colors hover:text-black hover:underline">
+                    Beispielprojekt ansehen →
+                  </Link>
+                </div>
               </motion.div>
             )}
 
@@ -615,16 +638,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {stage === "input" && (
-          <div className="pointer-events-none mx-auto flex w-full max-w-6xl justify-between pb-10 pt-16 text-[13px] leading-relaxed text-black/45 sm:pt-24">
-            <p className="max-w-[230px]">
-              MAGYC ordnet kreative Arbeit, bevor sie schwer wird.
-            </p>
-            <p className="hidden max-w-[260px] text-right sm:block">
-              Beschreibe, was entstehen soll. Der Arbeitsraum beginnt hier.
-            </p>
-          </div>
-        )}
+        {stage === "input" && <HomeMarketing />}
       </div>
 
     </main>
