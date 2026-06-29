@@ -10,8 +10,9 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-6xl px-5 sm:px-8 py-14">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-8">
           <div className="col-span-2 sm:col-span-1">
-            <Link href="/" className="font-serif" style={{ fontSize: 22, color: brand.ink }}>
-              magyc
+            <Link href="/" aria-label="MAGYC" className="inline-flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/magyc-logo.png" alt="MAGYC" className="h-[20px] w-auto" />
             </Link>
             <p className="mt-3 leading-relaxed" style={{ fontSize: 13, color: brand.muted, maxWidth: 220 }}>
               Eine Idee rein, eine lebendige, gemeinsame Struktur raus.
