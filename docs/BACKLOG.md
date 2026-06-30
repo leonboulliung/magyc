@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-30 (Codex — production incident and full code audit)_
+_Last updated: 2026-06-30 (Codex — marketing trust and shared page chrome)_
 
 ---
 
@@ -57,6 +57,15 @@ _Last updated: 2026-06-30 (Codex — production incident and full code audit)_
   security headers and stopped exposing database details in API responses.
 - Extended production/operations checks and documented the full audit in
   `docs/CODE_AUDIT_2026-06-30.md`. Dependency audit: zero known vulnerabilities.
+
+## Done 2026-06-30 — marketing trust and page ending
+
+- Added shared eIDAS/VDG and EU-hosting trust anchors to the single marketing
+  footer path, with precise wording that distinguishes MAGYC's documented
+  electronic signatures from qualified electronic signatures.
+- Gave the footer its own restrained surface colour and removed the home
+  scroller's trailing padding. Standard marketing routes now use a flex-based
+  `100dvh` shell so the footer is the real end of the document.
 
 Everything else currently listed below is a product/performance option rather
 than unfinished work from the hardening package: streamed project creation,

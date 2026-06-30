@@ -324,7 +324,7 @@ export default function HomePage() {
       <div
         className={
           stage === "input"
-            ? "relative z-30 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain pb-24"
+            ? "relative z-30 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain"
             : "relative z-10 mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto overscroll-contain px-4 pb-8 sm:px-10"
         }
         style={stage === "input" ? undefined : { paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
