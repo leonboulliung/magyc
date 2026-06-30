@@ -25,6 +25,7 @@ export function PollRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const presetMode = ctx.mode === "preset";
 
   // Last vote per actor.
   const latestByActor = new Map<string, ModuleStateEntry>();
@@ -52,6 +53,7 @@ export function PollRenderer({
   const totalVotes = [...buckets.values()].reduce((s, a) => s + a.length, 0);
 
   async function vote(option: string) {
+    if (presetMode) return;
     const next = mine === option ? "" : option; // toggle off if same
     await ctx.act(index, "vote", { option: next });
   }
@@ -110,21 +112,21 @@ export function PollRenderer({
             return (
               <li key={i} className="group/option">
                 <div
-                  role={selectable ? "button" : undefined}
-                  tabIndex={selectable ? 0 : -1}
+                  role={selectable && !presetMode ? "button" : undefined}
+                  tabIndex={selectable && !presetMode ? 0 : -1}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.closest("button,input,textarea,[data-poll-control='true']")) return;
-                    if (selectable) vote(opt);
+                    if (selectable && !presetMode) vote(opt);
                   }}
                   onKeyDown={(e) => {
-                    if (!selectable) return;
+                    if (!selectable || presetMode) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       vote(opt);
                     }
                   }}
-                  className={`relative w-full overflow-hidden rounded-[var(--v-radius)] text-left transition-colors ${selectable ? "cursor-pointer" : "cursor-text"}`}
+                  className={`relative w-full overflow-hidden rounded-[var(--v-radius)] text-left transition-colors ${selectable && !presetMode ? "cursor-pointer" : "cursor-text"}`}
                   style={{
                     border: `1px solid ${selected ? "var(--v-fg)" : "var(--v-rule)"}`,
                     background: "transparent",
@@ -143,12 +145,11 @@ export function PollRenderer({
                     }}
                   />
                   <div className="relative flex items-center gap-3 px-3 py-2">
-                    <span
-                      className="mono text-[10px] tabular-nums shrink-0"
-                      style={{ color: "var(--v-muted)" }}
-                    >
-                      {String(pct).padStart(2, "0")}
-                    </span>
+                    {!presetMode && totalVotes > 0 && (
+                      <span className="mono shrink-0 text-[10px] tabular-nums" style={{ color: "var(--v-muted)" }}>
+                        {pct}%
+                      </span>
+                    )}
                     <InlineText
                       value={opt}
                       isOwner={ctx.isOwner}

@@ -28,6 +28,7 @@ export function ChecklistRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const presetMode = ctx.mode === "preset";
 
   // Reconstruct items — seed first (in original order), then collab adds.
   const added = state
@@ -76,6 +77,7 @@ export function ChecklistRenderer({
   }
 
   async function toggle(itemKey: string) {
+    if (presetMode) return;
     const next = !isMine(itemKey);
     await ctx.act(index, "check", { itemKey, checked: next });
   }
@@ -121,13 +123,15 @@ export function ChecklistRenderer({
                   transition={{ duration: 0.15 }}
                   className="flex items-center gap-2.5"
                 >
-                  <CheckBox
-                    checked={checked}
-                    checkers={checkers}
-                    onClick={() => toggle(it.key)}
-                  />
+                  {!presetMode && (
+                    <CheckBox
+                      checked={checked}
+                      checkers={checkers}
+                      onClick={() => toggle(it.key)}
+                    />
+                  )}
                   <span
-                    className="text-[13px] flex-1 select-none cursor-pointer"
+                    className={`text-[13px] flex-1 select-none ${presetMode ? "cursor-default" : "cursor-pointer"}`}
                     style={{
                       color: checked ? "var(--v-muted)" : "var(--v-fg)",
                       textDecoration: checked ? "line-through" : "none",
@@ -180,10 +184,12 @@ function CheckBox({
   checked,
   checkers,
   onClick,
+  disabled = false,
 }: {
   checked: boolean;
   checkers: { actorId: string; color?: string; name?: string }[];
   onClick: () => void;
+  disabled?: boolean;
 }) {
   // When checked, fill the box with the first checker's color and
   // pile additional checkers as dots to the right (handled by parent).
@@ -192,6 +198,7 @@ function CheckBox({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={checked ? "uncheck" : "check"}
       className="shrink-0 inline-flex items-center justify-center rounded-sm transition-all"
       style={{

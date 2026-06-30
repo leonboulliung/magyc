@@ -54,7 +54,7 @@ import {
 // structure instead of a flat registry list.
 const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
   { title: "REFERENCE & FRAMING", types: ["ai_summary"] },
-  { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "range", "phases"] },
+  { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "phases"] },
   { title: "PLACE", types: ["location_single", "locations_multi", "location_suggestions", "route"] },
   { title: "PEOPLE & WORK", types: ["crew", "work_packages", "deliverables", "checklist"] },
   { title: "QUESTIONS & DECISIONS", types: ["notes", "qa", "poll", "approvals"] },

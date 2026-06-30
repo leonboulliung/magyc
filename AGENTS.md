@@ -64,7 +64,7 @@ be checked before local verification. Names: `NEXT_PUBLIC_SUPABASE_URL`,
 `OPENAI_API_KEY`, `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 (+ Clerk URL vars). Never print or commit values.
 
-DB schema: `supabase/migrations/` (current), `supabase/migrations-archive/`
+DB schema: `supabase/migrations/` (current through 027), `supabase/migrations-archive/`
 (predecessor app, historical only). Schema changes are applied manually in the
 Supabase SQL editor — there is no migration runner wired up. Operational
 checks live in `docs/OPERATIONS.md`; run `npm run ops:backup-check` after
@@ -97,6 +97,10 @@ their server/client semantics change.
    state to the final module indexes, copies preset assets into the project
    namespace, and inserts real `module_state` rows. Never trust a client preset
    payload when an account preset id is available.
+   The preset editor renders those same widgets in `WidgetContext.mode =
+   "preset"`: configuration stays shared, while project-only voting, claiming,
+   checking, fullscreen, and grid chrome are suppressed. Migration 027 adds
+   30-day soft deletion for presets.
    Dashboard cards come from the service-role-only
    `studio_project_summaries(user_id)` RPC (migration 023), which returns lean
    activity/count data for owned and explicitly assigned projects.

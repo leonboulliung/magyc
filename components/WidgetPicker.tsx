@@ -191,6 +191,11 @@ export function widgetPickerSymbolFor(type: ModuleType): string {
   return "□";
 }
 
+/** Canonical visual order shared by the project picker and preset builder. */
+export function widgetPickerGroups(): ModuleType[][] {
+  return GROUPS.map((group) => group.entries.map((entry) => entry.type));
+}
+
 // ── Default configs ──────────────────────────────────────────────────
 export function defaultWidget(type: ModuleType): Module | null {
   const now = new Date().toISOString();

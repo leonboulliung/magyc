@@ -6,6 +6,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { PhasesWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
+import { InlineText } from "./InlineText";
 
 /**
  * Phasen — chronological phase arc visualised as a horizontal
@@ -31,6 +32,7 @@ export function PhasesRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
+  const presetMode = ctx.mode === "preset";
   const phases = m.phases;
   const current = Math.max(0, Math.min(m.currentPhase, phases.length - 1));
 
@@ -41,6 +43,36 @@ export function PhasesRenderer({
     setSaving(true);
     await ctx.saveModule(index, { ...m, currentPhase: i });
     setSaving(false);
+  }
+
+  function savePresetPhases(nextPhases: PhasesWidget["phases"]) {
+    void ctx.saveModule(index, { ...m, phases: nextPhases, currentPhase: 0 }, { quiet: true });
+  }
+
+  if (presetMode) {
+    return (
+      <WidgetShell module={m} index={index}>
+        <WidgetCard microTitle={m.microTitle} description={m.description}>
+          <div className="space-y-2">
+            {phases.map((phase, phaseIndex) => (
+              <div key={phaseIndex} className="flex items-start gap-3 rounded-[var(--v-radius)] px-3 py-2.5" style={{ border: "1px solid var(--v-rule)" }}>
+                <span className="mono mt-0.5 text-[10px] opacity-45" style={{ color: "var(--v-muted)" }}>{phaseIndex + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <InlineText value={phase.label} isOwner onSave={(label) => savePresetPhases(phases.map((item, index) => index === phaseIndex ? { ...item, label } : item))} placeholder="Phase benennen" className="text-[13px] font-medium" />
+                  <div className="mt-1">
+                    <InlineText value={phase.description ?? ""} isOwner multiline onSave={(description) => savePresetPhases(phases.map((item, index) => index === phaseIndex ? { ...item, description } : item))} placeholder="Optional beschreiben" className="text-[11px]" />
+                  </div>
+                </div>
+                {phases.length > 2 && <button type="button" onClick={() => savePresetPhases(phases.filter((_, index) => index !== phaseIndex))} aria-label="Phase entfernen" className="mono text-[12px] opacity-45 hover:opacity-100">×</button>}
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => savePresetPhases([...phases, { label: "" }])} className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>
+            + Phase hinzufügen
+          </button>
+        </WidgetCard>
+      </WidgetShell>
+    );
   }
 
   return (

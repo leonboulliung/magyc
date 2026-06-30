@@ -335,8 +335,7 @@ export function StudioHome({
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
       {/* Prompt-first hero — the create field is the centre of the Studio */}
-      <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio</p>
-      <h1 className="mt-3 font-brand text-[30px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[40px]">
+      <h1 className="font-brand text-[30px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[40px]">
         Plane deinen nächsten Fotografie-Auftrag
       </h1>
       <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-black/55">

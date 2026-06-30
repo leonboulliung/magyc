@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Dialog } from "@/components/ui/Dialog";
-import { defaultWidget, widgetPickerSymbolFor } from "@/components/WidgetPicker";
+import { defaultWidget, widgetPickerGroups, widgetPickerSymbolFor } from "@/components/WidgetPicker";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { WidgetContext } from "@/lib/widgetContext";
 import {
@@ -43,6 +44,8 @@ const LABELS: Record<ModuleType, string> = {
  */
 export function PresetBuilder() {
   const [presets, setPresets] = useState<StudioPreset[]>([]);
+  const [deletedPresets, setDeletedPresets] = useState<Array<StudioPreset & { deletedAt: string }>>([]);
+  const [deletedOpen, setDeletedOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeElementIndex, setActiveElementIndex] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -64,7 +67,16 @@ export function PresetBuilder() {
         const json = await readApiJson(res);
         if (!res.ok || !Array.isArray(json.presets)) throw new Error("presets_failed");
         const remote = cleanStudioPresets(json.presets) ?? [];
-        if (!cancelled) { setPresets(remote); setSyncState("saved"); remoteWritableRef.current = true; }
+        if (!cancelled) {
+          setPresets(remote);
+          const deleted = Array.isArray(json.deletedPresets)
+            ? json.deletedPresets.filter((item): item is StudioPreset & { deletedAt: string } => !!cleanStudioPresets([item])?.[0] && typeof item.deletedAt === "string")
+                .map((item) => ({ ...cleanStudioPresets([item])![0]!, deletedAt: item.deletedAt }))
+            : [];
+          setDeletedPresets(deleted);
+          setSyncState("saved");
+          remoteWritableRef.current = true;
+        }
       } catch {
         if (!cancelled) { if (local) setPresets(local); setSyncState("local"); remoteWritableRef.current = false; }
       } finally {
@@ -115,11 +127,20 @@ export function PresetBuilder() {
     setPresets((items) => [...items, preset]);
     setEditingId(preset.id);
     setActiveElementIndex(0);
-    setPickerOpen(false);
+    setPickerOpen(true);
   }
   function deletePreset(id: string) {
+    const preset = presets.find((item) => item.id === id);
+    if (preset) setDeletedPresets((items) => [{ ...preset, deletedAt: new Date().toISOString() }, ...items.filter((item) => item.id !== id)]);
     setPresets((items) => items.filter((p) => p.id !== id));
     setEditingId(null);
+  }
+  function restorePreset(id: string) {
+    const preset = deletedPresets.find((item) => item.id === id);
+    if (!preset) return;
+    const { deletedAt: _deletedAt, ...restored } = preset;
+    setDeletedPresets((items) => items.filter((item) => item.id !== id));
+    setPresets((items) => [...items, restored]);
   }
   function addElement(type: ModuleType) {
     if (!editing) return;
@@ -175,7 +196,6 @@ export function PresetBuilder() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio · Presets</p>
             <span className="mono text-[11px] tracking-widest text-black/35">
               {syncState === "loading" && "Lädt …"}
               {syncState === "saved" && "✓ Gespeichert"}
@@ -183,7 +203,7 @@ export function PresetBuilder() {
               {syncState === "error" && "Nicht gespeichert"}
             </span>
           </div>
-          <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Presets</h1>
+          <h1 className="mt-1 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Presets</h1>
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">
             Wiederkehrende Projektstarts: einmal Elemente + Prompt-Regeln festlegen,
             danach legst du solche Projekte strukturiert mit einem Klick an.
@@ -221,33 +241,94 @@ export function PresetBuilder() {
         ))}
       </div>
 
+      {deletedPresets.length > 0 && (
+        <section className="mt-5 border-t border-black/10 pt-4">
+          <button type="button" onClick={() => setDeletedOpen((open) => !open)} className="flex w-full items-center justify-between py-2 text-left text-[13px] text-black/50 transition-colors hover:text-black">
+            <span>Zuletzt gelöscht</span>
+            <span className="mono text-[10px] tracking-widest">{deletedPresets.length} {deletedOpen ? "↑" : "↓"}</span>
+          </button>
+          <AnimatePresence initial={false}>
+            {deletedOpen && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="space-y-2 pt-2">
+                  {deletedPresets.map((preset) => {
+                    const remaining = Math.max(1, 30 - Math.floor((Date.now() - new Date(preset.deletedAt).getTime()) / 86_400_000));
+                    return (
+                      <div key={preset.id} className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.025] px-4 py-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[14px] text-black/65">{preset.name}</div>
+                          <div className="mt-0.5 text-[11px] text-black/35">Noch {remaining} Tage wiederherstellbar</div>
+                        </div>
+                        <button type="button" onClick={() => restorePreset(preset.id)} className="rounded-full border border-black/15 px-3 py-1.5 text-[12px] text-black/55 transition-colors hover:border-black/35 hover:text-black">Wiederherstellen</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+      )}
+
       {/* Compact editor pop-up */}
-      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title="Preset bearbeiten" maxWidth={560}>
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title="Preset bearbeiten" maxWidth={760}>
         {editing && (
           <div className="max-h-[85vh] overflow-y-auto rounded-2xl border border-black/12 bg-white shadow-2xl">
-            <div className="space-y-5 p-5 sm:p-6">
-              <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-6 p-5 sm:p-7">
+              <div className="max-w-md">
                 <label className="block">
                   <span className="mono text-[10px] uppercase tracking-widest text-black/40">Name</span>
                   <input value={editing.name} onChange={(e) => patch(editing.id, { name: e.target.value })} placeholder="z. B. Hochzeit" maxLength={120} className={`${field} mt-1.5`} />
                 </label>
               </div>
 
-              <button type="button" onClick={() => patch(editing.id, { allowContextModules: editing.allowContextModules === false })} className="flex w-full items-center justify-between gap-4 text-left">
-                <span>
-                  <span className="block text-[14px] text-black/85">Kontext-Elemente erlauben</span>
-                  <span className="mt-0.5 block text-[12px] leading-snug text-black/40">MAGYC darf passende Elemente ergänzen.</span>
-                </span>
-                <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "var(--studio-ink)" : "var(--studio-rule)" }}>
-                  <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform" style={{ left: 2, transform: editing.allowContextModules !== false ? "translateX(20px)" : "none" }} />
-                </span>
-              </button>
-
               {/* Elements */}
               <div>
-                <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Elemente</div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="mono text-[10px] uppercase tracking-widest text-black/40">Elemente auswählen</div>
+                  {editing.modules.length > 0 && (
+                    <button type="button" onClick={() => setPickerOpen((open) => !open)} className="rounded-full border border-black/12 px-3 py-1.5 text-[12px] text-black/55 transition-colors hover:border-black/30 hover:text-black">
+                      {pickerOpen ? "Auswahl schließen" : "+ Element"}
+                    </button>
+                  )}
+                </div>
+                <AnimatePresence initial={false}>
+                  {(pickerOpen || editing.modules.length === 0) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="overflow-hidden rounded-xl border border-black/10 bg-black/[0.025]">
+                        {widgetPickerGroups().map((group, groupIndex) => {
+                          const available = group.filter((type) => PRESET_ELEMENT_TYPES.includes(type) && !editing.modules.some((module) => module.type === type));
+                          if (available.length === 0) return null;
+                          return (
+                            <div key={groupIndex} className="grid grid-cols-2 gap-1 border-b border-black/8 p-1.5 last:border-b-0 sm:grid-cols-3 lg:grid-cols-4">
+                              {available.map((type) => (
+                                <motion.button
+                                  key={type}
+                                  type="button"
+                                  onClick={() => addElement(type)}
+                                  whileHover={{ y: -2, backgroundColor: "rgba(0,0,0,0.055)" }}
+                                  whileTap={{ scale: 0.98 }}
+                                  className="flex min-h-12 min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-black/68"
+                                >
+                                  <span className="mono w-5 shrink-0 text-center text-[11px] text-black/42">{widgetPickerSymbolFor(type)}</span>
+                                  <span className="truncate">{LABELS[type]}</span>
+                                </motion.button>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 {editing.modules.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {editing.modules.map((m, i) => (
                       <span
                         key={i}
@@ -266,24 +347,7 @@ export function PresetBuilder() {
                       </span>
                     ))}
                   </div>
-                ) : (
-                  <p className="rounded-lg border border-dashed border-black/12 px-3 py-3 text-[13px] text-black/40">Noch keine Elemente.</p>
-                )}
-                <div className="relative mt-2">
-                  <button type="button" onClick={() => setPickerOpen((o) => !o)} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
-                    {pickerOpen ? "Schließen" : "+ Element hinzufügen"}
-                  </button>
-                  {pickerOpen && (
-                    <div className="mt-2 grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-xl border border-black/10 bg-black/[0.04] p-1.5 sm:grid-cols-3">
-                      {PRESET_ELEMENT_TYPES.filter((type) => !editing.modules.some((module) => module.type === type)).map((t) => (
-                        <button key={t} type="button" onClick={() => addElement(t)} className="flex min-w-0 items-center gap-2 rounded px-2.5 py-2 text-left text-[12px] text-black/70 transition-colors hover:bg-black/[0.06] hover:text-[#17171a]">
-                          <span className="mono w-5 shrink-0 text-center text-[10px] text-black/45">{widgetPickerSymbolFor(t)}</span>
-                          <span className="truncate">{LABELS[t]}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                ) : null}
               </div>
 
               <div>
@@ -321,6 +385,16 @@ export function PresetBuilder() {
                   ))}
                 </div>
               </div>
+
+              <button type="button" onClick={() => patch(editing.id, { allowContextModules: editing.allowContextModules === false })} className="flex w-full items-center justify-between gap-4 border-t border-black/10 pt-5 text-left">
+                <span>
+                  <span className="block text-[14px] text-black/85">Passende Elemente automatisch ergänzen</span>
+                  <span className="mt-0.5 block text-[12px] leading-snug text-black/40">MAGYC darf den Projektkontext berücksichtigen.</span>
+                </span>
+                <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "var(--studio-ink)" : "var(--studio-rule)" }}>
+                  <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform" style={{ left: 2, transform: editing.allowContextModules !== false ? "translateX(20px)" : "none" }} />
+                </span>
+              </button>
             </div>
 
             <div className="flex items-center justify-between gap-3 border-t border-black/10 bg-black/[0.03] px-5 py-3.5 sm:px-6">
@@ -379,6 +453,7 @@ function PresetModulePreview({
     >
       <WidgetContext.Provider
         value={{
+          mode: "preset",
           spaceId: `preset:${presetId}`,
           title: "Preset",
           language: "de",

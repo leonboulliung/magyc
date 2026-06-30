@@ -25,6 +25,7 @@ export function CrewRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const presetMode = ctx.mode === "preset";
   const myId = getSelfId();
 
   const claimsByRole = new Map<string, ModuleStateEntry[]>();
@@ -65,6 +66,7 @@ export function CrewRenderer({
   }
 
   async function toggleClaim(slotLabel: string) {
+    if (presetMode) return;
     const mine = (claimsByRole.get(slotLabel) || []).some((entry) => entry.actor.id === myId);
     await ctx.act(index, "claim", { slotLabel, claimed: !mine });
   }
@@ -112,8 +114,7 @@ export function CrewRenderer({
                 const mine = claimers.some((entry) => entry.actor.id === myId);
                 return (
                   <motion.li
-                    key={`${roleIndex}-${role.name || "empty"}`}
-                    layout
+                    key={roleIndex}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 4 }}
@@ -126,22 +127,20 @@ export function CrewRenderer({
                     }}
                   >
                     <div className="flex items-start gap-3">
-                      <button
-                        type="button"
-                        onClick={() => toggleClaim(slotLabel)}
-                        aria-label={mine ? "Zuteilung aufheben" : "Mir zuweisen"}
-                        className="mt-0.5 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full transition-all"
-                        style={{
-                          border: `1.5px solid ${mine ? "var(--v-fg)" : "var(--v-rule)"}`,
-                          background: mine ? "var(--v-fg)" : "transparent",
-                        }}
-                      >
-                        {mine && (
-                          <span className="mono text-[9px]" style={{ color: "var(--v-bg)" }}>
-                            ✓
-                          </span>
-                        )}
-                      </button>
+                      {!presetMode && (
+                        <button
+                          type="button"
+                          onClick={() => toggleClaim(slotLabel)}
+                          aria-label={mine ? "Zuteilung aufheben" : "Mir zuweisen"}
+                          className="mt-0.5 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full transition-all"
+                          style={{
+                            border: `1.5px solid ${mine ? "var(--v-fg)" : "var(--v-rule)"}`,
+                            background: mine ? "var(--v-fg)" : "transparent",
+                          }}
+                        >
+                          {mine && <span className="mono text-[9px]" style={{ color: "var(--v-bg)" }}>✓</span>}
+                        </button>
+                      )}
 
                       <div className="min-w-0 flex-1">
                         <InlineText
@@ -152,7 +151,7 @@ export function CrewRenderer({
                           className="block text-[13px] leading-snug"
                         />
 
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        {!presetMode && <div className="mt-2 flex flex-wrap gap-2">
                           {claimers.length > 0 ? (
                             claimers.map((entry) => {
                               const name = displayActorName(entry.actor);
@@ -176,11 +175,11 @@ export function CrewRenderer({
                               Noch niemand zugeteilt.
                             </span>
                           )}
-                        </div>
+                        </div>}
                       </div>
 
                       <div className="flex shrink-0 items-center gap-1">
-                        {!!role.name && (
+                        {!!role.name && !presetMode && (
                           <button
                             type="button"
                             onClick={() => copyRoleLink(role.name)}

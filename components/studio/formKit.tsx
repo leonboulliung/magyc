@@ -18,7 +18,7 @@ export function PageHeader({
   status,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   status?: SaveStatus;
   children?: ReactNode;
@@ -26,8 +26,7 @@ export function PageHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">{eyebrow}</p>
-        <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">{title}</h1>
+        <h1 className="font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">{title}</h1>
         {children && <div className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">{children}</div>}
       </div>
       {status && (

@@ -40,8 +40,7 @@ export default function FastPromptsPage() {
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio · Schnellbausteine</p>
-          <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Schnellbausteine</h1>
+          <h1 className="font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Schnellbausteine</h1>
         </div>
         <span className="mono mt-2 text-[11px] tracking-widest text-black/35">
           {status === "loading" ? "Lädt …" : status === "saving" ? "Speichert …" : status === "error" ? "Nicht gespeichert" : "✓ Gespeichert"}

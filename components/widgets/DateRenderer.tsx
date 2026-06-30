@@ -34,7 +34,7 @@ export function DateRenderer({
   return (
     <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        <div className="flex min-h-[180px] items-center justify-center py-4">
+        <div className="flex min-h-[190px] -translate-y-1 items-center justify-center py-2">
           {editing ? (
             <input
               autoFocus

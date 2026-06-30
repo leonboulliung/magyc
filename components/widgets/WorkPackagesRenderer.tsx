@@ -24,6 +24,7 @@ export function WorkPackagesRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const presetMode = ctx.mode === "preset";
   const myId = getSelfId();
 
   const claimsByPackage = new Map<string, ModuleStateEntry[]>();
@@ -67,6 +68,7 @@ export function WorkPackagesRenderer({
   }
 
   async function toggleClaim(slotLabel: string) {
+    if (presetMode) return;
     const mine = (claimsByPackage.get(slotLabel) || []).some((entry) => entry.actor.id === myId);
     await ctx.act(index, "claim", { slotLabel, claimed: !mine });
   }
@@ -112,8 +114,7 @@ export function WorkPackagesRenderer({
                 const mine = claimers.some((entry) => entry.actor.id === myId);
                 return (
                   <motion.div
-                    key={`${packageIndex}-${pkg.label || "empty"}`}
-                    layout
+                    key={packageIndex}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 4 }}
@@ -126,7 +127,7 @@ export function WorkPackagesRenderer({
                     }}
                   >
                     <div className="flex items-start gap-3">
-                      <button
+                      {!presetMode && <button
                         type="button"
                         onClick={() => toggleClaim(slotLabel)}
                         aria-label={mine ? "Zuteilung aufheben" : "Mir zuweisen"}
@@ -141,7 +142,7 @@ export function WorkPackagesRenderer({
                             ✓
                           </span>
                         )}
-                      </button>
+                      </button>}
 
                       <div className="min-w-0 flex-1">
                         <InlineText
@@ -165,7 +166,7 @@ export function WorkPackagesRenderer({
                           </div>
                         )}
 
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        {!presetMode && <div className="mt-2 flex flex-wrap gap-2">
                           {claimers.length > 0 ? (
                             claimers.map((entry) => {
                               const name = displayActorName(entry.actor);
@@ -189,7 +190,7 @@ export function WorkPackagesRenderer({
                               Noch niemand zugeteilt.
                             </span>
                           )}
-                        </div>
+                        </div>}
                       </div>
 
                       {ctx.isOwner && (

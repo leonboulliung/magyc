@@ -69,8 +69,7 @@ function StudioDataUnavailable() {
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-6xl items-center px-4 py-16 sm:px-8">
       <div className="max-w-xl">
-        <p className="mono text-[10px] uppercase tracking-[0.2em] opacity-45">Studio</p>
-        <h1 className="mt-3 text-3xl font-semibold">Deine Projekte konnten gerade nicht geladen werden.</h1>
+        <h1 className="text-3xl font-semibold">Deine Projekte konnten gerade nicht geladen werden.</h1>
         <p className="mt-4 max-w-lg text-[15px] leading-relaxed opacity-60">
           Deine Daten bleiben erhalten. Bitte lade die Seite in einem Moment erneut.
         </p>

@@ -7,8 +7,7 @@
 export default function KonnektorenPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
-      <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Studio · Konnektoren</p>
-      <h1 className="mt-2.5 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Konnektoren</h1>
+      <h1 className="font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Konnektoren</h1>
       <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">
         Verbindungen, die dir Arbeit abnehmen — damit MAGYC der Verwalter ist, nicht du.
       </p>

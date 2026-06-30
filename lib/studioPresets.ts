@@ -22,6 +22,8 @@ export const HIDDEN_PRESET_TYPES = new Set<ModuleType>([
   "notes",
   "discussion",
   "sketch",
+  "range",
+  "selection",
 ]);
 
 export const PRESET_ELEMENT_TYPES = bodyTypes().filter((type) => !HIDDEN_PRESET_TYPES.has(type));

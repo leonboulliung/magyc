@@ -286,7 +286,7 @@ export function MoodboardRenderer({
             >
               + Eintrag hinzufügen
             </button>
-            {!empty && (
+            {!empty && ctx.mode !== "preset" && (
               <button
                 type="button"
                 onClick={() => setExpanded(true)}

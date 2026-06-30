@@ -5,6 +5,7 @@ import type { LocationsMultiWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
 import { MapCanvas, OSM_TILES } from "./MapCanvas";
+import { LocationPointsEditor } from "./LocationPointsEditor";
 
 /**
  * Mehrere Locations — multiple pins on one map. Fits all markers in
@@ -27,8 +28,10 @@ export function LocationsMultiRenderer({
         description={m.description}
         attribution={m.attribution ?? { name: "OpenStreetMap", url: "https://www.openstreetmap.org/copyright", license: "ODbL" }}
         bare
+        allowOverflow
       >
-        <MapCanvas
+        <div className="mx-4 overflow-hidden rounded-[calc(var(--v-radius)*0.72)]">
+          <MapCanvas
           height={220}
           deps={[JSON.stringify(locs)]}
           setup={(L, el) => {
@@ -69,15 +72,14 @@ export function LocationsMultiRenderer({
 
             return () => map.remove();
           }}
-        />
+          />
+        </div>
 
-        {locs.length > 0 && (
-          <div className="px-4 py-3 flex flex-wrap gap-x-3 gap-y-1">
-            {locs.map((loc, i) => (
-              <span key={i} className="mono text-[10px] tracking-widest" style={{ color: "var(--v-muted)" }}>
-                {loc.label ?? `${loc.lat.toFixed(3)},${loc.lng.toFixed(3)}`}
-              </span>
-            ))}
+        {ctx.isOwner ? (
+          <LocationPointsEditor points={locs} minItems={1} onChange={(locations) => void ctx.saveModule(index, { ...m, locations }, { quiet: ctx.mode === "preset" })} />
+        ) : locs.length > 0 && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1 px-4 py-3">
+            {locs.map((loc, i) => <span key={i} className="mono text-[10px] tracking-widest" style={{ color: "var(--v-muted)" }}>{loc.label ?? `${loc.lat.toFixed(3)},${loc.lng.toFixed(3)}`}</span>)}
           </div>
         )}
       </WidgetCard>

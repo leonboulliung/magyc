@@ -5,12 +5,15 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-30 (Codex — marketing trust and shared page chrome)_
+_Last updated: 2026-06-30 (Codex — preset workflow and element-context pass)_
 
 ---
 
 ## TODO — next operational step
 
+- [ ] **Apply migration 027 in Supabase.** This enables the Preset page's
+  30-day recently-deleted area. Code remains compatible before the migration,
+  but deletion falls back to the previous immediate-delete behavior.
 - [ ] **Create and configure the Clerk production instance.** Clerk Doctor
   confirms that MAGYC currently has only a development instance; the Vercel
   production deployment consequently uses test credentials. Replace the
@@ -66,6 +69,22 @@ _Last updated: 2026-06-30 (Codex — marketing trust and shared page chrome)_
 - Gave the footer its own restrained surface colour and removed the home
   scroller's trailing padding. Standard marketing routes now use a flex-based
   `100dvh` shell so the footer is the real end of the document.
+
+## Done 2026-06-30 — preset workflow and element contexts
+
+- Reworked Preset creation around the canonical project element ordering,
+  immediate selection, compact active tags, Dot Grid previews, Motion feedback,
+  and a final context-expansion toggle.
+- Added an explicit preset renderer context so shared production renderers hide
+  project-only voting, claiming, checking, fullscreen, and cell controls while
+  retaining their real configuration UI.
+- Made single, multi and route location widgets consistently editable with
+  inset maps and full autocomplete result lists; added editable place proposals
+  and preset phase configuration. Stabilized Crew/Task row keys, simplified
+  empty poll percentages, centered Date, and retired Range/Selection from new
+  presets and AI composition without breaking legacy project data.
+- Added migration 027 and a 30-day restore area for deleted presets. Removed
+  decorative Studio eyebrows from account pages.
 
 Everything else currently listed below is a product/performance option rather
 than unfinished work from the hardening package: streamed project creation,

@@ -6,6 +6,7 @@ import { getSelfId } from "@/lib/state";
 import type { LocationSuggestionsWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
+import { InlineText } from "./InlineText";
 
 /**
  * Location-Vorschläge — candidate places as a TEXT list with vote
@@ -30,6 +31,25 @@ export function LocationSuggestionsRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const presetMode = ctx.mode === "preset";
+
+  function saveSuggestions(suggestions: LocationSuggestionsWidget["suggestions"]) {
+    void ctx.saveModule(index, { ...m, suggestions }, { quiet: presetMode });
+  }
+
+  function patchSuggestion(suggestionIndex: number, patch: { label?: string; address?: string }) {
+    saveSuggestions(m.suggestions.map((suggestion, currentIndex) => (
+      currentIndex === suggestionIndex ? { ...suggestion, ...patch } : suggestion
+    )));
+  }
+
+  function addSuggestion() {
+    saveSuggestions([...m.suggestions, { label: "" }]);
+  }
+
+  function removeSuggestion(suggestionIndex: number) {
+    saveSuggestions(m.suggestions.filter((_, currentIndex) => currentIndex !== suggestionIndex));
+  }
 
   // Last vote per actor.
   const latestByActor = new Map<string, ModuleStateEntry>();
@@ -55,6 +75,7 @@ export function LocationSuggestionsRenderer({
   }
 
   async function vote(label: string) {
+    if (presetMode) return;
     const next = mine === label ? "" : label;
     await ctx.act(index, "vote", { option: next });
   }
@@ -82,36 +103,43 @@ export function LocationSuggestionsRenderer({
                   className="flex items-start gap-3 py-2 px-1"
                   style={{ borderBottom: "1px solid var(--v-rule)" }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => vote(sug.label)}
-                    className="shrink-0 mt-0.5 inline-flex items-center justify-center transition-all"
-                    aria-label={selected ? "unvote" : "vote"}
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: "9999px",
-                      border: `1.5px solid ${selected ? "var(--v-fg)" : "var(--v-rule)"}`,
-                      background: selected ? "var(--v-fg)" : "transparent",
-                    }}
-                  >
-                    {selected && (
-                      <span className="mono text-[8px]" style={{ color: "var(--v-bg)" }}>●</span>
-                    )}
-                  </button>
+                  {!presetMode && (
+                    <button
+                      type="button"
+                      onClick={() => vote(sug.label)}
+                      className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition-all"
+                      aria-label={selected ? "Stimme entfernen" : "Für diesen Ort stimmen"}
+                      style={{
+                        border: `1.5px solid ${selected ? "var(--v-fg)" : "var(--v-rule)"}`,
+                        background: selected ? "var(--v-fg)" : "transparent",
+                      }}
+                    >
+                      {selected && <span className="mono text-[8px]" style={{ color: "var(--v-bg)" }}>●</span>}
+                    </button>
+                  )}
 
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] leading-snug" style={{ color: "var(--v-fg)" }}>
-                      {sug.label}
-                    </div>
-                    {sug.address && (
-                      <div className="mono text-[10px] mt-0.5 opacity-60 truncate" style={{ color: "var(--v-muted)" }}>
-                        {sug.address}
+                    <InlineText
+                      value={sug.label}
+                      isOwner={ctx.isOwner}
+                      onSave={(value) => patchSuggestion(i, { label: value })}
+                      placeholder="Ort oder Idee benennen"
+                      className="text-[13px] leading-snug"
+                    />
+                    {(ctx.isOwner || sug.address) && (
+                      <div className="mt-0.5">
+                        <InlineText
+                          value={sug.address ?? ""}
+                          isOwner={ctx.isOwner}
+                          onSave={(value) => patchSuggestion(i, { address: value })}
+                          placeholder="Adresse oder Hinweis ergänzen"
+                          className="mono text-[10px] opacity-60"
+                        />
                       </div>
                     )}
                   </div>
 
-                  {voters.length > 0 && (
+                  {!presetMode && voters.length > 0 && (
                     <div className="flex -space-x-1.5 shrink-0 items-center">
                       <AnimatePresence initial={false}>
                         {voters.slice(0, 5).map((v) => (
@@ -138,11 +166,32 @@ export function LocationSuggestionsRenderer({
                       )}
                     </div>
                   )}
+                  {ctx.isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => removeSuggestion(i)}
+                      aria-label="Ortsvorschlag entfernen"
+                      className="mono grid h-6 w-6 shrink-0 place-items-center rounded-full text-[13px] opacity-45 transition-opacity hover:opacity-100"
+                      style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
+                    >
+                      ×
+                    </button>
+                  )}
                 </motion.li>
               );
             })}
           </AnimatePresence>
         </ul>
+        {ctx.isOwner && (
+          <button
+            type="button"
+            onClick={addSuggestion}
+            className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
+            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+          >
+            + Ort hinzufügen
+          </button>
+        )}
       </WidgetCard>
     </WidgetShell>
   );

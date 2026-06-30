@@ -5,6 +5,7 @@ import type { RouteWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
 import { MapCanvas, OSM_TILES } from "./MapCanvas";
+import { LocationPointsEditor } from "./LocationPointsEditor";
 
 /**
  * Route — ordered stops connected by a polyline. The CSV notes this
@@ -30,8 +31,10 @@ export function RouteRenderer({
         description={m.description}
         attribution={m.attribution ?? { name: "OpenStreetMap", url: "https://www.openstreetmap.org/copyright", license: "ODbL" }}
         bare
+        allowOverflow
       >
-        <MapCanvas
+        <div className="mx-4 overflow-hidden rounded-[calc(var(--v-radius)*0.72)]">
+          <MapCanvas
           height={230}
           deps={[JSON.stringify(stops)]}
           setup={(L, el) => {
@@ -86,9 +89,12 @@ export function RouteRenderer({
 
             return () => map.remove();
           }}
-        />
+          />
+        </div>
 
-        {stops.length > 0 && (
+        {ctx.isOwner ? (
+          <LocationPointsEditor points={stops} minItems={2} addLabel="+ Station hinzufügen" onChange={(nextStops) => void ctx.saveModule(index, { ...m, stops: nextStops }, { quiet: ctx.mode === "preset" })} />
+        ) : stops.length > 0 && (
           <div className="px-4 py-3 space-y-1">
             {stops.map((stop, i) => {
               const NUMERALS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];

@@ -14,17 +14,19 @@ export function WidgetCard({
   attribution,
   children,
   bare = false,
+  allowOverflow = false,
 }: {
   microTitle?: React.ReactNode;
   description?: string;
   attribution?: { name: string; url: string; license: string };
   children: React.ReactNode;
   bare?: boolean;
+  allowOverflow?: boolean;
 }) {
   const paddedClass = microTitle ? "p-4" : "px-4 pb-4 pt-10";
   return (
     <motion.div
-      className={`min-w-0 rounded-[var(--v-radius)] [overflow-wrap:anywhere] ${bare ? "overflow-hidden" : `${paddedClass} overflow-hidden`}`}
+      className={`min-w-0 rounded-[var(--v-radius)] [overflow-wrap:anywhere] ${bare ? (allowOverflow ? "overflow-visible" : "overflow-hidden") : `${paddedClass} overflow-hidden`}`}
       style={{
         border: "1px solid var(--v-widget-border, var(--v-rule))",
         background: "var(--v-widget, var(--v-bg))",

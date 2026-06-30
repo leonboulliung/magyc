@@ -10,6 +10,9 @@ import type { PresetStateEntry } from "./presetState";
  * widget doesn't have to drill 5 props through dispatcher levels.
  */
 export interface WidgetContextValue {
+  /** Rendering intent. Presets use the real renderer but suppress actions
+   * that only make sense once collaborators are working in a project. */
+  mode?: "project" | "preset";
   spaceId: string;
   /** The space's heading/title — a topic hint for widgets that want to
    *  seed themselves from context (e.g. GIF suggestions). */

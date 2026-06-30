@@ -74,8 +74,10 @@ export function LocationSingleRenderer({
         description={m.description}
         attribution={m.attribution ?? { name: "OpenStreetMap", url: "https://www.openstreetmap.org/copyright", license: "ODbL" }}
         bare
+        allowOverflow
       >
-        <MapCanvas
+        <div className="mx-4 overflow-hidden rounded-[calc(var(--v-radius)*0.72)]">
+          <MapCanvas
           height={200}
           deps={[view[1], view[0], ctx.isOwner]}
           setup={(L, el) => {
@@ -120,7 +122,8 @@ export function LocationSingleRenderer({
 
             return () => map.remove();
           }}
-        />
+          />
+        </div>
 
         <LocationLabel
           label={label}
@@ -198,7 +201,7 @@ function LocationLabel({
   if (!label && !isOwner) return null;
 
   return (
-    <div className="relative px-4 py-3">
+    <div className="relative z-20 px-4 py-3">
       {editing ? (
         <>
           <div className="flex items-center gap-2">
@@ -212,7 +215,7 @@ function LocationLabel({
                 else if (e.key === "Enter" && results[0]) pick(results[0]);
               }}
               onBlur={() => { setTimeout(() => setEditing(false), 150); }}
-              placeholder="…"
+              placeholder="Ort oder Adresse suchen"
               maxLength={120}
               className="flex-1 mono text-[11px] tracking-widest bg-transparent outline-none"
               style={{ color: "var(--v-fg)" }}
@@ -222,7 +225,7 @@ function LocationLabel({
 
           {results.length > 0 && (
             <div
-              className="absolute left-3 right-3 top-full z-30 rounded-[var(--v-radius)] overflow-hidden"
+              className="absolute left-3 right-3 top-full z-30 max-h-52 overflow-y-auto rounded-[var(--v-radius)]"
               style={{ background: "var(--v-bg)", border: "1px solid var(--v-rule)", boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
             >
               {results.map((r, i) => (
@@ -245,10 +248,12 @@ function LocationLabel({
           type="button"
           onClick={() => { if (isOwner) { setQuery(label); setEditing(true); } }}
           disabled={!isOwner}
-          className={`mono text-[11px] tracking-widest text-left ${isOwner ? "cursor-text hover:opacity-70" : "cursor-default"} transition-opacity`}
+          className={`group/location inline-flex items-center gap-2 text-left ${isOwner ? "cursor-text hover:opacity-70" : "cursor-default"} transition-opacity`}
           style={{ color: "var(--v-fg)" }}
         >
-          {label || "…"}
+          <span aria-hidden className="mono text-[10px] opacity-45">⊙</span>
+          <span className="text-[12px]">{label || "Ort festlegen"}</span>
+          {isOwner && <span aria-hidden className="text-[11px] opacity-0 transition-opacity group-hover/location:opacity-55">Ändern</span>}
         </button>
       )}
     </div>
