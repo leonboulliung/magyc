@@ -9,12 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui"],
-        body: ["Barlow", "ui-sans-serif", "system-ui"],
-        heading: ["Instrument Serif", "serif"],
-        // Brand display face for marketing headlines — clear, bold, clean
-        // edges, low complexity. Replaces the distracting italic serif.
-        brand: ["Space Grotesk", "Inter", "ui-sans-serif", "system-ui"],
+        sans: ["Manrope", "ui-sans-serif", "system-ui"],
+        body: ["Manrope", "ui-sans-serif", "system-ui"],
+        heading: ["Bricolage Grotesque", "Manrope", "ui-sans-serif", "system-ui"],
+        brand: ["Bricolage Grotesque", "Manrope", "ui-sans-serif", "system-ui"],
         dirtyline: ["Dirtyline", "ui-sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular"],
       },

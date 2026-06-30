@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-30 (Codex — preset workflow and element-context pass)_
+_Last updated: 2026-06-30 (Codex — brand typography refresh)_
 
 ---
 
@@ -85,6 +85,13 @@ _Last updated: 2026-06-30 (Codex — preset workflow and element-context pass)_
   presets and AI composition without breaking legacy project data.
 - Added migration 027 and a 30-day restore area for deleted presets. Removed
   decorative Studio eyebrows from account pages.
+
+## Done 2026-06-30 — brand typography refresh
+
+- Replaced the thin Barlow/Inter-first presentation with Manrope body copy and
+  Bricolage Grotesque display headings across marketing, Studio, Clerk and
+  neutral project workspaces. Existing deliberately selected project fonts
+  remain available; former neutral defaults normalize into the new system.
 
 Everything else currently listed below is a product/performance option rather
 than unfinished work from the hardening package: streamed project creation,

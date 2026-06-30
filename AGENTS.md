@@ -225,6 +225,10 @@ lib/
   --v-muted, --v-rule, --v-accent, --v-radius, --v-font`). Use the vars,
   never hardcoded colors/radii in renderers. Motion language:
   `docs/MOTION.md`.
+- **Brand typography**: marketing and account UI use Manrope for readable
+  body copy and Bricolage Grotesque for bold display headings. Project styles
+  that used the former neutral defaults (Inter/Barlow/Space Grotesk) normalize
+  to Manrope; deliberately selected editorial/display fonts remain respected.
 - **Validation**: every API route parses its body with zod via
   `parseBody` (lib/api/validate.ts). Auth checks: draft = anon token match,
   published = Clerk owner.

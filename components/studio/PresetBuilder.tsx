@@ -446,7 +446,8 @@ function PresetModulePreview({
         ["--v-muted" as string]: "rgba(243,243,239,0.58)",
         ["--v-rule" as string]: "rgba(255,255,255,0.14)",
         ["--v-accent" as string]: "#39d2b4",
-        ["--v-font" as string]: "var(--font-body)",
+        ["--v-font" as string]: "Manrope, ui-sans-serif, system-ui, sans-serif",
+        ["--v-heading" as string]: "Bricolage Grotesque, Manrope, ui-sans-serif, system-ui, sans-serif",
         backgroundImage: "radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1px)",
         backgroundSize: "18px 18px",
       }}

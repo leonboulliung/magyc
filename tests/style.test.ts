@@ -10,7 +10,7 @@ describe("project style safety", () => {
       color1: "#00ff00",
       color2: "#3366cc",
     })).toEqual({
-      font: "Inter",
+      font: "Manrope",
       background: "#f4f4f1",
       color1: "#17171a",
       color2: "#3366cc",

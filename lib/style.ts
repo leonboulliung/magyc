@@ -103,8 +103,11 @@ function reLight(hex: string, lMin: number, lMax: number, sMax: number): string 
  * surface unreadable.
  */
 export function normalizeStyle(style: SpaceStyle): SpaceStyle {
+  const font = ["Inter", "Barlow", "Space Grotesk"].includes(style.font)
+    ? "Manrope"
+    : style.font;
   return {
-    font: style.font,
+    font,
     background: "#f4f4f1",
     color1: "#17171a",
     color2: reLight(style.color2, 0.4, 0.6, 0.85),
@@ -130,6 +133,9 @@ export function styleVars(
   mode: ProjectThemeMode = "light",
 ): React.CSSProperties {
   const accent = normHex(style.color2);
+  const headingStackValue = style.font === "Manrope"
+    ? '"Bricolage Grotesque", "Manrope", ui-sans-serif, system-ui, sans-serif'
+    : fontStackValue;
   const base = mode === "light"
     ? {
         ["--v-fg" as string]: "#17171a",
@@ -167,7 +173,7 @@ export function styleVars(
     ...base,
     ["--v-radius" as string]: "28px",
     ["--v-font" as string]: fontStackValue,
-    ["--v-heading" as string]: fontStackValue,
+    ["--v-heading" as string]: headingStackValue,
   } as React.CSSProperties;
 }
 
@@ -189,7 +195,7 @@ export function sanitizeStyle(raw: unknown): SpaceStyle | null {
 
 /** A neutral default when no style was assigned. */
 export const DEFAULT_STYLE: SpaceStyle = {
-  font: "Inter",
+  font: "Manrope",
   color1: "#0d0d0d",
   color2: "#6b6b6b",
   background: "#ffffff",

@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&display=swap');
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:wght@300..900&family=IBM+Plex+Sans:wght@300;400;500;700&family=Space+Grotesk:wght@300..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;700&family=Inter:wght@100..900&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Source+Serif+4:wght@300..900&family=Space+Grotesk:wght@300..700&display=swap");
 
 @font-face {
   font-family: 'Dirtyline';
@@ -51,7 +50,7 @@ html, body {
 }
 
 body {
-  font-family: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -142,8 +141,8 @@ body {
   --v-rule: #e6e6e1;
   --v-accent: #0d0d0d;
   --v-radius: 20px;
-  --v-font: Inter, ui-sans-serif, system-ui, sans-serif;
-  --v-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+  --v-font: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --v-heading: "Bricolage Grotesque", "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 
 .vibe-editorial {
@@ -175,8 +174,8 @@ body {
   --v-rule: #e2e8f0;
   --v-accent: #2563eb;
   --v-radius: 8px;
-  --v-font: Inter, ui-sans-serif, system-ui, sans-serif;
-  --v-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+  --v-font: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --v-heading: "Bricolage Grotesque", "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 
 .vibe-terminal {
@@ -197,8 +196,8 @@ body {
   --v-rule: #ecdfd6;
   --v-accent: #d96f6f;
   --v-radius: 20px;
-  --v-font: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --v-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --v-font: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --v-heading: "Bricolage Grotesque", "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Apply the vibe tokens to the space root. */
@@ -313,7 +312,7 @@ body {
   color: #fff !important;
   box-shadow: 0 22px 70px rgba(0,0,0,0.42), inset 0 1px 1px rgba(255,255,255,0.12) !important;
   backdrop-filter: blur(18px);
-  font-family: Barlow, ui-sans-serif, system-ui, sans-serif !important;
+  font-family: Manrope, ui-sans-serif, system-ui, sans-serif !important;
 }
 
 .magyc-toast-title {

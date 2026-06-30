@@ -14,7 +14,7 @@ const clerkAppearance = {
     colorInputText: "#0d0d0d",
     colorDanger: "#7a1f1f",
     colorSuccess: "#225f3a",
-    fontFamily: "Barlow, ui-sans-serif, system-ui, sans-serif",
+    fontFamily: "Manrope, ui-sans-serif, system-ui, sans-serif",
     fontFamilyButtons: "'JetBrains Mono', ui-monospace, monospace",
     fontSize: "13px",
     borderRadius: "0px",
