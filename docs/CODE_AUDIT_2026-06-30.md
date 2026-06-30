@@ -104,3 +104,22 @@ missing core product pipeline.
 
 The Clerk production instance and database migration verification are external
 configuration steps; they cannot be completed safely by a code deploy alone.
+
+## Production verification
+
+Commit `99dc727` deployed successfully to Vercel (`fra1`). The expanded smoke
+suite passed homepage, native sign-in, protected mutation gates, private-id
+concealment, disabled `/dev`, retired `/api/gif` and all security headers.
+Vercel reported no runtime errors for the deployment after testing.
+
+Chrome was authenticated through a ten-minute, one-time Clerk sign-in token for
+the existing owner account. Verified live:
+
+- `/studio` loads the owner's active, archived and deleted projects.
+- Existing account presets and settings load.
+- An existing Studio project opens without a server exception.
+- `/admin` loads real Clerk accounts, activity counts and project totals.
+- The Admin read-only account view lists seven owner projects and their status.
+- `/admin/spaces/97tDPWEG8S` loads structured project facts and its AI/data
+  trace. The Admin is therefore functional, not a static mock; it is an audit
+  view rather than a pixel-identical impersonation of the user's project UI.
