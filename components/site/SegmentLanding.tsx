@@ -1,240 +1,189 @@
+import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Icon } from "@iconify/react";
 import { Container } from "@/components/site/sections";
-import { MediaPlaceholder } from "@/components/site/MediaPlaceholder";
-import { SiteImage } from "@/components/site/SiteImage";
+import { SiteReveal } from "@/components/site/SiteReveal";
 import { SEGMENTS, type Segment } from "@/lib/segments";
-import { brand } from "@/lib/site";
 
-/** Building-block line icons, keyed by Segment block `icon`. Paths are
- *  pipe-separated <path> definitions. */
-const ICONS: Record<string, string> = {
-  deliverables: "M4 7l8-4 8 4-8 4-8-4z|M4 7v10l8 4 8-4V7|M12 11v10",
-  approvals: "M4 12l5 5L20 6",
-  crew: "M9 8a3 3 0 1 0 0-.01|M3.5 19a5.5 5.5 0 0 1 11 0|M16 6a3 3 0 0 1 0 6|M21 19a5.5 5.5 0 0 0-4-5.3",
-  packages: "M12 3l9 5-9 5-9-5 9-5z|M3 13l9 5 9-5",
-  shotlist: "M9 6h11|M9 12h11|M9 18h11|M4 5.5l1 1 2-2|M4 11.5l1 1 2-2|M4 17.5l1 1 2-2",
-  schedule: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z|M3 9h18|M8 2v4|M16 2v4",
-  location: "M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z|M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
-  moodboard: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z|M8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z|M21 17l-5-5L5 21",
-  files: "M21 12.5L12.5 21a5 5 0 0 1-7-7l9-9a3.3 3.3 0 0 1 4.7 4.7l-9 9a1.6 1.6 0 0 1-2.3-2.3l8-8",
-  notes: "M12 20h9|M16.5 3.5a2 2 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z",
-  qa: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z|M9.3 9a2.5 2.5 0 1 1 3.2 2.4c-.8.3-1 .8-1 1.6",
-  discussion: "M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12z|M8.5 12h7",
+const BLOCK_ICONS: Record<string, string> = {
+  deliverables: "ph:package",
+  approvals: "ph:seal-check",
+  crew: "ph:users-three",
+  packages: "ph:stack",
+  shotlist: "ph:list-checks",
+  schedule: "ph:calendar-check",
+  location: "ph:map-pin-line",
+  moodboard: "ph:images-square",
+  files: "ph:paperclip",
+  notes: "ph:note-pencil",
+  qa: "ph:question",
+  discussion: "ph:chat-circle-dots",
 };
 
-function Icon({ k }: { k: string }) {
-  const d = ICONS[k] ?? "";
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      {d.split("|").map((p, i) => (
-        <path key={i} d={p} />
-      ))}
-    </svg>
-  );
+const FALLBACK_HERO: Record<string, string> = {
+  corporate: "/media/marketing/corporate-fotografie-kachel.jpg",
+};
+
+const WORK_MEDIA: Record<string, string[]> = {
+  product: ["/media/work-watch.jpg", "/media/work-skincare.jpg", "/media/work-sneaker.jpg"],
+  corporate: ["/media/marketing/corporate-fotografie-kachel.jpg", "/media/showcase-08.jpg", "/media/showcase-04.jpg"],
+  event: ["/media/showcase-05.jpg", "/media/showcase-02.jpg", "/media/showcase-07.jpg"],
+  wedding: ["/media/marketing/hochzeit-fotografie.jpg", "/media/showcase-06.jpg", "/media/showcase-03.jpg"],
+  fashion: ["/media/marketing/fashion-fotografie-kachel.jpg", "/media/showcase-09.jpg", "/media/showcase-10.jpg"],
+};
+
+function Eyebrow({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
+  return <p className={`mono text-[10px] uppercase tracking-[0.22em] ${light ? "text-white/65" : "text-black/42"}`}>{children}</p>;
 }
 
-function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="mono text-[11px] uppercase tracking-[0.22em]" style={{ color: brand.muted }}>{children}</p>;
-}
-
-/** Shared headline class — clear, bold brand grotesk (no italic). */
-const H = "font-brand font-bold tracking-[-0.02em]";
-
-/** Warm brand accents that give the segment pages energy. */
-const WARM = "linear-gradient(135deg, #ffb347, #ff7ea8, #9b8cff)";
-const WARM_TEXT = "linear-gradient(120deg, #ff8a5b, #f4719b)";
-
-/**
- * SegmentLanding — one renderer for every photography-segment marketing
- * page. Content comes from a Segment (lib/segments.ts); the engine story
- * is shared, the message is differentiated per bottleneck. Imagery is
- * optional — missing images render labelled placeholders.
- */
 export function SegmentLanding({ segment }: { segment: Segment }) {
-  const others = SEGMENTS.filter((s) => s.slug !== segment.slug);
+  const others = SEGMENTS.filter((item) => item.slug !== segment.slug);
+  const heroSrc = segment.hero.image?.src ?? FALLBACK_HERO[segment.slug] ?? "/media/marketing/hero-footage.jpg";
+  const heroAlt = segment.hero.image?.alt ?? `${segment.label} im Einsatz`;
+  const workMedia = segment.work.images?.map((item) => item.src).slice(0, 3) ?? WORK_MEDIA[segment.slug] ?? [];
 
   return (
-    <div style={{ color: brand.ink }}>
-      {/* ── Hero ───────────────────────────────────────────────── */}
-      <Container className="relative pt-28 sm:pt-36 pb-12 sm:pb-20">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-8 right-0 h-[440px] w-[680px] max-w-full opacity-90"
-          style={{ background: "radial-gradient(closest-side, rgba(255,140,90,0.18), transparent), radial-gradient(closest-side at 25% 55%, rgba(155,140,255,0.16), transparent)" }}
-        />
-        <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-          <div>
-            <Eyebrow>{segment.hero.eyebrow}</Eyebrow>
-            <h1 className={`mt-5 ${H} text-[38px] leading-[1.03] sm:text-[60px]`}>
+    <div className="text-[#17171a]">
+      <section className="relative min-h-[560px] overflow-hidden bg-[#17171a] sm:min-h-[620px]">
+        <Image src={heroSrc} alt={heroAlt} fill priority sizes="100vw" className="object-cover" />
+        <div className="absolute inset-0 bg-black/55" aria-hidden />
+        <Container className="relative flex min-h-[560px] flex-col justify-end pb-12 pt-24 sm:min-h-[620px] sm:pb-16">
+          <SiteReveal>
+            <Eyebrow light>{segment.hero.eyebrow}</Eyebrow>
+            <h1 className="mt-4 max-w-4xl font-brand text-[40px] font-bold leading-[1.02] text-white sm:text-[68px]">
               {segment.hero.headline}
             </h1>
-            <p className="mt-6 max-w-xl text-[18px] leading-relaxed sm:text-[20px]" style={{ color: brand.muted }}>
-              {segment.hero.sub}
-            </p>
-            <div className="mt-9 flex flex-wrap items-center gap-4">
-              <Link href="/#start" className="rounded-full px-5 py-2.5 font-body text-sm font-medium transition-all duration-200 active:scale-[0.98]" style={{ background: brand.ink, color: brand.bg }}>
+            <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/75 sm:text-[18px]">{segment.hero.sub}</p>
+            <div className="mt-7 flex flex-wrap items-center gap-5">
+              <Link href="/#start" className="rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">
                 {segment.hero.ctaPrimary}
               </Link>
-              <Link href="/how-it-works" className="mono text-[12px] uppercase tracking-widest transition-opacity hover:opacity-100" style={{ color: brand.muted }}>
-                {segment.hero.ctaSecondary}
+              <Link href="/how-it-works" className="text-[14px] font-medium text-white/75 transition-colors hover:text-white">
+                So funktioniert&apos;s <span aria-hidden>→</span>
               </Link>
             </div>
-          </div>
-          {segment.hero.image ? (
-            <SiteImage
-              src={segment.hero.image.src}
-              alt={segment.hero.image.alt}
-              ratio="4 / 5"
-              caption={segment.hero.image.caption}
-              sizes="(max-width: 1024px) 100vw, 45vw"
-              priority
-            />
-          ) : (
-            <MediaPlaceholder label={segment.hero.placeholderLabel ?? "Hero"} ratio="4 / 5" caption="Echtes Bild · folgt" />
-          )}
-        </div>
-      </Container>
+          </SiteReveal>
+        </Container>
+      </section>
 
-      {/* ── Das Problem ────────────────────────────────────────── */}
-      <Container className="py-16 sm:py-24">
-        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
+      <Container className="py-20 sm:py-28">
+        <SiteReveal>
           <Eyebrow>{segment.problem.eyebrow}</Eyebrow>
-          <h2 className={`mt-4 max-w-3xl ${H} text-[28px] leading-[1.1] sm:text-[42px]`}>
-            {segment.problem.heading}
-          </h2>
+          <h2 className="mt-4 max-w-4xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.problem.heading}</h2>
+        </SiteReveal>
+        <div className="mt-10 grid border-y border-black/10 sm:grid-cols-3">
+          {segment.problem.cards.map((card, index) => (
+            <SiteReveal key={card.big} delay={index * 0.06} className="h-full">
+              <div className="h-full px-0 py-7 sm:border-l sm:border-black/10 sm:px-7 sm:first:border-l-0">
+                <span className="mono text-[10px] tracking-widest text-black/35">0{index + 1}</span>
+                <h3 className="mt-4 text-[19px] font-semibold">{card.big}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-black/55">{card.small}</p>
+              </div>
+            </SiteReveal>
+          ))}
+        </div>
+      </Container>
+
+      <section className="bg-[#e9e8e3] py-20 sm:py-28">
+        <Container>
+          <SiteReveal>
+            <Eyebrow>{segment.work.eyebrow}</Eyebrow>
+            <div className="mt-4 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+              <h2 className="max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.work.heading}</h2>
+              <p className="max-w-sm text-[15px] leading-relaxed text-black/55">{segment.work.lead}</p>
+            </div>
+          </SiteReveal>
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {segment.problem.cards.map((c) => (
-              <div key={c.big} className="rounded-2xl border border-black/[0.08] bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
-                <div className={`${H} text-[22px] sm:text-[26px]`} style={{ background: WARM_TEXT, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{c.big}</div>
-                <p className="mt-3 text-[14px] leading-relaxed" style={{ color: brand.muted }}>{c.small}</p>
-              </div>
+            {workMedia.map((src, index) => (
+              <SiteReveal key={src} delay={index * 0.06}>
+                <div className="relative aspect-[4/5] overflow-hidden bg-black">
+                  <Image src={src} alt={`${segment.label}, Arbeitsbeispiel ${index + 1}`} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition-transform duration-700 hover:scale-[1.025]" />
+                </div>
+              </SiteReveal>
             ))}
           </div>
-        </div>
-      </Container>
+        </Container>
+      </section>
 
-      {/* ── Sample work ────────────────────────────────────────── */}
-      <Container className="py-16 sm:py-24">
-        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
-          <Eyebrow>{segment.work.eyebrow}</Eyebrow>
-          <h2 className={`mt-4 max-w-2xl ${H} text-[28px] leading-[1.1] sm:text-[38px]`}>
-            {segment.work.heading}
-          </h2>
-          <p className="mt-5 max-w-2xl text-[16px] leading-relaxed" style={{ color: brand.muted }}>{segment.work.lead}</p>
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
-            {segment.work.images
-              ? segment.work.images.map((w) => (
-                  <SiteImage key={w.src} src={w.src} alt={w.alt} ratio="1 / 1" sizes="(max-width: 1024px) 50vw, 33vw" />
-                ))
-              : (segment.work.placeholderLabels ?? []).map((label, i) => (
-                  <MediaPlaceholder key={`${label}-${i}`} label={label} ratio="1 / 1" />
-                ))}
-          </div>
-          <p className="mono mt-5 text-[11px] uppercase tracking-[0.2em]" style={{ color: brand.muted }}>{segment.work.footnote}</p>
-        </div>
-      </Container>
-
-      {/* ── Lebenszyklus ───────────────────────────────────────── */}
-      <Container className="py-16 sm:py-24">
-        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
-          <Eyebrow>{segment.lifecycle.eyebrow}</Eyebrow>
-          <h2 className={`mt-4 max-w-2xl ${H} text-[28px] leading-[1.1] sm:text-[42px]`}>
-            {segment.lifecycle.heading}
-          </h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {segment.lifecycle.steps.map((s) => (
-              <div key={s.n} className="rounded-2xl border border-black/[0.08] bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.06)]">
-                <div className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-semibold text-white" style={{ background: brand.ink }}>{s.n}</div>
-                <h3 className={`mt-3 ${H} text-[22px]`}>{s.title}</h3>
-                <p className="mt-3 text-[15px] leading-relaxed" style={{ color: brand.ink, opacity: 0.72 }}>{s.lead}</p>
-                <p className="mt-4 text-[13px] leading-relaxed" style={{ color: brand.muted }}>{s.note}</p>
+      <Container className="py-20 sm:py-28">
+        <SiteReveal>
+          <Eyebrow>Ein Projekt, drei Phasen</Eyebrow>
+          <h2 className="mt-4 max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">Von der Idee bis zum sauberen Abschluss.</h2>
+        </SiteReveal>
+        <div className="mt-10 divide-y divide-black/10 border-y border-black/10">
+          {[
+            ["01", "Planung", "Anfrage, Bildidee, Orte, Motive und Beteiligte werden zu einem gemeinsamen Arbeitsraum."],
+            ["02", "Vertrag", "Der abgestimmte Plan wird geprüft, ergänzt und mit der passenden Signatur verbindlich gemacht."],
+            ["03", "Abgeschlossen", "Ergebnisse, Referenzen und Projektwissen bleiben sauber aufbereitet und auffindbar."],
+          ].map(([number, title, copy], index) => (
+            <SiteReveal key={number} delay={index * 0.05}>
+              <div className="grid gap-3 py-7 sm:grid-cols-[80px_220px_1fr] sm:items-center">
+                <span className="mono text-[10px] tracking-widest text-black/35">{number}</span>
+                <h3 className="text-[20px] font-semibold">{title}</h3>
+                <p className="max-w-2xl text-[14px] leading-relaxed text-black/55">{copy}</p>
               </div>
+            </SiteReveal>
+          ))}
+        </div>
+      </Container>
+
+      <section className="bg-white py-20 sm:py-28">
+        <Container>
+          <SiteReveal>
+            <Eyebrow>{segment.blocks.eyebrow}</Eyebrow>
+            <h2 className="mt-4 max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.blocks.heading}</h2>
+            <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-black/55">{segment.blocks.lead}</p>
+          </SiteReveal>
+          <div className="mt-10 grid gap-px overflow-hidden border border-black/10 bg-black/10 sm:grid-cols-2 lg:grid-cols-3">
+            {segment.blocks.items.map((item, index) => (
+              <SiteReveal key={`${item.name}-${index}`} delay={(index % 3) * 0.04} className="h-full bg-white">
+                <div className="h-full p-6">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-[#17171a] text-white">
+                    <Icon icon={BLOCK_ICONS[item.icon] ?? "ph:square"} width="19" height="19" aria-hidden />
+                  </span>
+                  <h3 className="mt-5 text-[17px] font-semibold">{item.name}</h3>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-black/52">{item.role}</p>
+                </div>
+              </SiteReveal>
             ))}
           </div>
+        </Container>
+      </section>
+
+      <Container className="py-20 sm:py-28">
+        <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <SiteReveal>
+            <Eyebrow>{segment.present.eyebrow}</Eyebrow>
+            <h2 className="mt-4 font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.present.heading}</h2>
+            <p className="mt-5 text-[16px] leading-relaxed text-black/55">{segment.present.sub}</p>
+          </SiteReveal>
+          <SiteReveal delay={0.08}>
+            <div className="relative aspect-[16/10] overflow-hidden bg-black">
+              <Image src="/media/marketing/finale-uebergabe.png" alt="Fertig aufbereitete Projektübergabe in MAGYC" fill sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
+            </div>
+          </SiteReveal>
         </div>
       </Container>
 
-      {/* ── Bausteine ──────────────────────────────────────────── */}
-      <Container className="py-16 sm:py-24">
-        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
-          <Eyebrow>{segment.blocks.eyebrow}</Eyebrow>
-          <h2 className={`mt-4 max-w-2xl ${H} text-[28px] leading-[1.1] sm:text-[42px]`}>
-            {segment.blocks.heading}
-          </h2>
-          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed" style={{ color: brand.muted }}>{segment.blocks.lead}</p>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {segment.blocks.items.map((b) => (
-              <div key={b.name} className="group rounded-2xl border border-black/[0.08] bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
-                <div className="grid h-10 w-10 place-items-center rounded-xl text-white transition-transform duration-300 group-hover:scale-105" style={{ background: WARM }}><Icon k={b.icon} /></div>
-                <h3 className="mt-4 font-body text-[16px] font-medium">{b.name}</h3>
-                <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: brand.muted }}>{b.role}</p>
-              </div>
+      <Container className="pb-24 sm:pb-32">
+        <SiteReveal>
+          <div className="grid bg-[#17171a] text-white lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="p-7 sm:p-11">
+              <Eyebrow light>{segment.positioning.eyebrow}</Eyebrow>
+              <h2 className="mt-4 max-w-3xl font-brand text-[30px] font-bold leading-[1.08] sm:text-[46px]">{segment.cta.headline}</h2>
+              <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-white/65">{segment.positioning.sub}</p>
+            </div>
+            <div className="p-7 pt-0 sm:p-11 sm:pt-0 lg:pt-11">
+              <Link href="/#start" className="inline-flex rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">{segment.cta.button}</Link>
+            </div>
+          </div>
+          <div className="mt-10 flex flex-wrap items-center gap-2">
+            <span className="mono mr-3 text-[10px] uppercase tracking-[0.2em] text-black/40">Auch für</span>
+            {others.map((item) => (
+              <Link key={item.slug} href={`/${item.slug}`} className="rounded-full border border-black/12 px-4 py-2 text-[13px] text-black/65 transition-colors hover:border-black/35 hover:text-black">{item.label}</Link>
             ))}
           </div>
-          <p className="mono mt-6 text-[11px] uppercase tracking-[0.2em]" style={{ color: brand.muted }}>{segment.blocks.footnote}</p>
-        </div>
-      </Container>
-
-      {/* ── Present ────────────────────────────────────────────── */}
-      <Container className="py-16 sm:py-24">
-        <div className="pt-14" style={{ borderTop: `1px solid ${brand.rule}` }}>
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <Eyebrow>{segment.present.eyebrow}</Eyebrow>
-              <h2 className={`mt-4 ${H} text-[28px] leading-[1.1] sm:text-[44px]`}>
-                {segment.present.heading}
-              </h2>
-              <p className="mt-6 max-w-xl text-[17px] leading-relaxed" style={{ color: brand.muted }}>{segment.present.sub}</p>
-              <div className="mt-8 flex items-center gap-3 text-[13px]" style={{ color: brand.muted }}>
-                <span className="mono rounded px-2.5 py-1 tracking-widest" style={{ border: `1px solid ${brand.rule}` }}>{segment.present.fromLabel}</span>
-                <span aria-hidden style={{ color: brand.muted }}>→</span>
-                <span className="mono rounded px-2.5 py-1 tracking-widest" style={{ border: `1px solid ${brand.rule}`, color: brand.ink }}>{segment.present.toLabel}</span>
-              </div>
-            </div>
-            <MediaPlaceholder label={segment.present.mediaLabel} ratio="4 / 3" caption={segment.present.mediaCaption} />
-          </div>
-        </div>
-      </Container>
-
-      {/* ── Positionierung ─────────────────────────────────────── */}
-      <Container className="py-16 sm:py-24">
-        <div className="rounded-2xl p-8 sm:p-12" style={{ border: `1px solid ${brand.rule}`, background: brand.surface }}>
-          <Eyebrow>{segment.positioning.eyebrow}</Eyebrow>
-          <h2 className={`mt-4 max-w-3xl ${H} text-[26px] leading-[1.12] sm:text-[40px]`}>
-            {segment.positioning.heading}
-          </h2>
-          <p className="mt-6 max-w-2xl text-[17px] leading-relaxed" style={{ color: brand.muted }}>{segment.positioning.sub}</p>
-        </div>
-      </Container>
-
-      {/* ── CTA + andere Segmente ──────────────────────────────── */}
-      <Container className="pb-28 pt-8 text-center sm:pb-36">
-        <div className="relative overflow-hidden rounded-[32px] px-6 py-16 sm:px-12 sm:py-20" style={{ background: brand.ink }}>
-          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70" style={{ background: "radial-gradient(60% 80% at 50% 0%, rgba(255,140,90,0.34), transparent 70%), radial-gradient(50% 70% at 80% 100%, rgba(155,140,255,0.32), transparent 70%)" }} />
-          <div className="relative">
-            <h2 className={`mx-auto max-w-2xl ${H} text-[30px] leading-[1.06] text-white sm:text-[48px]`}>
-              {segment.cta.headline}
-            </h2>
-            <div className="mt-9 flex items-center justify-center">
-              <Link href="/#start" className="rounded-full bg-white px-6 py-3 font-body text-sm font-medium text-[#17171a] transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]">
-                {segment.cta.button}
-              </Link>
-            </div>
-          </div>
-        </div>
-        {others.length > 0 && (
-          <div className="mt-14">
-            <p className="mono text-[11px] uppercase tracking-[0.22em]" style={{ color: brand.muted }}>Auch für</p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              {others.map((o) => (
-                <Link key={o.slug} href={`/${o.slug}`} className="rounded-full px-4 py-2 text-[14px] transition-opacity hover:opacity-80" style={{ border: `1px solid ${brand.rule}`, color: brand.ink }}>
-                  {o.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+        </SiteReveal>
       </Container>
     </div>
   );

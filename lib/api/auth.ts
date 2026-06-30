@@ -13,7 +13,7 @@ import { supabaseAdmin } from "@/lib/supabase";
  *     `anon_owner_token` (≥ 16 chars, exact match) — browser-side
  *     ownership of an anonymous homepage draft.
  *
- * Collaborative interaction (votes, messages, uploads) is NOT gated by
+ * Collaborative interaction (votes, approvals, uploads) is NOT gated by
  * this — those flow through /state and /upload with contributor auth.
  * The publish endpoint keeps its own bespoke check (it is the moment an
  * anonymous owner becomes a Clerk account, so it needs both at once).

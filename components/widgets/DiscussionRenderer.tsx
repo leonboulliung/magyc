@@ -73,7 +73,7 @@ export function DiscussionRenderer({
   }
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         <ul className="space-y-3">
           <AnimatePresence initial={false}>

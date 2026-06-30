@@ -105,7 +105,7 @@ export function SelectionRenderer({
   }
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description} bare>
         {photos.length > 0 ? (
           <>

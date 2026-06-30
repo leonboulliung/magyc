@@ -58,7 +58,7 @@ export function ImagesRenderer({
   const removeImage = (key: string) => ctx.act(index, "edit", { id: key, deleted: true });
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {images.length === 0 ? (
           <p className="mono pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { DotField } from "@/components/DotField";
 import { brand } from "@/lib/site";
 
 /**
@@ -10,10 +11,11 @@ import { brand } from "@/lib/site";
  */
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
-    <div style={{ background: brand.bg, color: brand.ink, minHeight: "100vh" }}>
+    <div className="relative min-h-screen overflow-x-hidden" style={{ background: brand.bg, color: brand.ink }}>
+      <DotField color="0,0,0" className="pointer-events-none fixed inset-0 z-0 opacity-[0.045]" />
       <SiteNav />
-      <main>{children}</main>
-      <SiteFooter />
+      <main className="relative z-10">{children}</main>
+      <div className="relative z-10"><SiteFooter /></div>
     </div>
   );
 }

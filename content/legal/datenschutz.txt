@@ -1,0 +1,339 @@
+Datenschutzerklärung
+
+Stand: 30.06.2026
+
+Diese Datenschutzerklärung informiert darüber, wie personenbezogene Daten bei der Nutzung der Website und der digitalen Dienste von MAGYC verarbeitet werden.
+
+MAGYC ist ein digitales Produkt der BOULLIUNG SASU.
+
+1. Verantwortlicher
+
+Verantwortlich für die Verarbeitung personenbezogener Daten ist:
+
+BOULLIUNG SASU
+Société par actions simplifiée à associé unique
+60 rue François 1er
+75008 Paris
+Frankreich
+
+Vertreten durch:
+Leon Boulliung, Président
+
+E-Mail: leon@magyc.site
+Website: https://magyc.site
+
+2. Allgemeine Hinweise zur Datenverarbeitung
+
+Wir verarbeiten personenbezogene Daten nur, soweit dies zur Bereitstellung unserer Website, unserer digitalen Dienste, zur Kommunikation mit Nutzern, zur Verwaltung von Nutzerkonten, zur Durchführung vertraglicher oder vorvertraglicher Maßnahmen oder zur Verbesserung und Sicherheit unseres Angebots erforderlich ist.
+
+Personenbezogene Daten sind alle Informationen, die sich auf eine identifizierte oder identifizierbare natürliche Person beziehen, zum Beispiel Name, E-Mail-Adresse, IP-Adresse, Login-Daten, Projektinhalte oder Kommunikationsdaten.
+
+Die Verarbeitung erfolgt insbesondere auf Grundlage der Datenschutz-Grundverordnung (DSGVO).
+
+3. Zugriff auf die Website und Server-Logdaten
+
+Beim Aufruf unserer Website werden technisch notwendige Daten verarbeitet, damit die Website angezeigt und sicher betrieben werden kann. Dazu können gehören:
+
+- IP-Adresse
+- Datum und Uhrzeit des Zugriffs
+- aufgerufene Seiten und Dateien
+- Browsertyp und Browserversion
+- Betriebssystem
+- Referrer-URL
+- technische Geräteinformationen
+- Fehlermeldungen und Sicherheitsereignisse
+
+Diese Daten werden verarbeitet, um die Website bereitzustellen, technische Stabilität sicherzustellen, Missbrauch zu verhindern und Fehler zu analysieren.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt im sicheren und zuverlässigen Betrieb unserer Website und Dienste.
+
+4. Hosting und technische Infrastruktur
+
+Unsere Website und Teile der Anwendung werden über Vercel bereitgestellt.
+
+Anbieter:
+Vercel Inc.
+440 N Barranca Ave #4133
+Covina, CA 91723
+USA
+
+Website: https://vercel.com
+
+Beim Hosting können technische Zugriffsdaten, Server-Logdaten und Anwendungsdaten verarbeitet werden. Vercel verarbeitet Daten im Rahmen der Bereitstellung, Auslieferung und Sicherung der Website und Anwendung.
+
+Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO sowie, soweit ein Vertragsverhältnis besteht, Art. 6 Abs. 1 lit. b DSGVO.
+
+5. Nutzerkonto, Login und Authentifizierung
+
+MAGYC bietet Nutzerkonten und Login-Funktionen an. Für die Registrierung, Anmeldung und Verwaltung von Nutzerkonten können folgende Daten verarbeitet werden:
+
+- E-Mail-Adresse
+- Name, soweit angegeben
+- Login- und Authentifizierungsdaten
+- Account-ID
+- Profilinformationen
+- Zeitpunkte von Registrierung, Login und Account-Aktivitäten
+- technische Sicherheitsdaten, zum Beispiel IP-Adresse oder Geräteinformationen
+
+Für die Nutzerverwaltung und Authentifizierung verwenden wir Clerk.
+
+Anbieter:
+Clerk, Inc.
+660 King Street
+Unit 345
+San Francisco, CA 94107
+USA
+
+E-Mail: privacy@clerk.dev
+
+Die Verarbeitung dient der Erstellung und Verwaltung von Nutzerkonten, der sicheren Anmeldung, der Zugriffskontrolle und dem Schutz vor Missbrauch.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit die Verarbeitung zur Bereitstellung des Nutzerkontos und der MAGYC-Funktionen erforderlich ist. Für Sicherheitsmaßnahmen ist zusätzlich Art. 6 Abs. 1 lit. f DSGVO einschlägig.
+
+6. Datenbank, Speicherung und Projektverwaltung
+
+MAGYC ermöglicht die Erstellung, Bearbeitung und Speicherung von Projekten. Dabei können insbesondere folgende Daten verarbeitet werden:
+
+- Nutzer-ID und Account-Daten
+- Projektname und Projektbeschreibung
+- eingegebene Prompts und Anweisungen
+- Texte, Notizen und Konzepte
+- Links, Referenzen und Strukturinformationen
+- hochgeladene oder eingebundene Medien, soweit diese Funktion genutzt wird
+- Kunden-, Projekt- oder Shooting-Informationen, die Nutzer selbst eingeben
+- Zeitpunkte der Erstellung, Bearbeitung und Freigabe
+- technische Metadaten
+
+Für Datenbank- und Speicherfunktionen verwenden wir Supabase.
+
+Anbieter:
+Supabase Inc.
+Website: https://supabase.com
+
+Die Verarbeitung erfolgt, um MAGYC-Projekte zu speichern, anzuzeigen, zu bearbeiten und Nutzern zugänglich zu machen.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit die Verarbeitung zur Nutzung der MAGYC-Funktionen erforderlich ist. Soweit Daten zur technischen Sicherheit, Fehleranalyse oder Weiterentwicklung verarbeitet werden, erfolgt dies auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO.
+
+Nutzer sind selbst dafür verantwortlich, keine Daten in MAGYC einzugeben oder hochzuladen, für deren Verarbeitung ihnen keine ausreichende Berechtigung vorliegt. Dies gilt insbesondere für personenbezogene Daten von Kunden, Models, Mitarbeitenden, Dienstleistern oder sonstigen Dritten.
+
+7. Kontaktformular und Kommunikation
+
+Wenn Nutzer uns über ein Kontaktformular, per E-Mail oder auf anderem Weg kontaktieren, verarbeiten wir die von ihnen übermittelten Daten. Dazu können gehören:
+
+- Name
+- E-Mail-Adresse
+- Unternehmen
+- Nachricht
+- Telefonnummer, falls freiwillig angegeben
+- Projekt- oder Anfrageinformationen
+- Zeitpunkt der Kontaktaufnahme
+- technische Metadaten der Anfrage
+
+Diese Daten werden verarbeitet, um die Anfrage zu beantworten, Rückfragen zu stellen, Angebote vorzubereiten oder die Kommunikation zu dokumentieren.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, wenn die Anfrage mit einem Vertrag oder vorvertraglichen Maßnahmen zusammenhängt. In anderen Fällen erfolgt die Verarbeitung auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt in der Bearbeitung und Dokumentation von Anfragen.
+
+8. Verarbeitung von Projektinhalten und hochgeladenen Daten
+
+MAGYC richtet sich insbesondere an B2B-Nutzer aus dem Bereich Fotografie und kreative Projektarbeit. Nutzer können im Rahmen der Anwendung eigene Inhalte erstellen, eingeben, hochladen oder strukturieren lassen.
+
+Dabei können personenbezogene Daten enthalten sein, zum Beispiel:
+
+- Namen von Kunden, Fotografen, Models, Teammitgliedern oder Dienstleistern
+- Kontaktdaten
+- Projektbeschreibungen
+- Shooting-Informationen
+- Ortsangaben
+- Bildmaterial
+- Referenzen, Moodboards und Links
+- interne Kommentare oder Abstimmungsinhalte
+
+Diese Daten werden verarbeitet, um die vom Nutzer gewünschten Projektseiten, Strukturen, Abstimmungen, Moodboards oder sonstigen MAGYC-Funktionen bereitzustellen.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit die Verarbeitung zur Nutzung der MAGYC-Funktionen erforderlich ist. Soweit die Verarbeitung zur Sicherung, Verbesserung oder Fehlerbehebung der Anwendung erfolgt, beruht sie auf Art. 6 Abs. 1 lit. f DSGVO.
+
+9. Einsatz von künstlicher Intelligenz / OpenAI API
+
+MAGYC verwendet Funktionen der OpenAI API, um Nutzereingaben und Projektinformationen zu analysieren, zu strukturieren, umzuschreiben, zusammenzufassen oder in andere digitale Inhalte zu überführen.
+
+Anbieter:
+OpenAI Ireland Ltd.
+1st Floor, The Liffey Trust Centre
+117-126 Sheriff Street Upper
+Dublin 1, D01 YC43
+Irland
+
+Je nach Nutzung können an OpenAI insbesondere folgende Inhalte übermittelt werden:
+
+- Prompts und Eingaben des Nutzers
+- Projektbeschreibungen
+- Texte, Notizen und Aufgaben
+- Kontextinformationen aus MAGYC-Projekten
+- sonstige Inhalte, die der Nutzer zur Verarbeitung bereitstellt
+
+Die Verarbeitung erfolgt, um KI-gestützte MAGYC-Funktionen bereitzustellen. Nutzer sollten keine sensiblen personenbezogenen Daten, vertraulichen Informationen oder Daten Dritter eingeben, wenn sie hierzu nicht berechtigt sind.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit die KI-Verarbeitung zur Bereitstellung der gewünschten Funktion erforderlich ist. Soweit KI-Funktionen zur Verbesserung, Sicherheit oder Qualitätssicherung eingesetzt werden, kann Art. 6 Abs. 1 lit. f DSGVO einschlägig sein.
+
+10. Newsletter, Warteliste und Marketing-Kommunikation
+
+Soweit Nutzer sich für einen Newsletter, eine Warteliste, Beta-Einladung oder sonstige Marketing-Kommunikation anmelden, verarbeiten wir die hierfür angegebenen Daten, insbesondere:
+
+- E-Mail-Adresse
+- Name, soweit angegeben
+- Unternehmen, soweit angegeben
+- Zeitpunkt der Anmeldung
+- Einwilligungsnachweis
+- Kommunikationspräferenzen
+
+Der Versand erfolgt nur, wenn eine entsprechende Einwilligung vorliegt oder eine gesetzliche Erlaubnis besteht.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. a DSGVO. Nutzer können ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen, zum Beispiel über einen Abmeldelink oder per E-Mail an leon@magyc.site.
+
+Dieser Abschnitt gilt nur, soweit eine Newsletter-, Wartelisten- oder Marketing-Funktion tatsächlich angeboten wird.
+
+11. Analyse, Tracking und Produktverbesserung
+
+Wir können Analyse- und Tracking-Technologien einsetzen, um die Nutzung unserer Website und Anwendung besser zu verstehen, technische Fehler zu erkennen, Funktionen zu verbessern und unser Angebot weiterzuentwickeln.
+
+Dabei können insbesondere folgende Daten verarbeitet werden:
+
+- Seitenaufrufe
+- Klicks und Interaktionen
+- Nutzungsdauer
+- technische Geräteinformationen
+- Browser- und Betriebssystemdaten
+- ungefährer Standort auf Basis technischer Informationen
+- Referrer-Informationen
+- Ereignisse innerhalb der Anwendung
+
+Soweit Analyse- oder Tracking-Technologien nicht technisch notwendig sind, erfolgt der Einsatz nur auf Grundlage einer Einwilligung gemäß Art. 6 Abs. 1 lit. a DSGVO.
+
+Technisch notwendige Analysen, Sicherheitslogs oder Fehlermeldungen können auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO verarbeitet werden.
+
+Dieser Abschnitt gilt nur, soweit entsprechende Analyse- oder Tracking-Technologien tatsächlich eingesetzt werden.
+
+12. Cookies und ähnliche Technologien
+
+Unsere Website und Anwendung können Cookies, Local Storage, Session Storage oder ähnliche Technologien verwenden. Diese können erforderlich sein, um Login, Sicherheit, Spracheinstellungen, Sessions oder technische Funktionen bereitzustellen.
+
+Technisch notwendige Cookies und Speichertechnologien werden auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO verarbeitet. Unser berechtigtes Interesse liegt in der funktionsfähigen, sicheren und nutzerfreundlichen Bereitstellung der Website und Anwendung.
+
+Nicht notwendige Cookies, insbesondere für Marketing, Tracking oder externe Analyse, werden nur mit Einwilligung verwendet.
+
+13. Zahlungsabwicklung über Stripe
+
+Sofern kostenpflichtige Funktionen, Abonnements oder Zahlungen angeboten werden, kann die Zahlungsabwicklung über Stripe erfolgen.
+
+Anbieter für Nutzer im Europäischen Wirtschaftsraum kann insbesondere sein:
+
+Stripe Technology Europe, Limited
+1 Wilton Park
+Wilton Place
+Grand Canal Street Lower
+Dublin 2
+D02 FX04
+Irland
+
+Im Rahmen der Zahlung können insbesondere folgende Daten verarbeitet werden:
+
+- Name
+- E-Mail-Adresse
+- Rechnungsdaten
+- Zahlungsdaten
+- Transaktionsdaten
+- Zahlungsstatus
+- Steuer- und Abrechnungsinformationen
+
+Die Verarbeitung erfolgt zur Durchführung von Zahlungen, zur Abrechnung und zur Erfüllung gesetzlicher Pflichten.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Zahlungsabwicklung sowie Art. 6 Abs. 1 lit. c DSGVO für gesetzliche Aufbewahrungs- und Steuerpflichten.
+
+Dieser Abschnitt gilt nur, soweit kostenpflichtige Funktionen oder Zahlungen tatsächlich angeboten werden.
+
+14. Cloudflare
+
+Wir können künftig Cloudflare einsetzen, um die Website und Anwendung sicherer, schneller und zuverlässiger bereitzustellen.
+
+Anbieter:
+Cloudflare, Inc.
+101 Townsend St.
+San Francisco, CA 94107
+USA
+
+Cloudflare kann technische Zugriffsdaten verarbeiten, insbesondere IP-Adressen, Sicherheitsereignisse, DNS-Anfragen, Verbindungsdaten und Informationen zur Abwehr von Angriffen.
+
+Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt in der Sicherheit, Stabilität und Performance unserer Website und Anwendung.
+
+Dieser Abschnitt gilt nur, soweit Cloudflare tatsächlich eingesetzt wird.
+
+15. Empfänger personenbezogener Daten
+
+Personenbezogene Daten können an technische Dienstleister weitergegeben werden, soweit dies für den Betrieb, die Sicherheit, Speicherung, Authentifizierung, Zahlungsabwicklung, Kommunikation oder Weiterentwicklung von MAGYC erforderlich ist.
+
+Zu diesen Dienstleistern können insbesondere gehören:
+
+- Hosting-Anbieter
+- Datenbank- und Speicheranbieter
+- Authentifizierungsdienste
+- KI-Anbieter
+- Zahlungsdienstleister
+- Analyse- und Fehlerdiagnoseanbieter
+- Kommunikations- und E-Mail-Dienste
+
+Eine Weitergabe erfolgt nur, soweit hierfür eine rechtliche Grundlage besteht und soweit die Dienstleister vertraglich oder gesetzlich zur angemessenen Verarbeitung verpflichtet sind.
+
+16. Drittlandübermittlungen
+
+Einige der eingesetzten Dienstleister können ihren Sitz außerhalb der Europäischen Union oder des Europäischen Wirtschaftsraums haben, insbesondere in den USA.
+
+Soweit personenbezogene Daten in Drittländer übermittelt werden, erfolgt dies nur, soweit hierfür geeignete Garantien bestehen, zum Beispiel Angemessenheitsbeschlüsse, Standardvertragsklauseln, Data Processing Agreements oder andere gesetzlich vorgesehene Mechanismen.
+
+17. Speicherdauer
+
+Wir speichern personenbezogene Daten nur so lange, wie dies für die jeweiligen Zwecke erforderlich ist.
+
+Account- und Projektdaten werden grundsätzlich gespeichert, solange ein Nutzerkonto besteht oder die Daten für die Bereitstellung der MAGYC-Funktionen benötigt werden.
+
+Kommunikationsdaten werden gespeichert, solange dies zur Bearbeitung der Anfrage, zur Dokumentation oder zur Wahrung berechtigter Interessen erforderlich ist.
+
+Zahlungs- und Rechnungsdaten werden entsprechend gesetzlicher Aufbewahrungspflichten gespeichert.
+
+Daten können früher gelöscht werden, wenn der Zweck entfällt, eine Einwilligung widerrufen wird oder eine Löschung gesetzlich erforderlich ist.
+
+18. Datensicherheit
+
+Wir treffen angemessene technische und organisatorische Maßnahmen, um personenbezogene Daten gegen Verlust, Missbrauch, unbefugten Zugriff, Veränderung oder Offenlegung zu schützen.
+
+Dazu gehören insbesondere Zugriffskontrollen, verschlüsselte Übertragung, rollenbasierte Berechtigungen, technische Sicherheitsmaßnahmen und die Auswahl geeigneter Dienstleister.
+
+19. Rechte betroffener Personen
+
+Betroffene Personen haben im Rahmen der gesetzlichen Voraussetzungen folgende Rechte:
+
+- Recht auf Auskunft
+- Recht auf Berichtigung
+- Recht auf Löschung
+- Recht auf Einschränkung der Verarbeitung
+- Recht auf Datenübertragbarkeit
+- Recht auf Widerspruch gegen bestimmte Verarbeitungen
+- Recht auf Widerruf einer Einwilligung
+- Recht auf Beschwerde bei einer zuständigen Datenschutzaufsichtsbehörde
+
+Zur Ausübung dieser Rechte genügt eine E-Mail an:
+
+leon@magyc.site
+
+20. Widerspruchsrecht
+
+Soweit wir personenbezogene Daten auf Grundlage berechtigter Interessen gemäß Art. 6 Abs. 1 lit. f DSGVO verarbeiten, können betroffene Personen aus Gründen, die sich aus ihrer besonderen Situation ergeben, jederzeit Widerspruch gegen diese Verarbeitung einlegen.
+
+21. Minderjährige
+
+MAGYC richtet sich primär an Geschäftskunden und professionelle Nutzer, insbesondere aus dem Bereich Fotografie. Die Nutzung durch Minderjährige ist nicht ausdrücklich ausgeschlossen. Minderjährige sollten MAGYC jedoch nur mit Zustimmung ihrer gesetzlichen Vertreter nutzen, soweit eine solche Zustimmung rechtlich erforderlich ist.
+
+22. Änderungen dieser Datenschutzerklärung
+
+Wir können diese Datenschutzerklärung anpassen, wenn sich MAGYC, eingesetzte Dienste, rechtliche Anforderungen oder technische Abläufe ändern.
+
+Die jeweils aktuelle Version ist auf dieser Website verfügbar.

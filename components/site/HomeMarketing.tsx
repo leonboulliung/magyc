@@ -1,70 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
+import { Icon } from "@iconify/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { MediaFrame } from "@/components/site/MediaFrame";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { USE_CASES } from "@/lib/site";
 import type { MediaKey } from "@/lib/siteMedia";
 
-/**
- * HomeMarketing — the scrollable marketing story rendered below the hero tool
- * on the landing page. Concrete photography language, warm gradients, real
- * media slots (swap via lib/siteMedia) and subtle motion. Self-contained so the
- * homepage create flow stays untouched; ends with the site footer.
- */
-
-const WARM = "linear-gradient(135deg, #ffb347, #ff7ea8, #9b8cff)";
-const INK = "#17171a";
-const MUTED = "rgba(23,23,26,0.58)";
-
-function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-function Section({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={`mx-auto w-full max-w-6xl px-5 sm:px-8 ${className ?? ""}`}>{children}</section>;
-}
-
-function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="mono text-[11px] uppercase tracking-[0.24em]" style={{ color: "rgba(23,23,26,0.5)" }}>{children}</p>;
-}
-
-/* ── Section data ──────────────────────────────────────────────────────── */
-
 const PROBLEMS = [
-  { icon: "💬", title: "Abstimmungschaos", body: "WhatsApp, Mail, Sprachnotizen — Entscheidungen liegen verstreut und gehen unter." },
-  { icon: "🧩", title: "Verstreute Details", body: "Location, Termine, Must-haves, Nutzungsrechte: überall ein bisschen, nirgends komplett." },
-  { icon: "🎯", title: "Unklare Erwartungen", body: "Vor dem Shoot weiß keiner sicher, was am Ende geliefert wird — Stress am Set." },
-];
+  {
+    icon: "ph:chat-circle-dots",
+    title: "Absprachen bleiben auffindbar",
+    body: "Kundenwünsche, Entscheidungen und offene Fragen liegen am Projekt statt in fünf Chats.",
+  },
+  {
+    icon: "ph:stack",
+    title: "Details werden ein Arbeitsplan",
+    body: "Aus Orten, Terminen, Motiven und Zuständigkeiten entsteht eine gemeinsame Struktur.",
+  },
+  {
+    icon: "ph:seal-check",
+    title: "Erwartungen werden verbindlich",
+    body: "Freigaben und Vertrag machen vor dem Shooting sichtbar, worauf sich alle verlassen können.",
+  },
+] as const;
 
-const ELEMENTS = [
-  { k: "Moodboard", c: "#9b8cff" },
-  { k: "Shotlist", c: "#5b9dff" },
-  { k: "Locations", c: "#39d2b4" },
-  { k: "Aufgaben", c: "#57c98a" },
-  { k: "Termine", c: "#f5b740" },
-  { k: "Freigaben", c: "#f4719b" },
-  { k: "Vertrag", c: "#ff8a5b" },
-];
+const FEATURES = [
+  { icon: "ph:list-checks", title: "Shotlist", body: "Motive, Prioritäten, Setup und Ort sauber vorbereiten.", accent: "#5b7cfa" },
+  { icon: "ph:map-pin-line", title: "Locations", body: "Orte und Adressen direkt im Projekt sammeln.", accent: "#2bb89c" },
+  { icon: "ph:calendar-check", title: "Termine & Aufgaben", body: "Verantwortung und Timing für alle sichtbar machen.", accent: "#d89a24" },
+  { icon: "ph:check-circle", title: "Freigaben", body: "Bildsprache, Motive und Auswahl eindeutig bestätigen.", accent: "#df668c" },
+] as const;
 
 const STEPS = [
-  { n: "1", title: "Kundenanfrage kommt rein", body: "Eine vage Nachricht genügt — ein Satz reicht.", media: "behindScenes" as const },
-  { n: "2", title: "MAGYC baut die Projektseite", body: "Aus der Idee wird eine klare Seite aus passenden Elementen.", media: "projectPageStill" as const },
-  { n: "3", title: "Kunde & Team stimmen ab", body: "Ein Link: kommentieren, wählen, freigeben — gemeinsam.", media: "alignment" as const },
-  { n: "4", title: "Klarer Auftrag & Übergabe", body: "Vertrag unterschrieben, Bilder übergeben — sauber abgeschlossen.", media: "handoff" as const },
-];
+  { n: "01", title: "Anfrage verstehen", body: "Eine grobe Nachricht reicht als Anfang. MAGYC fragt nur nach, was wirklich fehlt.", media: "behindScenes" as const },
+  { n: "02", title: "Projektseite aufbauen", body: "Passende Elemente werden mit den vorhandenen Informationen vorbereitet.", media: "projectPageStill" as const },
+  { n: "03", title: "Gemeinsam schärfen", body: "Kund:innen und Team ergänzen, entscheiden und geben gezielt frei.", media: "alignment" as const },
+  { n: "04", title: "Verbindlich abschließen", body: "Aus dem abgestimmten Plan entsteht der Vertrag und später die Übergabe.", media: "handoff" as const },
+] as const;
 
 const USE_CASE_MEDIA: Record<string, MediaKey> = {
   "/product": "productTile",
@@ -74,160 +49,186 @@ const USE_CASE_MEDIA: Record<string, MediaKey> = {
   "/fashion": "fashionTile",
 };
 
-/* ── Composition ───────────────────────────────────────────────────────── */
+function Section({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <section className={`mx-auto w-full max-w-6xl px-5 sm:px-8 ${className}`}>{children}</section>;
+}
+
+function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const reducedMotion = useReducedMotion();
+  return (
+    <motion.div
+      initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+      whileInView={reducedMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function Eyebrow({ children }: { children: ReactNode }) {
+  return <p className="mono text-[10px] uppercase tracking-[0.22em] text-black/42 sm:text-[11px]">{children}</p>;
+}
 
 export function HomeMarketing() {
   return (
-    <div className="relative w-full pt-14 sm:pt-20">
-      {/* Hero footage band — the first big, warm visual under the fold */}
+    <div className="relative w-full pt-20 sm:pt-28">
       <Section>
-        <Reveal>
-          <div className="relative overflow-hidden rounded-[28px] border border-black/[0.08]">
-            <MediaFrame media="heroFootage" ratio="21 / 9" priority sizes="100vw" />
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(to top, rgba(23,23,26,0.42), transparent 55%)" }} />
-            <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 p-4 sm:p-6">
-              {["Briefing", "Moodboard", "Shotlist", "Locations", "Freigaben", "Vertrag"].map((c) => (
-                <span key={c} className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium backdrop-blur-sm" style={{ color: INK }}>{c}</span>
-              ))}
-            </div>
+        <div className="grid gap-10 border-y border-black/10 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-16">
+          <Reveal>
+            <Eyebrow>Die Arbeit rund um die Bilder</Eyebrow>
+            <h2 className="mt-4 max-w-xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
+              Mehr Ruhe vor dem Set. Mehr Klarheit für alle Beteiligten.
+            </h2>
+            <p className="mt-5 max-w-lg text-[16px] leading-relaxed text-black/58">
+              Ein gutes Shooting beginnt lange vor dem ersten Auslösen. MAGYC gibt der Idee einen gemeinsamen Ort, ohne deinen kreativen Prozess in starre Projektsoftware zu pressen.
+            </p>
+          </Reveal>
+          <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-1">
+            {PROBLEMS.map((item, index) => (
+              <Reveal key={item.title} delay={index * 0.07}>
+                <div className="flex gap-4 border-t border-black/10 pt-5 first:border-0 first:pt-0 sm:block sm:border-0 sm:pt-0 lg:flex lg:border-t lg:pt-5 lg:first:border-0 lg:first:pt-0">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#17171a] text-white">
+                    <Icon icon={item.icon} width="19" height="19" aria-hidden />
+                  </span>
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-[#17171a]">{item.title}</h3>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-black/52">{item.body}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
-        </Reveal>
+        </div>
       </Section>
 
-      {/* Problem */}
-      <Section className="pt-20 pb-4">
+      <Section className="pt-20 sm:pt-28">
         <Reveal>
-          <Eyebrow>Das Problem</Eyebrow>
-          <h2 className="mt-3 max-w-2xl text-[26px] font-semibold leading-[1.1] tracking-tight sm:text-[38px]" style={{ color: INK }}>
-            Kreative Projekte scheitern selten am Können — sondern an der Abstimmung davor.
+          <Eyebrow>Von Anfrage zu Auftrag</Eyebrow>
+          <h2 className="mt-4 max-w-3xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
+            Aus einer losen Nachricht wird eine Seite, auf der alle weiterarbeiten können.
           </h2>
         </Reveal>
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {PROBLEMS.map((p, i) => (
-            <Reveal key={p.title} delay={i * 0.08}>
-              <div className="h-full rounded-2xl border border-black/[0.08] bg-white p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
-                <div className="text-[22px]">{p.icon}</div>
-                <h3 className="mt-3 text-[17px] font-semibold" style={{ color: INK }}>{p.title}</h3>
-                <p className="mt-2 text-[14px] leading-relaxed" style={{ color: MUTED }}>{p.body}</p>
+        <div className="mt-9 grid items-stretch gap-5 lg:grid-cols-[0.72fr_1.28fr]">
+          <Reveal>
+            <div className="flex h-full min-h-[320px] flex-col justify-between bg-[#ede8e0] p-6 sm:p-8">
+              <div className="flex items-center gap-2 text-[12px] text-black/45">
+                <Icon icon="ph:chat-circle-text" width="18" height="18" aria-hidden />
+                Kundenanfrage
+              </div>
+              <blockquote className="mt-10 font-brand text-[24px] font-medium leading-[1.25] text-[#17171a] sm:text-[30px]">
+                „Wir brauchen Produktfotos für unsere neue Kaffeemarke. Modern, aber warm. Vielleicht draußen?"
+              </blockquote>
+              <p className="mt-8 text-[13px] leading-relaxed text-black/48">Eine echte Idee, aber noch kein belastbarer Auftrag.</p>
+            </div>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <div className="relative h-full overflow-hidden bg-[#101112]">
+              <MediaFrame media="projectPage" ratio="16 / 10" className="h-full [&_div]:h-full [&_div]:rounded-none [&_video]:min-h-full" sizes="(max-width:1024px) 100vw, 62vw" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 bg-black/75 p-5 text-white sm:p-6">
+                <div>
+                  <p className="mono text-[9px] uppercase tracking-[0.2em] text-white/52">Gemeinsamer Arbeitsraum</p>
+                  <p className="mt-1 text-[15px] font-medium">Moodboard, Shotlist, Termine, Freigaben und Vertrag</p>
+                </div>
+                <Icon icon="ph:arrow-up-right" width="22" height="22" aria-hidden className="shrink-0 text-white/70" />
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </Section>
+
+      <Section className="pt-20 sm:pt-28">
+        <Reveal>
+          <Eyebrow>Alles an einem Ort</Eyebrow>
+          <h2 className="mt-4 max-w-4xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
+            Die Bausteine eines Fotografie-Auftrags, verbunden statt verstreut.
+          </h2>
+        </Reveal>
+        <div className="mt-9 grid gap-4 lg:grid-cols-12">
+          <Reveal className="lg:col-span-7 lg:row-span-2">
+            <div className="h-full overflow-hidden border border-black/10 bg-white">
+              <MediaFrame media="moodboard" ratio="16 / 10" className="[&_div]:rounded-none" sizes="(max-width:1024px) 100vw, 60vw" />
+              <div className="flex gap-4 p-6">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#8b7bff]/12 text-[#6554e8]">
+                  <Icon icon="ph:images-square" width="21" height="21" aria-hidden />
+                </span>
+                <div>
+                  <h3 className="text-[18px] font-semibold text-[#17171a]">Moodboard</h3>
+                  <p className="mt-1.5 max-w-lg text-[14px] leading-relaxed text-black/52">Bildsprache, Referenzen und No-Gos gemeinsam festlegen, bevor am Set Interpretationsspielraum teuer wird.</p>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+          <div className="grid gap-4 sm:grid-cols-2 lg:col-span-5">
+            {FEATURES.map((feature, index) => (
+              <Reveal key={feature.title} delay={index * 0.05}>
+                <div className="h-full border border-black/10 bg-white p-5 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_16px_38px_rgba(20,20,24,0.08)]">
+                  <span className="grid h-10 w-10 place-items-center rounded-full" style={{ background: `${feature.accent}18`, color: feature.accent }}>
+                    <Icon icon={feature.icon} width="19" height="19" aria-hidden />
+                  </span>
+                  <h3 className="mt-5 text-[16px] font-semibold text-[#17171a]">{feature.title}</h3>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-black/52">{feature.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal className="lg:col-span-5" delay={0.12}>
+            <div className="flex h-full min-h-[170px] items-end justify-between gap-8 bg-[#17171a] p-6 text-white">
+              <div>
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white">
+                  <Icon icon="ph:signature" width="20" height="20" aria-hidden />
+                </span>
+                <h3 className="mt-5 text-[18px] font-semibold">Vertrag</h3>
+                <p className="mt-2 max-w-md text-[14px] leading-relaxed text-white/62">Der abgestimmte Plan wird zur verbindlichen Vereinbarung und kann digital unterschrieben werden.</p>
+              </div>
+              <Icon icon="ph:arrow-right" width="24" height="24" aria-hidden className="shrink-0 text-white/55" />
+            </div>
+          </Reveal>
+        </div>
+      </Section>
+
+      <Section className="pt-20 sm:pt-28">
+        <Reveal>
+          <Eyebrow>So funktioniert&apos;s</Eyebrow>
+          <h2 className="mt-4 max-w-3xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
+            Ein klarer Weg, ohne deinen Prozess unnötig schwer zu machen.
+          </h2>
+        </Reveal>
+        <div className="mt-9 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((step, index) => (
+            <Reveal key={step.n} delay={index * 0.07}>
+              <div className="group">
+                <div className="overflow-hidden bg-black">
+                  <MediaFrame media={step.media} ratio="4 / 3" className="[&_div]:rounded-none [&_img]:transition-transform [&_img]:duration-700 group-hover:[&_img]:scale-[1.025]" sizes="(max-width:1024px) 50vw, 25vw" />
+                </div>
+                <div className="mt-5 flex gap-3 border-t border-black/12 pt-4">
+                  <span className="mono text-[10px] tracking-widest text-black/34">{step.n}</span>
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-[#17171a]">{step.title}</h3>
+                    <p className="mt-2 text-[13.5px] leading-relaxed text-black/52">{step.body}</p>
+                  </div>
+                </div>
               </div>
             </Reveal>
           ))}
         </div>
       </Section>
 
-      {/* Before / After */}
-      <Section className="pt-20">
-        <Reveal>
-          <Eyebrow>Vorher / Nachher</Eyebrow>
-          <h2 className="mt-3 max-w-2xl text-[26px] font-semibold leading-[1.1] tracking-tight sm:text-[38px]" style={{ color: INK }}>
-            Aus einer losen Anfrage wird eine klare Projektseite.
-          </h2>
-        </Reveal>
-        <div className="mt-8 grid items-center gap-5 lg:grid-cols-[1fr_auto_1.2fr]">
-          <Reveal>
-            <div className="rounded-2xl border border-black/[0.08] bg-[#faf6f1] p-5">
-              <div className="mono mb-3 text-[10px] uppercase tracking-widest" style={{ color: "rgba(23,23,26,0.4)" }}>Kundenanfrage</div>
-              <div className="space-y-3">
-                <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-white px-4 py-3 text-[14px] leading-relaxed shadow-sm" style={{ color: INK }}>
-                  „Hey, wir bräuchten mal so Produktfotos für unsere neue Kaffeemarke. Modern, aber warm. Vielleicht draußen? Sag, was du brauchst 🙂"
-                </div>
-                <div className="ml-auto max-w-[70%] rounded-2xl rounded-br-sm px-4 py-3 text-[13px] text-white" style={{ background: INK }}>
-                  Wann, wo, wie viele Bilder, wofür? …
-                </div>
-              </div>
-            </div>
-          </Reveal>
-          <Reveal delay={0.1} className="hidden lg:block">
-            <div className="grid h-12 w-12 place-items-center rounded-full text-white shadow-lg" style={{ background: WARM }}>→</div>
-          </Reveal>
-          <Reveal delay={0.15}>
-            <div className="relative">
-              <MediaFrame media="projectPage" ratio="16 / 11" sizes="(max-width:1024px) 100vw, 55vw" />
-              <div className="pointer-events-none absolute left-4 top-4 flex flex-wrap gap-1.5">
-                {["Moodboard", "Shotlist", "Locations", "Freigaben"].map((c) => (
-                  <span key={c} className="rounded-full bg-white/92 px-2.5 py-1 text-[10px] font-medium shadow-sm" style={{ color: INK }}>{c}</span>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </Section>
-
-      {/* Demo scene: input → generated plan */}
-      <Section className="pt-20">
-        <div className="overflow-hidden rounded-[28px] border border-black/[0.08] p-7 sm:p-12" style={{ background: "linear-gradient(160deg, #fff7ef, #f4f1ff)" }}>
-          <Reveal>
-            <Eyebrow>Live, in Sekunden</Eyebrow>
-            <h2 className="mt-3 max-w-2xl text-[24px] font-semibold leading-[1.12] tracking-tight sm:text-[34px]" style={{ color: INK }}>
-              Du beschreibst die Idee. MAGYC legt den Projektplan an.
-            </h2>
-          </Reveal>
-          <div className="mt-8 flex flex-col items-stretch gap-6 lg:flex-row lg:items-center">
-            <Reveal className="lg:w-[42%]">
-              <div className="rounded-2xl border border-black/[0.08] bg-white p-4 shadow-sm">
-                <div className="mono text-[10px] uppercase tracking-widest" style={{ color: "rgba(23,23,26,0.4)" }}>Deine Eingabe</div>
-                <p className="mt-2 text-[15px] leading-relaxed" style={{ color: INK }}>
-                  „Produktshooting für eine handgemachte Keramik-Serie, clean und warm, draußen in Köln."
-                </p>
-              </div>
-            </Reveal>
-            <Reveal delay={0.1} className="hidden lg:block">
-              <div className="grid h-10 w-10 place-items-center rounded-full text-white shadow" style={{ background: WARM }}>→</div>
-            </Reveal>
-            <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
-              {ELEMENTS.map((e, i) => (
-                <Reveal key={e.k} delay={0.15 + i * 0.06}>
-                  <div className="flex items-center gap-2 rounded-xl border border-black/[0.06] bg-white px-3 py-2.5 text-[13px] font-medium shadow-sm" style={{ color: INK }}>
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: e.c }} />
-                    {e.k}
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* Feature bento */}
-      <Section className="pt-20">
-        <Reveal>
-          <Eyebrow>Alles an einem Ort</Eyebrow>
-          <h2 className="mt-3 max-w-2xl text-[26px] font-semibold leading-[1.1] tracking-tight sm:text-[38px]" style={{ color: INK }}>
-            Briefing, Moodboard, Shotlist, Locations, Termine, Freigaben — und der Vertrag.
-          </h2>
-        </Reveal>
-        <div className="mt-8 grid auto-rows-[minmax(150px,auto)] grid-cols-2 gap-4 lg:grid-cols-4">
-          <Reveal className="col-span-2 row-span-2">
-            <BentoCard title="Moodboard" body="Visuelle Richtung, Referenzen und No-gos — gemeinsam abgestimmt." className="h-full">
-              <MediaFrame media="moodboard" ratio="16 / 10" sizes="(max-width:1024px) 100vw, 50vw" />
-            </BentoCard>
-          </Reveal>
-          <Reveal delay={0.05}><BentoTextCard title="Shotlist" body="Jede Aufnahme geplant — Priorität, Setup, Ort." accent="#5b9dff" /></Reveal>
-          <Reveal delay={0.1}><BentoTextCard title="Locations" body="Orte auf der Karte, statt im Chat-Verlauf." accent="#39d2b4" /></Reveal>
-          <Reveal delay={0.15}><BentoTextCard title="Termine & Aufgaben" body="Wer macht was bis wann — sichtbar für alle." accent="#f5b740" /></Reveal>
-          <Reveal delay={0.2}><BentoTextCard title="Freigaben" body="Kund:innen geben Looks und Auswahl klar frei." accent="#f4719b" /></Reveal>
-          <Reveal className="col-span-2" delay={0.1}>
-            <BentoCard title="Vertrag" body="Aus dem Plan entsteht der verbindliche Vertrag — beide unterschreiben digital." className="h-full" gradient="linear-gradient(135deg,#fff3e6,#ffe9ef)" />
-          </Reveal>
-        </div>
-      </Section>
-
-      {/* Use cases */}
-      <Section className="pt-20">
+      <Section className="pt-20 sm:pt-28">
         <Reveal>
           <Eyebrow>Für deine Arbeit</Eyebrow>
-          <h2 className="mt-3 text-[26px] font-semibold leading-[1.1] tracking-tight sm:text-[38px]" style={{ color: INK }}>
-            Ein Arbeitsraum für jedes Shooting.
-          </h2>
+          <h2 className="mt-4 font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">Ein System, verschiedene Aufträge.</h2>
         </Reveal>
-        <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
-          {USE_CASES.map((u, i) => (
-            <Reveal key={u.href} delay={i * 0.06}>
-              <Link href={u.href} className="group block overflow-hidden rounded-2xl border border-black/[0.08] bg-white transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
-                <MediaFrame media={USE_CASE_MEDIA[u.href] ?? "shootingSetup"} ratio="4 / 5" sizes="(max-width:1024px) 50vw, 20vw" />
-                <div className="flex items-center justify-between gap-2 px-4 py-3">
-                  <span className="text-[15px] font-semibold" style={{ color: INK }}>{u.label}</span>
-                  <span aria-hidden className="text-black/35 transition-transform group-hover:translate-x-0.5">→</span>
+        <div className="mt-9 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+          {USE_CASES.map((useCase, index) => (
+            <Reveal key={useCase.href} delay={index * 0.05}>
+              <Link href={useCase.href} className="group block overflow-hidden bg-white">
+                <MediaFrame media={USE_CASE_MEDIA[useCase.href] ?? "shootingSetup"} ratio="4 / 5" className="[&_div]:rounded-none [&_img]:transition-transform [&_img]:duration-700 group-hover:[&_img]:scale-[1.035]" sizes="(max-width:1024px) 50vw, 20vw" />
+                <div className="flex items-center justify-between border-x border-b border-black/10 px-4 py-3.5">
+                  <span className="text-[14px] font-semibold text-[#17171a] sm:text-[15px]">{useCase.label}</span>
+                  <Icon icon="ph:arrow-up-right" width="17" height="17" aria-hidden className="text-black/38 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </div>
               </Link>
             </Reveal>
@@ -235,78 +236,23 @@ export function HomeMarketing() {
         </div>
       </Section>
 
-      {/* Steps */}
-      <Section className="pt-20">
+      <Section className="pb-24 pt-20 sm:pb-28 sm:pt-28">
         <Reveal>
-          <Eyebrow>So funktioniert's</Eyebrow>
-          <h2 className="mt-3 text-[26px] font-semibold leading-[1.1] tracking-tight sm:text-[38px]" style={{ color: INK }}>
-            Von der ersten Anfrage bis zur Freigabe.
-          </h2>
-        </Reveal>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s, i) => (
-            <Reveal key={s.n} delay={i * 0.08}>
-              <div className="group h-full overflow-hidden rounded-2xl border border-black/[0.08] bg-white transition-transform duration-300 hover:-translate-y-1">
-                <MediaFrame media={s.media} ratio="4 / 3" sizes="(max-width:1024px) 100vw, 25vw" />
-                <div className="p-5">
-                  <div className="grid h-7 w-7 place-items-center rounded-full text-[12px] font-semibold text-white" style={{ background: INK }}>{s.n}</div>
-                  <h3 className="mt-3 text-[16px] font-semibold leading-snug" style={{ color: INK }}>{s.title}</h3>
-                  <p className="mt-1.5 text-[13.5px] leading-relaxed" style={{ color: MUTED }}>{s.body}</p>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </Section>
-
-      {/* Final CTA */}
-      <Section className="pt-20 pb-24">
-        <Reveal>
-          <div className="relative overflow-hidden rounded-[32px] px-6 py-16 text-center sm:px-12 sm:py-24" style={{ background: INK }}>
-            <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70" style={{ background: "radial-gradient(60% 80% at 50% 0%, rgba(255,140,90,0.35), transparent 70%), radial-gradient(50% 70% at 80% 100%, rgba(155,140,255,0.35), transparent 70%)" }} />
-            <div className="relative">
-              <h2 className="mx-auto max-w-2xl text-[30px] font-semibold leading-[1.08] tracking-tight text-white sm:text-[46px]">
-                Erstelle dein erstes Projekt — kostenlos.
-              </h2>
-              <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-white/70">
-                Beschreibe eine Idee, MAGYC baut die Projektseite. In Sekunden, ohne Setup.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <Link href="/#start" className="rounded-full bg-white px-6 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:scale-[1.03]">
-                  Kostenlos ausprobieren
-                </Link>
-                <Link href="/showcase" className="rounded-full border border-white/25 px-6 py-3 text-[14px] font-medium text-white/85 transition-colors hover:border-white/50 hover:text-white">
-                  Beispielprojekt ansehen
-                </Link>
-              </div>
+          <div className="grid overflow-hidden bg-[#17171a] text-white lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="p-7 sm:p-11">
+              <Eyebrow><span className="text-white/48">Bereit für den nächsten Auftrag?</span></Eyebrow>
+              <h2 className="mt-4 max-w-2xl font-brand text-[30px] font-bold leading-[1.08] sm:text-[46px]">Beginne mit der Idee. Die Struktur entsteht gemeinsam.</h2>
+              <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/62">Kein Setup, kein leerer Projektplan. Beschreibe das Shooting und schärfe den Rest im Prozess.</p>
+            </div>
+            <div className="flex gap-3 p-7 pt-0 sm:p-11 sm:pt-0 lg:pt-11">
+              <Link href="/#start" className="rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">Auftrag planen</Link>
+              <Link href="/showcase" className="rounded-full border border-white/22 px-5 py-3 text-[14px] font-medium text-white/78 transition-colors hover:border-white/45 hover:text-white">Beispiel ansehen</Link>
             </div>
           </div>
         </Reveal>
       </Section>
 
       <SiteFooter />
-    </div>
-  );
-}
-
-function BentoCard({ title, body, children, className, gradient }: { title: string; body: string; children?: ReactNode; className?: string; gradient?: string }) {
-  return (
-    <div className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-black/[0.08] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)] ${className ?? ""}`} style={{ background: gradient ?? "#fff" }}>
-      {children}
-      <div className="p-5">
-        <h3 className="text-[17px] font-semibold" style={{ color: INK }}>{title}</h3>
-        <p className="mt-1.5 text-[14px] leading-relaxed" style={{ color: MUTED }}>{body}</p>
-      </div>
-    </div>
-  );
-}
-
-function BentoTextCard({ title, body, accent }: { title: string; body: string; accent: string }) {
-  return (
-    <div className="group relative h-full overflow-hidden rounded-2xl border border-black/[0.08] bg-white p-5 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
-      <span className="absolute inset-x-0 top-0 h-1" style={{ background: accent }} />
-      <h3 className="mt-1 text-[16px] font-semibold" style={{ color: INK }}>{title}</h3>
-      <p className="mt-1.5 text-[13.5px] leading-relaxed" style={{ color: MUTED }}>{body}</p>
     </div>
   );
 }

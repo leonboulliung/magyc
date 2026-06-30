@@ -97,7 +97,7 @@ function reLight(hex: string, lMin: number, lMax: number, sMax: number): string 
 
 /**
  * Force a style into the always-readable design band:
- *   - canvas and ink are fixed by the black glossy workspace system
+ *   - canvas and ink are fixed by the verified light workspace system
  *   - color2 (accent) carries widget/map highlights only
  * This is applied to every style so old AI/editor values cannot make the
  * surface unreadable.
@@ -105,8 +105,8 @@ function reLight(hex: string, lMin: number, lMax: number, sMax: number): string 
 export function normalizeStyle(style: SpaceStyle): SpaceStyle {
   return {
     font: style.font,
-    background: "#000000",
-    color1: "#ffffff",
+    background: "#f4f4f1",
+    color1: "#17171a",
     color2: reLight(style.color2, 0.4, 0.6, 0.85),
   };
 }
@@ -115,9 +115,9 @@ export function normalizeStyle(style: SpaceStyle): SpaceStyle {
  * Build the CSS-variable overrides from a style. These are applied
  * inline on the space root, where they win over the vibe class vars.
  *
- *   --v-page   = black application canvas
- *   --v-bg     = deep surface base for controls
- *   --v-fg     = white interface ink
+ *   --v-page   = application canvas for the selected mode
+ *   --v-bg     = surface base for controls
+ *   --v-fg     = readable interface ink
  *   --v-accent = color2 (widget accents, map fills)
  *   --v-rule   = translucent glass border
  *   --v-muted  = subdued white copy
@@ -127,7 +127,7 @@ export type ProjectThemeMode = "dark" | "light";
 export function styleVars(
   style: SpaceStyle,
   fontStackValue: string,
-  mode: ProjectThemeMode = "dark",
+  mode: ProjectThemeMode = "light",
 ): React.CSSProperties {
   const accent = normHex(style.color2);
   const base = mode === "light"
@@ -138,8 +138,13 @@ export function styleVars(
         ["--v-rule" as string]: "rgba(0,0,0,0.12)",
         ["--v-muted" as string]: "rgba(0,0,0,0.55)",
         ["--v-card" as string]: "#ffffff",
+        ["--v-control" as string]: "rgba(0,0,0,0.045)",
         ["--v-widget" as string]: `color-mix(in srgb, ${accent} 9%, #ffffff)`,
         ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 38%, rgba(0,0,0,0.14))`,
+        ["--v-grid" as string]: "#ebeae6",
+        ["--v-grid-dot" as string]: "rgba(0,0,0,0.17)",
+        ["--v-grid-shadow" as string]: "inset 0 1px 0 rgba(255,255,255,0.82), 0 18px 60px rgba(20,20,24,0.09)",
+        ["--v-widget-shadow" as string]: "inset 0 1px 0 rgba(255,255,255,0.72), 0 10px 30px rgba(20,20,24,0.07)",
       }
     : {
         ["--v-fg" as string]: "#ffffff",
@@ -148,8 +153,13 @@ export function styleVars(
         ["--v-rule" as string]: "rgba(255,255,255,0.22)",
         ["--v-muted" as string]: "rgba(255,255,255,0.68)",
         ["--v-card" as string]: "#101010",
+        ["--v-control" as string]: "rgba(255,255,255,0.055)",
         ["--v-widget" as string]: `color-mix(in srgb, ${accent} 20%, #171717)`,
         ["--v-widget-border" as string]: `color-mix(in srgb, ${accent} 44%, rgba(255,255,255,0.28))`,
+        ["--v-grid" as string]: "#080808",
+        ["--v-grid-dot" as string]: "rgba(255,255,255,0.22)",
+        ["--v-grid-shadow" as string]: "inset 0 1px 1px rgba(255,255,255,0.12), 0 24px 80px rgba(0,0,0,0.24)",
+        ["--v-widget-shadow" as string]: "inset 0 1px 1px rgba(255,255,255,0.12), 0 14px 40px rgba(0,0,0,0.18)",
       };
   return {
     // Custom props — cast through a record so TS accepts the css vars.

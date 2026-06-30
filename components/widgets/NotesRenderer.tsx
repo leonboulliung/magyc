@@ -47,7 +47,7 @@ export function NotesRenderer({
   }
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {notes.length === 0 && (
           <p

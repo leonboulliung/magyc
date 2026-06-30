@@ -128,53 +128,6 @@ body {
   pointer-events: none;
 }
 
-.emergent-ribbon {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(1100px, 120vw);
-  height: min(1100px, 120vw);
-  transform: translate(-50%, -50%);
-  border-radius: 42% 58% 49% 51%;
-  border: 1px solid rgba(255,255,255,0.12);
-  background:
-    conic-gradient(from 120deg,
-      transparent 0deg,
-      rgba(255,255,255,0.06) 42deg,
-      transparent 84deg,
-      rgba(255,255,255,0.05) 144deg,
-      transparent 214deg,
-      rgba(255,255,255,0.08) 280deg,
-      transparent 360deg);
-  filter: blur(0.2px);
-  opacity: 0.7;
-  animation: emergent-drift 22s ease-in-out infinite alternate;
-}
-
-.emergent-ribbon-a {
-  margin-left: -18vw;
-  margin-top: 8vh;
-}
-
-.emergent-ribbon-b {
-  width: min(820px, 105vw);
-  height: min(820px, 105vw);
-  margin-left: 22vw;
-  margin-top: -10vh;
-  opacity: 0.42;
-  animation-duration: 28s;
-  animation-direction: alternate-reverse;
-}
-
-@keyframes emergent-drift {
-  from {
-    transform: translate(-50%, -50%) rotate(-9deg) scale(0.92);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(13deg) scale(1.08);
-  }
-}
-
 /* ============================================================
    Vibes — per-space visual variants.
    The Space root carries one of these classes; the CSS scopes
@@ -269,6 +222,10 @@ body {
   background-color: rgba(255,255,255,0.055);
 }
 
+.vibe-root[data-theme="light"] button:not(:disabled):hover {
+  background-color: rgba(0,0,0,0.045);
+}
+
 .vibe-root button:not(:disabled):active {
   transform: scale(0.98);
 }
@@ -318,7 +275,7 @@ body {
 }
 
 .vibe-root .vibe-btn-ghost {
-  background: rgba(255,255,255,0.045);
+  background: var(--v-control, rgba(255,255,255,0.045));
   color: var(--v-fg);
   border: 1px solid var(--v-rule);
   border-radius: 9999px;
@@ -387,6 +344,114 @@ body {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Safari/Chrome */
+}
+
+/* ── Studio themes ─────────────────────────────────────────────────────
+   The account preference is mirrored onto <html> so portalled dialogs,
+   menus and toasts share the same surface as the Studio and project page. */
+.studio-theme[data-theme="light"],
+html[data-studio-theme="light"] {
+  --studio-page: #f4f4f1;
+  --studio-surface: #ffffff;
+  --studio-surface-soft: rgba(0,0,0,0.035);
+  --studio-ink: #17171a;
+  --studio-muted: rgba(23,23,26,0.55);
+  --studio-faint: rgba(23,23,26,0.35);
+  --studio-rule: rgba(0,0,0,0.12);
+}
+
+html[data-studio-theme="dark"] {
+  --studio-page: #050505;
+  --studio-surface: #101010;
+  --studio-surface-soft: rgba(255,255,255,0.055);
+  --studio-ink: #f4f4f1;
+  --studio-muted: rgba(255,255,255,0.66);
+  --studio-faint: rgba(255,255,255,0.42);
+  --studio-rule: rgba(255,255,255,0.16);
+}
+
+html[data-studio-theme="dark"] body {
+  background: var(--studio-page);
+  color: var(--studio-ink);
+}
+
+html[data-studio-theme="dark"] .theme-logo {
+  filter: invert(1) grayscale(1) brightness(1.7);
+}
+
+html[data-studio-theme="dark"] :is(input, textarea, select) {
+  color-scheme: dark;
+}
+
+html[data-studio-theme="dark"] :is(input, textarea)::placeholder {
+  color: rgba(255,255,255,0.34) !important;
+}
+
+html[data-studio-theme="dark"] [class~="bg-white"] { background-color: #101010 !important; }
+html[data-studio-theme="dark"] [class~="bg-[#f4f4f1]"] { background-color: #050505 !important; }
+html[data-studio-theme="dark"] [class~="bg-black/[0.015]"] { background-color: rgba(255,255,255,0.025) !important; }
+html[data-studio-theme="dark"] [class~="bg-black/[0.025]"] { background-color: rgba(255,255,255,0.035) !important; }
+html[data-studio-theme="dark"] [class~="bg-black/[0.03]"] { background-color: rgba(255,255,255,0.045) !important; }
+html[data-studio-theme="dark"] [class~="bg-black/[0.04]"] { background-color: rgba(255,255,255,0.055) !important; }
+html[data-studio-theme="dark"] [class~="bg-black/[0.05]"] { background-color: rgba(255,255,255,0.065) !important; }
+html[data-studio-theme="dark"] [class~="bg-black/[0.06]"] { background-color: rgba(255,255,255,0.075) !important; }
+html[data-studio-theme="dark"] [class~="bg-black/[0.07]"] { background-color: rgba(255,255,255,0.09) !important; }
+html[data-studio-theme="dark"] [class~="bg-black/10"] { background-color: rgba(255,255,255,0.1) !important; }
+
+html[data-studio-theme="dark"] :is([class~="text-[#17171a]"], [class~="text-black"]) { color: #f4f4f1 !important; }
+html[data-studio-theme="dark"] [class~="text-black/85"] { color: rgba(255,255,255,0.85) !important; }
+html[data-studio-theme="dark"] [class~="text-black/80"] { color: rgba(255,255,255,0.8) !important; }
+html[data-studio-theme="dark"] [class~="text-black/75"] { color: rgba(255,255,255,0.75) !important; }
+html[data-studio-theme="dark"] [class~="text-black/70"] { color: rgba(255,255,255,0.7) !important; }
+html[data-studio-theme="dark"] [class~="text-black/65"] { color: rgba(255,255,255,0.65) !important; }
+html[data-studio-theme="dark"] [class~="text-black/60"] { color: rgba(255,255,255,0.6) !important; }
+html[data-studio-theme="dark"] [class~="text-black/55"] { color: rgba(255,255,255,0.55) !important; }
+html[data-studio-theme="dark"] [class~="text-black/50"] { color: rgba(255,255,255,0.5) !important; }
+html[data-studio-theme="dark"] [class~="text-black/45"] { color: rgba(255,255,255,0.45) !important; }
+html[data-studio-theme="dark"] [class~="text-black/42"] { color: rgba(255,255,255,0.42) !important; }
+html[data-studio-theme="dark"] [class~="text-black/40"] { color: rgba(255,255,255,0.4) !important; }
+html[data-studio-theme="dark"] [class~="text-black/35"] { color: rgba(255,255,255,0.35) !important; }
+html[data-studio-theme="dark"] [class~="text-black/30"] { color: rgba(255,255,255,0.3) !important; }
+html[data-studio-theme="dark"] [class~="text-black/28"] { color: rgba(255,255,255,0.28) !important; }
+html[data-studio-theme="dark"] [class~="text-black/25"] { color: rgba(255,255,255,0.25) !important; }
+
+html[data-studio-theme="dark"] [class~="border-black/10"] { border-color: rgba(255,255,255,0.12) !important; }
+html[data-studio-theme="dark"] [class~="border-black/12"] { border-color: rgba(255,255,255,0.14) !important; }
+html[data-studio-theme="dark"] [class~="border-black/15"] { border-color: rgba(255,255,255,0.17) !important; }
+html[data-studio-theme="dark"] [class~="border-black/25"] { border-color: rgba(255,255,255,0.25) !important; }
+html[data-studio-theme="dark"] [class~="border-black/30"] { border-color: rgba(255,255,255,0.3) !important; }
+html[data-studio-theme="dark"] [class~="border-black/35"] { border-color: rgba(255,255,255,0.35) !important; }
+html[data-studio-theme="dark"] [class~="border-black/40"] { border-color: rgba(255,255,255,0.4) !important; }
+html[data-studio-theme="dark"] [class~="border-black/45"] { border-color: rgba(255,255,255,0.45) !important; }
+html[data-studio-theme="dark"] [class~="divide-black/10"] > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255,255,255,0.12) !important; }
+
+html[data-studio-theme="dark"] [class~="hover:text-black"]:hover,
+html[data-studio-theme="dark"] [class~="hover:text-black/80"]:hover { color: #fff !important; }
+html[data-studio-theme="dark"] [class~="hover:bg-black/[0.04]"]:hover { background-color: rgba(255,255,255,0.07) !important; }
+
+html[data-studio-theme="dark"] .studio-field,
+html[data-studio-theme="dark"] :is(input, textarea, select)[class*="border-black"] {
+  border-color: rgba(255,255,255,0.18) !important;
+  background: #101010 !important;
+  color: #f4f4f1 !important;
+}
+
+html[data-studio-theme="dark"] .studio-card {
+  background: #101010 !important;
+  border-color: rgba(255,255,255,0.14) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+
+.studio-selected {
+  background: #17171a !important;
+  color: #fff !important;
+  border-color: #17171a !important;
+}
+
+html[data-studio-theme="dark"] .studio-selected {
+  background: #f4f4f1 !important;
+  color: #17171a !important;
+  border-color: #f4f4f1 !important;
 }
 
 /* ── Print: clean contract → PDF via the browser "Save as PDF" ──────────

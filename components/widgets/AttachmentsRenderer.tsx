@@ -59,7 +59,7 @@ export function AttachmentsRenderer({
   }
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {uploads.length === 0 && (
           <p className="mono text-[11px] opacity-50 mb-3" style={{ color: "var(--v-muted)" }}>

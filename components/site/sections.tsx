@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { brand } from "@/lib/site";
+import { SiteReveal } from "@/components/site/SiteReveal";
 
 /** Centered content column with consistent horizontal padding. */
 export function Container({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={`mx-auto w-full max-w-5xl px-5 sm:px-8 ${className ?? ""}`}>{children}</div>;
+  return <div className={`mx-auto w-full max-w-6xl px-5 sm:px-8 ${className ?? ""}`}>{children}</div>;
 }
 
 /** A vertical section band with generous rhythm. */
@@ -20,10 +21,10 @@ export function Section({
 }) {
   return (
     <section
-      className={`py-16 sm:py-24 ${className ?? ""}`}
+      className={`py-20 sm:py-28 ${className ?? ""}`}
       style={{ background: bg, borderTop: divider ? `1px solid ${brand.rule}` : undefined }}
     >
-      <Container>{children}</Container>
+      <Container><SiteReveal>{children}</SiteReveal></Container>
     </section>
   );
 }
@@ -31,7 +32,7 @@ export function Section({
 /** Small mono uppercase label above a heading. */
 export function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="font-mono uppercase tracking-[0.22em]" style={{ fontSize: 11, color: brand.accent }}>
+    <p className="mono uppercase tracking-[0.22em]" style={{ fontSize: 10, color: brand.muted }}>
       {children}
     </p>
   );
@@ -50,8 +51,8 @@ export function SectionHeading({
     <header className="max-w-2xl">
       {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
       <h2
-        className="mt-3 font-semibold tracking-tight"
-        style={{ fontSize: "clamp(26px, 4vw, 40px)", lineHeight: 1.08, color: brand.ink }}
+        className="mt-4 font-brand font-bold"
+        style={{ fontSize: "clamp(30px, 4vw, 46px)", lineHeight: 1.08, color: brand.ink }}
       >
         {title}
       </h2>
@@ -88,7 +89,7 @@ export function PlaceholderText({ lines = 3, short }: { lines?: number; short?: 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-2xl p-5 ${className ?? ""}`}
+      className={`rounded-lg p-6 ${className ?? ""}`}
       style={{ background: brand.surface, border: `1px solid ${brand.rule}` }}
     >
       {children}

@@ -231,7 +231,7 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   fastPrompts: [],
   defaultLanguage: "de",
   defaultShared: false,
-  projectTheme: "dark",
+  projectTheme: "light",
   business: DEFAULT_BUSINESS,
   conditions: DEFAULT_CONDITIONS,
 };
@@ -276,7 +276,7 @@ export function cleanSettings(raw: unknown): StudioSettings {
     fastPrompts: cleanFastPrompts(o.fastPrompts),
     defaultLanguage: LANGUAGE_OPTIONS.some((l) => l.value === lang) ? lang : DEFAULT_SETTINGS.defaultLanguage,
     defaultShared: o.defaultShared === true,
-    projectTheme: o.projectTheme === "light" ? "light" : "dark",
+    projectTheme: o.projectTheme === "dark" ? "dark" : "light",
     business: cleanBusiness(o.business),
     conditions: cleanConditions(o.conditions),
   };

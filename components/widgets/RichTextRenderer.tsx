@@ -45,7 +45,6 @@ export function RichTextRenderer({
     <WidgetShell
       module={m}
       index={index}
-      canRegenerate={false}
       promptEditable
       onManualEdit={() => body.setEditing(true)}
       renderSuggestion={(s) =>

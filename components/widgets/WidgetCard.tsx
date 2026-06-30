@@ -28,7 +28,7 @@ export function WidgetCard({
       style={{
         border: "1px solid var(--v-widget-border, var(--v-rule))",
         background: "var(--v-widget, var(--v-bg))",
-        boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 14px 40px rgba(0,0,0,0.18)",
+        boxShadow: "var(--v-widget-shadow)",
         backdropFilter: "blur(16px)",
       }}
       initial={{ opacity: 0, y: 6 }}

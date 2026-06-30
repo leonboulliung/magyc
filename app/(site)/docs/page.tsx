@@ -1,56 +1,42 @@
 import type { Metadata } from "next";
-import { Container, Eyebrow, PlaceholderText } from "@/components/site/sections";
-import { brand } from "@/lib/site";
+import Link from "next/link";
+import { Section, Eyebrow } from "@/components/site/sections";
 
 export const metadata: Metadata = {
-  title: "Docs — MAGYC",
-  description: "Guides and reference for MAGYC.",
+  title: "Doku — MAGYC",
+  description: "Der schnelle Einstieg in Projekte, Presets und Zusammenarbeit mit MAGYC.",
 };
 
-const SIDEBAR = [
-  { group: "Start", items: ["Introduction", "Your first space", "Sharing"] },
-  { group: "Elements", items: ["Overview", "Collaboration", "Media & maps"] },
-  { group: "Reference", items: ["Project modes", "The assistant", "Publishing"] },
+const GUIDES = [
+  ["01", "Einen Auftrag starten", "Beschreibe das Shooting, beantworte nur die relevanten Rückfragen und prüfe den erzeugten Arbeitsraum."],
+  ["02", "Eigene Presets", "Lege wiederkehrende Elemente, Inhalte und Regeln einmal fest und verwende sie bei künftigen Aufträgen erneut."],
+  ["03", "Kund:innen einladen", "Teile Projekte gezielt, vergebe eine Rolle und halte Auswahl, Medien und Freigaben direkt am Auftrag."],
+  ["04", "Vertrag vorbereiten", "Wechsle nach der Planung in Vertrag, prüfe den Entwurf und lege vor der Freigabe die Signaturart fest."],
 ];
 
 export default function DocsPage() {
   return (
-    <Container className="pt-16 sm:pt-20 pb-24">
-      <Eyebrow>Docs</Eyebrow>
-      <h1 className="mt-3 font-semibold tracking-tight" style={{ fontSize: "clamp(30px, 5vw, 46px)", color: brand.ink }}>
-        Documentation
-      </h1>
-      <p className="mt-4 leading-relaxed" style={{ fontSize: 17, color: brand.muted, maxWidth: 560 }}>
-        Structure placeholder &mdash; real guides will be written page by page.
-      </p>
-
-      <div className="mt-12 grid lg:grid-cols-[220px_1fr] gap-10">
-        {/* Sidebar */}
-        <nav className="space-y-6">
-          {SIDEBAR.map((s) => (
-            <div key={s.group}>
-              <h2 className="font-mono uppercase tracking-widest" style={{ fontSize: 10, color: brand.muted }}>{s.group}</h2>
-              <ul className="mt-2.5 space-y-1.5">
-                {s.items.map((it) => (
-                  <li key={it} style={{ fontSize: 14, color: brand.ink, opacity: 0.7 }}>{it}</li>
-                ))}
-              </ul>
-            </div>
+    <>
+      <Section className="pt-16 sm:pt-24">
+        <Eyebrow>Doku</Eyebrow>
+        <h1 className="mt-4 max-w-4xl font-brand text-[40px] font-bold leading-[1.03] text-[#17171a] sm:text-[64px]">Schnell verstehen. Direkt am echten Auftrag lernen.</h1>
+        <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-black/58">MAGYC ist bewusst klein im Einstieg: Auftrag beschreiben, Struktur prüfen, gemeinsam weiterarbeiten.</p>
+      </Section>
+      <Section className="pt-0">
+        <div className="divide-y divide-black/10 border-y border-black/10">
+          {GUIDES.map(([number, title, copy]) => (
+            <article key={number} className="grid gap-3 py-7 sm:grid-cols-[80px_240px_1fr] sm:items-start">
+              <span className="mono text-[10px] tracking-widest text-black/35">{number}</span>
+              <h2 className="text-[19px] font-semibold text-[#17171a]">{title}</h2>
+              <p className="max-w-2xl text-[14px] leading-relaxed text-black/55">{copy}</p>
+            </article>
           ))}
-        </nav>
-
-        {/* Content */}
-        <article className="space-y-6" style={{ maxWidth: 680 }}>
-          <h2 className="font-semibold" style={{ fontSize: 24, color: brand.ink }}>Introduction</h2>
-          <PlaceholderText lines={4} />
-          <h3 className="font-semibold pt-2" style={{ fontSize: 18, color: brand.ink }}>A worked example</h3>
-          <PlaceholderText lines={5} />
-          <div className="rounded-xl p-4 font-mono" style={{ background: brand.surface, border: `1px solid ${brand.rule}`, fontSize: 13, color: brand.muted }}>
-            // code / example block placeholder
-          </div>
-          <PlaceholderText lines={3} short />
-        </article>
-      </div>
-    </Container>
+        </div>
+        <div className="mt-10 flex flex-wrap gap-3">
+          <Link href="/#start" className="rounded-full bg-[#17171a] px-5 py-3 text-[14px] font-medium text-white">Auftrag ausprobieren</Link>
+          <Link href="/contact" className="rounded-full border border-black/15 px-5 py-3 text-[14px] font-medium text-black/70">Frage stellen</Link>
+        </div>
+      </Section>
+    </>
   );
 }

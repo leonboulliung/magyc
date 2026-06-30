@@ -184,7 +184,7 @@ export function StyleEditor({
         }}
         aria-label="style"
         title="style"
-        className="mono text-[11px] w-8 h-8 rounded-full flex items-center justify-center"
+        className="mono flex h-7 w-7 items-center justify-center rounded-full text-[11px]"
         style={{
           background: "var(--v-bg)",
           color: "var(--v-fg)",

@@ -95,7 +95,7 @@ function phaseLabel(space: SpaceRow): string {
   if (space.deleted_at) return "Geloescht";
   if (space.archived_at) return "Archiviert";
   if (space.stage === "brief") return "Planung";
-  if (space.stage === "production") return "Auswahl";
+  if (space.stage === "production") return "Vertrag";
   if (space.stage === "handoff") return "Abgeschlossen";
   return "Entwurf";
 }

@@ -117,10 +117,10 @@ function ColorSelect({
       side="bottom"
       width={210}
       contentStyle={{
-        background: "#fff",
-        border: "1px solid rgba(0,0,0,0.12)",
+        background: "var(--studio-surface)",
+        border: "1px solid var(--studio-rule)",
         borderRadius: 16,
-        color: "#17171a",
+        color: "var(--studio-ink)",
       }}
       trigger={
         <button
@@ -159,7 +159,7 @@ function ColorSelect({
             >
               <span
                 className="h-6 w-6 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.14)]"
-                style={{ background: c, outline: value === c ? "2px solid #17171a" : "none", outlineOffset: 2 }}
+                style={{ background: c, outline: value === c ? "2px solid var(--studio-ink)" : "none", outlineOffset: 2 }}
               />
             </button>
           ))}

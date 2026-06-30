@@ -82,15 +82,6 @@ export function CrewRenderer({
     <WidgetShell
       module={m}
       index={index}
-      canRegenerate
-      regenerateLabel="Alternativ"
-      renderSuggestion={(suggestion) =>
-        suggestion.type === "crew" ? (
-          <div className="mono text-[10px] tracking-widest opacity-70 truncate">
-            {suggestion.roles.map((role) => role.name || "Rolle").join(" · ")}
-          </div>
-        ) : null
-      }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {m.roles.length === 0 ? (
@@ -130,7 +121,7 @@ export function CrewRenderer({
                     className="rounded-[var(--v-radius)] p-3"
                     style={{
                       border: "1px solid var(--v-rule)",
-                      background: "#181818",
+                      background: "var(--v-card)",
                       boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08)",
                     }}
                   >

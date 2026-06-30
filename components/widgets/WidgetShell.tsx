@@ -25,7 +25,6 @@ function promptPlaceholder(lang: string): string {
 /**
  * Shared widget shell — invisible by default, contributes the owner
  * chrome on hover:
- *   - ⇆ alternatives: a Radix popover of regenerated suggestions
  *   - ✦ prompt-edit: a Radix popover with a natural-language change box
  *   - error toast when the API rejects
  *
@@ -34,40 +33,29 @@ function promptPlaceholder(lang: string): string {
  * the old hand-rolled panels had none. The affordance cluster stays
  * mounted (Radix needs the triggers) and just fades on hover.
  *
- * `onPick` is called when the user accepts a suggestion; the parent
- * decides whether to PUT it through directly or merge it with state.
+ * `onPick` lets state-backed renderers merge a prompt edit into their
+ * own data model instead of replacing the module blindly.
  */
 export function WidgetShell({
   module: m,
   index,
   children,
   className,
-  /** When true, shows the ⇆ alternatives affordance on hover. */
-  canRegenerate = false,
-  /** Glyph for the alternatives affordance. ↻ reads as "reload";
-   *  ⇆ reads as "swap to another option". Per-widget choice. */
-  regenerateGlyph = "↻",
-  regenerateLabel,
   /** When true, shows the ✦ prompt-edit affordance. */
   promptEditable = false,
   /** If provided, the prompt-edit bubble also offers a ✎ "edit by
    *  hand" shortcut that calls this (renderer enters inline edit). */
   onManualEdit,
-  /** Render a preview row for a suggestion in the popover. */
-  renderSuggestion,
-  /** Called when the user picks a suggestion. Default: PUT it through
-   *  as a full widget replacement. */
+  /** Called when a prompt edit returns a module. Default: save it. */
   onPick,
 }: {
   module: Module;
   index: number;
   children: React.ReactNode;
   className?: string;
-  canRegenerate?: boolean;
-  regenerateGlyph?: string;
-  regenerateLabel?: string;
   promptEditable?: boolean;
   onManualEdit?: () => void;
+  /** @deprecated Compatibility-only. Rotation controls are no longer rendered. */
   renderSuggestion?: (s: Module) => React.ReactNode;
   onPick?: (s: Module) => Promise<void> | void;
 }) {
@@ -75,41 +63,10 @@ export function WidgetShell({
   const presetPreview = ctx.spaceId.startsWith("preset:");
   const cell = useCellChrome();
   const [hover, setHover] = useState(false);
-  const [altOpen, setAltOpen] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [suggestions, setSuggestions] = useState<Module[]>([]);
   const [prompt, setPrompt] = useState("");
-
-  async function fetchSuggestions() {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const res = await fetch(`/api/spaces/${ctx.spaceId}/widgets/${index}/regenerate`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ anonToken: ctx.ownerToken }),
-      });
-      const json = await readApiJson(res);
-      if (!res.ok) {
-        const message = showApiError("Alternativen nicht geladen", json, {
-          fallback: "Für dieses Element konnten gerade keine Alternativen geladen werden.",
-        });
-        setError(message);
-        return;
-      }
-      setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
-    } catch (error) {
-      const message = showUnknownError("Alternativen nicht geladen", error, {
-        fallback: "Für dieses Element konnten gerade keine Alternativen geladen werden.",
-      });
-      setError(message);
-    } finally {
-      setBusy(false);
-    }
-  }
 
   /** Prompt-edit: send the change request as USER GUIDANCE, apply the
    *  single returned alternative directly. */
@@ -153,8 +110,6 @@ export function WidgetShell({
   }
 
   async function pick(s: Module) {
-    setAltOpen(false);
-    setSuggestions([]);
     if (onPick) {
       await onPick(s);
     } else {
@@ -167,9 +122,9 @@ export function WidgetShell({
 
   // One toolbar for the whole element: cell chrome (reorder /
   // remove, if this widget sits in a grid cell) + its own affordances
-  // (prompt-edit, alternatives).
-  const showBar = ctx.isOwner && !presetPreview && (!!cell || canRegenerate || promptEditable);
-  const clusterVisible = hover || busy || altOpen || bubbleOpen;
+  // (prompt-edit).
+  const showBar = ctx.isOwner && !presetPreview && (!!cell || promptEditable);
+  const clusterVisible = hover || busy || bubbleOpen;
 
   const barBtn = "w-7 h-7 flex items-center justify-center hover:bg-white/[0.08] transition-colors disabled:opacity-30";
 
@@ -187,10 +142,10 @@ export function WidgetShell({
           style={{
             opacity: clusterVisible ? 1 : 0,
             pointerEvents: clusterVisible ? "auto" : "none",
-            background: "rgba(20,20,20,0.94)",
+            background: "var(--v-card)",
             border: "1px solid var(--v-rule)",
             borderRadius: 999,
-            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 10px 28px rgba(0,0,0,0.22)",
+            boxShadow: "var(--v-widget-shadow)",
           }}
         >
           {cell && (
@@ -219,7 +174,7 @@ export function WidgetShell({
               </button>
             </>
           )}
-          {cell && (promptEditable || canRegenerate) && (
+          {cell && promptEditable && (
             <span aria-hidden className="self-stretch w-px my-1.5 mx-0.5" style={{ background: "var(--v-rule)" }} />
           )}
           {promptEditable && (
@@ -279,72 +234,6 @@ export function WidgetShell({
             </Popover>
           )}
 
-          {canRegenerate && (
-            <Popover
-              open={altOpen}
-              onOpenChange={(o) => { setAltOpen(o); if (o) fetchSuggestions(); else setSuggestions([]); }}
-              side="bottom"
-              align="end"
-              width={280}
-              noAutoFocus
-              trigger={
-                <button
-                  type="button"
-                  disabled={busy}
-                  aria-label="alternatives"
-                  title="Alternatives"
-                  className={`${regenerateLabel ? "h-7 px-3 hover:bg-white/[0.08] transition-colors disabled:opacity-30 text-[11px]" : `${barBtn} text-[13px]`} mono flex items-center justify-center tracking-widest`}
-                  style={{ background: altOpen ? "var(--v-fg)" : "transparent", color: altOpen ? "var(--v-bg)" : "var(--v-muted)" }}
-                >
-                  {busy ? "…" : (regenerateLabel || regenerateGlyph)}
-                </button>
-              }
-            >
-              {busy && suggestions.length === 0 && (
-                <div className="px-3 py-4 mono text-[11px] tracking-widest opacity-40 text-center">…</div>
-              )}
-              {!busy && suggestions.length === 0 && (
-                <div className="px-3 py-4 mono text-[11px] tracking-widest opacity-40 text-center">none</div>
-              )}
-              {suggestions.length > 0 && (
-                <>
-                  <ul className="divide-y" style={{ borderColor: "var(--v-rule)" }}>
-                    {suggestions.map((s, i) => (
-                      <li key={i}>
-                        <button
-                          type="button"
-                          onClick={() => pick(s)}
-                          className="w-full text-left px-3 py-2.5 hover:bg-white/[0.06] transition-colors flex items-start gap-3"
-                        >
-                          <span className="mono text-[10px] tracking-widest opacity-50 tabular-nums shrink-0 pt-0.5">
-                            {String(i + 1).padStart(2, "0")}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            {renderSuggestion ? renderSuggestion(s) : (
-                              <code className="mono text-[10px] opacity-70">{JSON.stringify(s).slice(0, 120)}…</code>
-                            )}
-                          </div>
-                          <span className="mono text-[12px] opacity-50 shrink-0">↵</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="px-3 py-1.5 flex items-center justify-end" style={{ background: "var(--v-rule)" }}>
-                    <button
-                      type="button"
-                      onClick={fetchSuggestions}
-                      disabled={busy}
-                      aria-label="more"
-                      title="More alternatives"
-                      className="mono text-[10px] tracking-widest opacity-70 hover:opacity-100"
-                    >
-                      {busy ? "…" : "↻"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </Popover>
-          )}
         </div>
       )}
 

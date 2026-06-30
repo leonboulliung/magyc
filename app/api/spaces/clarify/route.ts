@@ -6,6 +6,7 @@ import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
 import { supabaseAdmin } from "@/lib/supabase";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
+import { cleanSettings } from "@/lib/studioProfile";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 15_000;
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
   const parsed = await parseBody(req, z.object({
     input: z.string().optional(),
     projectMode: z.string().optional().nullable(),
+    language: z.string().max(8).optional(),
     anonToken: z.string().optional(),
   }));
   if (!parsed.ok) return parsed.response;
@@ -62,9 +64,18 @@ export async function POST(req: Request) {
     // Clarify can still run when observability/rate-limit storage is not ready.
   }
 
+  let language = typeof body.language === "string" ? body.language : "de";
+  if (userId) {
+    try {
+      const admin = supabaseAdmin();
+      const { data } = await admin.from("profiles").select("settings").eq("id", userId).maybeSingle();
+      language = cleanSettings(data?.settings ?? {}).defaultLanguage;
+    } catch { /* German remains the safe default. */ }
+  }
+
   const started = Date.now();
   try {
-    const result = await clarifyInput(input, { projectMode: body.projectMode });
+    const result = await clarifyInput(input, { projectMode: body.projectMode, language });
     await recordAiEvent({
       userId,
       anonId: typeof body.anonToken === "string" ? body.anonToken.slice(0, 64) : null,
@@ -99,6 +110,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "clarify_unparseable" }, { status: 500 });
     if (msg === "clarify_empty")
       return NextResponse.json({ error: "clarify_empty" }, { status: 500 });
+    if (msg === "input_not_photography_project")
+      return NextResponse.json({ error: msg }, { status: 422 });
     return NextResponse.json({ error: "clarify_failed", detail: msg }, { status: 502 });
   }
 }

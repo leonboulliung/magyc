@@ -16,6 +16,7 @@ import {
   setSelfUser,
 } from "@/lib/state";
 import { bodyContainer, heroIn } from "@/lib/anim";
+import { StudioThemeSync } from "@/components/studio/StudioThemeSync";
 import { getSpaceOwnerToken } from "@/lib/anonId";
 import { newId } from "@/lib/id";
 import { colorForId } from "@/lib/palette";
@@ -36,7 +37,6 @@ import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { GridZone } from "@/components/GridZone";
 import { ParticipantsBar } from "@/components/ParticipantsBar";
 import { StyleEditor } from "@/components/StyleEditor";
-import { AssistantDock } from "@/components/AssistantDock";
 import { DotField } from "@/components/DotField";
 import { RenderBoundary } from "@/components/ui/RenderBoundary";
 import { SupportWidget } from "@/components/support/SupportWidget";
@@ -71,7 +71,8 @@ export function SpaceView({
   canEditOverride,
   onProjectDataChange,
   disableRealtime = false,
-  themeMode = "dark",
+  themeMode = "light",
+  syncDocumentTheme = true,
 }: {
   id: string;
   initialSpace?: Space | null;
@@ -81,6 +82,7 @@ export function SpaceView({
   disableRealtime?: boolean;
   /** Canvas theme for the project page ("stage"). Owner's account preference. */
   themeMode?: "dark" | "light";
+  syncDocumentTheme?: boolean;
 }) {
   const { user } = useUser();
 
@@ -354,7 +356,7 @@ export function SpaceView({
     async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
       if (!space?.id) return false;
       if (space.stage === "production" || space.stage === "handoff") {
-        showActionError("Projekt in Auswahl", { description: "Die Projektseite ist gesperrt — Änderungen sind nicht mehr möglich." });
+        showActionError("Projekt im Vertrag", { description: "Die Projektseite ist gesperrt — Änderungen sind nicht mehr möglich." });
         return false;
       }
       const snapshot = liveStateRef.current;
@@ -544,8 +546,10 @@ export function SpaceView({
     >
       <div
         className={`vibe-root vibe-${space.vibe} relative min-h-screen flex flex-col overflow-hidden`}
+        data-theme={themeMode}
         style={{ ...rootStyleVars, background: "var(--v-page, var(--v-bg))" }}
       >
+        {syncDocumentTheme && <StudioThemeSync theme={themeMode} />}
         <DotField color={themeMode === "light" ? "0,0,0" : "255,255,255"} className="pointer-events-none fixed inset-0 z-0 opacity-[0.08] sm:opacity-[0.13]" />
         <div
           className="pointer-events-none fixed inset-0 z-0"
@@ -559,11 +563,11 @@ export function SpaceView({
         {/* Floating top-right controls — only when there is one to show. */}
         {showTopControls && (
         <div
-          className="fixed top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 px-1.5 py-1 rounded-full"
+          className="fixed right-3 top-3 z-30 flex h-8 items-center gap-1 rounded-full p-0.5 sm:right-4 sm:top-4"
           style={{
-            background: "rgba(18,18,18,0.94)",
+            background: "var(--v-card)",
             border: "1px solid var(--v-rule)",
-            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 12px 34px rgba(0,0,0,0.2)",
+            boxShadow: "var(--v-widget-shadow)",
           }}
         >
           {isHistorical && (
@@ -679,7 +683,7 @@ export function SpaceView({
             >
               <span className="mono flex items-center gap-2 text-[11px] tracking-widest" style={{ color: "var(--v-muted)" }}>
                 <span aria-hidden>⟡</span>
-                {space.stage === "handoff" ? "ABGESCHLOSSEN · PLAN GESPERRT" : "IN AUSWAHL · PLAN GESPERRT"}
+                {space.stage === "handoff" ? "ABGESCHLOSSEN · PLAN GESPERRT" : "IM VERTRAG · PLAN GESPERRT"}
               </span>
               <span className="mono text-[11px] tracking-widest transition-transform group-hover:translate-x-0.5" style={{ color: "var(--v-fg)" }}>
                 Vertrag ansehen →
@@ -722,7 +726,7 @@ export function SpaceView({
               </motion.div>
             </div>
 
-            <aside className="shrink-0 self-stretch flex items-start pt-2">
+            <aside className="hidden shrink-0 self-stretch items-start pt-2 sm:flex">
               <VersionBar
                 versions={space.versions}
                 currentVersion={currentVersionNumber}
@@ -744,7 +748,6 @@ export function SpaceView({
             Hidden in production; enable on any space with ?dev=1. */}
         {devMode && <PersonaSwitcher />}
         <SupportWidget spaceId={space.id} variant="project" />
-        <AssistantDock spaceId={space.id} onProjectChanged={refreshEverywhere} />
       </div>
     </WidgetContext.Provider>
   );

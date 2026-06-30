@@ -101,7 +101,7 @@ ${JSON.stringify(ctx.current, null, 2)}${ctx.basePrompt ? `\n\nUSER GUIDANCE: ${
 const HANDLERS: Partial<Record<ModuleType, Handler>> = {
   heading: (ctx, n) => ({
     system: `Generate ${n} alternative HEADINGS for a workspace.
-Each alternative must be in the user's language (${ctx.language}) and
+Each alternative must be in the configured project language (${ctx.language}) and
 3-8 words long. None may duplicate the current heading. Return
 STRICT JSON: { "suggestions": [ { "type": "heading", "text": "...", "level": 1 }, ... ] }`,
     user: baseContext(ctx),

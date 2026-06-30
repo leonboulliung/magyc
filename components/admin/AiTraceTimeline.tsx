@@ -2,7 +2,7 @@
  * AiTraceTimeline — a strictly read-only provenance view for one project.
  *
  * Renders the `ai_events` already recorded across the lifecycle (project
- * creation → clarifications → contract draft → @magyc turns), so an admin can
+ * creation → clarifications → contract draft → historical KI actions), so an admin can
  * trace WHAT the AI did and ON WHICH INPUT — without any interactive widgets
  * (the old "ghost" inspector let an admin mutate content + join as a member).
  * Server component; expand/collapse via native <details>, no client JS.
@@ -28,7 +28,7 @@ const LABELS: Record<string, string> = {
   classify: "Projekt erstellt — Element-Auswahl",
   clarify: "Rückfragen generiert",
   contract_draft: "Vertragsentwurf erzeugt",
-  assistant_chat: "@magyc-Chat",
+  assistant_chat: "KI-Aktion (historisch)",
   regenerate: "Element neu generiert",
 };
 

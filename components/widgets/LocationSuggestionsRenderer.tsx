@@ -60,7 +60,7 @@ export function LocationSuggestionsRenderer({
   }
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {m.suggestions.length === 0 && (
           <p className="mono text-[11px] opacity-50" style={{ color: "var(--v-muted)" }}>Noch keine Orts-Vorschläge.</p>

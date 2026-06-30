@@ -43,7 +43,7 @@ export interface StudioProjectCard {
 
 const STAGE_LABEL: Record<"brief" | "production" | "handoff", string> = {
   brief: "Planung",
-  production: "Auswahl",
+  production: "Vertrag",
   handoff: "Abgeschlossen",
 };
 
@@ -115,6 +115,7 @@ export function StudioHome({
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState("none");
   const [fastPrompts, setFastPrompts] = useState<FastPrompt[]>([]);
+  const [defaultLanguage, setDefaultLanguage] = useState("de");
 
   const selectedPreset = useMemo(() => presets.find((p) => p.id === presetId) || null, [presetId, presets]);
   const totalSteps = steps.length;
@@ -153,9 +154,13 @@ export function StudioHome({
     (async () => {
       try {
         const res = await fetch("/api/studio/profile", { cache: "no-store" });
-        const json = await readApiJson(res) as { profile?: { settings?: { fastPrompts?: unknown } } };
+        const json = await readApiJson(res) as { profile?: { settings?: { fastPrompts?: unknown; defaultLanguage?: unknown } } };
         const fps = cleanFastPrompts(json?.profile?.settings?.fastPrompts);
-        if (!cancelled) setFastPrompts(fps);
+        if (!cancelled) {
+          setFastPrompts(fps);
+          const language = json?.profile?.settings?.defaultLanguage;
+          setDefaultLanguage(typeof language === "string" ? language : "de");
+        }
       } catch { /* optional */ }
     })();
     return () => { cancelled = true; };
@@ -209,6 +214,7 @@ export function StudioHome({
         body: JSON.stringify({
           input: trimmed,
           projectMode,
+          language: defaultLanguage,
           anonToken: getAnonToken(),
         }),
       }, CLARIFY_TIMEOUT_MS);
@@ -375,14 +381,14 @@ export function StudioHome({
               exit="exit"
               className="rounded-[34px] bg-white p-5 text-[#17171a] sm:p-9"
               style={{
-                border: "1px solid rgba(0,0,0,0.12)",
-                boxShadow: "0 18px 70px rgba(0,0,0,0.08)",
+                border: "1px solid var(--studio-rule)",
+                boxShadow: "0 18px 70px rgba(0,0,0,0.18)",
                 ["--v-radius" as string]: "28px",
-                ["--v-bg" as string]: "rgba(0,0,0,0.035)",
-                ["--v-fg" as string]: "#17171a",
-                ["--v-muted" as string]: "rgba(23,23,26,0.58)",
-                ["--v-rule" as string]: "rgba(0,0,0,0.14)",
-                ["--v-accent" as string]: "#17171a",
+                ["--v-bg" as string]: "var(--studio-surface-soft)",
+                ["--v-fg" as string]: "var(--studio-ink)",
+                ["--v-muted" as string]: "var(--studio-muted)",
+                ["--v-rule" as string]: "var(--studio-rule)",
+                ["--v-accent" as string]: "var(--studio-ink)",
               }}
             >
               <div className="mb-8 space-y-2">
@@ -400,10 +406,11 @@ export function StudioHome({
                 </div>
                 <div
                   className="w-full overflow-hidden rounded-full"
-                  style={{ height: 2, background: "rgba(0,0,0,0.1)" }}
+                  style={{ height: 2, background: "var(--studio-rule)" }}
                 >
                   <motion.div
-                    className="h-full rounded-full bg-[#17171a]"
+                    className="h-full rounded-full"
+                    style={{ background: "var(--studio-ink)" }}
                     initial={false}
                     animate={{ width: `${Math.max(progress * 100, 4)}%` }}
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -456,7 +463,7 @@ export function StudioHome({
                           maxLength={currentStep.maxLength ?? 240}
                           placeholder={currentStep.placeholder ?? "…"}
                           className="w-full resize-none rounded-[28px] p-4 text-[16px] leading-relaxed outline-none placeholder:text-black/28"
-                          style={{ border: "1px solid rgba(0,0,0,0.14)", background: "rgba(0,0,0,0.025)", color: "#17171a" }}
+                          style={{ border: "1px solid var(--studio-rule)", background: "var(--studio-surface-soft)", color: "var(--studio-ink)" }}
                         />
                       </>
                     ) : (
@@ -484,9 +491,9 @@ export function StudioHome({
                                 className="mono rounded-full px-3 py-1.5 text-[11px] tracking-widest"
                                 style={{
                                   border: "1px solid",
-                                  borderColor: picked ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.14)",
-                                  background: picked ? "#17171a" : "rgba(0,0,0,0.025)",
-                                  color: picked ? "#fff" : "rgba(23,23,26,0.72)",
+                                  borderColor: picked ? "var(--studio-ink)" : "var(--studio-rule)",
+                                  background: picked ? "var(--studio-ink)" : "var(--studio-surface-soft)",
+                                  color: picked ? "var(--studio-page)" : "var(--studio-ink)",
                                 }}
                                 whileHover={{ y: -2 }}
                                 whileTap={{ scale: 0.96 }}
@@ -512,8 +519,8 @@ export function StudioHome({
                             className="mono rounded-full bg-transparent px-3 py-1.5 text-[11px] tracking-widest outline-none"
                             style={{
                               border: "1px solid",
-                              borderColor: isCustom ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.14)",
-                              color: "#17171a",
+                              borderColor: isCustom ? "var(--studio-ink)" : "var(--studio-rule)",
+                              color: "var(--studio-ink)",
                               minWidth: "80px",
                             }}
                           />

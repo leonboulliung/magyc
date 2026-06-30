@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { brand, FOOTER_GROUPS, LOCALES } from "@/lib/site";
 
 /**
@@ -11,8 +12,7 @@ export function SiteFooter() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-8">
           <div className="col-span-2 sm:col-span-1">
             <Link href="/" aria-label="MAGYC" className="inline-flex items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/magyc-logo.png" alt="MAGYC" className="h-[20px] w-auto" />
+              <Image src="/magyc-logo.png" alt="MAGYC" width={182} height={40} className="h-[20px] w-auto" />
             </Link>
             <p className="mt-3 leading-relaxed" style={{ fontSize: 13, color: brand.muted, maxWidth: 220 }}>
               Eine Idee rein, eine lebendige, gemeinsame Struktur raus.

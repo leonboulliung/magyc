@@ -16,8 +16,6 @@ import { useInlineEdit } from "./useInlineEdit";
  *            faint colour, only visible while editing the empty
  *            field.
  *
- *   Regenerate: ↻ button reveals on hover (owner only). Surfaces 3
- *               alternative headings via the popover.
  */
 export function HeadingRenderer({
   module: m,
@@ -41,14 +39,6 @@ export function HeadingRenderer({
     <WidgetShell
       module={m}
       index={index}
-      regenerateGlyph="⇆"
-      renderSuggestion={(s) =>
-        s.type === "heading" ? (
-          <div className="space-y-0.5">
-            <div className="text-[15px] leading-snug font-bold">{s.text}</div>
-          </div>
-        ) : null
-      }
     >
       {editing ? (
         <div className="relative">

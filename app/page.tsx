@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -56,7 +57,6 @@ const slideVariants = {
 export default function HomePage() {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("input");
-  const [mounted, setMounted] = useState(false);
   const [text, setText] = useState("");
   const [, setLanguage] = useState("de");
   const [presetId, setPresetId] = useState("none");
@@ -79,14 +79,9 @@ export default function HomePage() {
   const dotFieldRef = useRef<DotFieldHandle>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // The landing page is a fixed, full-screen surface — there is nothing
-  // to scroll. Lock the document while it's mounted so mobile browsers
-  // don't show a phantom scrollbar or rubber-band overscroll (which also
-  // resized the canvas and made the dot grid jump). Restored on navigate.
+  // The landing page owns one internal scroll surface. Lock the outer
+  // document so mobile browsers cannot add a second scrollbar or resize the
+  // dot field through rubber-band overscroll. Restored on navigate.
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -168,7 +163,7 @@ export default function HomePage() {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input: trimmed, projectMode: DEFAULT_PROJECT_MODE, anonToken: getAnonToken() }),
+        body: JSON.stringify({ input: trimmed, projectMode: DEFAULT_PROJECT_MODE, language: "de", anonToken: getAnonToken() }),
       }, CLARIFY_TIMEOUT_MS);
       if (!res.ok) {
         setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
@@ -266,6 +261,7 @@ export default function HomePage() {
         body: JSON.stringify({
           input: text.trim(),
           projectMode: DEFAULT_PROJECT_MODE,
+          language: "de",
           answers: payloadAnswers,
           configuredModules,
           presetName: selectedPreset?.name,
@@ -312,10 +308,6 @@ export default function HomePage() {
       {stage === "input" ? (
         <>
           <DotField ref={dotFieldRef} color="0,0,0" className="fixed inset-0 z-[1] opacity-[0.055]" />
-          <div
-            className="pointer-events-none fixed inset-0 z-[2]"
-            style={{ background: "radial-gradient(circle at 50% -10%, rgba(0,0,0,0.055), transparent 44%)" }}
-          />
         </>
       ) : (
         <div className="fixed inset-0 z-0 bg-[#f4f4f1]">
@@ -332,7 +324,7 @@ export default function HomePage() {
       <div
         className={
           stage === "input"
-            ? "relative z-30 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-[132px] sm:px-8 sm:pt-[154px]"
+            ? "relative z-30 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain pb-24"
             : "relative z-10 mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto overscroll-contain px-4 pb-8 sm:px-10"
         }
         style={stage === "input" ? undefined : { paddingTop: "max(1rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
@@ -340,7 +332,7 @@ export default function HomePage() {
         <div
           className={
             stage === "input"
-              ? "mx-auto flex w-full max-w-2xl flex-col gap-4"
+              ? "mx-auto flex w-full flex-col gap-4"
               : "mx-auto mt-[clamp(24px,5vh,56px)] flex w-full max-w-3xl flex-col gap-[clamp(24px,5vh,56px)]"
           }
         >
@@ -354,41 +346,73 @@ export default function HomePage() {
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className={`flex flex-col gap-5 transition-all duration-1000 delay-300 ${
-                  mounted ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
-                }`}
+                className="flex flex-col gap-5"
               >
-                <div className="mb-1">
-                  <p className="mono text-[11px] uppercase tracking-[0.24em] text-black/45">
-                    Für Fotograf:innen &amp; kreative Freelancer
-                  </p>
-                  <h1 className="mt-3 font-brand text-[34px] font-bold leading-[1.04] tracking-[-0.02em] text-[#17171a] sm:text-[52px]">
-                    Aus einer vagen Kundenidee wird ein klarer Shoot.
-                  </h1>
-                  <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-black/60 sm:text-[18px]">
-                    MAGYC verwandelt grobe Anfragen in strukturierte Projektseiten — mit
-                    Moodboard, Shotlist, Locations, Aufgaben, Freigaben und Vertrag. Damit
-                    kreative Projekte klar starten und professionell enden.
-                  </p>
-                </div>
+                <section className="relative min-h-[470px] overflow-hidden bg-[#17171a] sm:min-h-[540px]">
+                  <Image
+                    src="/media/marketing/hero-footage.jpg"
+                    alt="Fotograf hält seine Kamera ins warme Gegenlicht"
+                    fill
+                    priority
+                    sizes="100vw"
+                    className="object-cover object-center"
+                  />
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{ background: "linear-gradient(90deg, rgba(12,12,14,0.88) 0%, rgba(12,12,14,0.56) 48%, rgba(12,12,14,0.08) 78%), linear-gradient(0deg, rgba(12,12,14,0.58), transparent 52%)" }}
+                  />
+                  <div className="relative mx-auto flex min-h-[470px] w-full max-w-6xl flex-col justify-end px-5 py-10 sm:min-h-[540px] sm:px-8 sm:py-14">
+                    <p className="mono text-[10px] uppercase tracking-[0.24em] text-white/65 sm:text-[11px]">
+                      Für Fotograf:innen
+                    </p>
+                    <h1 className="mt-4 max-w-3xl font-brand text-[40px] font-bold leading-[1.02] text-white sm:text-[66px]">
+                      Fotografie-Aufträge, die klar beginnen und professionell enden.
+                    </h1>
+                    <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-white/75 sm:text-[18px]">
+                      MAGYC bringt Kund:innen, Team, Bildidee und Vertrag an einen Ort. Damit du weniger koordinierst und mehr fotografierst.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={focusPrompt}
+                      className="mt-7 flex h-11 w-fit items-center gap-2 rounded-full bg-white px-5 text-[14px] font-medium text-[#17171a] transition-transform hover:translate-y-[-2px]"
+                    >
+                      Auftrag planen
+                      <span aria-hidden>↓</span>
+                    </button>
+                  </div>
+                </section>
 
-                <PromptStart
-                  id="start"
-                  inputRef={inputRef}
-                  className="scroll-mt-20"
-                  value={text}
-                  onChange={(v) => { setPromptNudge(false); setText(v); }}
-                  onSubmit={submitInput}
-                  disabled={busy}
-                  autoFocus
-                  rows={5}
-                  highlight={promptNudge}
-                  presets={MARKETING_STARTER_PRESETS}
-                  selectedPresetId={presetId}
-                  onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
-                  fastPrompts={DEFAULT_CREATE_FAST_PROMPTS}
-                  onFastPrompt={addPromptHint}
-                />
+                <section id="start" className="scroll-mt-24">
+                  <div className="mx-auto w-full max-w-5xl px-5 pt-12 sm:px-8 sm:pt-16">
+                    <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                      <div>
+                        <p className="mono text-[10px] uppercase tracking-[0.22em] text-black/42">Dein nächster Auftrag</p>
+                        <h2 className="mt-2 font-brand text-[28px] font-bold leading-tight text-[#17171a] sm:text-[38px]">
+                          Plane deinen nächsten Fotografie-Auftrag
+                        </h2>
+                      </div>
+                      <p className="max-w-md text-[14px] leading-relaxed text-black/52 sm:text-right">
+                        Beschreibe dein Shooting so konkret wie möglich: Orte, Menschen, Requisiten, Ziel, Ablauf und Termine.
+                      </p>
+                    </div>
+                    <PromptStart
+                      inputRef={inputRef}
+                      value={text}
+                      onChange={(v) => { setPromptNudge(false); setText(v); }}
+                      onSubmit={submitInput}
+                      disabled={busy}
+                      autoFocus
+                      rows={5}
+                      highlight={promptNudge}
+                      presets={MARKETING_STARTER_PRESETS}
+                      selectedPresetId={presetId}
+                      onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
+                      fastPrompts={DEFAULT_CREATE_FAST_PROMPTS}
+                      onFastPrompt={addPromptHint}
+                    />
+                  </div>
+                </section>
 
                 {/* Submit lives in the composer itself (gradient send + Enter),
                     matching the Studio prompt field. Status only below. */}
@@ -400,7 +424,7 @@ export default function HomePage() {
                   </div>
                 )}
 
-                <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-black/55">
+                <div className="mx-auto mt-1 flex w-full max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-5 text-[13px] text-black/55 sm:px-8">
                   <span>Kostenlos. Ohne Setup. In Sekunden.</span>
                   <Link href="/showcase" className="font-medium text-black/75 underline-offset-4 transition-colors hover:text-black hover:underline">
                     Beispielprojekt ansehen →

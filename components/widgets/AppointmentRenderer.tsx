@@ -31,7 +31,7 @@ export function AppointmentRenderer({
   const inputValue = toLocalInputValue(m.datetime);
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         <div className="flex min-h-[180px] items-center justify-center py-4">
           {editing ? (

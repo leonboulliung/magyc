@@ -23,7 +23,7 @@ const clerkAppearance = {
 
 export const metadata: Metadata = {
   title: "MAGYC",
-  description: "Turn early ideas into shareable, collaborative spaces.",
+  description: "Fotografie-Aufträge gemeinsam planen, abstimmen, vertraglich festhalten und professionell abschließen.",
   icons: {
     icon: [{ url: "/magyc-favicon.png", type: "image/png" }],
     apple: [{ url: "/magyc-favicon.png" }],
@@ -38,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="de">
       <body className="min-h-screen bg-[#f4f4f1] text-[#17171a] antialiased">
         <ClerkProvider appearance={clerkAppearance} localization={deDE}>
           {children}

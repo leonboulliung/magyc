@@ -12,9 +12,8 @@ import { WidgetShell } from "./WidgetShell";
  * workspace's semantic anchor, so it earns its space by being the
  * content — not by sitting in a big padded card.
  *
- * The ⇆ alternatives affordance (6 candidates + refresh) is provided
- * by the shared WidgetShell on hover; the microTitle is intentionally
- * not shown (per the type definition's comment in types.ts).
+ * The microTitle is intentionally not shown (per the type definition's
+ * comment in types.ts).
  */
 export function IconRenderer({
   module: m,
@@ -27,17 +26,6 @@ export function IconRenderer({
     <WidgetShell
       module={m}
       index={index}
-      regenerateGlyph="⇆"
-      renderSuggestion={(s) =>
-        s.type === "icon" ? (
-          <div className="flex items-center gap-2.5">
-            <Icon icon={s.iconify} width={20} height={20} />
-            <span className="mono text-[10px] tracking-widest opacity-70 truncate">
-              {s.iconify}
-            </span>
-          </div>
-        ) : null
-      }
     >
       {/* Compact square — small fixed tile the icon nearly fills, so
           the widget hugs its content instead of padding a big card. */}

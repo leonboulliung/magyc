@@ -24,7 +24,7 @@ export function RouteRenderer({
   const stops = m.stops;
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard
         microTitle={m.microTitle}
         description={m.description}

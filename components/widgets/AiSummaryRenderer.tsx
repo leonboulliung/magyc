@@ -34,7 +34,6 @@ export function AiSummaryRenderer({
     <WidgetShell
       module={m}
       index={index}
-      canRegenerate={false}
       promptEditable
       onManualEdit={() => setEditing(true)}
       renderSuggestion={(s) =>

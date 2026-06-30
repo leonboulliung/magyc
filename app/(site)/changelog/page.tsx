@@ -1,40 +1,37 @@
 import type { Metadata } from "next";
-import { Container, Eyebrow, PlaceholderText } from "@/components/site/sections";
-import { brand } from "@/lib/site";
+import { Section, Eyebrow } from "@/components/site/sections";
 
 export const metadata: Metadata = {
   title: "Changelog — MAGYC",
-  description: "What's new in MAGYC.",
+  description: "Die wichtigsten Produktänderungen in MAGYC.",
 };
 
 const ENTRIES = [
-  { date: "Coming soon", tag: "—" },
-  { date: "Coming soon", tag: "—" },
-  { date: "Coming soon", tag: "—" },
+  ["Aktuell", "Fotografie-fokussierter Projektstart", "Kontosprache, Presets und Rückfragen greifen jetzt durchgängig ineinander; fachfremde Anfragen werden nicht als Projekt ausgegeben."],
+  ["Aktuell", "Planung, Vertrag, Abgeschlossen", "Der Projektlebenszyklus ist auf drei verständliche Schritte reduziert und der Vertragsentwurf entsteht beim Wechsel automatisch."],
+  ["Aktuell", "Stabilere Elemente", "Medien, Einträge und gemeinsame Bearbeitung folgen einheitlicheren Regeln für Uploads, Speicherung und Bedienung."],
 ];
 
 export default function ChangelogPage() {
   return (
-    <Container className="pt-16 sm:pt-20 pb-24">
-      <Eyebrow>Changelog</Eyebrow>
-      <h1 className="mt-3 font-semibold tracking-tight" style={{ fontSize: "clamp(30px, 5vw, 46px)", color: brand.ink }}>
-        What&rsquo;s new
-      </h1>
-      <p className="mt-4 leading-relaxed" style={{ fontSize: 17, color: brand.muted, maxWidth: 560 }}>
-        Placeholder timeline &mdash; releases will be posted here.
-      </p>
-
-      <div className="mt-12 space-y-10" style={{ maxWidth: 720 }}>
-        {ENTRIES.map((e, i) => (
-          <div key={i} className="grid sm:grid-cols-[160px_1fr] gap-5">
-            <div className="font-mono tracking-widest" style={{ fontSize: 12, color: brand.muted }}>{e.date}</div>
-            <div>
-              <h2 className="font-semibold" style={{ fontSize: 18, color: brand.ink }}>Release title placeholder</h2>
-              <div className="mt-3"><PlaceholderText lines={3} short /></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Container>
+    <>
+      <Section className="pt-16 sm:pt-24">
+        <Eyebrow>Changelog</Eyebrow>
+        <h1 className="mt-4 max-w-4xl font-brand text-[40px] font-bold leading-[1.03] text-[#17171a] sm:text-[64px]">Was sich in MAGYC verbessert.</h1>
+      </Section>
+      <Section className="pt-0">
+        <div className="max-w-4xl divide-y divide-black/10 border-y border-black/10">
+          {ENTRIES.map(([date, title, copy], index) => (
+            <article key={`${title}-${index}`} className="grid gap-3 py-7 sm:grid-cols-[120px_1fr]">
+              <span className="mono text-[10px] uppercase tracking-[0.2em] text-black/38">{date}</span>
+              <div>
+                <h2 className="text-[19px] font-semibold text-[#17171a]">{title}</h2>
+                <p className="mt-2 text-[14px] leading-relaxed text-black/55">{copy}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Section>
+    </>
   );
 }

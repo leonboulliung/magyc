@@ -121,7 +121,7 @@ export function WorkPackagesRenderer({
                     className="rounded-[var(--v-radius)] p-3"
                     style={{
                       border: "1px solid var(--v-rule)",
-                      background: "#181818",
+                      background: "var(--v-card)",
                       boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08)",
                     }}
                   >

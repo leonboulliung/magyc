@@ -68,7 +68,7 @@ export function LocationSingleRenderer({
   }
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard
         microTitle={m.microTitle ?? label}
         description={m.description}

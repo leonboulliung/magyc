@@ -9,9 +9,8 @@ import type { SaveStatus } from "@/components/studio/useStudioProfile";
  * field styles, so every settings surface reads the same. Purely presentational.
  */
 
-const INK = "#17171a";
 const FIELD =
-  "w-full rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 transition-colors focus:border-black/45";
+  "studio-field w-full rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 transition-colors focus:border-black/45";
 
 export function PageHeader({
   eyebrow,
@@ -42,7 +41,7 @@ export function PageHeader({
 
 export function Card({ title, hint, children }: { title?: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-black/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-6">
+    <section className="studio-card rounded-2xl border border-black/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-6">
       {title && <h2 className="text-[15px] font-semibold text-[#17171a]">{title}</h2>}
       {hint && <p className="mt-1 text-[13px] leading-relaxed text-black/45">{hint}</p>}
       <div className={title || hint ? "mt-4" : ""}>{children}</div>
@@ -88,7 +87,7 @@ export function Toggle({ checked, onChange, label, hint }: { checked: boolean; o
       <span
         aria-hidden
         className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-        style={{ background: checked ? INK : "rgba(0,0,0,0.18)" }}
+        style={{ background: checked ? "var(--studio-ink)" : "var(--studio-rule)" }}
       >
         <span
           className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
@@ -110,7 +109,7 @@ export function Chips<T extends string>({ options, selected, onToggle }: { optio
             key={o.value}
             type="button"
             onClick={() => onToggle(o.value)}
-            className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${on ? "border-[#17171a] bg-[#17171a] text-white" : "border-black/15 text-black/65 hover:border-black/40 hover:text-black"}`}
+            className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${on ? "studio-selected" : "border-black/15 text-black/65 hover:border-black/40 hover:text-black"}`}
           >
             {o.label}
           </button>
@@ -131,7 +130,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className={`rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${on ? "bg-[#17171a] text-white" : "text-black/55 hover:text-black"}`}
+            className={`rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${on ? "studio-selected" : "text-black/55 hover:text-black"}`}
           >
             {o.label}
           </button>

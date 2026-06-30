@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { MAIN_NAV, USE_CASES, isNavGroup } from "@/lib/site";
 
@@ -25,14 +26,19 @@ export function SiteNav() {
   }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-black/10 bg-[#f4f4f1]/82 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-8">
+    <header
+      className="sticky inset-x-0 top-0 z-50 shrink-0 border-b border-black/10 backdrop-blur-xl"
+      style={{ background: "rgba(244,244,241,0.96)" }}
+    >
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-8">
         <Link href="/" aria-label="MAGYC" className="flex items-center" onClick={() => setOpen(false)}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/magyc-logo.png"
             alt="MAGYC"
+            width={182}
+            height={40}
             className="h-[18px] w-auto"
+            priority
           />
         </Link>
 
@@ -41,7 +47,7 @@ export function SiteNav() {
           {MAIN_NAV.map((entry) =>
             isNavGroup(entry) ? (
               <div key={entry.label} className="group relative">
-                <button type="button" className="flex items-center gap-1 rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
+                <button type="button" className="flex items-center gap-1 rounded-full px-3 py-1.5 font-body text-[13px] text-black/70 transition-colors duration-200 hover:bg-black/[0.05] hover:text-black">
                   {entry.label}
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden className="mt-px opacity-70">
                     <path d="M6 9l6 6 6-6" />
@@ -59,7 +65,7 @@ export function SiteNav() {
                 </div>
               </div>
             ) : (
-              <Link key={entry.href} href={entry.href} className="rounded-full px-3 py-1.5 font-body text-[13px] text-black/50 transition-colors duration-200 hover:bg-black/[0.04] hover:text-black/80">
+              <Link key={entry.href} href={entry.href} className="rounded-full px-3 py-1.5 font-body text-[13px] text-black/70 transition-colors duration-200 hover:bg-black/[0.05] hover:text-black">
                 {entry.label}
               </Link>
             ),

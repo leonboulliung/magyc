@@ -2,8 +2,8 @@ import type { SpaceLabels } from "./types";
 
 /**
  * Symbol fallbacks — used when a label key is absent from the space's
- * AI-generated labels object. Universal Unicode symbols keep the
- * surface legible without imposing a system language.
+ * AI-generated labels object. Universal Unicode symbols keep legacy
+ * and partially generated spaces usable without changing their language.
  *
  * Rule: every key in SpaceLabels has a fallback here. Components
  * always read through `label(space.labels, "key")` and never check

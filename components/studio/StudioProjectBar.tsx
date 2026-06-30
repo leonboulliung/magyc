@@ -13,13 +13,7 @@ import {
   showUnknownError,
 } from "@/lib/client/feedback";
 import type { ProjectStage } from "@/lib/types";
-
-const STAGES: { id: ProjectStage; label: string }[] = [
-  { id: "brief", label: "Planung" },
-  { id: "production", label: "Auswahl" },
-  { id: "handoff", label: "Abgeschlossen" },
-];
-const ORDER: ProjectStage[] = ["brief", "production", "handoff"];
+import { PROJECT_STAGE_LABELS, PROJECT_STAGE_ORDER } from "@/lib/projectStages";
 
 /**
  * StudioProjectBar — the workspace's top-left control: back to Studio, the
@@ -74,12 +68,12 @@ export function StudioProjectBar({
   const [shareOpen, setShareOpen] = useState(false);
   const [pendingStage, setPendingStage] = useState<ProjectStage | null>(null);
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
-  const currentIdx = ORDER.indexOf(current);
-  const viewLabel = STAGES.find((s) => s.id === view)?.label ?? "Planung";
+  const currentIdx = PROJECT_STAGE_ORDER.indexOf(current);
+  const viewLabel = PROJECT_STAGE_LABELS.find((s) => s.id === view)?.label ?? "Planung";
 
   /** What a tab does: view a reached stage, advance to the next, or nothing. */
   function tabKind(s: ProjectStage): "view" | "advance" | "locked" {
-    const i = ORDER.indexOf(s);
+    const i = PROJECT_STAGE_ORDER.indexOf(s);
     if (i <= currentIdx) return "view";
     if (!canAdvance) return "locked";
     if (i === currentIdx + 1) return "advance";
@@ -111,7 +105,7 @@ export function StudioProjectBar({
         });
         return;
       }
-      showActionSuccess(next === "production" ? "Auswahl vorbereitet" : "Phase gespeichert", {
+      showActionSuccess(next === "production" ? "Vertrag vorbereitet" : "Phase gespeichert", {
         id: `stage-${id}`,
         description: next === "production" ? "Der Vertragsentwurf wurde automatisch angelegt." : undefined,
       });
@@ -156,7 +150,7 @@ export function StudioProjectBar({
           <>
             <div className="fixed inset-0 z-40" onClick={() => setStageMenuOpen(false)} />
             <div className={`absolute left-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border py-1 shadow-2xl ${menuBorder}`} style={{ background: menuBg, minWidth: "150px" }}>
-              {STAGES.map((s) => {
+              {PROJECT_STAGE_LABELS.map((s) => {
                 const kind = tabKind(s.id);
                 const active = s.id === view;
                 return (
@@ -180,7 +174,7 @@ export function StudioProjectBar({
 
       {/* Desktop: 3-stage stepper (view / advance / locked) */}
       <div className={`hidden sm:flex items-center gap-1 rounded-full border p-1 ${light ? "border-black/12 bg-white/85 backdrop-blur-md" : "border-white/15 bg-black/78"}`}>
-        {STAGES.map((s) => {
+        {PROJECT_STAGE_LABELS.map((s) => {
           const kind = tabKind(s.id);
           const active = s.id === view;
           return (
@@ -217,21 +211,21 @@ export function StudioProjectBar({
       )}
 
       {segment && (
-        <span className={`mono hidden rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-widest lg:inline ${light ? "border-black/12 bg-white/80 text-black/45 backdrop-blur-md" : "border-white/12 bg-black/72 text-white/40"}`}>
+        <span className={`mono hidden h-8 items-center rounded-full border px-2.5 text-[10px] uppercase tracking-widest lg:inline-flex ${light ? "border-black/12 bg-white/80 text-black/45 backdrop-blur-md" : "border-white/12 bg-black/72 text-white/40"}`}>
           {segment}
         </span>
       )}
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
 
-      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={advancingToHandoff ? "Projekt abschließen" : "In die Auswahl"} maxWidth={420}>
+      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={advancingToHandoff ? "Projekt abschließen" : "Vertrag vorbereiten"} maxWidth={420}>
         <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#16181b] text-left shadow-2xl">
           <div className="space-y-3 p-5">
             <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">
               {advancingToHandoff ? "Phase wird fixiert" : "Plan wird gesperrt"}
             </div>
             <h2 className="text-[17px] font-semibold text-white">
-              {advancingToHandoff ? "Projekt abschließen?" : "In die Auswahl verschieben?"}
+              {advancingToHandoff ? "Projekt abschließen?" : "Vertrag vorbereiten?"}
             </h2>
             <p className="text-[13px] leading-relaxed text-white/65">
               {advancingToHandoff

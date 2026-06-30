@@ -272,9 +272,9 @@ export function GridZone({
       style={{
         // A bounded glass surface with its own dot-grid layer, matching
         // the page-wide MAGYC field while keeping widgets legible.
-        background: "#080808",
+        background: "var(--v-grid)",
         border: "1px solid var(--v-rule)",
-        boxShadow: "inset 0 1px 1px rgba(255,255,255,0.12), 0 24px 80px rgba(0,0,0,0.24)",
+        boxShadow: "var(--v-grid-shadow)",
         backdropFilter: "blur(18px)",
         minHeight: 240,
       }}
@@ -285,7 +285,7 @@ export function GridZone({
           style={{
             width: "100%",
             height: "100%",
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.22) 1px, transparent 1.4px)",
+            backgroundImage: "radial-gradient(circle, var(--v-grid-dot) 1px, transparent 1.4px)",
             backgroundSize: "24px 24px",
             backgroundPosition: "12px 12px",
           }}

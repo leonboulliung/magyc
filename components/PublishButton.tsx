@@ -141,7 +141,7 @@ export function PublishButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full transition-colors"
+        className="mono flex h-7 items-center rounded-full px-3 text-[10px] tracking-widest transition-colors"
         style={{
           border: "1px solid var(--v-fg)",
           background: "var(--v-fg)",
@@ -159,7 +159,7 @@ export function PublishButton({
               </h2>
               {signedOut || isAnonymousDraft ? (
                 <p className="text-[13px] opacity-70 leading-relaxed">
-                  Melde dich an, um diesen Entwurf als privates Studio-Projekt zu übernehmen. Danach kannst du Planung, Auswahl und Abschluss weiterführen.
+                  Melde dich an, um diesen Entwurf als privates Studio-Projekt zu übernehmen. Danach kannst du Planung, Vertrag und Abschluss weiterführen.
                 </p>
               ) : label(L, "publishExplanation") && (
                 <p className="text-[13px] opacity-70 leading-relaxed">

@@ -10,6 +10,7 @@ import { recordAiEvent } from "@/lib/server/aiEvents";
 import { insertSpaceRow } from "@/lib/server/spacePersistence";
 import { parseBody } from "@/lib/api/validate";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
+import { cleanSettings } from "@/lib/studioProfile";
 
 // The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
 // author) plus a Wikipedia hydration pass. Give the function headroom
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
   const parsed = await parseBody(req, z.object({
     input: z.string().optional(),
     projectMode: z.string().optional().nullable(),
+    language: z.string().max(8).optional(),
     answers: z.unknown().optional(),
     configuredModules: z.unknown().optional(),
     presetName: z.string().optional(),
@@ -131,10 +133,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "rate_limited", retryInSeconds: 60 }, { status: 429 });
   }
 
+  // Anonymous marketing starts use the public German default. Once a Clerk
+  // account is present, its Studio setting is authoritative on every entry
+  // path, including a project started from the marketing homepage.
+  let language = body.language || "de";
+  if (userId) {
+    try {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("settings")
+        .eq("id", userId)
+        .maybeSingle();
+      language = cleanSettings(profile?.settings ?? {}).defaultLanguage;
+    } catch {
+      // Keep the safe public default if profile storage is temporarily absent.
+    }
+  }
+
   let result;
   const aiStarted = Date.now();
   try {
-    result = await classifyInput(inputForAi, answers, seededModules, { projectMode: body.projectMode });
+    result = await classifyInput(inputForAi, answers, seededModules, {
+      projectMode: body.projectMode,
+      language,
+    });
   } catch (e) {
     const err = e as { message?: string; status?: number; code?: string };
     const msg = err.message || "unknown";
@@ -163,6 +185,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
     if (msg === "classify_unparseable")
       return NextResponse.json({ error: "classify_unparseable" }, { status: 500 });
+    if (msg === "input_not_photography_project")
+      return NextResponse.json({ error: msg }, { status: 422 });
     // Surface a short, actionable detail to the client.
     const detail = err.status === 429
       ? "openai_rate_limited"

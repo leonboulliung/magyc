@@ -60,7 +60,7 @@ export function AppointmentsRenderer({
   }
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         <ul className="space-y-2">
           <AnimatePresence initial={false}>

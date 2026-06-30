@@ -423,7 +423,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                   </div>
                 ) : (
                   <button type="button" onClick={() => setAgreed((a) => !a)} className="mt-3 flex w-full items-start gap-2.5 text-left">
-                    <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "#17171a" : "rgba(0,0,0,0.28)"}`, background: agreed ? "#17171a" : "transparent", color: "#fff" }}>{agreed ? "✓" : ""}</span>
+                    <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "var(--studio-ink)" : "var(--studio-rule)"}`, background: agreed ? "var(--studio-ink)" : "transparent", color: "var(--studio-page)" }}>{agreed ? "✓" : ""}</span>
                     <span className="text-[13px] leading-snug text-black/60">Ich habe den Vertrag gelesen und stimme ihm verbindlich zu.</span>
                   </button>
                 )}
@@ -452,14 +452,14 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
 
   if (embedded) return inner;
   return (
-    <div className="min-h-screen text-[#17171a]" style={{ background: "radial-gradient(circle at 50% -8%, #ffffff, #f4f4f1 55%)" }}>
+    <div className="min-h-screen bg-[#f4f4f1] text-[#17171a]">
       {/* Environment bar — clear transition + reference to the planning env */}
       <div className="sticky top-0 z-20 border-b border-black/10 bg-white/80 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
           <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
             ← Zur Planung
           </Link>
-          <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">Auswahl · Vertrag</span>
+          <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">Vertrag</span>
           {contract ? (
             <button type="button" onClick={() => window.print()} className="mono rounded-full bg-[#17171a] px-3.5 py-1.5 text-[12px] tracking-widest text-white transition-colors hover:opacity-90">
               Als PDF

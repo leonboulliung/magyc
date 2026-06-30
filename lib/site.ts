@@ -53,7 +53,6 @@ export const USE_CASES: NavLink[] = [
 export const MAIN_NAV: NavEntry[] = [
   { label: "Anwendungsfälle", items: USE_CASES },
   { href: "/how-it-works", label: "So funktioniert's" },
-  { href: "/pricing", label: "Preise" },
 ];
 
 export interface FooterGroup {
@@ -70,7 +69,6 @@ export const FOOTER_GROUPS: FooterGroup[] = [
     title: "Produkt",
     links: [
       { href: "/how-it-works", label: "So funktioniert's" },
-      { href: "/pricing", label: "Preise" },
       { href: "/roadmap", label: "Roadmap" },
       { href: "/changelog", label: "Changelog" },
     ],

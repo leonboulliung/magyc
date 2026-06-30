@@ -1,50 +1,36 @@
 import type { Metadata } from "next";
-import { Section, Eyebrow, PlaceholderText } from "@/components/site/sections";
-import { brand } from "@/lib/site";
+import { Section, Eyebrow } from "@/components/site/sections";
 
 export const metadata: Metadata = {
   title: "Roadmap — MAGYC",
-  description: "What we're building now, next, and later.",
+  description: "Woran MAGYC aktuell arbeitet und welche Richtung das Produkt nimmt.",
 };
 
-const COLUMNS: { title: string; items: string[] }[] = [
-  { title: "Now", items: ["Element iteration & polish", "Guided project intake", "Admin observability"] },
-  { title: "Next", items: ["Persistent assistant actions", "Streamed space creation", "Realtime config sync"] },
-  { title: "Later", items: ["MAGYC CLI", "Public API", "Mobile app"] },
+const TRACKS = [
+  ["Jetzt", "Zuverlässiger Kern", "Projekte, Elemente, Presets, Zusammenarbeit und Vertrag werden mit echten Fotografie-Aufträgen stabilisiert."],
+  ["Als Nächstes", "Weniger Handarbeit", "Wiederkehrende Übergaben, Benachrichtigungen und Integrationen sollen sich stärker aus dem Projektkontext ableiten."],
+  ["Später", "Verbundener Workflow", "Weitere professionelle Werkzeuge werden dort angebunden, wo MAGYC bestehende Spezialsoftware sinnvoll ergänzt."],
 ];
 
 export default function RoadmapPage() {
   return (
     <>
-      <Section className="pt-20 sm:pt-28 pb-10">
+      <Section className="pt-16 sm:pt-24">
         <Eyebrow>Roadmap</Eyebrow>
-        <h1 className="mt-3 font-semibold tracking-tight" style={{ fontSize: "clamp(34px, 6vw, 60px)", lineHeight: 1.04, color: brand.ink, maxWidth: 780 }}>
-          Where MAGYC is heading.
-        </h1>
-        <p className="mt-5 leading-relaxed" style={{ fontSize: 18, color: brand.muted, maxWidth: 620 }}>
-          Placeholder roadmap &mdash; directional, not committed dates. The items below are examples.
-        </p>
+        <h1 className="mt-4 max-w-4xl font-brand text-[40px] font-bold leading-[1.03] text-[#17171a] sm:text-[64px]">Ein stabiler Kern vor immer mehr Funktionen.</h1>
+        <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-black/58">Die Richtung ist bewusst pragmatisch: erst einen vollständigen Fotografie-Auftrag hervorragend tragen, dann das System erweitern.</p>
       </Section>
-
       <Section className="pt-0">
-        <div className="grid sm:grid-cols-3 gap-5">
-          {COLUMNS.map((col) => (
-            <div key={col.title} className="rounded-2xl p-5" style={{ border: `1px solid ${brand.rule}`, background: brand.surface }}>
-              <h2 className="font-mono uppercase tracking-widest" style={{ fontSize: 11, color: brand.accent }}>{col.title}</h2>
-              <ul className="mt-4 space-y-3">
-                {col.items.map((it) => (
-                  <li key={it} className="flex items-start gap-2.5" style={{ fontSize: 15, color: brand.ink }}>
-                    <span style={{ color: brand.muted }}>—</span>
-                    <span>{it}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <div className="grid border-y border-black/10 sm:grid-cols-3">
+          {TRACKS.map(([time, title, copy], index) => (
+            <article key={time} className="py-7 sm:border-l sm:border-black/10 sm:px-7 sm:first:border-l-0">
+              <span className="mono text-[10px] uppercase tracking-[0.2em] text-black/38">{time}</span>
+              <h2 className="mt-4 text-[20px] font-semibold text-[#17171a]">{title}</h2>
+              <p className="mt-3 text-[14px] leading-relaxed text-black/55">{copy}</p>
+              <span className="mono mt-8 block text-[10px] tracking-widest text-black/25">0{index + 1}</span>
+            </article>
           ))}
         </div>
-        <p className="mt-8 font-mono" style={{ fontSize: 12, color: brand.muted }}>
-          Note: the MAGYC CLI is on the &ldquo;Later&rdquo; track — placeholder until scoped.
-        </p>
       </Section>
     </>
   );

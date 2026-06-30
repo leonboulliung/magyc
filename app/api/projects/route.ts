@@ -158,11 +158,13 @@ export async function POST(req: Request) {
   // the photographer's preferences don't have to be re-prompted each time.
   let studioRules: string[] = [];
   let defaultShared = false;
+  let defaultLanguage = "de";
   try {
     const { data: prof } = await admin.from("profiles").select("settings").eq("id", userId).maybeSingle();
     const s = cleanSettings(prof?.settings ?? {});
     studioRules = s.rules;
     defaultShared = s.defaultShared;
+    defaultLanguage = s.defaultLanguage;
   } catch {
     // Settings are an enhancement; creation must still work without them.
   }
@@ -180,13 +182,15 @@ export async function POST(req: Request) {
   let result;
   const aiStarted = Date.now();
   try {
-    result = await classifyInput(input, answers, seededModules, { projectMode });
+    result = await classifyInput(input, answers, seededModules, { projectMode, language: defaultLanguage });
   } catch (e) {
     const err = e as { message?: string; status?: number };
     const msg = err.message || "unknown";
     console.error("[projects] classify failed:", err.status, msg);
     if (msg === "ai_not_configured")
       return NextResponse.json({ error: "ai_not_configured" }, { status: 503 });
+    if (msg === "input_not_photography_project")
+      return NextResponse.json({ error: msg }, { status: 422 });
     return NextResponse.json({ error: "classify_failed", detail: msg.slice(0, 120) }, { status: 502 });
   }
 

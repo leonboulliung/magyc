@@ -2,7 +2,7 @@ const baseUrl = (process.env.MAGYC_BASE_URL || "https://www.magyc.site").replace
 
 const checks = [
   { name: "homepage", path: "/", method: "GET", expected: 200 },
-  { name: "dynamic marketing route", path: "/for/photography", method: "GET", expected: 200 },
+  { name: "photography marketing route", path: "/product", method: "GET", expected: 200 },
   {
     name: "project auth gate",
     path: "/api/projects/smoke-check",

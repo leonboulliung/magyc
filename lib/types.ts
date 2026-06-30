@@ -6,10 +6,9 @@
  * agent classifies the user's input, picks which widgets fit, and
  * configures each.
  *
- * The application has NO own language: every visible string on a widget
- * is either AI-generated in the user's language (the optional
- * `microTitle` field) or user-entered. The `type` discriminator and
- * everything in this file is internal identifier only — never shown.
+ * AI-authored strings use the account's configured language. User-entered
+ * content remains untouched. The `type` discriminator and everything in
+ * this file is an internal identifier only and is never shown.
  */
 
 export type Vibe =
@@ -42,14 +41,14 @@ export interface Profile {
 // ============================================================
 // Widget union
 //
-// Every widget has an optional `microTitle` (AI-generated in user's
+// Every widget has an optional `microTitle` (AI-generated in the configured
 // language) and optional `description`. Source attribution is carried
 // in `attribution` where the widget pulls from a license-bearing
 // external source.
 // ============================================================
 
 export interface WidgetBase {
-  /** AI-generated small label in the user's language. Most widgets
+  /** AI-generated small label in the configured language. Most widgets
    *  show this above the content; some (icon, gif) ignore it. */
   microTitle?: string;
   /** Optional 1-line context line. */
@@ -635,14 +634,14 @@ export type Visibility = "public" | "password" | null;
  * Surface labels — the words the UI shows on a space.
  *
  * Every entry is OPTIONAL. The classifier fills as many as it can in
- * the user's language during space creation. Components read each
+ * the account's configured language during space creation. Components read each
  * field defensively and fall back to a Unicode symbol or a minimal
  * English fragment if missing — so a partial labels object never
  * leaves the UI broken.
  *
- * The principle: this app has no system language. Nothing visible
- * on a space comes from a hardcoded i18n bundle; it all derives
- * from the user's input via the AI pass.
+ * The account language is authoritative. AI-authored labels use that
+ * configured language even when the project input is written in another
+ * language. The fallbacks below only keep partial legacy data usable.
  */
 export interface SpaceLabels {
   // Publish flow
@@ -676,8 +675,8 @@ export interface SpaceLabels {
   rendererPending?: string;
 
   /** Emergent per-space labels for the widget picker, keyed by module
-   *  type. AI-generated in the space language so the picker has no
-   *  static system language. Falls back to a built-in table, then to a
+   *  type. AI-generated in the configured project language. Falls back
+   *  to a built-in table, then to a
    *  universal symbol. */
   widgetLabels?: Record<string, string>;
 }
@@ -688,10 +687,9 @@ export interface SpaceLabels {
  * vibe tokens when present.
  *
  *   font        — a Google Fonts family name (loaded dynamically).
- *   color1      — primary ink: text, borders, map pins.
+ *   color1      — deterministic interface ink retained in persisted data.
  *   color2      — accent: widget highlights, map fills/routes.
- *   background  — the page canvas behind the content. The element grid
- *                 itself stays white with a black dot pattern regardless.
+ *   background  — deterministic application canvas retained in persisted data.
  */
 export interface SpaceStyle {
   font: string;

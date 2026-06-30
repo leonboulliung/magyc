@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 const ITEMS = [
   { href: "/studio", label: "Studio" },
@@ -22,6 +23,7 @@ function isActive(pathname: string, href: string): boolean {
 export function StudioNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const reducedMotion = useReducedMotion();
   const current = ITEMS.find((i) => isActive(pathname, i.href)) ?? ITEMS[0];
 
   return (
@@ -34,11 +36,18 @@ export function StudioNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${
-                active ? "bg-black/[0.07] text-black" : "text-black/50 hover:bg-black/[0.04] hover:text-black/80"
+              className={`relative shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors ${
+                active ? "text-black" : "text-black/50 hover:text-black/80"
               }`}
             >
-              {item.label}
+              {active && (
+                <motion.span
+                  layoutId="studio-nav-active"
+                  className="absolute inset-0 rounded-full bg-black/[0.07]"
+                  transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
+              <span className="relative">{item.label}</span>
             </Link>
           );
         })}
@@ -56,12 +65,18 @@ export function StudioNav() {
           {current.label}
           <span className="text-black/45 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }}>⌄</span>
         </button>
-        {open && (
-          <>
+        <AnimatePresence>
+          {open && (
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: -5, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reducedMotion ? undefined : { opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+          >
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <div
               className="absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 py-1.5 shadow-xl"
-              style={{ background: "#ffffff" }}
+              style={{ background: "var(--studio-surface)" }}
             >
               {ITEMS.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -79,8 +94,9 @@ export function StudioNav() {
                 );
               })}
             </div>
-          </>
-        )}
+          </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

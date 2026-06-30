@@ -204,8 +204,8 @@ export function ShareDialog({
           <span
             className="relative h-6 w-11 shrink-0 rounded-full border transition-colors"
             style={{
-              background: shared ? "#17171a" : "rgba(0,0,0,0.12)",
-              borderColor: shared ? "#17171a" : "rgba(0,0,0,0.18)",
+              background: shared ? "var(--studio-ink)" : "var(--studio-rule)",
+              borderColor: shared ? "var(--studio-ink)" : "var(--studio-rule)",
             }}
           >
             <span

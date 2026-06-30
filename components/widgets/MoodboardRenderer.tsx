@@ -173,7 +173,7 @@ export function MoodboardRenderer({
   const empty = images.length === 0 && directions.length === 0;
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {empty && (
           <p className="mono mb-2 pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>

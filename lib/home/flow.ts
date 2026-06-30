@@ -37,15 +37,16 @@ export async function fetchJsonWithTimeout(url: string, init: RequestInit, timeo
   }
 }
 
-/** Map a flow error code to a friendly English sentence (the home is English). */
+/** Map a flow error code to a clear German sentence. */
 export function formatFlowError(message: string, extra?: { retryInSeconds?: unknown }): string {
-  if (message === "timeout") return "This took too long. Please try again.";
+  if (message === "timeout") return "Das hat zu lange gedauert. Bitte versuche es erneut.";
   if (message === "rate_limited" && typeof extra?.retryInSeconds === "number") {
-    return `Please wait ${extra.retryInSeconds}s and try again.`;
+    return `Bitte warte ${extra.retryInSeconds} Sekunden und versuche es erneut.`;
   }
-  if (message === "input_too_short") return "Please add a little more detail.";
-  if (message === "ai_not_configured") return "The AI backend is not configured yet.";
-  if (message === "openai_rate_limited") return "The AI is busy right now. Please try again.";
-  if (message === "clarify_failed" || message === "classify_failed") return "The request did not complete. Please try again.";
+  if (message === "input_too_short") return "Beschreibe den Fotografie-Auftrag bitte etwas genauer.";
+  if (message === "input_not_photography_project") return "MAGYC plant Fotografie-Aufträge. Beschreibe bitte das Shooting, die Bildidee oder die gewünschte Übergabe.";
+  if (message === "ai_not_configured") return "Die KI-Verbindung ist noch nicht eingerichtet.";
+  if (message === "openai_rate_limited") return "Die KI ist gerade ausgelastet. Bitte versuche es erneut.";
+  if (message === "clarify_failed" || message === "classify_failed") return "Die Anfrage konnte nicht verarbeitet werden. Bitte versuche es erneut.";
   return message;
 }

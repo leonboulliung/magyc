@@ -1,0 +1,332 @@
+Allgemeine Geschäftsbedingungen für MAGYC
+
+Stand: 30.06.2026
+
+1. Anbieter
+
+MAGYC ist ein digitales Produkt der:
+
+BOULLIUNG SASU
+Société par actions simplifiée à associé unique
+60 rue François 1er
+75008 Paris
+Frankreich
+
+Vertreten durch:
+Leon Boulliung, Président
+
+E-Mail: leon@magyc.site
+Website: https://magyc.site
+
+Eingetragen im Registre du Commerce et des Sociétés (RCS) Paris
+RCS Paris: 991 476 565
+
+SIREN: 991 476 565
+SIRET: 991 476 565 00015
+
+TVA intracommunautaire: FR76991476565
+
+Nachfolgend „MAGYC“, „wir“ oder „Anbieter“ genannt.
+
+2. Geltungsbereich
+
+Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der Website, Anwendung und digitalen Dienste von MAGYC unter magyc.site sowie für alle damit verbundenen Funktionen, Leistungen, Testzugänge, Beta-Zugänge, Nutzerkonten und kostenpflichtigen Angebote.
+
+MAGYC richtet sich primär an Unternehmer, Selbstständige, Unternehmen, Fotografen, Kreativdienstleister, Agenturen und professionelle Nutzer im B2B-Bereich.
+
+Diese AGB gelten nicht vorrangig für Verbraucher. Soweit MAGYC im Einzelfall von Verbrauchern genutzt wird, bleiben zwingende gesetzliche Verbraucherrechte unberührt.
+
+3. Leistungsbeschreibung
+
+MAGYC ist ein digitales Werkzeug zur Strukturierung, Planung, Darstellung und gemeinsamen Bearbeitung kreativer Projekte.
+
+Die Anwendung kann insbesondere folgende Funktionen enthalten:
+
+- Erstellung und Verwaltung von Projektseiten
+- Strukturierung von Ideen, Briefings, Prompts und Projektinformationen
+- Erstellung von Moodboards, Referenzen und Projektübersichten
+- Zusammenarbeit und Abstimmung mit Kunden, Teams oder externen Beteiligten
+- Speicherung und Bearbeitung von Projektinhalten
+- KI-gestützte Funktionen zur Analyse, Strukturierung, Umformulierung oder Zusammenfassung von Inhalten
+- Login-, Account- und Projektverwaltungsfunktionen
+- perspektivisch kostenpflichtige Pläne, Abonnements oder Zusatzfunktionen
+
+Der konkrete Funktionsumfang kann je nach Entwicklungsstand, Tarif, Beta-Zugang, Nutzerrolle oder technischer Verfügbarkeit variieren.
+
+4. Beta- und Entwicklungsstatus
+
+MAGYC kann sich teilweise oder vollständig in einem Beta-, Test- oder Entwicklungsstadium befinden.
+
+Der Nutzer erkennt an, dass Beta-Funktionen unvollständig sein, Fehler enthalten, zeitweise nicht verfügbar sein oder verändert, eingeschränkt oder entfernt werden können.
+
+Wir bemühen uns um eine stabile und nützliche Bereitstellung, schulden jedoch im Beta-Stadium keine bestimmte Verfügbarkeit, Fehlerfreiheit oder dauerhafte Bereitstellung einzelner Funktionen, sofern nicht ausdrücklich schriftlich etwas anderes vereinbart wurde.
+
+5. Nutzerkonto und Registrierung
+
+Zur Nutzung bestimmter Funktionen ist ein Nutzerkonto erforderlich.
+
+Der Nutzer verpflichtet sich, bei der Registrierung richtige, aktuelle und vollständige Angaben zu machen und diese bei Änderungen zu aktualisieren.
+
+Der Nutzer ist dafür verantwortlich, Zugangsdaten vertraulich zu behandeln und vor unbefugtem Zugriff zu schützen.
+
+Handlungen, die über ein Nutzerkonto vorgenommen werden, gelten als Handlungen des jeweiligen Kontoinhabers, soweit der Nutzer die Handlung zu vertreten hat.
+
+Bei Verdacht auf Missbrauch, unbefugten Zugriff oder Sicherheitsprobleme ist MAGYC unverzüglich zu informieren.
+
+6. Nutzung durch Minderjährige
+
+MAGYC richtet sich primär an professionelle Nutzer und Geschäftskunden.
+
+Minderjährige dürfen MAGYC nur nutzen, wenn die Nutzung rechtlich zulässig ist und, soweit erforderlich, eine Zustimmung der gesetzlichen Vertreter vorliegt.
+
+MAGYC übernimmt keine Verantwortung dafür, wenn ein Nutzer bei der Registrierung unzutreffende Angaben zu seiner Berechtigung oder Geschäftsfähigkeit macht.
+
+7. Pflichten des Nutzers
+
+Der Nutzer verpflichtet sich, MAGYC nur rechtmäßig, vertragsgemäß und im Rahmen dieser AGB zu nutzen.
+
+Der Nutzer darf insbesondere keine Inhalte eingeben, hochladen, speichern oder teilen, die:
+
+- gegen geltendes Recht verstoßen
+- Rechte Dritter verletzen
+- personenbezogene Daten enthalten, für deren Verarbeitung keine ausreichende Berechtigung besteht
+- Geschäftsgeheimnisse Dritter unbefugt offenlegen
+- beleidigend, diskriminierend, irreführend, betrügerisch oder rechtswidrig sind
+- Schadsoftware, automatisierte Angriffe oder manipulative technische Elemente enthalten
+- die Sicherheit, Stabilität oder Integrität von MAGYC beeinträchtigen
+- zur Umgehung technischer Schutzmaßnahmen dienen
+- für Spam, missbräuchliche Automatisierung oder unbefugtes Scraping verwendet werden
+
+Der Nutzer ist allein verantwortlich für die Inhalte, Informationen, Dateien, Links, Prompts, Projektbeschreibungen, Bilder, Kundendaten und sonstigen Materialien, die er in MAGYC eingibt, hochlädt, speichert oder teilt.
+
+8. Verantwortung für Projektinhalte
+
+MAGYC stellt Werkzeuge zur Verfügung, mit denen Nutzer eigene Inhalte strukturieren, bearbeiten und teilen können.
+
+Der Nutzer bleibt Eigentümer und Verantwortlicher seiner Inhalte.
+
+MAGYC übernimmt keine Verantwortung für die rechtliche Zulässigkeit, Richtigkeit, Vollständigkeit oder Verwendbarkeit der vom Nutzer eingegebenen oder hochgeladenen Inhalte.
+
+Der Nutzer ist insbesondere selbst dafür verantwortlich, dass er über alle erforderlichen Rechte, Einwilligungen und Befugnisse verfügt, wenn er Inhalte, Bilder, Kundendaten, Modeldaten, Standortdaten, Briefings oder sonstige Informationen Dritter in MAGYC verarbeitet.
+
+9. Rechte an Nutzerinhalten
+
+Der Nutzer behält grundsätzlich alle Rechte an seinen eigenen Inhalten.
+
+Der Nutzer räumt MAGYC jedoch das einfache, nicht-exklusive, weltweite und zeitlich auf die Vertragsdauer beschränkte Recht ein, Nutzerinhalte technisch zu speichern, zu verarbeiten, zu übertragen, darzustellen, zu vervielfältigen und zu bearbeiten, soweit dies erforderlich ist, um die MAGYC-Funktionen bereitzustellen.
+
+Dies umfasst insbesondere die Speicherung in Datenbanken, die Darstellung in Projektseiten, die Verarbeitung durch technische Dienstleister, die Weitergabe innerhalb freigegebener Projekte und die Verarbeitung durch KI-Funktionen, soweit der Nutzer diese nutzt.
+
+MAGYC erhält dadurch kein Eigentum an den Nutzerinhalten.
+
+10. KI-Funktionen und OpenAI API
+
+MAGYC kann KI-gestützte Funktionen einsetzen. Hierfür können Nutzereingaben, Prompts, Projektinformationen und sonstige bereitgestellte Inhalte an externe KI-Dienstleister, insbesondere die OpenAI API, übermittelt und verarbeitet werden.
+
+KI-generierte Ergebnisse können unvollständig, ungenau, rechtlich fehlerhaft, kreativ unpassend oder irreführend sein.
+
+Der Nutzer ist verpflichtet, KI-generierte Inhalte vor der Nutzung, Veröffentlichung, Weitergabe oder geschäftlichen Verwendung eigenständig zu prüfen.
+
+MAGYC übernimmt keine Gewähr dafür, dass KI-generierte Ergebnisse korrekt, vollständig, einzigartig, rechtlich zulässig, frei von Rechten Dritter oder für einen bestimmten Zweck geeignet sind.
+
+Der Nutzer darf keine sensiblen, vertraulichen oder besonders schutzbedürftigen Daten in KI-Funktionen eingeben, sofern er hierfür keine ausreichende Berechtigung besitzt.
+
+11. Vertrauliche Informationen
+
+Soweit der Nutzer vertrauliche Informationen, Kundendaten, Projektinformationen oder geschäftliche Inhalte in MAGYC eingibt, ist er selbst dafür verantwortlich, ob und in welchem Umfang diese Informationen für die Nutzung von MAGYC geeignet sind.
+
+MAGYC behandelt Nutzerinhalte im Rahmen der technischen und organisatorischen Möglichkeiten vertraulich, soweit sie nicht durch den Nutzer geteilt, veröffentlicht oder Dritten zugänglich gemacht werden.
+
+Eine besondere Geheimhaltungsvereinbarung entsteht durch diese AGB nur, wenn dies ausdrücklich schriftlich vereinbart wurde.
+
+12. Verfügbarkeit und technische Änderungen
+
+MAGYC bemüht sich um eine möglichst unterbrechungsfreie Verfügbarkeit der Website und Anwendung.
+
+Eine bestimmte Verfügbarkeit, Reaktionszeit, Ladezeit oder technische Erreichbarkeit wird jedoch nicht garantiert, sofern nicht ausdrücklich schriftlich etwas anderes vereinbart wurde.
+
+MAGYC kann zeitweise nicht verfügbar sein, insbesondere wegen:
+
+- Wartungsarbeiten
+- Updates
+- technischer Störungen
+- Sicherheitsmaßnahmen
+- Ausfällen von Drittanbietern
+- höherer Gewalt
+- Änderungen an Infrastruktur oder Funktionen
+
+Wir sind berechtigt, MAGYC weiterzuentwickeln, Funktionen zu ändern, zu erweitern, einzuschränken oder zu entfernen, sofern dies für den Nutzer zumutbar ist oder für Sicherheit, Betrieb, Produktentwicklung oder rechtliche Anforderungen erforderlich ist.
+
+13. Drittanbieter und technische Dienstleister
+
+MAGYC nutzt Drittanbieter und technische Dienstleister, insbesondere für Hosting, Authentifizierung, Datenbank, Speicherung, KI-Verarbeitung, Analyse, Kommunikation und Zahlungsabwicklung.
+
+Dazu können insbesondere gehören:
+
+- Vercel für Hosting und technische Bereitstellung
+- Supabase für Datenbank- und Speicherfunktionen
+- Clerk für Nutzerkonten und Authentifizierung
+- OpenAI für KI-Funktionen
+- Stripe für Zahlungsabwicklung, sobald kostenpflichtige Funktionen angeboten werden
+- Cloudflare für Sicherheit, Performance und Infrastruktur, sobald eingesetzt
+
+Die Nutzung von MAGYC kann technisch davon abhängen, dass diese Drittanbieter verfügbar sind und ordnungsgemäß funktionieren.
+
+MAGYC haftet nicht für Ausfälle, Einschränkungen oder Änderungen von Drittanbietern, soweit diese außerhalb unseres Einflussbereichs liegen.
+
+14. Preise, Zahlungen und Abonnements
+
+MAGYC kann kostenlose, kostenpflichtige oder testweise angebotene Funktionen enthalten.
+
+Kostenpflichtige Leistungen, Preise, Abrechnungszeiträume, Laufzeiten, Kündigungsfristen und enthaltene Funktionen ergeben sich aus dem jeweils angezeigten Angebot, Tarif oder einer individuellen Vereinbarung.
+
+Sofern Abonnements angeboten werden, verlängern sich diese gemäß den beim Vertragsschluss angezeigten Bedingungen, sofern sie nicht fristgerecht gekündigt werden.
+
+Zahlungen können über externe Zahlungsdienstleister, insbesondere Stripe, abgewickelt werden.
+
+Der Nutzer ist verpflichtet, korrekte Zahlungs-, Rechnungs- und Steuerinformationen anzugeben.
+
+15. Steuern und Rechnungen
+
+Alle Preise verstehen sich, sofern nicht anders angegeben, zuzüglich gesetzlich anfallender Steuern, Abgaben oder Umsatzsteuer.
+
+Im B2B-Kontext kann je nach Sitz des Kunden, Leistungsart und steuerlicher Behandlung Reverse Charge oder eine andere steuerliche Regelung Anwendung finden.
+
+Der Nutzer ist dafür verantwortlich, korrekte Unternehmens-, Rechnungs- und Steuerdaten bereitzustellen.
+
+Rechnungen können elektronisch bereitgestellt werden.
+
+16. Testphasen, kostenlose Zugänge und Beta-Zugänge
+
+MAGYC kann kostenlose Testphasen, Beta-Zugänge, Einladungen oder kostenlose Tarife anbieten.
+
+Ein Anspruch auf dauerhafte kostenlose Nutzung besteht nicht.
+
+MAGYC kann kostenlose oder Beta-Zugänge jederzeit ändern, einschränken oder beenden, sofern keine abweichende individuelle Vereinbarung besteht.
+
+Bei Ablauf einer Testphase kann der Zugang eingeschränkt oder kostenpflichtig fortgeführt werden, wenn der Nutzer einem kostenpflichtigen Tarif zustimmt.
+
+17. Kündigung und Beendigung
+
+Der Nutzer kann sein Nutzerkonto oder kostenpflichtige Leistungen gemäß den jeweils geltenden Bedingungen kündigen.
+
+MAGYC kann Nutzerkonten oder Zugänge sperren oder kündigen, wenn:
+
+- der Nutzer gegen diese AGB verstößt
+- rechtswidrige Inhalte verarbeitet werden
+- Zahlungen ausbleiben
+- Sicherheitsrisiken bestehen
+- Missbrauch, Betrug oder unbefugte Nutzung vorliegt
+- der Betrieb von MAGYC oder Rechte Dritter gefährdet werden
+
+Im Fall einer Beendigung kann der Zugriff auf Nutzerkonto, Projekte und Inhalte eingeschränkt oder gelöscht werden.
+
+Gesetzliche Aufbewahrungspflichten bleiben unberührt.
+
+18. Datenexport und Löschung
+
+Soweit technisch verfügbar, kann der Nutzer eigene Inhalte vor Beendigung des Kontos exportieren oder sichern.
+
+MAGYC ist nicht verpflichtet, Inhalte dauerhaft aufzubewahren, sofern keine gesetzliche Pflicht oder individuelle Vereinbarung besteht.
+
+Nach Beendigung des Vertragsverhältnisses können Nutzerinhalte gelöscht, anonymisiert oder gesperrt werden, soweit sie nicht zur Erfüllung gesetzlicher Pflichten, zur Abrechnung, zur Rechtsverteidigung oder aus berechtigten Gründen weiter gespeichert werden müssen.
+
+19. Rechte an MAGYC
+
+Alle Rechte an MAGYC, einschließlich Software, Design, Struktur, Benutzeroberfläche, Marken, Logos, Texte, Konzepte, Datenbankstrukturen, Workflows und sonstigen Bestandteilen, verbleiben bei BOULLIUNG SASU oder den jeweiligen Rechteinhabern.
+
+Der Nutzer erhält lediglich ein einfaches, nicht-exklusives, nicht übertragbares und widerrufliches Recht, MAGYC im Rahmen dieser AGB und des gewählten Tarifs zu nutzen.
+
+Der Nutzer darf MAGYC nicht kopieren, dekompilieren, nachbauen, weiterverkaufen, vermieten, unterlizenzieren, missbräuchlich automatisieren oder für die Entwicklung eines konkurrierenden Produkts systematisch auswerten, soweit dies gesetzlich nicht zwingend erlaubt ist.
+
+20. Feedback
+
+Wenn der Nutzer MAGYC Feedback, Vorschläge, Ideen, Fehlerberichte oder Verbesserungsvorschläge übermittelt, darf MAGYC diese ohne Vergütung nutzen, um das Produkt zu verbessern, weiterzuentwickeln oder zu vermarkten.
+
+Der Nutzer räumt MAGYC hierfür ein einfaches, zeitlich und räumlich unbeschränktes Nutzungsrecht an dem Feedback ein, soweit dies zur Umsetzung und Nutzung der Vorschläge erforderlich ist.
+
+21. Referenznennung
+
+MAGYC darf den Namen, das Logo oder das Unternehmen des Nutzers nur dann öffentlich als Referenz verwenden, wenn der Nutzer dem ausdrücklich zugestimmt hat oder dies individuell vereinbart wurde.
+
+22. Datenschutz
+
+Die Verarbeitung personenbezogener Daten erfolgt gemäß der Datenschutzerklärung von MAGYC.
+
+Die Datenschutzerklärung ist auf der Website abrufbar.
+
+Der Nutzer ist selbst dafür verantwortlich, dass er personenbezogene Daten Dritter nur dann in MAGYC eingibt, hochlädt oder verarbeitet, wenn hierfür eine ausreichende Rechtsgrundlage oder Einwilligung besteht.
+
+23. Haftung
+
+MAGYC haftet unbeschränkt bei Vorsatz, grober Fahrlässigkeit sowie bei Schäden aus Verletzung von Leben, Körper oder Gesundheit.
+
+Bei einfacher Fahrlässigkeit haftet MAGYC nur bei Verletzung wesentlicher Vertragspflichten. In diesem Fall ist die Haftung auf den vertragstypischen, vorhersehbaren Schaden begrenzt.
+
+Eine Haftung für mittelbare Schäden, entgangenen Gewinn, verlorene Aufträge, Produktionsausfälle, Reputationsschäden, Datenverluste oder Folgeschäden ist ausgeschlossen, soweit gesetzlich zulässig.
+
+MAGYC haftet nicht für Inhalte, Entscheidungen oder Ergebnisse, die auf Grundlage von KI-generierten Vorschlägen, Nutzerinhalten oder fehlerhaften Eingaben des Nutzers entstehen.
+
+Der Nutzer ist verpflichtet, wichtige Inhalte, Projektdaten und Arbeitsergebnisse eigenständig zu prüfen und angemessen zu sichern.
+
+24. Keine rechtliche, steuerliche oder professionelle Beratung
+
+MAGYC kann Inhalte strukturieren, Vorschläge generieren oder Vorlagen erstellen.
+
+Diese Inhalte stellen keine rechtliche, steuerliche, finanzielle, medizinische oder sonstige professionelle Beratung dar.
+
+Der Nutzer ist selbst dafür verantwortlich, professionelle Beratung einzuholen, wenn dies für sein Projekt, seine Kundenbeziehung oder seine geschäftlichen Entscheidungen erforderlich ist.
+
+25. Freistellung
+
+Der Nutzer stellt MAGYC von Ansprüchen Dritter frei, die daraus entstehen, dass der Nutzer:
+
+- rechtswidrige Inhalte verarbeitet
+- Rechte Dritter verletzt
+- personenbezogene Daten ohne ausreichende Berechtigung verarbeitet
+- MAGYC missbräuchlich nutzt
+- gegen diese AGB verstößt
+
+Die Freistellung umfasst auch angemessene Kosten der Rechtsverteidigung.
+
+26. Änderungen der AGB
+
+MAGYC kann diese AGB ändern, wenn dies aufgrund technischer, wirtschaftlicher, rechtlicher oder produktbezogener Entwicklungen erforderlich ist.
+
+Wesentliche Änderungen werden dem Nutzer in geeigneter Weise mitgeteilt.
+
+Nutzt der Nutzer MAGYC nach Inkrafttreten der Änderungen weiter, gelten die geänderten AGB als akzeptiert, sofern der Nutzer hierauf angemessen hingewiesen wurde und keine zwingenden gesetzlichen Vorschriften entgegenstehen.
+
+27. Abtretung und Übertragung
+
+Der Nutzer darf Rechte und Pflichten aus dem Vertragsverhältnis mit MAGYC nicht ohne vorherige Zustimmung von MAGYC übertragen.
+
+MAGYC darf Rechte und Pflichten aus dem Vertragsverhältnis auf verbundene Unternehmen, Rechtsnachfolger oder Erwerber übertragen, soweit berechtigte Interessen des Nutzers nicht unangemessen beeinträchtigt werden.
+
+28. Höhere Gewalt
+
+MAGYC haftet nicht für Verzögerungen, Ausfälle oder Leistungsstörungen, die durch Ereignisse außerhalb unseres zumutbaren Einflussbereichs verursacht werden.
+
+Dazu gehören insbesondere Naturereignisse, Krieg, Unruhen, behördliche Maßnahmen, Stromausfälle, Internetausfälle, Cyberangriffe, Ausfälle von Drittanbietern, Streiks oder sonstige Ereignisse höherer Gewalt.
+
+29. Anwendbares Recht
+
+Es gilt das Recht der Französischen Republik unter Ausschluss des internationalen Kollisionsrechts, soweit dem keine zwingenden gesetzlichen Vorschriften entgegenstehen.
+
+30. Gerichtsstand
+
+Soweit gesetzlich zulässig, ist ausschließlicher Gerichtsstand für alle Streitigkeiten im Zusammenhang mit MAGYC der Sitz der BOULLIUNG SASU in Paris, Frankreich.
+
+Zwingende gesetzliche Gerichtsstände bleiben unberührt.
+
+31. Salvatorische Klausel
+
+Sollte eine Bestimmung dieser AGB unwirksam, undurchführbar oder lückenhaft sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.
+
+Anstelle der unwirksamen oder undurchführbaren Bestimmung gilt eine wirksame Regelung, die dem wirtschaftlichen Zweck der ursprünglichen Bestimmung möglichst nahekommt, soweit gesetzlich zulässig.
+
+32. Kontakt
+
+Bei Fragen zu diesen AGB kann MAGYC kontaktiert werden unter:
+
+leon@magyc.site

@@ -417,7 +417,7 @@ export function SketchRenderer({
     : null;
 
   return (
-    <WidgetShell module={m} index={index} canRegenerate={false}>
+    <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description} bare>
         {/* In-widget canvas — drawable in place, or expand for room. */}
         <SketchCanvas

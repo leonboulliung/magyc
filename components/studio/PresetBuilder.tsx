@@ -238,7 +238,7 @@ export function PresetBuilder() {
                   <span className="block text-[14px] text-black/85">Kontext-Elemente erlauben</span>
                   <span className="mt-0.5 block text-[12px] leading-snug text-black/40">MAGYC darf passende Elemente ergänzen.</span>
                 </span>
-                <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "#17171a" : "rgba(0,0,0,0.18)" }}>
+                <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "var(--studio-ink)" : "var(--studio-rule)" }}>
                   <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform" style={{ left: 2, transform: editing.allowContextModules !== false ? "translateX(20px)" : "none" }} />
                 </span>
               </button>
@@ -253,9 +253,9 @@ export function PresetBuilder() {
                         key={i}
                         className="inline-flex items-center gap-1.5 rounded-full border py-1 pl-3 pr-1 text-[13px] transition-colors"
                         style={{
-                          borderColor: activeElementIndex === i ? "#17171a" : "rgba(0,0,0,0.15)",
-                          background: activeElementIndex === i ? "#17171a" : "transparent",
-                          color: activeElementIndex === i ? "#fff" : "rgba(0,0,0,0.8)",
+                          borderColor: activeElementIndex === i ? "var(--studio-ink)" : "var(--studio-rule)",
+                          background: activeElementIndex === i ? "var(--studio-ink)" : "transparent",
+                          color: activeElementIndex === i ? "var(--studio-page)" : "var(--studio-ink)",
                         }}
                       >
                         <button type="button" onClick={() => setActiveElementIndex(i)} className="inline-flex min-w-0 items-center gap-1.5">
