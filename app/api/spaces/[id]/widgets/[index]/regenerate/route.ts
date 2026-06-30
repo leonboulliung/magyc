@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { apiServerError } from "@/lib/api/serverError";
 import { regenerateWidget } from "@/lib/server/regenerate";
 import { resolveExternalRefs } from "@/lib/server/wikipedia";
 import { ALL_VIBES, type Module, type SpaceLabels, type Vibe } from "@/lib/types";
@@ -69,7 +70,7 @@ export async function POST(
     .select("id, input_text, language, vibe, modules, labels, stage, shared, owner_id")
     .eq("id", params.id)
     .maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return apiServerError("regenerate_failed", "widget-regenerate/read", error);
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (space.stage) {
     const accessRole = await getProjectAccess(admin, {

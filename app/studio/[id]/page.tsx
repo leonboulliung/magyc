@@ -4,7 +4,7 @@ import { fetchHandoffWithClient } from "@/lib/db";
 import { StudioWorkspace } from "@/components/studio/StudioWorkspace";
 import { readSpaceForViewer } from "@/lib/server/spaceRead";
 import { fetchProjectTheme } from "@/lib/server/profile";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 // The workspace is the live project; never serve it from the data cache.
 export const dynamic = "force-dynamic";

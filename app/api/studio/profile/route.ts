@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { ensureProfile } from "@/lib/server/profile";
 import { parseBody } from "@/lib/api/validate";
 import { cleanProfile, cleanSettings } from "@/lib/studioProfile";
@@ -78,7 +78,7 @@ export async function PUT(req: Request) {
     .select("id");
   if (error) {
     console.error("[studio-profile] update failed:", error.message);
-    return NextResponse.json({ error: "save_failed", detail: error.message }, { status: 500 });
+    return NextResponse.json({ error: "save_failed" }, { status: 500 });
   }
   if (!updated || updated.length === 0) {
     console.error("[studio-profile] update matched no rows:", userId);

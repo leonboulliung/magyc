@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { apiServerError } from "@/lib/api/serverError";
 import { sanitizeStyle } from "@/lib/style";
 import { parseBody } from "@/lib/api/validate";
 import { isSpaceOwner, forbidden } from "@/lib/api/auth";
@@ -45,7 +46,7 @@ export async function PUT(
     .update({ style })
     .eq("id", id)
     .select("id");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return apiServerError("save_failed", "space-style", error);
   if (!updated || updated.length === 0) {
     return NextResponse.json({ error: "update_no_match" }, { status: 500 });
   }

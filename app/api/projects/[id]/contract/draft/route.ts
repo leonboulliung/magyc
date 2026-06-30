@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ensureProjectContractDraft } from "@/lib/server/projectContract";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export const maxDuration = 30;
 

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { parseBody } from "@/lib/api/validate";
 import { newId } from "@/lib/id";
 import { projectMembershipsUnavailable } from "@/lib/server/projectAccess";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 
 const memberInput = z.object({

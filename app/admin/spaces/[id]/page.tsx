@@ -5,7 +5,7 @@ import { fetchHandoffWithClient, fetchSpaceByIdWithClient } from "@/lib/db";
 import { ProjectFactsSummary } from "@/components/projects/ProjectFactsSummary";
 import { AiTraceTimeline, type AiTraceEvent } from "@/components/admin/AiTraceTimeline";
 import { buildProjectFacts } from "@/lib/projectFacts";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 

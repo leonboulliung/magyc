@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { ensureProfile } from "@/lib/server/profile";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { recordAiEvent } from "@/lib/server/aiEvents";

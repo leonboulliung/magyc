@@ -14,14 +14,14 @@ export default function KonnektorenPage() {
       </p>
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-black/10 bg-white p-5">
-          <div className="text-[15px] font-medium text-white">MCP</div>
+          <div className="text-[15px] font-medium text-[#17171a]">MCP</div>
           <p className="mt-1 text-[13px] leading-relaxed text-black/50">
             Projektseiten direkt aus deiner eigenen KI-App erstellen und verwalten.
           </p>
           <span className="mono mt-3 inline-block rounded-full border border-black/12 px-3 py-1 text-[11px] text-black/40">In Vorbereitung</span>
         </div>
         <div className="rounded-2xl border border-black/10 bg-white p-5">
-          <div className="text-[15px] font-medium text-white">Mail-Forward</div>
+          <div className="text-[15px] font-medium text-[#17171a]">Mail-Forward</div>
           <p className="mt-1 text-[13px] leading-relaxed text-black/50">
             Einen Kunden-Mailverlauf an deine Account-Adresse weiterleiten → daraus wird
             automatisch eine Projektseite.

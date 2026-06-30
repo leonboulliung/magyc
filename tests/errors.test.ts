@@ -6,6 +6,7 @@ describe("API error copy", () => {
     expect(apiErrorMessage({ error: "state_limit_reached" })).toContain("Element");
     expect(apiErrorMessage({ error: "asset_delete_failed" })).toContain("Datei");
     expect(apiErrorMessage({ error: "mime_not_allowed" })).toContain("Dateityp");
+    expect(apiErrorMessage({ error: "contract_conflict" })).toContain("neu laden");
   });
 
   it("prefers a concrete detail but keeps a fallback for empty payloads", () => {

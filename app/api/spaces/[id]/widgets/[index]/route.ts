@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { apiServerError } from "@/lib/api/serverError";
 import { sanitizeModule } from "@/lib/modules";
 import { newId } from "@/lib/id";
 import { resolveWikipedia } from "@/lib/server/wikipedia";
@@ -68,7 +69,7 @@ export async function PUT(
 
   const admin = supabaseAdmin();
   const { data: space, error: fetchErr } = await fetchWidgetSpace(admin, params.id);
-  if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
+  if (fetchErr) return apiServerError("save_failed", "widget/read", fetchErr);
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   // Authorisation — owner-only (draft: anon token; published: Clerk owner).
@@ -130,7 +131,7 @@ export async function PUT(
     updated = fallback.data;
     upErr = fallback.error;
   }
-  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  if (upErr) return apiServerError("save_failed", "widget/write", upErr);
   if (!updated || updated.length === 0) {
     return NextResponse.json({ error: "modules_conflict" }, { status: 409 });
   }
@@ -158,7 +159,7 @@ export async function PUT(
         .update({ modules: nextModules, title: nextTitle, note })
         .eq("id", top.id)
         .select("id");
-      if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+      if (vErr) return apiServerError("save_failed", "widget/version-update", vErr);
       if (!versionUpdated || versionUpdated.length === 0) {
         return NextResponse.json({ error: "version_update_no_match" }, { status: 500 });
       }
@@ -173,7 +174,7 @@ export async function PUT(
         modules: nextModules,
         note,
       });
-      if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 });
+      if (vErr) return apiServerError("save_failed", "widget/version-insert", vErr);
       newVersion = nextVersion;
     }
   }

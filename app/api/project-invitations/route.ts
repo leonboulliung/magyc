@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { parseBody } from "@/lib/api/validate";
 import { ensureProfile } from "@/lib/server/profile";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 function invitationsUnavailable(error: unknown): boolean {
   const value = error as { code?: string; message?: string } | null;
@@ -109,4 +109,3 @@ export async function POST(req: Request) {
   if (!result) return NextResponse.json({ error: "invitation_not_available" }, { status: 409 });
   return NextResponse.json({ ok: true, invitation: result });
 }
-

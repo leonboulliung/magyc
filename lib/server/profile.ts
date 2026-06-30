@@ -1,5 +1,5 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { colorForId } from "@/lib/palette";
 
 /**

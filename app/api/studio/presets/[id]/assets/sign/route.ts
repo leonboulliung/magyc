@@ -4,7 +4,7 @@ import { z } from "zod";
 import { parseBody } from "@/lib/api/validate";
 import { signAssetReadUrls, SIGNED_READ_EXPIRES_SECONDS } from "@/lib/server/storage";
 import { isAssetPathForPreset, takePersistentRateLimit } from "@/lib/server/uploadSecurity";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const bodySchema = z.object({
   paths: z.array(z.string().min(1).max(400)).min(1).max(80),

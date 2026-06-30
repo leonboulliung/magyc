@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { SpaceView } from "./SpaceView";
 import { readSpaceForViewer } from "@/lib/server/spaceRead";
 import { fetchProjectTheme } from "@/lib/server/profile";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 // Spaces are mutable: without this, Next.js may serve the Supabase fetch from
 // its Data Cache and edits look lost after a reload (PUT 200, DB updated,

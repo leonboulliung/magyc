@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
+import { apiServerError } from "@/lib/api/serverError";
 import { SINGLE_ACTIVE_RULES } from "@/lib/stateDedup";
 import { isAssetPathForSpace, takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { getProjectAccess } from "@/lib/server/projectAccess";
@@ -230,7 +231,7 @@ export async function POST(
       kind,
       data: { ...data, option },
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiServerError("state_write_failed", "state/vote", error);
     return NextResponse.json({ ok: true });
   }
 
@@ -270,7 +271,7 @@ export async function POST(
         kind,
         data: { ...data, itemKey, checked: true },
       });
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) return apiServerError("state_write_failed", "state/check", error);
     }
     return NextResponse.json({ ok: true });
   }
@@ -329,7 +330,7 @@ export async function POST(
       if ((error as { code?: string }).code === "23505") {
         return NextResponse.json({ error: "slot_taken" }, { status: 409 });
       }
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiServerError("state_write_failed", "state/claim", error);
     }
     return NextResponse.json({ ok: true });
   }
@@ -349,7 +350,7 @@ export async function POST(
       // Persist full data so id / role / parentId travel with the row.
       data: { ...data, text },
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiServerError("state_write_failed", "state/voice", error);
     return NextResponse.json({ ok: true });
   }
 
@@ -414,7 +415,7 @@ export async function POST(
       kind: stateKind,
       data,
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiServerError("state_write_failed", "state/edit", error);
     return NextResponse.json({ ok: true });
   }
 
@@ -436,7 +437,7 @@ export async function POST(
       kind,
       data,
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiServerError("state_write_failed", "state/add", error);
     return NextResponse.json({ ok: true });
   }
 
@@ -457,7 +458,7 @@ export async function POST(
       kind,
       data: { ...data, ...(url ? { url } : {}), ...(path ? { path } : {}) },
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiServerError("state_write_failed", "state/upload", error);
     return NextResponse.json({ ok: true });
   }
 
@@ -484,7 +485,7 @@ export async function POST(
       kind,
       data,
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiServerError("state_write_failed", "state/stroke", error);
     return NextResponse.json({ ok: true });
   }
 

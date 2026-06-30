@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { mapHandoff } from "@/lib/db";
 import { parseBody } from "@/lib/api/validate";
 import { getProjectAccess } from "@/lib/server/projectAccess";
@@ -122,7 +122,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { data: saved, error } = result;
   if (error) {
     console.error("[contract] save failed:", error.message);
-    return NextResponse.json({ error: "save_failed", detail: error.message }, { status: 500 });
+    return NextResponse.json({ error: "save_failed" }, { status: 500 });
   }
   if (!saved?.length) return NextResponse.json({ error: "contract_already_released" }, { status: 409 });
   return NextResponse.json({ ok: true });

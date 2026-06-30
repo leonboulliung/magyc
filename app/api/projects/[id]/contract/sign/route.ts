@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { parseBody } from "@/lib/api/validate";
 import { getProjectAccess } from "@/lib/server/projectAccess";
 
@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: contract } = await admin
     .from("project_contracts")
-    .select("status, mode, locked, signers, audit, content_hash, owner_signed_at, client_signed_at")
+    .select("status, mode, locked, signers, audit, content_hash, owner_signed_at, client_signed_at, updated_at")
     .eq("space_id", id)
     .maybeSingle();
   if (!contract) return NextResponse.json({ error: "no_contract" }, { status: 409 });
@@ -98,10 +98,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     update.audit = audit;
   }
 
-  const { error } = await admin.from("project_contracts").update(update).eq("space_id", id);
+  let write = admin.from("project_contracts").update(update).eq("space_id", id);
+  if (contract.updated_at) write = write.eq("updated_at", contract.updated_at);
+  const { data: updated, error } = await write.select("space_id");
   if (error) {
     console.error("[contract-sign] failed:", error.message);
-    return NextResponse.json({ error: "sign_failed", detail: error.message }, { status: 500 });
+    return NextResponse.json({ error: "sign_failed" }, { status: 500 });
+  }
+  if (!updated?.length) {
+    return NextResponse.json({ error: "contract_conflict" }, { status: 409 });
   }
   return NextResponse.json({ ok: true, role, locked: bothSigned });
 }

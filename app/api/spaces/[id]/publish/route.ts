@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { ensureProfile } from "@/lib/server/profile";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";

@@ -5,34 +5,28 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-28 (Leon/Codex — invitation and permission hardening)_
+_Last updated: 2026-06-30 (Codex — production incident and full code audit)_
 
 ---
 
 ## TODO — next operational step
 
-- [ ] **Apply migration 024**
-  (`supabase/migrations/024_state_compaction_and_admin_rollups.sql`) in the
-  production Supabase SQL editor. Then run its verification query and
-  `npm run ops:backup-check`. Until this is applied, the deployed application
-  remains migration-tolerant, but repeated edits are not compacted and Admin
-  activity counters fall back to bounded visible history.
-- [ ] **After 024 and production role QA, apply migration 025**
-  (`supabase/migrations/025_private_project_reads.sql`). It removes historical
-  public project/profile SELECT policies and the old row-change publication.
-  Code deployment `fb8deac` passed the production smoke suite: public snapshot
-  reads work and private/synthetic ids are concealed as JSON 404. The
-  authenticated owner/editor/client matrix is still required. Repeat it and
-  the policy verification immediately after applying 025.
+- [ ] **Create and configure the Clerk production instance.** Clerk Doctor
+  confirms that MAGYC currently has only a development instance; the Vercel
+  production deployment consequently uses test credentials. Replace the
+  publishable and secret production keys together, then test email OTP,
+  sign-up, sign-in, redirects and sign-out on `www.magyc.site`.
+- [ ] **Verify migrations 024-026 in production** through
+  `ops_migration_log`, then run `npm run ops:backup-check`. Do not infer schema
+  state from deployed code. Secure invitation acceptance specifically requires
+  migration 026.
 
 ## Open engineering priorities
 
-1. **Apply migration 026 and run the invitation/role acceptance matrix.** Code
-   now stores pending invites separately, requires explicit acceptance by a
+1. **Run the invitation/role acceptance matrix after verifying migration 026.**
+   Code stores pending invites separately, requires explicit acceptance by a
    verified matching Clerk email, rate-limits invitation creation and lets Team
-   (but not Kunde) advance phases. Until migration 026 is applied, new secure
-   invitations return a clear migration-required error and legacy pending rows
-   remain revocable but cannot be accepted.
+   (but not Kunde) advance phases.
 2. **Private-read cutover is code-complete; migration/QA remains.** Browser and
    SSR project reads now use role-gated snapshot APIs, and Realtime transports
    only data-free invalidations. Migration 025 performs the database lockdown
@@ -48,6 +42,21 @@ _Last updated: 2026-06-28 (Leon/Codex — invitation and permission hardening)_
    media upload/removal, concurrent editing, Auswahl, contract release/signing,
    Abschluss, archive, and Admin inspection. This is QA/operations rather than
    new feature development, but it is launch-critical.
+5. **Make module reorder/delete state reindexing atomic.** The modules array is
+   revision-guarded, but positional `module_state` movement still spans several
+   SQL writes. Add service-role RPCs so a mid-operation outage cannot leave
+   element state attached to the wrong index.
+
+## Done 2026-06-30 — production incident and code audit
+
+- Fixed the Studio crash caused by Supabase's transient `JWT issued at future`
+  response with a narrow transport retry plus controlled Studio error states.
+- Separated browser Supabase and server-only service-role clients, secured
+  external-reference writes, added contract-signing concurrency control,
+  removed the retired GIF proxy, hid stale creation scaffolding, added baseline
+  security headers and stopped exposing database details in API responses.
+- Extended production/operations checks and documented the full audit in
+  `docs/CODE_AUDIT_2026-06-30.md`. Dependency audit: zero known vulnerabilities.
 
 Everything else currently listed below is a product/performance option rather
 than unfinished work from the hardening package: streamed project creation,

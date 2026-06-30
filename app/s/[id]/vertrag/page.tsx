@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { ContractView } from "./ContractView";
 import { readSpaceForViewer } from "@/lib/server/spaceRead";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 // The contract is mutable + access-gated; never serve from the data cache.
 export const dynamic = "force-dynamic";

@@ -1,6 +1,6 @@
 import { newId } from "@/lib/id";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const MAX_TEXT = 4000;
 let warnedAppEventsUnavailable = false;

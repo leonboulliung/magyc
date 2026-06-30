@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { mapHandoff } from "@/lib/db";
 import { parseBody } from "@/lib/api/validate";
 import { canAdvanceProject, getProjectAccess, isForwardStageTransition } from "@/lib/server/projectAccess";

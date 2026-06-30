@@ -18,6 +18,7 @@ export function apiErrorMessage(json: unknown, fallback = "Aktion fehlgeschlagen
   if (raw === "delete_failed") return "Das Projekt konnte gerade nicht geloescht werden.";
   if (raw === "update_failed") return "Die Aenderung konnte gerade nicht gespeichert werden.";
   if (raw === "modules_conflict") return "Das Projekt wurde gerade an anderer Stelle geaendert. Bitte kurz neu laden.";
+  if (raw === "contract_conflict") return "Der Vertrag wurde gerade an anderer Stelle geändert. Bitte neu laden und erneut unterschreiben.";
   if (raw === "slot_taken") return "Dieser Platz wurde gerade von jemand anderem uebernommen.";
   if (raw === "rate_limited") return "Zu viele Aenderungen auf einmal. Bitte kurz warten.";
   if (raw === "state_limit_reached") return "Dieses Element enthält sehr viele Einträge. Entferne nicht mehr benötigte Inhalte, bevor du weitere hinzufügst.";

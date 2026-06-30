@@ -1,5 +1,5 @@
 import { newId } from "@/lib/id";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const MAX_TEXT = 12_000;
 

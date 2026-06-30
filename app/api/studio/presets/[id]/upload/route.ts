@@ -20,7 +20,7 @@ import {
   PROJECT_UPLOAD_QUOTA_BYTES,
   takePersistentRateLimit,
 } from "@/lib/server/uploadSecurity";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const bodySchema = z.object({
   phase: z.enum(["prepare", "complete"]),

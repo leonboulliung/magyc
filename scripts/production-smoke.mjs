@@ -1,8 +1,20 @@
 const baseUrl = (process.env.MAGYC_BASE_URL || "https://www.magyc.site").replace(/\/$/, "");
 
 const checks = [
-  { name: "homepage", path: "/", method: "GET", expected: 200 },
+  {
+    name: "homepage and security headers",
+    path: "/",
+    method: "GET",
+    expected: 200,
+    expectedHeaders: {
+      "x-frame-options": "DENY",
+      "x-content-type-options": "nosniff",
+    },
+  },
   { name: "photography marketing route", path: "/product", method: "GET", expected: 200 },
+  { name: "native sign-in route", path: "/sign-in", method: "GET", expected: 200 },
+  { name: "internal showroom disabled", path: "/dev", method: "GET", expected: 404 },
+  { name: "retired GIF proxy disabled", path: "/api/gif?q=test", method: "GET", expected: 404 },
   {
     name: "project auth gate",
     path: "/api/projects/smoke-check",
@@ -48,7 +60,10 @@ for (const check of checks) {
   let error = "";
   try { error = JSON.parse(text)?.error || ""; } catch { /* non-JSON page */ }
   const ok = response.status === check.expected
-    && (!check.expectedError || error === check.expectedError);
+    && (!check.expectedError || error === check.expectedError)
+    && (!check.expectedHeaders || Object.entries(check.expectedHeaders).every(
+      ([name, value]) => response.headers.get(name) === value,
+    ));
   const expected = check.expectedError
     ? `${check.expected}/${check.expectedError}`
     : String(check.expected);

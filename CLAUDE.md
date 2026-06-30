@@ -4,6 +4,8 @@ All project knowledge, workflows, and rules live in **[AGENTS.md](AGENTS.md)**
 (single source of truth for every agent) and **[docs/BACKLOG.md](docs/BACKLOG.md)**
 (prioritized issue queue with root-cause notes). Read both before working.
 
+Current production incident/audit handoff: **[docs/CODE_AUDIT_2026-06-30.md](docs/CODE_AUDIT_2026-06-30.md)**.
+
 Claude-specific notes:
 
 - Verify changes on **https://magyc.site** via the Claude-in-Chrome MCP

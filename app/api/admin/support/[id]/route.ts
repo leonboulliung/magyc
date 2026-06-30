@@ -6,7 +6,7 @@ import { parseBody } from "@/lib/api/validate";
 import { recordAdminAudit } from "@/lib/server/adminAudit";
 import { recordAppEvent } from "@/lib/server/observability";
 import { ensureProfile } from "@/lib/server/profile";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const bodySchema = z.object({
   status: z.enum(SUPPORT_STATUSES),

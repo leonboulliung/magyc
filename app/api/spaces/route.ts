@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { apiServerError } from "@/lib/api/serverError";
 import { classifyInput, type ClassifyAnswer } from "@/lib/server/classify";
 import { sanitizeModules } from "@/lib/modules";
 import type { Module } from "@/lib/types";
@@ -229,7 +230,7 @@ export async function POST(req: Request) {
     visibility: null,
   });
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiServerError("create_failed", "spaces/create", error);
   }
 
   await recordAiEvent({

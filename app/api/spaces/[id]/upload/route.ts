@@ -213,7 +213,7 @@ export async function POST(
       console.error("[upload] orphan cleanup failed:", (removeErr as Error).message);
       await logEvent("error", removeErr, { path, cleanup: true });
     }
-    return NextResponse.json({ error: "upload_state_failed", detail: stateErr.message }, { status: 500 });
+    return NextResponse.json({ error: "upload_state_failed" }, { status: 500 });
   }
 
   await logEvent("ok", null, { path });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getProjectAccess, canEditProject } from "@/lib/server/projectAccess";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 /**
  * Structural-edit authorization for an existing space — the single source of

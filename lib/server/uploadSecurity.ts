@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getProjectAccess } from "@/lib/server/projectAccess";
 

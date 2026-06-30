@@ -2,7 +2,7 @@ import { SignInButton } from "@clerk/nextjs";
 import { clerkClient } from "@clerk/nextjs/server";
 import { requireAdmin } from "@/lib/admin";
 import { CONTRACT_VERSION } from "@/lib/contract";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { AdminConsole, type AdminConsoleData, type AdminSpace, type AdminTicket, type AdminUser, type TimelineEntry } from "@/components/admin/AdminConsole";
 import type { AccountStatus, AdminPlan, SupportStatus } from "@/lib/adminAccount";
 

@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { sanitizeModule, sanitizeModules } from "@/lib/modules";
 import { newId } from "@/lib/id";
 import { parseBody } from "@/lib/api/validate";
 import { isSpaceOwner, forbidden } from "@/lib/api/auth";
+import { apiServerError } from "@/lib/api/serverError";
 
 /**
  * POST /api/spaces/[id]/widgets
@@ -71,7 +72,7 @@ async function persistModules(
     data = fallback.data;
     error = fallback.error;
   }
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return apiServerError("save_failed", "widgets/persist", error);
   if (!data || data.length === 0) {
     return NextResponse.json({ error: "modules_conflict" }, { status: 409 });
   }

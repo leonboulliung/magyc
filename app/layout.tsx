@@ -40,7 +40,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de">
       <body className="min-h-screen bg-[#f4f4f1] text-[#17171a] antialiased">
-        <ClerkProvider appearance={clerkAppearance} localization={deDE}>
+        <ClerkProvider
+          appearance={clerkAppearance}
+          localization={deDE}
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+        >
           {children}
           <AppToaster />
         </ClerkProvider>

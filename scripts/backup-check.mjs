@@ -87,6 +87,11 @@ const tables = [
   "module_state",
   "space_versions",
   "studio_presets",
+  "project_contracts",
+  "project_members",
+  "project_invitations",
+  "support_tickets",
+  "admin_audit_events",
   "project_messages",
   "ai_events",
   "app_events",
@@ -119,7 +124,15 @@ const failed = [
   ...report.tables.filter((row) => !row.ok),
   ...report.storage.filter((row) => !row.ok),
 ];
-const requiredTables = new Set(["profiles", "spaces", "module_state"]);
+const requiredTables = new Set([
+  "profiles",
+  "spaces",
+  "module_state",
+  "studio_presets",
+  "project_contracts",
+  "project_members",
+  "project_invitations",
+]);
 const requiredFailures = failed.filter((row) => (
   "table" in row
     ? requiredTables.has(row.table) || row.status === 401 || row.status === 403

@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { clarifyInput } from "@/lib/server/clarify";
 import { recordAiEvent } from "@/lib/server/aiEvents";
 import { parseBody } from "@/lib/api/validate";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { cleanSettings } from "@/lib/studioProfile";
 

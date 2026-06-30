@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { parseBody } from "@/lib/api/validate";
 import { contractContentHash } from "@/lib/server/projectContract";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 /**
  * POST /api/projects/[id]/contract/release — owner releases the prepared
@@ -63,7 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .select("space_id");
   if (error) {
     console.error("[contract-release] failed:", error.message);
-    return NextResponse.json({ error: "release_failed", detail: error.message }, { status: 500 });
+    return NextResponse.json({ error: "release_failed" }, { status: 500 });
   }
   if (!released?.length) return NextResponse.json({ error: "contract_already_released" }, { status: 409 });
   return NextResponse.json({ ok: true, signatureMode: parsed.data.signatureMode });
