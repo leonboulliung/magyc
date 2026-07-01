@@ -496,10 +496,15 @@ export function SpaceView({
     return { hero: heroItems, tagsModule: tagsM, tagsIndex: tagsI, body: bodyItems };
   }, [displayedModules]);
 
-  if (!loaded) return <div className="min-h-screen bg-white" />;
+  // Loading / not-found run before the space (and its style vars) exist, so
+  // they can't use --v-*. Honour the resolved themeMode directly instead —
+  // otherwise a dark stage flashes white on load and its "—" text is invisible.
+  const preBg = themeMode === "dark" ? "#0c0c0d" : "#ffffff";
+  const preFg = themeMode === "dark" ? "rgba(255,255,255,0.72)" : "#17171a";
+  if (!loaded) return <div className="min-h-screen" style={{ background: preBg }} />;
   if (!space) {
     return (
-      <main className="min-h-screen bg-white flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center" style={{ background: preBg, color: preFg }}>
         <div className="text-center space-y-3">
           <div className="font-black text-[32px]">—</div>
           <a href="/" className="mono text-[10px] tracking-widest hover:underline">←</a>

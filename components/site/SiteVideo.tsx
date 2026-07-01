@@ -1,8 +1,17 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { brand } from "@/lib/site";
 
 /**
  * SiteVideo — mirrors SiteImage so the marketing registry can mix stills and
  * short looping clips without changing the surrounding layout.
+ *
+ * Marketing clips can be several MB each. Autoplaying them all on load pushes
+ * needless data onto mobile visitors and hurts LCP, so the real source is only
+ * attached (and playback only starts) once the clip scrolls near the viewport.
+ * Until then the poster/placeholder frame carries the layout. Visitors with
+ * reduced-motion preference keep the poster and never autoplay.
  */
 export function SiteVideo({
   src,
@@ -19,6 +28,27 @@ export function SiteVideo({
   className?: string;
   posterSrc?: string;
 }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return; // keep the poster still; never autoplay heavy media
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setActive(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <figure className={className} style={{ margin: 0 }}>
       <div
@@ -26,15 +56,16 @@ export function SiteVideo({
         style={{ aspectRatio: ratio, border: `1px solid ${brand.rule}`, background: brand.accentSoft }}
       >
         <video
+          ref={ref}
           className="h-full w-full object-cover"
-          src={src}
+          src={active ? src : undefined}
           poster={posterSrc}
           aria-label={alt}
           autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="none"
         />
       </div>
       {caption && (
