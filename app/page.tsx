@@ -17,6 +17,7 @@ import { SiteNav } from "@/components/site/SiteNav";
 import { HomeMarketing } from "@/components/site/HomeMarketing";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
 import { apiError, fetchJsonWithTimeout, formatFlowError } from "@/lib/home/flow";
+import { withClarifyAnswer } from "@/lib/createPipeline";
 
 type Stage = "input" | "clarify" | "building";
 
@@ -530,7 +531,7 @@ export default function HomePage() {
                             }}
                             rows={3}
                             maxLength={currentStep.maxLength ?? 240}
-                            placeholder={currentStep.placeholder ?? "…"}
+                            placeholder={currentStep.placeholder ?? "Beschreibe deine Antwort kurz …"}
                             className="w-full resize-none rounded-[28px] p-4 text-[16px] leading-relaxed outline-none placeholder:text-black/28"
                             style={{ border: "1px solid rgba(0,0,0,0.14)", background: "rgba(0,0,0,0.025)", color: "#17171a" }}
                           />
@@ -584,12 +585,12 @@ export default function HomePage() {
                               onChange={(e) => {
                                 const v = e.target.value;
                                 setCustomDraft(v);
-                                if (v.trim()) setAnswers((a) => ({ ...a, [currentStep.id]: v.trim() }));
+                                setAnswers((a) => withClarifyAnswer(a, currentStep.id, v));
                               }}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" && customDraft.trim()) goForward();
                               }}
-                              placeholder="…"
+                              placeholder="Eigene Antwort"
                               maxLength={120}
                               className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full bg-transparent outline-none"
                               style={{
@@ -620,7 +621,7 @@ export default function HomePage() {
                   <motion.button
                     onClick={goForward}
                     disabled={busy}
-                    aria-label={isLastStep ? "build" : "next"}
+                    aria-label={isLastStep ? "Projekt erstellen" : "Nächste Rückfrage"}
                     className="mono rounded-full bg-[#17171a] px-5 py-2 text-[11px] tracking-widest text-white disabled:opacity-30"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}

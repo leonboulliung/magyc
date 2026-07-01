@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sanitizeModule } from "@/lib/modules";
+import { defaultWidget, widgetPickerGroups } from "@/lib/widgetCatalog";
 
 describe("sanitizeModule", () => {
   it("keeps empty placeholder rows for configurable workflow widgets", () => {
@@ -30,5 +31,15 @@ describe("sanitizeModule", () => {
     expect(sanitizeModule({ type: "phases", phases: [], currentPhase: 0 })).toEqual({ type: "phases", phases: [], currentPhase: 0 });
     expect(sanitizeModule({ type: "appointments", entries: [] })).toEqual({ type: "appointments", entries: [] });
     expect(sanitizeModule({ type: "table", columns: [], rows: [] })).toEqual({ type: "table", columns: [], rows: [] });
+  });
+
+  it("can create and sanitize every element offered by the project picker", () => {
+    const offered = widgetPickerGroups().flat();
+    expect(offered.length).toBeGreaterThan(10);
+    for (const type of offered) {
+      const module = defaultWidget(type);
+      expect(module, `${type} needs a default config`).not.toBeNull();
+      expect(sanitizeModule(module), `${type} default must survive persistence`).not.toBeNull();
+    }
   });
 });

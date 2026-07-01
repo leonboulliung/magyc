@@ -91,6 +91,8 @@ function LocationEditor({
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(q.trim())}`);
       const json = await res.json().catch(() => ({ results: [] }));
       setResults(Array.isArray(json.results) ? json.results.slice(0, 5) : []);
+    } catch {
+      setResults([]);
     } finally {
       setSearching(false);
     }
@@ -127,7 +129,7 @@ function LocationEditor({
           autoFocus
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="…"
+          placeholder="Ort oder Adresse suchen"
           className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
           style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
         />
@@ -258,6 +260,8 @@ function MultiPointEditor({
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(q.trim())}`);
       const json = await res.json().catch(() => ({ results: [] }));
       setResults(Array.isArray(json.results) ? json.results.slice(0, 5) : []);
+    } catch {
+      setResults([]);
     } finally {
       setSearching(false);
     }
@@ -316,7 +320,7 @@ function MultiPointEditor({
           autoFocus
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="…"
+          placeholder="Weiteren Ort suchen"
           className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
           style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
         />
@@ -464,7 +468,7 @@ function PhasesEditor({
             <input
               value={p.label}
               onChange={(e) => setLabel(i, e.target.value)}
-              placeholder="…"
+              placeholder="Phase benennen"
               maxLength={80}
               className="flex-1 text-[15px] px-3 py-2 rounded-[var(--v-radius)] bg-transparent outline-none"
               style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
@@ -483,7 +487,7 @@ function PhasesEditor({
         className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full opacity-50 hover:opacity-100"
         style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
       >
-        +
+        + Phase hinzufügen
       </button>
     </div>
   );

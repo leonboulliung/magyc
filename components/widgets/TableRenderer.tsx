@@ -131,12 +131,12 @@ export function TableRenderer({
             </button>
             {m.rows.length > 0 && (
               <button onClick={() => removeRow(m.rows.length - 1)} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-50 hover:opacity-100">
-                − row
+                − Zeile
               </button>
             )}
             {m.columns.length > 1 && (
               <button onClick={() => removeColumn(m.columns.length - 1)} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-50 hover:opacity-100">
-                − col
+                − Spalte
               </button>
             )}
           </div>
@@ -188,7 +188,7 @@ function CellEditor({
       className={`min-h-[18px] ${isOwner ? "cursor-text" : ""} ${mono ? "mono text-[10px] tracking-widest uppercase" : "text-[12px]"}`}
       style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}
     >
-      {value || "…"}
+      {value || (mono ? "Spalte benennen" : "Inhalt eingeben")}
     </div>
   );
 }

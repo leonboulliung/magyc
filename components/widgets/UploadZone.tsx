@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { assetApiBase } from "@/lib/client/assetRoutes";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { PresetStateEntry } from "@/lib/presetState";
+import { AUDIO_ACCEPT, DEFAULT_MAX_UPLOAD_MB, IMAGE_ACCEPT } from "@/lib/uploadPolicy";
+export { AUDIO_ACCEPT, IMAGE_ACCEPT } from "@/lib/uploadPolicy";
 import {
   readApiJson,
   showActionError,
@@ -19,11 +21,10 @@ import {
  * Product-level per-file ceiling. Files upload directly to Supabase Storage
  * through signed URLs, so the Vercel request body limit no longer applies.
  */
-export const DEFAULT_MAX_UPLOAD_MB = 50;
-
 export const ATTACHMENT_ACCEPT = [
-  "image/*",
-  "audio/*",
+  IMAGE_ACCEPT,
+  "image/gif",
+  AUDIO_ACCEPT,
   "video/mp4",
   "application/pdf",
   ".doc",
@@ -42,8 +43,8 @@ export const ATTACHMENT_ACCEPT = [
 
 export function uploadHintForAccept(accept: string, maxSizeMb = DEFAULT_MAX_UPLOAD_MB): string {
   const normalized = accept.replace(/\s+/g, "").toLowerCase();
-  if (normalized === "image/*") return `JPG, PNG, WebP, HEIC/HEIF · max. ${maxSizeMb} MB`;
-  if (normalized === "audio/*") return `MP3, WAV, M4A, AAC · max. ${maxSizeMb} MB`;
+  if (normalized === IMAGE_ACCEPT) return `JPG, PNG, WebP, HEIC/HEIF · max. ${maxSizeMb} MB`;
+  if (normalized === AUDIO_ACCEPT) return `MP3, WAV, M4A, AAC · max. ${maxSizeMb} MB`;
   if (normalized.includes("application/pdf") || normalized.includes("video/mp4") || normalized.includes(".doc")) {
     return `Bilder, Audio, MP4, PDF, Office, Text/CSV · max. ${maxSizeMb} MB`;
   }
@@ -139,18 +140,6 @@ export function UploadZone({
     const toastId = `upload-${spaceId}-${moduleIndex}`;
     setBusy(true);
 
-    // Compress images first (downscale + re-encode off the main thread). This
-    // shrinks large camera files under the platform body limit and makes
-    // multi-image uploads reliable. Non-images / undecodable files pass through.
-    const hasImage = incoming.some((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
-    if (hasImage) {
-      showActionLoading(incoming.length === 1 ? "Bild wird vorbereitet …" : "Bilder werden vorbereitet …", toastId);
-      const { compressImageFile } = await import("@/lib/client/imageCompress");
-      const prepared: File[] = [];
-      for (const f of incoming) prepared.push(await compressImageFile(f));
-      incoming = prepared;
-    }
-
     const wrongType = incoming.filter((f) => !isAccepted(f, accept));
     if (wrongType.length) {
       const names = wrongType.map((f) => f.name).join(", ");
@@ -160,16 +149,38 @@ export function UploadZone({
     }
     incoming = incoming.filter((f) => isAccepted(f, accept));
 
-    // Reject anything still oversized with a concrete reason, then upload the rest.
+    // Enforce the documented ceiling before decoding/compression. This avoids
+    // loading an oversized camera file into memory merely to discover later
+    // that the product does not accept it.
     const limit = maxSizeMb * 1024 * 1024;
     const tooBig = incoming.filter((f) => f.size > limit);
-    const files = incoming.filter((f) => f.size <= limit);
+    incoming = incoming.filter((f) => f.size <= limit);
     if (tooBig.length) {
       const names = tooBig.map((f) => `${f.name} (${fmtSize(f.size)})`).join(", ");
       const message = `Zu groß: ${names}. Maximal ${maxSizeMb} MB pro Datei.`;
       showActionError("Datei zu groß", { id: toastId, description: message });
       setError(message);
     }
+    if (!incoming.length) { setBusy(false); return; }
+
+    // Compress accepted images after validation. A preparation failure is
+    // visible and always releases the busy state.
+    const hasImage = incoming.some((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
+    if (hasImage) {
+      showActionLoading(incoming.length === 1 ? "Bild wird vorbereitet …" : "Bilder werden vorbereitet …", toastId);
+      try {
+        const { compressImageFile } = await import("@/lib/client/imageCompress");
+        const prepared: File[] = [];
+        for (const f of incoming) prepared.push(await compressImageFile(f));
+        incoming = prepared;
+      } catch (error) {
+        const message = showUnknownError("Bild konnte nicht vorbereitet werden", error, { id: toastId, fallback: "Bitte verwende JPG, PNG, WebP oder HEIC und versuche es erneut." });
+        setError(message);
+        setBusy(false);
+        return;
+      }
+    }
+    const files = incoming.filter((f) => f.size <= limit);
     if (!files.length) { setBusy(false); return; }
 
     if (!tooBig.length) setError("");

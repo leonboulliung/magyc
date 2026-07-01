@@ -44,7 +44,7 @@ export function HeadingRenderer({
         <div className="relative">
           <textarea
             {...editProps}
-            placeholder={m.placeholder ?? ""}
+            placeholder={m.placeholder ?? "Projekttitel eingeben"}
             maxLength={200}
             rows={1}
             className={`vibe-heading font-black ${sizeClass} leading-[0.95] w-full bg-transparent border-0 outline-none resize-none overflow-hidden`}
@@ -58,7 +58,7 @@ export function HeadingRenderer({
           className={`vibe-heading font-black ${sizeClass} leading-[0.95] ${ctx.isOwner ? "cursor-text" : ""}`}
           style={{ color: empty ? "var(--v-muted)" : "var(--v-fg)" }}
         >
-          {empty ? (m.placeholder ?? "—") : m.text}
+          {empty ? (m.placeholder ?? "Projekttitel eingeben") : m.text}
         </h1>
       )}
     </WidgetShell>

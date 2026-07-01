@@ -84,6 +84,11 @@ their server/client semantics change.
    `/api/spaces/clarify` returns typed clarify steps (choice / text / module
    editors) → `/api/spaces` runs the classifier and creates the space →
    redirect to `/s/[id]`.
+   Preset structure and the current clarification run are merged through
+   `lib/createPipeline.ts`: explicit answers from the current run win over an
+   older preset module of the same type. Preset/Studio workflow rules travel
+   in a separate classifier context and must never be appended to or stored as
+   user project facts.
 2. **Studio (`app/studio/(shell)/`)**: signed-in photographers manage projects,
    reusable presets, users/permissions, profile, and settings. New projects use
    the same prompt → clarify → build flow as Home, then `/api/projects` binds
@@ -168,6 +173,13 @@ Migration 024 compacts repeated item edits through the service-role-only
 and private object so quota is released. Keep limits centralized in
 `lib/server/stateLimits.ts` and surface rejected optimistic actions visibly.
 
+Uploads have a second, module-aware policy in `lib/uploadPolicy.ts`: image
+elements accept only the documented raster formats, Audio accepts only its
+documented audio formats, and Attachments is the broad document/media surface.
+Private anonymous drafts require the exact per-space owner token; never restore
+the former "any non-empty anonymous token" shortcut. The shared per-file limit
+is 50 MB and the per-project quota is 2 GB.
+
 ---
 
 ## 4. Code map
@@ -196,6 +208,9 @@ components/
   clarify/…                 typed clarify-step editors (location, phases, date…)
   StyleEditor / PublishButton / SpacePrivacy / ParticipantsBar
 lib/
+  createPipeline.ts         clarification precedence + trusted workflow rules
+  widgetCatalog.ts          picker order, symbols and empty element defaults
+  uploadPolicy.ts           shared client/server MIME, size and draft-access policy
   types.ts                  Module union (33 types), Space, state kinds — START HERE
   modules.ts                sanitizers + MODULE_META (relevantWhen, labels, icons)
   contract.ts               compile-time guards binding types ↔ DATA_CONTRACT.md
@@ -214,6 +229,8 @@ lib/
    AI scoring; label/icon drive the picker).
 3. `components/widgets/<X>Renderer.tsx` + register in `WidgetDispatcher`
    (use `next/dynamic` if it pulls heavy deps like Leaflet).
+   Also add its empty editable config and picker position to
+   `lib/widgetCatalog.ts`; project and Preset pickers consume this one catalog.
 4. If AI-authorable: add to `SCORING_GROUPS` + `SHAPE` in
    `lib/server/classify.ts`.
 5. `lib/contract.ts` will **fail the build** until you record it in

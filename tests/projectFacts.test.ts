@@ -62,9 +62,33 @@ describe("buildProjectFacts", () => {
       items: [{ label: "Hero-Bild", quantity: "1", status: "planned" }],
     }] as unknown as Module[];
     const facts = buildProjectFacts(modules, [
-      state("edit-1", 0, "edit", { id: "seed-0", status: "ready" }, 1),
-      state("edit-2", 0, "edit", { id: "seed-0", due: "Freitag" }, 2),
+      state("edit-1", 0, "edit", { id: "seed-0", status: "ready", quantity: "3", format: "TIFF", details: "Retuschiert" }, 1),
+      state("edit-2", 0, "edit", { id: "seed-0", due: "Freitag", details: "" }, 2),
     ]);
-    expect(facts.deliverables[0]).toMatchObject({ label: "Hero-Bild", status: "ready", due: "Freitag" });
+    expect(facts.deliverables[0]).toMatchObject({ label: "Hero-Bild", status: "ready", due: "Freitag", quantity: "3", format: "TIFF", details: undefined });
+  });
+
+  it("keeps suggestions out of confirmed contract locations", () => {
+    const modules = [
+      { type: "location_suggestions", suggestions: [{ label: "Vielleicht Studio A", address: "Berlin" }] },
+      { type: "locations_multi", locations: [{ lng: 13.4, lat: 52.5, label: "Bestätigtes Studio" }] },
+    ] as unknown as Module[];
+    expect(buildProjectFacts(modules).locations).toEqual(["Bestätigtes Studio"]);
+  });
+
+  it("uses only each actor's latest poll vote and includes moodboard media", () => {
+    const modules = [
+      { type: "poll", question: "Look?", options: ["A", "B"] },
+      { type: "moodboard", directions: [] },
+    ] as unknown as Module[];
+    const voteA = state("vote-a", 0, "vote", { option: "A" }, 1);
+    const voteB = { ...state("vote-b", 0, "vote", { option: "B" }, 2), actor: voteA.actor };
+    const facts = buildProjectFacts(modules, [
+      voteA,
+      voteB,
+      state("mood-img", 1, "upload", { name: "look.jpg", mimeType: "image/jpeg", size: 900 }, 3),
+    ]);
+    expect(facts.polls[0].options).toEqual([{ label: "A", votes: 0 }, { label: "B", votes: 1 }]);
+    expect(facts.uploads).toContainEqual({ name: "look.jpg", mimeType: "image/jpeg", size: 900, moduleType: "moodboard" });
   });
 });

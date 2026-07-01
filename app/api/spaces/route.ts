@@ -12,6 +12,7 @@ import { insertSpaceRow } from "@/lib/server/spacePersistence";
 import { parseBody } from "@/lib/api/validate";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { cleanSettings } from "@/lib/studioProfile";
+import { mergeSeededModules, workflowRules } from "@/lib/createPipeline";
 
 // The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
 // author) plus a Wikipedia hydration pass. Give the function headroom
@@ -94,18 +95,11 @@ export async function POST(req: Request) {
   const presetPromptInjections = Array.isArray(body.presetPromptInjections)
     ? body.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
     : [];
-  const seededModules: Module[] = [];
-  const seededTypes = new Set<string>();
-  for (const module of [...presetModules, ...configuredModules]) {
-    if (seededTypes.has(module.type)) continue;
-    seededTypes.add(module.type);
-    seededModules.push(module);
-  }
-  const inputForAi = [
-    input,
-    presetName ? `Preset: ${presetName}.` : "",
-    presetPromptInjections.length ? `Preset-Regeln: ${presetPromptInjections.join(" ")}` : "",
-  ].filter(Boolean).join(" ").slice(0, MAX_INPUT_CHARS);
+  const seededModules: Module[] = mergeSeededModules(presetModules, configuredModules);
+  const rules = workflowRules(
+    presetName ? [`Gewählter Workflow: ${presetName}.`] : [],
+    presetPromptInjections,
+  );
 
   const anonToken = typeof body.anonToken === "string" && body.anonToken.length >= 16
     ? body.anonToken.slice(0, 64)
@@ -154,9 +148,10 @@ export async function POST(req: Request) {
   let result;
   const aiStarted = Date.now();
   try {
-    result = await classifyInput(inputForAi, answers, seededModules, {
+    result = await classifyInput(input, answers, seededModules, {
       projectMode: body.projectMode,
       language,
+      workflowRules: rules,
     });
   } catch (e) {
     const err = e as { message?: string; status?: number; code?: string };
@@ -168,7 +163,7 @@ export async function POST(req: Request) {
       model: "gpt-4o-mini",
       status: "error",
       input: {
-        input: inputForAi,
+        input,
         answers,
         configuredModuleTypes: configuredModules.map((m) => m.type),
         presetName: presetName || null,
@@ -219,7 +214,7 @@ export async function POST(req: Request) {
   const id = newId();
   const { error } = await insertSpaceRow(admin, {
     id,
-    input_text: inputForAi,
+    input_text: input,
     title: result.title,
     language: result.language,
     vibe: result.vibe,
@@ -240,7 +235,7 @@ export async function POST(req: Request) {
     eventType: "classify",
     model: "gpt-4o-mini",
     input: {
-      input: inputForAi,
+      input,
       answers,
       configuredModuleTypes: configuredModules.map((m) => m.type),
       presetName: presetName || null,

@@ -21,8 +21,10 @@ import {
   identifyUploadActor,
   isAssetPathForSpace,
   isMimeAllowed,
+  isMimeAllowedForModule,
   MAX_UPLOAD_SIZE_BYTES,
   moduleExists,
+  moduleTypeAt,
   PROJECT_UPLOAD_QUOTA_BYTES,
   readSpaceUploadUsage,
   takePersistentRateLimit,
@@ -113,6 +115,10 @@ export async function POST(
   if (!moduleExists(space, b.moduleIndex)) {
     await logEvent("warn", "module_out_of_range");
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
+  }
+  if (!isMimeAllowedForModule(moduleTypeAt(space, b.moduleIndex), b.mimeType)) {
+    await logEvent("warn", "mime_not_allowed_for_module");
+    return NextResponse.json({ error: "mime_not_allowed_for_module" }, { status: 415 });
   }
   if (!await canAccessSpace(admin, space, actor)) {
     await logEvent("warn", "not_shared");

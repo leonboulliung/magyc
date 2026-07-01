@@ -5,7 +5,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { AudioWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
-import { UploadZone, fmtSize, uploadHintForAccept } from "./UploadZone";
+import { AUDIO_ACCEPT, UploadZone, fmtSize, uploadHintForAccept } from "./UploadZone";
 import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 /**
@@ -28,6 +28,10 @@ export function AudioRenderer({
     .filter(Boolean);
   const signedUrls = useAssetUrls(ctx.spaceId, assetPaths);
 
+  const deleted = new Set(state
+    .filter((entry) => entry.kind === "edit" && entry.data.deleted === true && typeof entry.data.id === "string")
+    .map((entry) => entry.data.id as string));
+
   const tracks = state
     .filter((e) => e.kind === "upload" && typeof e.data.mimeType === "string" && (e.data.mimeType as string).startsWith("audio/"))
     .sort((a, b) => a.createdAt - b.createdAt)
@@ -39,7 +43,11 @@ export function AudioRenderer({
       authorName: e.actor.displayName,
       authorColor: typeof e.data.color === "string" ? (e.data.color as string) : undefined,
     }))
-    .filter((t) => t.url);
+    .filter((t) => t.url && !deleted.has(t.key));
+
+  async function removeTrack(id: string) {
+    await ctx.act(index, "edit", { id, deleted: true });
+  }
 
   return (
     <WidgetShell module={m} index={index}>
@@ -75,6 +83,15 @@ export function AudioRenderer({
                   {t.authorName && (
                     <ActorDot color={t.authorColor} displayName={t.authorName} size={14} />
                   )}
+                  <button
+                    type="button"
+                    onClick={() => removeTrack(t.key)}
+                    aria-label={`${t.name} entfernen`}
+                    className="mono grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] opacity-45 transition-opacity hover:opacity-100"
+                    style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
+                  >
+                    ×
+                  </button>
                 </div>
                 {/* HTML5 audio player — styled minimally */}
                 <audio
@@ -92,13 +109,13 @@ export function AudioRenderer({
         <UploadZone
           spaceId={ctx.spaceId}
           moduleIndex={index}
-          accept="audio/*"
+          accept={AUDIO_ACCEPT}
           multiple
           onDone={() => {}}
         >
           <span className="mono text-[10px] tracking-widest opacity-60">♫ Audio hinzufügen</span>
           <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
-            {uploadHintForAccept("audio/*")}
+            {uploadHintForAccept(AUDIO_ACCEPT)}
           </span>
         </UploadZone>
       </WidgetCard>

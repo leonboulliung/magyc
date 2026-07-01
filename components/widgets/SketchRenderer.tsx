@@ -249,7 +249,7 @@ function SketchCanvas({
             if (e.key === "Enter") { e.preventDefault(); commitText(); }
             else if (e.key === "Escape") { setTextAt(null); setTextVal(""); }
           }}
-          placeholder="…"
+          placeholder="Text eingeben"
           maxLength={120}
           className="absolute bg-transparent outline-none text-[16px]"
           style={{ left: textAt.sx, top: textAt.sy - 14, color, borderBottom: `1px solid ${color}`, minWidth: 40 }}

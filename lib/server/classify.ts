@@ -184,6 +184,8 @@ export interface ClassifyContext {
   projectMode?: unknown;
   /** Fixed account/application language. User prompt content must not override it. */
   language?: unknown;
+  /** Trusted preset/studio workflow guidance, kept separate from project facts. */
+  workflowRules?: unknown;
 }
 
 function buildAnalyzeUserMessage(
@@ -199,6 +201,13 @@ function buildAnalyzeUserMessage(
   if (answers.length > 0) {
     lines.push("", "CLARIFICATIONS (the user answered these):");
     for (const a of answers) lines.push(`- ${a.questionText.trim()} → ${a.choice.trim()}`);
+  }
+  const workflowRules = Array.isArray(context.workflowRules)
+    ? context.workflowRules.filter((rule): rule is string => typeof rule === "string" && !!rule.trim()).slice(0, 18)
+    : [];
+  if (workflowRules.length > 0) {
+    lines.push("", "WORKFLOW RULES (shape the process; do not present these as project facts):");
+    for (const rule of workflowRules) lines.push(`- ${rule.trim().slice(0, 500)}`);
   }
   return lines.join("\n");
 }

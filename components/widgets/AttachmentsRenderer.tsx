@@ -119,7 +119,7 @@ export function AttachmentsRenderer({
                     className="mono shrink-0 rounded-full px-2 py-1 text-[9px] tracking-widest opacity-55 transition-opacity hover:opacity-100"
                     style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                   >
-                    Download
+                    Herunterladen
                   </a>
                   <button
                     type="button"

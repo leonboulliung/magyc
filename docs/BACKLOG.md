@@ -5,7 +5,7 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-07-01 (Codex — preset and element consolidation)_
+_Last updated: 2026-07-01 (Codex — creation, contract and upload quality audit)_
 
 ---
 
@@ -50,6 +50,26 @@ _Last updated: 2026-07-01 (Codex — preset and element consolidation)_
    revision-guarded, but positional `module_state` movement still spans several
    SQL writes. Add service-role RPCs so a mid-operation outage cannot leave
    element state attached to the wrong index.
+6. **Extract the shared clarification panel.** Home and Studio already share
+   `PromptStart` plus the pure merge/answer rules, but their clarification UI
+   orchestration remains duplicated. Consolidate that presentation after the
+   current behavior is captured in browser tests so text and controls cannot
+   drift again.
+
+## Done 2026-07-01 — creation-to-contract quality audit
+
+- Fixed current clarification answers being shadowed by same-type Preset
+  modules and separated trusted workflow rules from bounded/stored user facts.
+- Corrected contractual fact projection for confirmed locations, deliverable
+  edits, moodboard uploads and latest poll votes.
+- Closed anonymous private-draft upload access, enforced per-element MIME
+  policies, and made failed client image preparation recover visibly.
+- Centralized picker/default metadata and added boundary tests for every
+  offered element plus creation, facts and upload security.
+- Normalized remaining active input placeholders and German editing labels.
+  Full findings: `docs/QUALITY_AUDIT_2026-07-01.md`.
+- Verification: typecheck clean; 51 Vitest checks pass; production build clean;
+  production dependency audit reports zero known vulnerabilities.
 
 ## Done 2026-07-01 — preset retention and canonical elements
 
@@ -905,8 +925,8 @@ locally click-testable; only worth it with a live session.
   path used by project pages. The preset editor now opens only after explicit
   create/edit intent; active element previews use the actual project renderer,
   so map/location presets show the real map element instead of a fake form.
-  `components/WidgetPicker.defaultWidget` is now exported as the shared
-  default module factory to avoid a second element truth.
+  The shared default module factory now lives in `lib/widgetCatalog.ts` and is
+  consumed by both project and Preset pickers to avoid a second element truth.
 - 2026-06-17 · **Studio navigation + preset UX correction**:
   added a quiet Studio sidebar for Studiobereich, Presets, Nutzer, Profil,
   and Einstellungen; removed the redundant dashboard preset CTA. Reworked

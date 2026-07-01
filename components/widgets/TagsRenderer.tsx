@@ -89,7 +89,7 @@ export function TagsRenderer({
               {ctx.isOwner && (
                 <button
                   onClick={() => remove(t)}
-                  aria-label="remove"
+                  aria-label={`${t} entfernen`}
                   className="opacity-30 hover:opacity-100 transition-opacity"
                   style={{ color: "var(--v-fg)" }}
                 >
@@ -123,7 +123,7 @@ export function TagsRenderer({
           ) : (
             <button
               onClick={() => setAdding(true)}
-              aria-label="add tag"
+              aria-label="Tag hinzufügen"
               className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
               style={{
                 border: "1px dashed var(--v-rule)",

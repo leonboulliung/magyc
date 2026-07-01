@@ -22,8 +22,9 @@ export function AppointmentRenderer({
 
   async function save(next: string) {
     setEditing(false);
-    if (!next || next === m.datetime) return;
-    const updated = { ...m, datetime: new Date(next).toISOString() };
+    const datetime = next ? new Date(next).toISOString() : "";
+    if (datetime === m.datetime) return;
+    const updated = { ...m, datetime };
     await ctx.saveModule(index, updated);
   }
 

@@ -65,7 +65,7 @@ export function RichTextRenderer({
         {title.editing ? (
           <input
             {...title.editProps}
-            placeholder="…"
+            placeholder="Abschnitt benennen"
             maxLength={60}
             className="mono text-[10px] tracking-widest uppercase bg-transparent border-0 outline-none px-0 py-0"
             style={{ color: "var(--v-muted)" }}
@@ -84,7 +84,7 @@ export function RichTextRenderer({
               textAlign: "left",
             }}
           >
-            {m.microTitle || "…"}
+            {m.microTitle || "Abschnitt benennen"}
           </button>
         )}
 
@@ -93,7 +93,7 @@ export function RichTextRenderer({
           <div className="max-w-2xl">
             <textarea
               {...body.editProps}
-              placeholder={m.placeholder ?? ""}
+              placeholder={m.placeholder ?? "Projektbeschreibung ergänzen"}
               maxLength={4000}
               rows={3}
               className="vibe-heading text-[17px] sm:text-[19px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
@@ -107,7 +107,7 @@ export function RichTextRenderer({
             className={`vibe-heading text-[17px] sm:text-[19px] leading-relaxed max-w-2xl whitespace-pre-wrap ${ctx.isOwner ? "cursor-text" : ""}`}
             style={{ color: emptyBody ? "var(--v-muted)" : "var(--v-fg)" }}
           >
-            {emptyBody ? (m.placeholder ?? "…") : m.text}
+            {emptyBody ? (m.placeholder ?? "Projektbeschreibung ergänzen") : m.text}
           </p>
         )}
       </div>

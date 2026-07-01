@@ -349,7 +349,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                                 value={c.value}
                                 onChange={(e) => editClause(realIndex, ci, e.target.value)}
                                 rows={c.value.length > 60 ? 2 : 1}
-                                placeholder={c.source === "needs_input" ? (draft?.gaps.find((g) => g.clauseId === c.id)?.hint ?? "…") : "…"}
+                                placeholder={c.source === "needs_input" ? (draft?.gaps.find((g) => g.clauseId === c.id)?.hint ?? "Angabe ergänzen") : "Vertragsinhalt ergänzen"}
                                 className={`w-full resize-none rounded-lg border bg-white px-2.5 py-1.5 text-[14px] leading-snug text-[#17171a] outline-none focus:border-black/35 ${c.source === "needs_input" ? "border-amber-400/40" : "border-black/12"}`}
                               />
                             ) : (

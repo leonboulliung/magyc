@@ -7,7 +7,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { ModuleStateEntry, MoodboardDirectionStatus, MoodboardWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
-import { UploadZone } from "./UploadZone";
+import { IMAGE_ACCEPT, UploadZone } from "./UploadZone";
 import { useInlineEdit } from "./useInlineEdit";
 import { FullscreenOverlay } from "./FullscreenOverlay";
 import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
@@ -233,7 +233,7 @@ export function MoodboardRenderer({
               ))}
             </AnimatePresence>
             <div className="shrink-0">
-              <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
+              <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple tile>
                 <span className="text-[20px] leading-none opacity-60">＋</span>
                 <span className="mono tracking-widest opacity-60">Bilder</span>
                 <span className="mono px-2 text-center text-[8px] leading-tight tracking-widest opacity-45">
@@ -340,7 +340,7 @@ export function MoodboardRenderer({
                   </figure>
                 ))}
                 <div className="flex h-full shrink-0 items-center">
-                  <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple tile>
+                  <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple tile>
                     <span className="text-[20px] leading-none opacity-60">＋</span>
                     <span className="mono tracking-widest opacity-60">Bilder</span>
                     <span className="mono px-2 text-center text-[8px] leading-tight tracking-widest opacity-45">

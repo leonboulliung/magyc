@@ -6,7 +6,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { ImagesWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
-import { UploadZone } from "./UploadZone";
+import { IMAGE_ACCEPT, UploadZone } from "./UploadZone";
 import { FullscreenOverlay } from "./FullscreenOverlay";
 import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
@@ -106,7 +106,7 @@ export function ImagesRenderer({
         )}
 
         <div className="mt-3">
-          <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple compact>
+          <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple compact>
             <span className="mono tracking-widest opacity-70">▨ Bilder hochladen · JPG PNG WEBP HEIC · max. 50 MB</span>
           </UploadZone>
         </div>

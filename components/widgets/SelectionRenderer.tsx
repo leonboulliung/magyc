@@ -8,7 +8,7 @@ import { useWidgetContext } from "@/lib/widgetContext";
 import type { ModuleStateEntry, SelectionWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
-import { UploadZone, uploadHintForAccept } from "./UploadZone";
+import { IMAGE_ACCEPT, UploadZone, uploadHintForAccept } from "./UploadZone";
 import { assetPathFromData, assetUrlFromData, useAssetUrls } from "./useAssetUrls";
 
 interface Photo {
@@ -203,10 +203,10 @@ export function SelectionRenderer({
 
         {ctx.isOwner && (
           <div className="px-3 pb-3">
-            <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept="image/*" multiple onDone={() => {}}>
+            <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple onDone={() => {}}>
               <span className="mono text-[10px] tracking-widest opacity-60">▨ Bilder hinzufügen</span>
               <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
-                {uploadHintForAccept("image/*")}
+                {uploadHintForAccept(IMAGE_ACCEPT)}
               </span>
             </UploadZone>
           </div>

@@ -212,7 +212,7 @@ function ShotRow({
       <button
         type="button"
         onClick={onDelete}
-        aria-label="remove"
+        aria-label="Aufnahme entfernen"
         className="mono absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-60 hover:!opacity-100"
         style={{ color: "var(--v-muted)" }}
       >

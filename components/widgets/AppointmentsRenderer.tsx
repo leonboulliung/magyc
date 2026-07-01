@@ -39,7 +39,8 @@ export function AppointmentsRenderer({
   function updateEntry(originalIndex: number, patch: Partial<{ datetime: string; label: string }>) {
     const entries = m.entries.map((e, i) => {
       if (i !== originalIndex) return e;
-      const dt = patch.datetime !== undefined ? new Date(patch.datetime).toISOString() : e.datetime;
+      const parsed = patch.datetime ? new Date(patch.datetime) : null;
+      const dt = parsed && Number.isFinite(parsed.getTime()) ? parsed.toISOString() : e.datetime;
       const label = patch.label !== undefined ? patch.label : e.label;
       return { ...e, datetime: dt, label };
     });
@@ -180,7 +181,7 @@ function EntryRow({
               if (e.key === "Enter") { e.preventDefault(); onChange({ label: (e.target as HTMLInputElement).value }); setEditingLabel(false); }
               else if (e.key === "Escape") setEditingLabel(false);
             }}
-            placeholder="Titel …"
+            placeholder="Termin benennen"
             maxLength={120}
             className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
             style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
@@ -194,7 +195,7 @@ function EntryRow({
               color: label ? "var(--v-fg)" : "var(--v-muted)",
             }}
           >
-            {label || "…"}
+            {label || "Termin benennen"}
           </div>
         )}
       </div>
@@ -207,7 +208,7 @@ function EntryRow({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
             onClick={onRemove}
-            aria-label="remove"
+            aria-label="Termin entfernen"
             className="mono text-[12px] opacity-60 hover:opacity-100"
             style={{ color: "var(--v-fg)" }}
           >

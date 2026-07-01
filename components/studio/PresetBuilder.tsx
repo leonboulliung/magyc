@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Dialog } from "@/components/ui/Dialog";
-import { defaultWidget, widgetPickerGroups, widgetPickerSymbolFor } from "@/components/WidgetPicker";
+import { defaultWidget, widgetPickerGroups, widgetPickerSymbolFor } from "@/lib/widgetCatalog";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
 import { WidgetContext } from "@/lib/widgetContext";
 import {
@@ -43,8 +43,11 @@ function cleanDeletedPresets(raw: unknown): Array<StudioPreset & { deletedAt: st
   const cutoff = Date.now() - 30 * 86_400_000;
   return raw.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
-    const deletedAt = (item as { deletedAt?: unknown }).deletedAt;
-    if (typeof deletedAt !== "string" || new Date(deletedAt).getTime() < cutoff) return [];
+    const value = (item as { deletedAt?: unknown }).deletedAt;
+    if (typeof value !== "string") return [];
+    const deletedAt = value;
+    const deletedTime = new Date(deletedAt).getTime();
+    if (!Number.isFinite(deletedTime) || deletedTime < cutoff) return [];
     const preset = cleanStudioPresets([item])?.[0];
     return preset ? [{ ...preset, deletedAt }] : [];
   });
@@ -108,7 +111,7 @@ export function PresetBuilder() {
 
   useEffect(() => {
     if (!hydratedRef.current) return;
-    window.localStorage.setItem(STUDIO_PRESETS_STORAGE_KEY, JSON.stringify(presets));
+    try { window.localStorage.setItem(STUDIO_PRESETS_STORAGE_KEY, JSON.stringify(presets)); } catch { /* account sync remains authoritative */ }
     if (!remoteWritableRef.current) { setSyncState("local"); return; }
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
@@ -132,7 +135,7 @@ export function PresetBuilder() {
 
   useEffect(() => {
     if (!hydratedRef.current) return;
-    window.localStorage.setItem(DELETED_PRESETS_STORAGE_KEY, JSON.stringify(deletedPresets));
+    try { window.localStorage.setItem(DELETED_PRESETS_STORAGE_KEY, JSON.stringify(deletedPresets)); } catch { /* account sync remains authoritative */ }
   }, [deletedPresets]);
 
   const editing = useMemo(() => presets.find((p) => p.id === editingId) || null, [editingId, presets]);

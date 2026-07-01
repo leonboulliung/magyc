@@ -3,6 +3,8 @@
 import { motion } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleType } from "@/lib/types";
+import { defaultWidget, WIDGET_PICKER_GROUPS } from "@/lib/widgetCatalog";
+export { defaultWidget, widgetPickerGroups, widgetPickerSymbolFor } from "@/lib/widgetCatalog";
 
 /**
  * WidgetPicker — a compact dropdown listing the active body widget types,
@@ -117,120 +119,6 @@ function labelFor(type: ModuleType, lang: string, emergent?: Record<string, stri
   return getLangMap(lang)[type] || type.replace("_", " ");
 }
 
-// ── Group structure ──────────────────────────────────────────────────
-interface PickerEntry { type: ModuleType; symbol: string }
-
-const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
-  {
-    symbol: "▧",
-    entries: [
-      { type: "moodboard",   symbol: "▧" },
-      { type: "shot_list",   symbol: "▤" },
-      { type: "images",      symbol: "▨" },
-      { type: "attachments", symbol: "□" },
-      { type: "parts_list",  symbol: "≡" },
-    ],
-  },
-  {
-    symbol: "↩",
-    entries: [
-      { type: "notes",      symbol: "≡" },
-      { type: "qa",         symbol: "?" },
-      { type: "poll",       symbol: "○" },
-    ],
-  },
-  {
-    symbol: "●",
-    entries: [
-      { type: "crew",          symbol: "●" },
-      { type: "work_packages", symbol: "□" },
-      { type: "deliverables",  symbol: "≣" },
-      { type: "approvals",     symbol: "✓" },
-      { type: "checklist",     symbol: "✓" },
-    ],
-  },
-  {
-    symbol: "▤",
-    entries: [
-      { type: "date",         symbol: "▤" },
-      { type: "appointment",  symbol: "◷" },
-      { type: "appointments", symbol: "▦" },
-      { type: "phases",       symbol: "→" },
-    ],
-  },
-  {
-    symbol: "⊙",
-    entries: [
-      { type: "locations_multi",      symbol: "⊙⊙" },
-      { type: "location_suggestions", symbol: "◎" },
-    ],
-  },
-  {
-    symbol: "▦",
-    entries: [
-      { type: "table",      symbol: "▦" },
-    ],
-  },
-  {
-    symbol: "✦",
-    entries: [
-      { type: "ai_summary", symbol: "✦" },
-      { type: "audio",       symbol: "♫" },
-      { type: "sketch",      symbol: "○" },
-    ],
-  },
-];
-
-export function widgetPickerSymbolFor(type: ModuleType): string {
-  for (const group of GROUPS) {
-    const entry = group.entries.find((item) => item.type === type);
-    if (entry) return entry.symbol;
-  }
-  return "□";
-}
-
-/** Canonical visual order shared by the project picker and preset builder. */
-export function widgetPickerGroups(): ModuleType[][] {
-  return GROUPS.map((group) => group.entries.map((entry) => entry.type));
-}
-
-// ── Default configs ──────────────────────────────────────────────────
-export function defaultWidget(type: ModuleType): Module | null {
-  switch (type) {
-    case "ai_summary":           return { type, text: "" };
-    case "icon":                 return { type, iconify: "lucide:star" };
-    case "wikipedia":            return { type, topic: "…" };
-    case "gif":                  return { type, gifUrl: "https://media.tenor.com/RoFLtN1WqOwAAAAC/loading.gif", thumbnailUrl: "" };
-    case "notes":                return { type };
-    case "qa":                   return { type };
-    case "poll":                 return { type, question: "", options: [] };
-    case "crew":                 return { type, roles: [] };
-    case "work_packages":        return { type, packages: [] };
-    case "deliverables":         return { type, items: [] };
-    case "approvals":            return { type, items: [] };
-    case "checklist":            return { type, items: [] };
-    case "date":                 return { type, date: "" };
-    case "appointment":          return { type, datetime: "" };
-    case "appointments":         return { type, entries: [] };
-    case "range":                return { type, unit: "generic", from: "—", to: "—" };
-    case "phases":               return { type, phases: [], currentPhase: 0 };
-    case "location_single":      return null;
-    case "locations_multi":      return { type, locations: [] };
-    case "location_suggestions": return { type, suggestions: [] };
-    case "route":                return null;
-    case "table":                return { type, columns: [], rows: [] };
-    case "shot_list":            return { type, shots: [] };
-    case "parts_list":           return { type, items: [] };
-    case "attachments":          return { type };
-    case "images":               return { type };
-    case "moodboard":            return { type, directions: [] };
-    case "selection":            return { type };
-    case "audio":                return { type };
-    case "sketch":               return { type };
-    default:                     return null;
-  }
-}
-
 // ── Content ──────────────────────────────────────────────────────────
 // Just the grouped grid of widget types. Dismissal / positioning /
 // focus are owned by the Radix Popover this is rendered inside.
@@ -245,11 +133,11 @@ export function WidgetPickerContent({
   const lang = ctx.language || "en";
   const emergent = ctx.labels.widgetLabels;
   const groups = allowedTypes
-    ? GROUPS.map((group) => ({
+    ? WIDGET_PICKER_GROUPS.map((group) => ({
         ...group,
         entries: group.entries.filter((entry) => allowedTypes.has(entry.type)),
       })).filter((group) => group.entries.length > 0)
-    : GROUPS;
+    : WIDGET_PICKER_GROUPS;
 
   return (
     // Width and scrolling are owned by the container (desktop popover /

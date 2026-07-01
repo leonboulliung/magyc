@@ -34,8 +34,8 @@ export function EditControls({
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onCancel}
-        aria-label="cancel"
-        title="Cancel"
+        aria-label="Bearbeitung abbrechen"
+        title="Abbrechen"
         className="mono text-[12px] w-6 h-6 rounded-full flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
         style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)", background: "var(--v-bg)" }}
       >
@@ -45,8 +45,8 @@ export function EditControls({
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onSave}
-        aria-label="save"
-        title="Save"
+        aria-label="Änderung speichern"
+        title="Speichern"
         className="mono text-[12px] w-6 h-6 rounded-full flex items-center justify-center"
         style={{ background: "var(--v-fg)", color: "var(--v-bg)", border: "1px solid var(--v-fg)" }}
       >

@@ -36,6 +36,8 @@ export function LocationPointsEditor({
         const response = await fetch(`/api/geocode?q=${encodeURIComponent(value.trim())}`);
         const json = await response.json().catch(() => ({ results: [] }));
         setResults(Array.isArray(json.results) ? json.results : []);
+      } catch {
+        setResults([]);
       } finally {
         setLoading(false);
       }

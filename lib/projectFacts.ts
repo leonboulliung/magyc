@@ -173,7 +173,8 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
         facts.locations.push(...module.locations.map((location) => clean(location.label, 180)));
         break;
       case "location_suggestions":
-        facts.locations.push(...module.suggestions.map((location) => clean(location.address || location.label, 180)));
+        // Suggestions are deliberately unconfirmed. They must not become a
+        // contractual shooting location until represented by the Orte element.
         break;
       case "route":
         facts.locations.push(...module.stops.map((stop) => clean(stop.label, 180)));
@@ -210,9 +211,12 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
         })).filter((item) => item.label);
         const items = applyEdits([...seeded, ...added], state, moduleIndex, (item, data) => ({
           ...item,
-          label: clean(data.label, 160) || item.label,
+          label: typeof data.label === "string" ? clean(data.label, 160) : item.label,
+          details: typeof data.details === "string" ? clean(data.details, 300) || undefined : item.details,
+          quantity: typeof data.quantity === "string" ? clean(data.quantity, 80) || undefined : item.quantity,
+          format: typeof data.format === "string" ? clean(data.format, 80) || undefined : item.format,
           due: typeof data.due === "string" ? clean(data.due, 80) || undefined : item.due,
-          status: clean(data.status, 40) || item.status,
+          status: typeof data.status === "string" ? clean(data.status, 40) || undefined : item.status,
         }));
         facts.deliverables.push(...items.map(({ id: _id, ...item }) => item));
         break;
@@ -281,6 +285,12 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
           status: clean(data.status, 40) || direction.status,
         }));
         facts.moodboard.push(...directions.map(({ id: _id, ...direction }) => direction));
+        facts.uploads.push(...liveUploads(state, moduleIndex).map((entry) => ({
+          name: clean(entry.data.name, 220) || "Bild",
+          mimeType: clean(entry.data.mimeType, 120) || undefined,
+          size: typeof entry.data.size === "number" ? entry.data.size : undefined,
+          moduleType: module.type,
+        })));
         break;
       }
       case "shot_list": {
@@ -371,17 +381,20 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
       }
       case "poll": {
         const votes = new Map<string, number>();
+        const latestByActor = new Map<string, ModuleStateEntry>();
         for (const entry of entries.filter((item) => item.kind === "vote")) {
+          latestByActor.set(entry.actor.id, entry);
+        }
+        for (const entry of latestByActor.values()) {
           const option = clean(entry.data.option, 160);
           if (option) votes.set(option, (votes.get(option) || 0) + 1);
         }
-        facts.polls.push({
-          question: clean(module.question, 240),
-          options: module.options.map((option) => ({
+        const question = clean(module.question, 240);
+        const options = module.options.map((option) => ({
             label: clean(option, 160),
             votes: votes.get(option) || 0,
-          })),
-        });
+          })).filter((option) => option.label);
+        if (question || options.length) facts.polls.push({ question, options });
         break;
       }
       case "attachments":

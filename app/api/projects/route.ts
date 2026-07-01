@@ -13,6 +13,7 @@ import { parseBody } from "@/lib/api/validate";
 import { cleanSettings } from "@/lib/studioProfile";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { fetchOwnedPreset, materializePresetState } from "@/lib/server/presetMaterialization";
+import { mergeSeededModules, workflowRules } from "@/lib/createPipeline";
 
 // The classifier makes two gpt-4o-mini calls + geocoding — give headroom.
 export const maxDuration = 60;
@@ -142,13 +143,7 @@ export async function POST(req: Request) {
     if (questionId && questionText && choice) answers.push({ questionId, questionText, choice });
     if (answers.length >= 6) break;
   }
-  const seededModules: Module[] = [];
-  const seededTypes = new Set<string>();
-  for (const module of [...presetModules, ...clarifyModules]) {
-    if (seededTypes.has(module.type)) continue;
-    seededTypes.add(module.type);
-    seededModules.push(module);
-  }
+  const seededModules: Module[] = mergeSeededModules(presetModules, clarifyModules);
   const aiAllowed = await takePersistentRateLimit(admin, `ai-project:${userId}`, 60 * 60, 60);
   if (!aiAllowed) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   await ensureProfile(userId);
@@ -172,17 +167,17 @@ export async function POST(req: Request) {
   // Create works with a prompt, with structured fields, or with NOTHING
   // (an empty "just give me a starter project" path).
   const inputBase = buildBriefInput(str(b.prompt), fields);
-  const input = [
-    inputBase,
-    presetName ? `Preset: ${presetName}.` : "",
-    presetPromptInjections.length ? `Preset-Regeln: ${presetPromptInjections.join(" ")}` : "",
-    studioRules.length ? `Studio-Regeln: ${studioRules.join(" ")}` : "",
-  ].filter(Boolean).join(" ").slice(0, 1200);
+  const input = inputBase;
+  const rules = workflowRules(
+    presetName ? [`Gewählter Workflow: ${presetName}.`] : [],
+    presetPromptInjections,
+    studioRules,
+  );
 
   let result;
   const aiStarted = Date.now();
   try {
-    result = await classifyInput(input, answers, seededModules, { projectMode, language: defaultLanguage });
+    result = await classifyInput(input, answers, seededModules, { projectMode, language: defaultLanguage, workflowRules: rules });
   } catch (e) {
     const err = e as { message?: string; status?: number };
     const msg = err.message || "unknown";

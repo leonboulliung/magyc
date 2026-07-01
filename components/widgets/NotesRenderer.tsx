@@ -94,7 +94,7 @@ export function NotesRenderer({
                 style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
               />
               <p className="mono text-[9px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
-                Ctrl/⌘ + Enter saves
+                Strg/⌘ + Enter speichert
               </p>
             </div>
           ) : (
@@ -206,7 +206,7 @@ function NoteCard({
               style={{ color: "var(--v-fg)" }}
             />
             <p className="mono text-[9px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
-              Ctrl/⌘ + Enter saves
+              Ctrl/⌘ + Enter speichert
             </p>
           </div>
         ) : (

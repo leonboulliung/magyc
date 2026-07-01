@@ -27,6 +27,7 @@ import {
   type StudioPreset,
 } from "@/lib/studioPresets";
 import { cleanFastPrompts, type FastPrompt } from "@/lib/studioProfile";
+import { withClarifyAnswer } from "@/lib/createPipeline";
 
 export interface StudioProjectCard {
   id: string;
@@ -460,7 +461,7 @@ export function StudioHome({
                           }}
                           rows={3}
                           maxLength={currentStep.maxLength ?? 240}
-                          placeholder={currentStep.placeholder ?? "…"}
+                          placeholder={currentStep.placeholder ?? "Beschreibe deine Antwort kurz …"}
                           className="w-full resize-none rounded-[28px] p-4 text-[16px] leading-relaxed outline-none placeholder:text-black/28"
                           style={{ border: "1px solid var(--studio-rule)", background: "var(--studio-surface-soft)", color: "var(--studio-ink)" }}
                         />
@@ -508,12 +509,12 @@ export function StudioHome({
                             onChange={(e) => {
                               const v = e.target.value;
                               setCustomDraft(v);
-                              if (v.trim()) setAnswers((a) => ({ ...a, [currentStep.id]: v.trim() }));
+                              setAnswers((a) => withClarifyAnswer(a, currentStep.id, v));
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && customDraft.trim()) goForward();
                             }}
-                            placeholder="…"
+                            placeholder="Eigene Antwort"
                             maxLength={120}
                             className="mono rounded-full bg-transparent px-3 py-1.5 text-[11px] tracking-widest outline-none"
                             style={{
@@ -542,7 +543,7 @@ export function StudioHome({
                 <motion.button
                   onClick={goForward}
                   disabled={busy}
-                  aria-label={isLastStep ? "build" : "next"}
+                  aria-label={isLastStep ? "Projekt erstellen" : "Nächste Rückfrage"}
                   className="mono rounded-full bg-[#17171a] px-5 py-2 text-[11px] tracking-widest text-white disabled:opacity-30"
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}

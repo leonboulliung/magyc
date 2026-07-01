@@ -3,35 +3,24 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getProjectAccess } from "@/lib/server/projectAccess";
+import {
+  canAccessUnstagedUpload,
+  isMimeAllowed,
+  isMimeAllowedForModule,
+  MAX_UPLOAD_SIZE_BYTES,
+  PROJECT_UPLOAD_QUOTA_BYTES,
+} from "@/lib/uploadPolicy";
+
+export { isMimeAllowed, isMimeAllowedForModule, MAX_UPLOAD_SIZE_BYTES, PROJECT_UPLOAD_QUOTA_BYTES };
 
 export const ASSET_BUCKET = "space_assets";
-export const MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
-export const PROJECT_UPLOAD_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
-
-const ALLOWED_MIME_PREFIXES = [
-  "image/",
-  "audio/",
-  "video/mp4",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.ms-excel",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats",
-  "application/vnd.oasis",
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-];
-
-export function isMimeAllowed(mime: string): boolean {
-  return ALLOWED_MIME_PREFIXES.some((p) => mime.startsWith(p));
-}
 
 export interface UploadActor {
   kind: "user" | "anon";
   id: string;
   displayName: string | null;
   userId: string | null;
+  anonToken: string | null;
 }
 
 export interface SpaceForUpload {
@@ -40,6 +29,8 @@ export interface SpaceForUpload {
   stage: string | null;
   shared: boolean | null;
   owner_id: string | null;
+  anon_owner_token: string | null;
+  visibility: string | null;
 }
 
 export function cleanFileName(name: string): string {
@@ -80,6 +71,7 @@ export async function identifyUploadActor(input: {
       id: userId,
       userId,
       displayName: typeof input.anonName === "string" ? input.anonName.trim().slice(0, 40) || null : null,
+      anonToken: typeof input.anonToken === "string" ? input.anonToken.trim().slice(0, 64) || null : null,
     };
   } else {
     const token = typeof input.anonToken === "string" ? input.anonToken.trim() : "";
@@ -91,6 +83,7 @@ export async function identifyUploadActor(input: {
       id: token.slice(0, 64),
       userId: null,
       displayName: typeof input.anonName === "string" ? input.anonName.trim().slice(0, 40) || null : null,
+      anonToken: token.slice(0, 64),
     };
   }
   return actor;
@@ -110,7 +103,7 @@ export async function hydrateActorName(admin: SupabaseClient, actor: UploadActor
 export async function fetchSpaceForUpload(admin: SupabaseClient, spaceId: string): Promise<SpaceForUpload | null> {
   const { data, error } = await admin
     .from("spaces")
-    .select("id, modules, stage, shared, owner_id")
+    .select("id, modules, stage, shared, owner_id, anon_owner_token, visibility")
     .eq("id", spaceId)
     .maybeSingle();
   if (error) throw error;
@@ -122,7 +115,15 @@ export async function canAccessSpace(
   space: SpaceForUpload,
   actor: UploadActor,
 ): Promise<boolean> {
-  if (!space.stage) return true;
+  if (!space.stage) {
+    return canAccessUnstagedUpload({
+      actorUserId: actor.userId,
+      actorAnonToken: actor.anonToken,
+      ownerId: space.owner_id,
+      ownerAnonToken: space.anon_owner_token,
+      visibility: space.visibility,
+    });
+  }
   if (actor.kind === "anon") return space.shared === true;
   const role = await getProjectAccess(admin, {
     spaceId: space.id,
@@ -135,6 +136,12 @@ export async function canAccessSpace(
 
 export function moduleExists(space: SpaceForUpload, moduleIndex: number): boolean {
   return Array.isArray(space.modules) && moduleIndex >= 0 && moduleIndex < space.modules.length;
+}
+
+export function moduleTypeAt(space: SpaceForUpload, moduleIndex: number): unknown {
+  if (!moduleExists(space, moduleIndex)) return null;
+  const module = (space.modules as unknown[])[moduleIndex];
+  return module && typeof module === "object" ? (module as { type?: unknown }).type : null;
 }
 
 export async function takePersistentRateLimit(

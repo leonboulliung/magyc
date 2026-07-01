@@ -15,6 +15,7 @@ import {
   extensionFromName,
   isAssetPathForPreset,
   isMimeAllowed,
+  isMimeAllowedForModule,
   MAX_UPLOAD_SIZE_BYTES,
   presetAssetPrefix,
   PROJECT_UPLOAD_QUOTA_BYTES,
@@ -68,6 +69,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const moduleCount = Array.isArray(preset.modules) ? preset.modules.length : 0;
   if (body.moduleIndex >= moduleCount) {
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
+  }
+  const module = Array.isArray(preset.modules) ? preset.modules[body.moduleIndex] : null;
+  const moduleType = module && typeof module === "object" ? (module as { type?: unknown }).type : null;
+  if (!isMimeAllowedForModule(moduleType, body.mimeType)) {
+    return NextResponse.json({ error: "mime_not_allowed_for_module" }, { status: 415 });
   }
   const templateState = cleanPresetState(preset.template_state, moduleCount);
   const usage = templateState.reduce((sum, entry) => (

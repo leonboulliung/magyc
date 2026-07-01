@@ -117,13 +117,18 @@ describe("photography prompt boundary", () => {
         style: { font: "Inter", color1: "#17171a", color2: "#5b7cfa", background: "#f4f4f1" },
       }));
 
-    const result = await classifyInput("Product photography in Berlin", [], [], { language: "de" });
+    const result = await classifyInput("Product photography in Berlin", [], [], {
+      language: "de",
+      workflowRules: ["Immer eine Kund:innenfreigabe einplanen."],
+    });
 
     expect(result.language).toBe("de");
     expect(result.title).toBe("Produktfotografie in Berlin");
     expect(createCompletion).toHaveBeenCalledTimes(2);
     expect(createCompletion.mock.calls[0][0].messages[0].content).toContain("fixed output language is German (de)");
     expect(createCompletion.mock.calls[1][0].messages[0].content).toContain("OUTPUT LANGUAGE: German (code: de)");
+    expect(createCompletion.mock.calls[0][0].messages[1].content).toContain("WORKFLOW RULES");
+    expect(createCompletion.mock.calls[1][0].messages[1].content).toContain("Immer eine Kund:innenfreigabe einplanen.");
   });
 
   it("never reaches authoring when analysis rejects the domain", async () => {
