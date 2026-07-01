@@ -8,6 +8,8 @@ import type { ModuleStateEntry, PartsListWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
 import { useInlineEdit } from "./useInlineEdit";
+import { UploadZone, IMAGE_ACCEPT } from "./UploadZone";
+import { useAssetUrls } from "./useAssetUrls";
 
 interface Item {
   key: string;
@@ -41,6 +43,15 @@ export function PartsListRenderer({
   const [pendingName, setPendingName] = useState("");
   const [pendingQty, setPendingQty] = useState("");
   const [pendingUrl, setPendingUrl] = useState("");
+
+  // Item images may be pasted URLs or private upload paths; sign the paths so
+  // the thumbnails render. http URLs pass through untouched.
+  const signed = useAssetUrls(
+    ctx.spaceId,
+    items.map((it) => it.imageUrl || "").filter((r) => r && !/^https?:\/\//i.test(r)),
+  );
+  const resolveImg = (ref?: string) =>
+    !ref ? "" : /^https?:\/\//i.test(ref) ? ref : signed[ref] || "";
 
   async function add(keepOpen = false) {
     const name = cleanText(pendingName, 120);
@@ -116,7 +127,14 @@ export function PartsListRenderer({
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.15 }}
               >
-                <PartRow item={item} onSave={(patch) => updateItem(item.key, patch)} onDelete={() => deleteItem(item.key)} />
+                <PartRow
+                  item={item}
+                  spaceId={ctx.spaceId}
+                  moduleIndex={index}
+                  resolveImg={resolveImg}
+                  onSave={(patch) => updateItem(item.key, patch)}
+                  onDelete={() => deleteItem(item.key)}
+                />
               </motion.li>
             ))}
           </AnimatePresence>
@@ -148,7 +166,7 @@ export function PartsListRenderer({
                   style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                 />
                 <input
-                  value={pendingUrl}
+                  value={/^https?:\/\//i.test(pendingUrl) ? pendingUrl : ""}
                   onChange={(e) => setPendingUrl(e.target.value)}
                   placeholder="Bild-URL optional"
                   maxLength={500}
@@ -164,6 +182,21 @@ export function PartsListRenderer({
                 >
                   Speichern
                 </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <UploadZone
+                  spaceId={ctx.spaceId}
+                  moduleIndex={index}
+                  accept={IMAGE_ACCEPT}
+                  multiple={false}
+                  compact
+                  onDone={(files) => { if (files[0]?.path) setPendingUrl(files[0].path); }}
+                >
+                  <span className="mono text-[10px] tracking-widest opacity-70">+ Bild hochladen</span>
+                </UploadZone>
+                {pendingUrl && !/^https?:\/\//i.test(pendingUrl) && (
+                  <span className="mono text-[10px] tracking-widest opacity-60" style={{ color: "var(--v-muted)" }}>✓ Bild angehängt</span>
+                )}
               </div>
             </div>
           ) : (
@@ -185,10 +218,16 @@ export function PartsListRenderer({
 
 function PartRow({
   item,
+  spaceId,
+  moduleIndex,
+  resolveImg,
   onSave,
   onDelete,
 }: {
   item: Item;
+  spaceId: string;
+  moduleIndex: number;
+  resolveImg: (ref?: string) => string;
   onSave: (patch: Partial<Pick<Item, "name" | "quantity" | "imageUrl">>) => void;
   onDelete: () => void;
 }) {
@@ -221,9 +260,9 @@ function PartRow({
       </button>
       <div className="flex items-start gap-3 pr-7">
         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px]" style={{ border: "1px solid var(--v-rule)", background: "rgba(255,255,255,0.05)" }}>
-          {item.imageUrl ? (
+          {resolveImg(item.imageUrl) ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+            <img src={resolveImg(item.imageUrl)} alt={item.name} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center mono text-[9px] opacity-45" style={{ color: "var(--v-muted)" }}>
               Bild
@@ -252,7 +291,30 @@ function PartRow({
 
           <div className="grid gap-1.5 sm:grid-cols-2">
             <MiniField edit={quantityEdit} value={item.quantity ?? ""} placeholder="Anzahl / Status" />
-            <MiniField edit={imageEdit} value={item.imageUrl ?? ""} placeholder="Bild-URL" />
+            <div className="flex items-center gap-1.5">
+              <UploadZone
+                spaceId={spaceId}
+                moduleIndex={moduleIndex}
+                accept={IMAGE_ACCEPT}
+                multiple={false}
+                compact
+                onDone={(files) => { if (files[0]?.path) onSave({ imageUrl: files[0].path }); }}
+              >
+                <span className="mono text-[10px] tracking-widest opacity-70">{item.imageUrl ? "Bild ändern" : "+ Bild"}</span>
+              </UploadZone>
+              {item.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => onSave({ imageUrl: "" })}
+                  className="mono text-[10px] tracking-widest opacity-50 transition-opacity hover:opacity-100"
+                  style={{ color: "var(--v-muted)" }}
+                >
+                  entfernen
+                </button>
+              ) : (
+                <MiniField edit={imageEdit} value={/^https?:\/\//i.test(item.imageUrl ?? "") ? (item.imageUrl ?? "") : ""} placeholder="oder URL" />
+              )}
+            </div>
           </div>
         </div>
         {item.authorName && (
@@ -351,7 +413,14 @@ function cleanText(value: unknown, max: number): string {
   return text === "…" || text === "..." ? "" : text.slice(0, max);
 }
 
+/**
+ * An image reference is either a pasted http(s) URL or a private Storage path
+ * from an in-app upload (e.g. "<spaceId>/<idx>/<file>"). Both are valid; the
+ * path is resolved to a signed, displayable URL at render time.
+ */
 function cleanUrl(value: unknown): string {
   const text = cleanText(value, 500);
-  return /^https?:\/\/[^\s]+$/i.test(text) ? text : "";
+  if (/^https?:\/\/[^\s]+$/i.test(text)) return text;
+  if (/^[A-Za-z0-9._-]+\/[A-Za-z0-9._\-/]+$/.test(text)) return text;
+  return "";
 }
