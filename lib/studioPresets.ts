@@ -24,6 +24,8 @@ export const HIDDEN_PRESET_TYPES = new Set<ModuleType>([
   "sketch",
   "range",
   "selection",
+  "location_single",
+  "route",
 ]);
 
 export const PRESET_ELEMENT_TYPES = bodyTypes().filter((type) => !HIDDEN_PRESET_TYPES.has(type));
@@ -226,6 +228,30 @@ function uniquePresetIds(presets: StudioPreset[]): StudioPreset[] {
   });
 }
 
+/** Fold historic single-place and route presets into the canonical places module. */
+function canonicalPresetModule(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const module = raw as Record<string, unknown>;
+  if (module.type === "location_single") {
+    const center = Array.isArray(module.center) ? module.center : [];
+    return {
+      ...module,
+      type: "locations_multi",
+      microTitle: module.microTitle || "Orte",
+      locations: center.length === 2 ? [{ lng: center[0], lat: center[1], label: module.label }] : [],
+    };
+  }
+  if (module.type === "route") {
+    return {
+      ...module,
+      type: "locations_multi",
+      microTitle: module.microTitle || "Orte",
+      locations: Array.isArray(module.stops) ? module.stops : [],
+    };
+  }
+  return raw;
+}
+
 export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
   if (!Array.isArray(raw)) return null;
   const parsed = raw
@@ -233,6 +259,7 @@ export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
       const candidate = item as Partial<StudioPreset>;
       const rawModules = Array.isArray(candidate.modules)
         ? candidate.modules
+            .map(canonicalPresetModule)
             .map(sanitizeModule)
             .filter((module): module is Module => !!module && PRESET_ELEMENT_TYPE_SET.has(module.type))
         : [];
@@ -241,6 +268,13 @@ export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
       rawModules.forEach((module, rawIndex) => {
         const existingIndex = modules.findIndex((current) => current.type === module.type);
         if (existingIndex >= 0) {
+          const existing = modules[existingIndex];
+          if (existing.type === "locations_multi" && module.type === "locations_multi") {
+            modules[existingIndex] = {
+              ...existing,
+              locations: [...existing.locations, ...module.locations].slice(0, 24),
+            };
+          }
           moduleIndexMap.set(rawIndex, existingIndex);
           return;
         }

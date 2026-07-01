@@ -49,6 +49,22 @@ export function PhasesRenderer({
     void ctx.saveModule(index, { ...m, phases: nextPhases, currentPhase: 0 }, { quiet: true });
   }
 
+  if (phases.length === 0) {
+    return (
+      <WidgetShell module={m} index={index}>
+        <WidgetCard microTitle={m.microTitle} description={m.description}>
+          {ctx.isOwner ? (
+            <button type="button" onClick={() => savePresetPhases([{ label: "" }])} className="mono rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>
+              + Erste Phase hinzufügen
+            </button>
+          ) : (
+            <p className="text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>Noch keine Phasen festgelegt.</p>
+          )}
+        </WidgetCard>
+      </WidgetShell>
+    );
+  }
+
   if (presetMode) {
     return (
       <WidgetShell module={m} index={index}>
@@ -63,7 +79,7 @@ export function PhasesRenderer({
                     <InlineText value={phase.description ?? ""} isOwner multiline onSave={(description) => savePresetPhases(phases.map((item, index) => index === phaseIndex ? { ...item, description } : item))} placeholder="Optional beschreiben" className="text-[11px]" />
                   </div>
                 </div>
-                {phases.length > 2 && <button type="button" onClick={() => savePresetPhases(phases.filter((_, index) => index !== phaseIndex))} aria-label="Phase entfernen" className="mono text-[12px] opacity-45 hover:opacity-100">×</button>}
+                <button type="button" onClick={() => savePresetPhases(phases.filter((_, index) => index !== phaseIndex))} aria-label="Phase entfernen" className="mono text-[12px] opacity-45 hover:opacity-100">×</button>
               </div>
             ))}
           </div>

@@ -44,9 +44,8 @@ import {
  *     Language is passed as a hard constraint, repeated, so project wording
  *     cannot silently change the account's language.
  *
- * Coordinate map widgets (location_single, locations_multi, route) are
- * NOT AI-authored — they need geocoding the model cannot invent.
- * Place needs are served by location_suggestions (a text+vote list).
+ * Places use one canonical multi-location element. Exact addresses are
+ * resolved by geocoding; undecided ideas use the suggestion element.
  */
 
 // ── The body widgets the AI is allowed to author ──────────────────────
@@ -55,7 +54,7 @@ import {
 const SCORING_GROUPS: { title: string; types: ModuleType[] }[] = [
   { title: "REFERENCE & FRAMING", types: ["ai_summary"] },
   { title: "TIME & SEQUENCE", types: ["date", "appointment", "appointments", "phases"] },
-  { title: "PLACE", types: ["location_single", "locations_multi", "location_suggestions", "route"] },
+  { title: "PLACE", types: ["locations_multi", "location_suggestions"] },
   { title: "PEOPLE & WORK", types: ["crew", "work_packages", "deliverables", "checklist"] },
   { title: "QUESTIONS & DECISIONS", types: ["notes", "qa", "poll", "approvals"] },
   { title: "STRUCTURED DATA", types: ["table", "shot_list", "parts_list"] },
@@ -67,7 +66,7 @@ const AI_SCORABLE_TYPES: ModuleType[] = SCORING_GROUPS.flatMap((g) => g.types);
 // Redundancy groups — at most one widget from each per space.
 const DATE_GROUP: ReadonlySet<ModuleType> = new Set(["date", "appointment", "appointments"]);
 const PLACE_GROUP: ReadonlySet<ModuleType> = new Set([
-  "location_single", "locations_multi", "location_suggestions", "route",
+  "locations_multi", "location_suggestions",
 ]);
 
 // Selection tuning. The scorer is prompted to be strict, so the
@@ -151,7 +150,7 @@ EXPLICIT (evidence, not preference) — list ONLY widget types for which the
 input (or clarifications) names concrete, real content that belongs in that
 exact widget. This is a conservative, factual signal — an empty list is fine.
 Examples: named camera/lens/equipment → parts_list; two or more named,
-geocodable venues → locations_multi; one named venue → location_single;
+one or several geocodable venues → locations_multi;
 explicitly named team roles → crew; an explicit date/time → date or
 appointment; explicitly listed deliverables → deliverables. Do NOT list a type
 just because it would be nice — only when the user actually stated the content.
@@ -333,9 +332,7 @@ export function selectModuleTypes(
 /** Compact JSON shape hint per authorable widget type. */
 const SHAPE: Partial<Record<ModuleType, string>> = {
   ai_summary: `{"type":"ai_summary","microTitle":"<short label>","text":"<2-4 sentence abstract take>"}`,
-  location_single: `{"type":"location_single","microTitle":"<short label>","query":"<a REAL, specific, geocodable place — full name incl. city/country, e.g. 'Parc des Buttes-Chaumont, Paris'>","label":"<short display name>"}`,
   locations_multi: `{"type":"locations_multi","microTitle":"<short label>","queries":[{"query":"<real geocodable place incl. city>","label":"<short>"}]}`,
-  route: `{"type":"route","microTitle":"<short label>","stops":[{"query":"<real geocodable place incl. city>","label":"<short>"}]}`,
   location_suggestions: `{"type":"location_suggestions","microTitle":"<short label>","suggestions":[{"label":"<real place name or place type>","address":"<optional>"}]}`,
   date: `{"type":"date","microTitle":"<short label>","date":"YYYY-MM-DD"}`,
   appointment: `{"type":"appointment","microTitle":"<short label>","datetime":"<ISO 8601>"}`,
@@ -450,8 +447,8 @@ CONTENT RULES:
   crew useful as roles, and appointments/ranges useful only when the
   input or clarifications provide real timing. Keep unconfirmed details
   phrased as questions, suggestions, or assumptions rather than facts.
-- For map widgets (location_single, locations_multi, route), the
-  "query" must be a SPECIFIC, named, geocodable VENUE or address —
+- For locations_multi, every "query" must be a SPECIFIC, named,
+  geocodable VENUE or address —
   a hall, park, café, landmark, street address — with its city and
   country (e.g. "Parc des Buttes-Chaumont, Paris, France"). A bare
   city or district name ("Paris", "11e arrondissement") is NOT

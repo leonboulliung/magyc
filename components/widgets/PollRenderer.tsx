@@ -97,10 +97,8 @@ export function PollRenderer({
           />
         </div>
 
-        {options.length === 0 && (
-          <p className="mono mb-3 rounded-[var(--v-radius)] px-3 py-3 text-[11px] leading-relaxed opacity-55" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}>
-            {ctx.isOwner ? "Lege Antwortoptionen an, damit abgestimmt werden kann." : "Diese Umfrage ist noch nicht vorbereitet."}
-          </p>
+        {options.length === 0 && !ctx.isOwner && (
+          <p className="mb-2 text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>Diese Umfrage ist noch nicht vorbereitet.</p>
         )}
 
         <ul className="space-y-2">
@@ -221,7 +219,7 @@ export function PollRenderer({
             className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 hover:opacity-100"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           >
-            + Option hinzufügen
+            {options.length === 0 ? "+ Erste Option hinzufügen" : "+ Option hinzufügen"}
           </button>
         )}
 

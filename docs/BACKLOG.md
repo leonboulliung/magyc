@@ -5,15 +5,16 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-06-30 (Codex — brand typography refresh)_
+_Last updated: 2026-07-01 (Codex — preset and element consolidation)_
 
 ---
 
 ## TODO — next operational step
 
 - [ ] **Apply migration 027 in Supabase.** This enables the Preset page's
-  30-day recently-deleted area. Code remains compatible before the migration,
-  but deletion falls back to the previous immediate-delete behavior.
+  server-synchronized 30-day recently-deleted area. Code remains compatible
+  before the migration and preserves the queue locally across navigation, but
+  server rows still use the previous immediate-delete behavior.
 - [ ] **Create and configure the Clerk production instance.** Clerk Doctor
   confirms that MAGYC currently has only a development instance; the Vercel
   production deployment consequently uses test credentials. Replace the
@@ -49,6 +50,25 @@ _Last updated: 2026-06-30 (Codex — brand typography refresh)_
    revision-guarded, but positional `module_state` movement still spans several
    SQL writes. Add service-role RPCs so a mid-operation outage cannot leave
    element state attached to the wrong index.
+
+## Done 2026-07-01 — preset retention and canonical elements
+
+- Persisted the 30-day deleted-preset queue locally and merged it with server
+  retention, closing the navigation race before migration 027 lands.
+- Made Preset element selection searchable, height-bounded and horizontally
+  progressive on small screens; active elements remain compact tags above one
+  real renderer preview.
+- Consolidated new Ort/Orte/Route usage into one canonical `Orte` renderer with
+  the editable place list above an inset map. Historic project data still uses
+  its frozen contract shape; historic preset data migrates without dropping
+  pins. Renamed Ortsvorschläge to the general Vorschläge element.
+- Removed fabricated defaults from newly added places, phases, dates, terms,
+  schedules and tables; empty configurable widgets now survive sanitization.
+  Simplified empty-state actions, tightened shared widget spacing and changed
+  Studio project hover from lift to centered growth.
+- Verification: TypeScript clean, 42 Vitest checks pass, production build clean,
+  40 parallel home requests returned HTTP 200. Auth-gated Studio routes redirect
+  and protected preset APIs reject anonymous access as expected.
 
 ## Done 2026-06-30 — production incident and code audit
 

@@ -116,10 +116,7 @@ export function ApprovalsRenderer({
             className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
           >
-            <div className="mono text-[11px] tracking-widest">Noch keine Freigaben angelegt.</div>
-            <div className="mono mt-2 text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>
-              + Eintrag hinzufügen
-            </div>
+            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>+ Erste Freigabe hinzufügen</div>
           </button>
         ) : (
         <div className="space-y-2">

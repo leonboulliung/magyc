@@ -23,7 +23,7 @@ export function WidgetCard({
   bare?: boolean;
   allowOverflow?: boolean;
 }) {
-  const paddedClass = microTitle ? "p-4" : "px-4 pb-4 pt-10";
+  const paddedClass = microTitle ? "p-3.5" : "px-3.5 pb-3.5 pt-8";
   return (
     <motion.div
       className={`min-w-0 rounded-[var(--v-radius)] [overflow-wrap:anywhere] ${bare ? (allowOverflow ? "overflow-visible" : "overflow-hidden") : `${paddedClass} overflow-hidden`}`}
@@ -43,7 +43,7 @@ export function WidgetCard({
           corner and read as "outside" the card. */}
       {microTitle && (
         <div
-          className={`mono text-[10px] tracking-widest uppercase mb-3 ${bare ? "px-4 pt-4" : ""}`}
+          className={`mono mb-2.5 text-[10px] uppercase tracking-widest ${bare ? "px-3.5 pt-3.5" : ""}`}
           style={{ color: "var(--v-muted)" }}
         >
           {microTitle}
@@ -51,12 +51,12 @@ export function WidgetCard({
       )}
       {children}
       {description && (
-        <p className={`mono text-[10px] mt-3 ${bare ? "px-4" : ""}`} style={{ color: "var(--v-muted)" }}>
+        <p className={`mono mt-2.5 text-[10px] ${bare ? "px-3.5" : ""}`} style={{ color: "var(--v-muted)" }}>
           {description}
         </p>
       )}
       {attribution && (
-        <p className={`mono text-[9px] mt-2 opacity-60 ${bare ? "px-4 pb-3" : ""}`} style={{ color: "var(--v-muted)" }}>
+        <p className={`mono mt-2 text-[9px] opacity-60 ${bare ? "px-3.5 pb-3" : ""}`} style={{ color: "var(--v-muted)" }}>
           ↗ {attribution.name} ·{" "}
           <a href={attribution.url} target="_blank" rel="noreferrer noopener" className="underline">
             {attribution.license}

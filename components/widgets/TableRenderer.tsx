@@ -123,11 +123,11 @@ export function TableRenderer({
 
         {ctx.isOwner && (
           <div className="mt-3 flex gap-2 flex-wrap">
-            <button onClick={addRow} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)" }}>
-              + row
-            </button>
+            {m.columns.length > 0 && <button onClick={addRow} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)" }}>
+              + Zeile hinzufügen
+            </button>}
             <button onClick={addColumn} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)" }}>
-              + col
+              {m.columns.length === 0 ? "+ Erste Spalte hinzufügen" : "+ Spalte hinzufügen"}
             </button>
             {m.rows.length > 0 && (
               <button onClick={() => removeRow(m.rows.length - 1)} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-50 hover:opacity-100">

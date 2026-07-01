@@ -9,7 +9,7 @@ import { WidgetCard, ActorDot } from "./WidgetCard";
 import { InlineText } from "./InlineText";
 
 /**
- * Location-Vorschläge — candidate places as a TEXT list with vote
+ * Vorschläge — candidate ideas as a TEXT list with vote
  * dots stacked on the right, no visible map.
  *
  * Votes live in module_state as `vote` actions carrying { option }
@@ -84,7 +84,7 @@ export function LocationSuggestionsRenderer({
     <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {m.suggestions.length === 0 && (
-          <p className="mono text-[11px] opacity-50" style={{ color: "var(--v-muted)" }}>Noch keine Orts-Vorschläge.</p>
+          <p className="text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>Noch keine Vorschläge.</p>
         )}
 
         <ul className="space-y-2">
@@ -123,7 +123,7 @@ export function LocationSuggestionsRenderer({
                       value={sug.label}
                       isOwner={ctx.isOwner}
                       onSave={(value) => patchSuggestion(i, { label: value })}
-                      placeholder="Ort oder Idee benennen"
+                      placeholder="Vorschlag benennen"
                       className="text-[13px] leading-snug"
                     />
                     {(ctx.isOwner || sug.address) && (
@@ -132,7 +132,7 @@ export function LocationSuggestionsRenderer({
                           value={sug.address ?? ""}
                           isOwner={ctx.isOwner}
                           onSave={(value) => patchSuggestion(i, { address: value })}
-                          placeholder="Adresse oder Hinweis ergänzen"
+                          placeholder="Details oder Hinweis ergänzen"
                           className="mono text-[10px] opacity-60"
                         />
                       </div>
@@ -170,7 +170,7 @@ export function LocationSuggestionsRenderer({
                     <button
                       type="button"
                       onClick={() => removeSuggestion(i)}
-                      aria-label="Ortsvorschlag entfernen"
+                      aria-label="Vorschlag entfernen"
                       className="mono grid h-6 w-6 shrink-0 place-items-center rounded-full text-[13px] opacity-45 transition-opacity hover:opacity-100"
                       style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
                     >
@@ -189,7 +189,7 @@ export function LocationSuggestionsRenderer({
             className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           >
-            + Ort hinzufügen
+            + Vorschlag hinzufügen
           </button>
         )}
       </WidgetCard>

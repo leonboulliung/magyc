@@ -98,12 +98,7 @@ export function CrewRenderer({
               cursor: ctx.isOwner ? "pointer" : "default",
             }}
           >
-            <div className="mono text-[11px] tracking-widest">Noch keine Rollen angelegt.</div>
-            {ctx.isOwner && (
-              <div className="mono mt-2 text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>
-                + Mitglied hinzufügen
-              </div>
-            )}
+            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{ctx.isOwner ? "+ Erstes Mitglied hinzufügen" : "Noch keine Mitglieder"}</div>
           </button>
         ) : (
           <ul className="space-y-2">

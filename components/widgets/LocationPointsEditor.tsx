@@ -6,7 +6,7 @@ export type LocationPoint = { lng: number; lat: number; label?: string };
 
 type GeoMatch = { label: string; lng: number; lat: number };
 
-/** Shared place editor for multi-location and route widgets. */
+/** Shared place editor used everywhere a project or preset configures places. */
 export function LocationPointsEditor({
   points,
   onChange,
@@ -57,7 +57,7 @@ export function LocationPointsEditor({
   }
 
   return (
-    <div className="relative z-20 px-4 pb-3 pt-3">
+    <div className="relative z-20 px-3.5 pb-3 pt-1">
       <div className="space-y-1.5">
         {points.map((point, index) => (
           <div key={`${point.lng}-${point.lat}-${index}`} className="group/location flex min-w-0 items-center gap-2 rounded-[var(--v-radius)] px-3 py-2" style={{ border: "1px solid var(--v-rule)" }}>
@@ -65,7 +65,7 @@ export function LocationPointsEditor({
             <button type="button" onClick={() => begin(index)} className="min-w-0 flex-1 truncate text-left text-[12px]" style={{ color: "var(--v-fg)" }}>
               {point.label || `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`}
             </button>
-            <button type="button" onClick={() => begin(index)} className="text-[10px] opacity-0 transition-opacity group-hover/location:opacity-55" style={{ color: "var(--v-muted)" }}>Ändern</button>
+            <button type="button" onClick={() => begin(index)} className="text-[10px] opacity-60 transition-opacity hover:opacity-100" style={{ color: "var(--v-muted)" }}>Bearbeiten</button>
             {points.length > minItems && (
               <button type="button" onClick={() => onChange(points.filter((_, current) => current !== index))} aria-label="Ort entfernen" className="mono grid h-5 w-5 place-items-center rounded-full text-[12px] opacity-45 hover:opacity-100" style={{ color: "var(--v-muted)" }}>×</button>
             )}
@@ -97,7 +97,7 @@ export function LocationPointsEditor({
           )}
         </div>
       ) : (
-        <button type="button" onClick={() => begin("new")} className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>
+        <button type="button" onClick={() => begin("new")} className="mono mt-2 rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>
           {addLabel}
         </button>
       )}

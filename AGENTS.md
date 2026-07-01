@@ -100,12 +100,17 @@ their server/client semantics change.
    The preset editor renders those same widgets in `WidgetContext.mode =
    "preset"`: configuration stays shared, while project-only voting, claiming,
    checking, fullscreen, and grid chrome are suppressed. Migration 027 adds
-   30-day soft deletion for presets.
+   30-day soft deletion for presets; the client also retains the recent-deletion
+   queue locally so navigation cannot erase it before that migration is applied.
+   New project and preset flows expose one canonical `locations_multi` element
+   (`Orte`). Historic `location_single` and `route` data stays renderable and is
+   folded into `locations_multi` when an old preset is loaded. Keep all three
+   legacy contract shapes until a deliberate contract migration.
    Dashboard cards come from the service-role-only
    `studio_project_summaries(user_id)` RPC (migration 023), which returns lean
    activity/count data for owned and explicitly assigned projects.
-3. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores all
-   30 body module types 0–10 against the input (gpt-4o-mini); the **server**
+3. **Classifier (`lib/server/classify.ts`)**: two-stage. Stage A scores the
+   currently offered body module types 0–10 against the input (gpt-4o-mini); the **server**
    deterministically selects (threshold + redundancy caps: max one date
    widget, max one place widget). Stage B authors content for the chosen
    types in the detected language, plus title, labels, style (font + 3

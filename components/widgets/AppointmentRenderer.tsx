@@ -55,7 +55,7 @@ export function AppointmentRenderer({
               className="w-full text-center"
               style={{ cursor: ctx.isOwner ? "text" : "default" }}
             >
-              <div className="leading-none">
+              {m.datetime ? <div className="leading-none">
                 <div className="mono text-[11px] tracking-[0.28em] opacity-60" style={{ color: "var(--v-muted)" }}>
                   {parts.weekday}
                 </div>
@@ -73,7 +73,7 @@ export function AppointmentRenderer({
                     {m.timezone}
                   </div>
                 )}
-              </div>
+              </div> : <span className="mono rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>+ Termin festlegen</span>}
             </button>
           )}
         </div>

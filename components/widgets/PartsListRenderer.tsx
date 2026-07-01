@@ -105,12 +105,6 @@ export function PartsListRenderer({
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        {items.length === 0 && (
-          <p className="mono mb-3 rounded-[var(--v-radius)] px-3 py-3 text-[11px] leading-relaxed opacity-55" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}>
-            Requisiten, Technik, Produkte oder Styling-Teile hinzufügen.
-          </p>
-        )}
-
         <ul className="space-y-2">
           <AnimatePresence initial={false}>
             {items.map((item) => (
@@ -180,7 +174,7 @@ export function PartsListRenderer({
               className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              + Eintrag hinzufügen
+              {items.length === 0 ? "+ Ersten Eintrag hinzufügen" : "+ Eintrag hinzufügen"}
             </button>
           )}
         </div>

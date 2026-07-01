@@ -23,4 +23,12 @@ describe("sanitizeModule", () => {
       items: [{ text: "", audience: "client" }],
     });
   });
+
+  it("keeps intentionally empty configurable widgets without fake content", () => {
+    expect(sanitizeModule({ type: "locations_multi", locations: [] })).toEqual({ type: "locations_multi", locations: [] });
+    expect(sanitizeModule({ type: "location_suggestions", suggestions: [] })).toEqual({ type: "location_suggestions", suggestions: [] });
+    expect(sanitizeModule({ type: "phases", phases: [], currentPhase: 0 })).toEqual({ type: "phases", phases: [], currentPhase: 0 });
+    expect(sanitizeModule({ type: "appointments", entries: [] })).toEqual({ type: "appointments", entries: [] });
+    expect(sanitizeModule({ type: "table", columns: [], rows: [] })).toEqual({ type: "table", columns: [], rows: [] });
+  });
 });

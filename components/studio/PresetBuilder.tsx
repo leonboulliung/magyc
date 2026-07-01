@@ -25,7 +25,7 @@ import type { Module, ModuleType, SpaceLabels } from "@/lib/types";
 const LABELS: Record<ModuleType, string> = {
   heading: "Titel", rich_text: "Text", tags: "Tags", wikipedia: "Wikipedia",
   ai_summary: "KI-Einschätzung", icon: "Icon", location_single: "Ort",
-  locations_multi: "Orte", location_suggestions: "Ortsvorschläge", route: "Route",
+  locations_multi: "Orte", location_suggestions: "Vorschläge", route: "Orte (alt)",
   date: "Datum", appointment: "Termin", appointments: "Termine", range: "Von - Bis",
   crew: "Team & Rollen", work_packages: "Aufgaben", deliverables: "Deliverables",
   approvals: "Freigaben", notes: "Notizen", qa: "Fragen", poll: "Umfrage",
@@ -35,6 +35,20 @@ const LABELS: Record<ModuleType, string> = {
   table: "Tabelle / Technikliste", shot_list: "Shotlist",
   parts_list: "Material / Requisiten", gif: "GIF",
 };
+
+const DELETED_PRESETS_STORAGE_KEY = `${STUDIO_PRESETS_STORAGE_KEY}.deleted`;
+
+function cleanDeletedPresets(raw: unknown): Array<StudioPreset & { deletedAt: string }> {
+  if (!Array.isArray(raw)) return [];
+  const cutoff = Date.now() - 30 * 86_400_000;
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const deletedAt = (item as { deletedAt?: unknown }).deletedAt;
+    if (typeof deletedAt !== "string" || new Date(deletedAt).getTime() < cutoff) return [];
+    const preset = cleanStudioPresets([item])?.[0];
+    return preset ? [{ ...preset, deletedAt }] : [];
+  });
+}
 
 /**
  * PresetBuilder — reusable project starters. Presets define which real MAGYC
@@ -49,6 +63,7 @@ export function PresetBuilder() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeElementIndex, setActiveElementIndex] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [elementQuery, setElementQuery] = useState("");
   const [syncState, setSyncState] = useState<"loading" | "saved" | "local" | "error">("loading");
   const hydratedRef = useRef(false);
   const remoteWritableRef = useRef(false);
@@ -58,9 +73,12 @@ export function PresetBuilder() {
     let cancelled = false;
     async function load() {
       let local: StudioPreset[] | null = null;
+      let localDeleted: Array<StudioPreset & { deletedAt: string }> = [];
       try {
         const raw = window.localStorage.getItem(STUDIO_PRESETS_STORAGE_KEY);
         local = cleanStudioPresets(raw ? JSON.parse(raw) : null);
+        const deletedRaw = window.localStorage.getItem(DELETED_PRESETS_STORAGE_KEY);
+        localDeleted = cleanDeletedPresets(deletedRaw ? JSON.parse(deletedRaw) : null);
       } catch { /* local drafts must never block Studio */ }
       try {
         const res = await fetch("/api/studio/presets", { cache: "no-store" });
@@ -68,17 +86,18 @@ export function PresetBuilder() {
         if (!res.ok || !Array.isArray(json.presets)) throw new Error("presets_failed");
         const remote = cleanStudioPresets(json.presets) ?? [];
         if (!cancelled) {
-          setPresets(remote);
-          const deleted = Array.isArray(json.deletedPresets)
-            ? json.deletedPresets.filter((item): item is StudioPreset & { deletedAt: string } => !!cleanStudioPresets([item])?.[0] && typeof item.deletedAt === "string")
-                .map((item) => ({ ...cleanStudioPresets([item])![0]!, deletedAt: item.deletedAt }))
-            : [];
+          const remoteDeleted = cleanDeletedPresets(json.deletedPresets);
+          const deletedById = new Map(remoteDeleted.map((item) => [item.id, item]));
+          for (const item of localDeleted) if (!deletedById.has(item.id)) deletedById.set(item.id, item);
+          const deleted = [...deletedById.values()];
+          const locallyDeletedIds = new Set(localDeleted.map((item) => item.id));
+          setPresets(remote.filter((preset) => !locallyDeletedIds.has(preset.id)));
           setDeletedPresets(deleted);
           setSyncState("saved");
           remoteWritableRef.current = true;
         }
       } catch {
-        if (!cancelled) { if (local) setPresets(local); setSyncState("local"); remoteWritableRef.current = false; }
+        if (!cancelled) { if (local) setPresets(local); setDeletedPresets(localDeleted); setSyncState("local"); remoteWritableRef.current = false; }
       } finally {
         if (!cancelled) hydratedRef.current = true;
       }
@@ -111,6 +130,11 @@ export function PresetBuilder() {
     }, 650);
   }, [presets]);
 
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    window.localStorage.setItem(DELETED_PRESETS_STORAGE_KEY, JSON.stringify(deletedPresets));
+  }, [deletedPresets]);
+
   const editing = useMemo(() => presets.find((p) => p.id === editingId) || null, [editingId, presets]);
   const activeModule = editing?.modules[activeElementIndex] ?? null;
 
@@ -128,12 +152,14 @@ export function PresetBuilder() {
     setEditingId(preset.id);
     setActiveElementIndex(0);
     setPickerOpen(true);
+    setElementQuery("");
   }
   function deletePreset(id: string) {
     const preset = presets.find((item) => item.id === id);
     if (preset) setDeletedPresets((items) => [{ ...preset, deletedAt: new Date().toISOString() }, ...items.filter((item) => item.id !== id)]);
     setPresets((items) => items.filter((p) => p.id !== id));
     setEditingId(null);
+    setElementQuery("");
   }
   function restorePreset(id: string) {
     const preset = deletedPresets.find((item) => item.id === id);
@@ -271,10 +297,10 @@ export function PresetBuilder() {
       )}
 
       {/* Compact editor pop-up */}
-      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title="Preset bearbeiten" maxWidth={760}>
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title="Preset bearbeiten" maxWidth={820}>
         {editing && (
-          <div className="max-h-[85vh] overflow-y-auto rounded-2xl border border-black/12 bg-white shadow-2xl">
-            <div className="space-y-6 p-5 sm:p-7">
+          <div className="max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-2xl border border-black/12 bg-white shadow-2xl sm:max-h-[88vh]">
+            <div className="space-y-5 p-4 sm:p-6">
               <div className="max-w-md">
                 <label className="block">
                   <span className="mono text-[10px] uppercase tracking-widest text-black/40">Name</span>
@@ -302,11 +328,23 @@ export function PresetBuilder() {
                       className="overflow-hidden"
                     >
                       <div className="overflow-hidden rounded-xl border border-black/10 bg-black/[0.025]">
+                        <div className="sticky top-0 z-10 border-b border-black/8 bg-white/95 p-2 backdrop-blur">
+                          <input
+                            value={elementQuery}
+                            onChange={(event) => setElementQuery(event.target.value)}
+                            placeholder="Element suchen"
+                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-[13px] outline-none placeholder:text-black/30 focus:border-black/30"
+                          />
+                        </div>
+                        <div className="max-h-[190px] overflow-y-auto overscroll-contain sm:max-h-[220px]">
                         {widgetPickerGroups().map((group, groupIndex) => {
-                          const available = group.filter((type) => PRESET_ELEMENT_TYPES.includes(type) && !editing.modules.some((module) => module.type === type));
+                          const query = elementQuery.trim().toLocaleLowerCase("de");
+                          const available = group.filter((type) => PRESET_ELEMENT_TYPES.includes(type)
+                            && !editing.modules.some((module) => module.type === type)
+                            && (!query || LABELS[type].toLocaleLowerCase("de").includes(query)));
                           if (available.length === 0) return null;
                           return (
-                            <div key={groupIndex} className="grid grid-cols-2 gap-1 border-b border-black/8 p-1.5 last:border-b-0 sm:grid-cols-3 lg:grid-cols-4">
+                            <div key={groupIndex} className="grid grid-cols-2 gap-1 border-b border-black/8 p-1.5 last:border-b-0 sm:grid-cols-3">
                               {available.map((type) => (
                                 <motion.button
                                   key={type}
@@ -314,7 +352,7 @@ export function PresetBuilder() {
                                   onClick={() => addElement(type)}
                                   whileHover={{ y: -2, backgroundColor: "rgba(0,0,0,0.055)" }}
                                   whileTap={{ scale: 0.98 }}
-                                  className="flex min-h-12 min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-black/68"
+                                  className="flex min-h-10 min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-black/68"
                                 >
                                   <span className="mono w-5 shrink-0 text-center text-[11px] text-black/42">{widgetPickerSymbolFor(type)}</span>
                                   <span className="truncate">{LABELS[type]}</span>
@@ -323,16 +361,17 @@ export function PresetBuilder() {
                             </div>
                           );
                         })}
+                        </div>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
                 {editing.modules.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
                     {editing.modules.map((m, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1.5 rounded-full border py-1 pl-3 pr-1 text-[13px] transition-colors"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-3 pr-1 text-[13px] transition-colors"
                         style={{
                           borderColor: activeElementIndex === i ? "var(--studio-ink)" : "var(--studio-rule)",
                           background: activeElementIndex === i ? "var(--studio-ink)" : "transparent",

@@ -154,7 +154,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         locations.push(label ? { ...coord, label } : coord);
         if (locations.length >= 24) break;
       }
-      if (locations.length === 0) return null;
       return { type, ...b, locations };
     }
     case "location_suggestions": {
@@ -174,7 +173,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         });
         if (suggestions.length >= 8) break;
       }
-      if (suggestions.length === 0) return null;
       return { type, ...b, suggestions };
     }
     case "route": {
@@ -194,12 +192,12 @@ export function sanitizeModule(raw: unknown): Module | null {
     }
     case "date": {
       const date = clean(r.date, 40);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
       return { type, ...b, date };
     }
     case "appointment": {
       const datetime = clean(r.datetime, 60);
-      if (!Number.isFinite(Date.parse(datetime))) return null;
+      if (datetime && !Number.isFinite(Date.parse(datetime))) return null;
       const timezone = clean(r.timezone, 60) || undefined;
       return { type, ...b, datetime, timezone };
     }
@@ -215,7 +213,6 @@ export function sanitizeModule(raw: unknown): Module | null {
         entries.push(label ? { datetime, label } : { datetime });
         if (entries.length >= 12) break;
       }
-      if (entries.length === 0) return null;
       return { type, ...b, entries };
     }
     case "range": {
@@ -376,8 +373,7 @@ export function sanitizeModule(raw: unknown): Module | null {
         }
         if (phases.length >= 10) break;
       }
-      if (phases.length < 2) return null;
-      const currentPhase = num(r.currentPhase, 0, 0, phases.length - 1);
+      const currentPhase = phases.length > 0 ? num(r.currentPhase, 0, 0, phases.length - 1) : 0;
       return { type, ...b, phases, currentPhase };
     }
     case "checklist": {
@@ -445,7 +441,6 @@ export function sanitizeModule(raw: unknown): Module | null {
     }
     case "table": {
       const columns = stringArray(r.columns, 8, 40);
-      if (columns.length === 0) return null;
       const rowsRaw = Array.isArray(r.rows) ? r.rows : [];
       const rows: string[][] = [];
       for (const row of rowsRaw) {
@@ -684,7 +679,7 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
   locations_multi: {
     partOfHeader: false,
     alwaysInserted: false,
-    relevantWhen: "input concerns multiple confirmed locations.",
+    relevantWhen: "input concerns one or several confirmed locations.",
     requiresMandatoryConfig: true,
     externalSource: "map",
     requiresAttribution: true,
@@ -696,7 +691,7 @@ export const MODULE_META: Record<ModuleType, ModuleMeta> = {
     partOfHeader: false,
     alwaysInserted: false,
     relevantWhen:
-      "input mentions a location need but the actual place must still be agreed on by participants. Renders as a text list with vote stacking, not a map.",
+      "participants need to compare or vote on concrete suggestions that are not confirmed yet. Renders as a text list with vote stacking.",
     requiresMandatoryConfig: true,
     externalSource: "map",
     requiresAttribution: true,

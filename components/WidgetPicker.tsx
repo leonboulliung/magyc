@@ -24,8 +24,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     crew: "Crew", work_packages: "Tasks", deliverables: "Deliverables", approvals: "Approvals", checklist: "Checklist",
     date: "Date", appointment: "Appointment", appointments: "Schedule",
     range: "Range", phases: "Phases",
-    location_single: "Location", locations_multi: "Locations",
-    location_suggestions: "Place ideas", route: "Route",
+    location_single: "Location (legacy)", locations_multi: "Locations",
+    location_suggestions: "Suggestions", route: "Locations (legacy)",
     table: "Table", shot_list: "Shotlist", parts_list: "Parts list",
     attachments: "Files", images: "Images", moodboard: "Moodboard", selection: "Selection", audio: "Audio", sketch: "Sketch",
   },
@@ -35,8 +35,8 @@ const TRANSLATIONS: Record<string, LangMap> = {
     crew: "Crew", work_packages: "Aufgaben", deliverables: "Ergebnisse", approvals: "Freigaben", checklist: "Checkliste",
     date: "Datum", appointment: "Termin", appointments: "Termine",
     range: "Von – Bis", phases: "Phasen",
-    location_single: "Ort", locations_multi: "Orte",
-    location_suggestions: "Ortsvorschläge", route: "Route",
+    location_single: "Ort (alt)", locations_multi: "Orte",
+    location_suggestions: "Vorschläge", route: "Orte (alt)",
     table: "Tabelle", shot_list: "Shotlist", parts_list: "Utensilien",
     attachments: "Anhänge", images: "Bilder", moodboard: "Moodboard", selection: "Auswahl", audio: "Audio", sketch: "Skizze",
   },
@@ -161,10 +161,8 @@ const GROUPS: { symbol: string; entries: PickerEntry[] }[] = [
   {
     symbol: "⊙",
     entries: [
-      { type: "location_single",      symbol: "⊙" },
       { type: "locations_multi",      symbol: "⊙⊙" },
       { type: "location_suggestions", symbol: "◎" },
-      { type: "route",                symbol: "⟶" },
     ],
   },
   {
@@ -198,8 +196,6 @@ export function widgetPickerGroups(): ModuleType[][] {
 
 // ── Default configs ──────────────────────────────────────────────────
 export function defaultWidget(type: ModuleType): Module | null {
-  const now = new Date().toISOString();
-  const today = now.split("T")[0];
   switch (type) {
     case "ai_summary":           return { type, text: "" };
     case "icon":                 return { type, iconify: "lucide:star" };
@@ -213,16 +209,16 @@ export function defaultWidget(type: ModuleType): Module | null {
     case "deliverables":         return { type, items: [] };
     case "approvals":            return { type, items: [] };
     case "checklist":            return { type, items: [] };
-    case "date":                 return { type, date: today };
-    case "appointment":          return { type, datetime: now };
-    case "appointments":         return { type, entries: [{ datetime: now, label: "" }] };
+    case "date":                 return { type, date: "" };
+    case "appointment":          return { type, datetime: "" };
+    case "appointments":         return { type, entries: [] };
     case "range":                return { type, unit: "generic", from: "—", to: "—" };
-    case "phases":               return { type, phases: [{ label: "I" }, { label: "II" }, { label: "III" }], currentPhase: 0 };
-    case "location_single":      return { type, center: [2.3522, 48.8566], zoom: 13, label: "Paris" };
-    case "locations_multi":      return { type, locations: [{ lng: 2.3522, lat: 48.8566, label: "Ort" }] };
-    case "location_suggestions": return { type, suggestions: [{ label: "Ort vorschlagen" }] };
-    case "route":                return { type, stops: [{ lng: 2.3522, lat: 48.8566, label: "A" }, { lng: 2.3601, lat: 48.8529, label: "B" }] };
-    case "table":                return { type, columns: ["A", "B", "C"], rows: [["", "", ""]] };
+    case "phases":               return { type, phases: [], currentPhase: 0 };
+    case "location_single":      return null;
+    case "locations_multi":      return { type, locations: [] };
+    case "location_suggestions": return { type, suggestions: [] };
+    case "route":                return null;
+    case "table":                return { type, columns: [], rows: [] };
     case "shot_list":            return { type, shots: [] };
     case "parts_list":           return { type, items: [] };
     case "attachments":          return { type };

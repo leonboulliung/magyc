@@ -9,16 +9,12 @@ import { projectContextLines } from "@/lib/projectModes";
  * This set grows as editors are added — the mechanism itself is general.
  */
 const PREFILLABLE: ReadonlySet<ModuleType> = new Set([
-  "location_single", "locations_multi", "route", "phases", "date",
+  "locations_multi", "phases", "date",
 ]);
 
 const PREFILL_GUIDE: Partial<Record<ModuleType, string>> = {
-  location_single:
-    "a single, exact place that matters — the model cannot drop a map pin precisely, so the user should pick it. draft: { \"query\": \"<best-guess specific venue or empty>\", \"label\": \"<short>\" }",
   locations_multi:
-    "several specific places the matter spans (venues to compare, stops to gather) — the model cannot pin them, so the user should. draft: { \"queries\": [\"<place 1>\", \"<place 2>\"] }",
-  route:
-    "an ordered journey through specific places — the user pins the stops in order. draft: { \"queries\": [\"<start>\", \"<via>\", \"<end>\"] }",
+    "one or several exact places that matter — the user confirms searchable addresses. draft: { \"queries\": [\"<place 1>\", \"<place 2>\"] }",
   phases:
     "a process/chronology central to the matter that is worth walking through explicitly before building (e.g. the steps of a scientific method, an event arc). draft: { \"phases\": [{\"label\":\"...\",\"description\":\"...\"}], \"currentPhase\": 0 }",
   date:
@@ -47,14 +43,10 @@ const PREFILL_GUIDE: Partial<Record<ModuleType, string>> = {
  */
 
 const MANDATORY_HINTS: Partial<Record<ModuleType, string>> = {
-  location_single:
-    "If the input mentions a single specific meeting place, you may ask 'Where exactly?' with 3 candidate place names.",
   locations_multi:
-    "If the input mentions several confirmed places, you may ask 'Which places?' with 3 candidate options.",
+    "If the input mentions one or several confirmed places, you may ask 'Which places exactly?' with 3 candidate options.",
   location_suggestions:
     "If the input clearly needs a place but the place is undecided, you may ask 'A few candidate places?' with 3 example types of venues.",
-  route:
-    "If the input mentions a route or journey, you may ask 'Start and end?' with 3 plausible start–end pairings.",
   phases:
     "If the input strongly implies a chronology, you may ask 'How long an arc?' or 'How many phases?' with 3 reasonable options (e.g. '3 phases', '5 phases', 'over a year').",
 };

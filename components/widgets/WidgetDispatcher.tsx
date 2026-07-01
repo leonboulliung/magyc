@@ -37,10 +37,8 @@ import { PhasesRenderer } from "./PhasesRenderer";
 
 // Phase 6
 const IconRenderer = dynamic(() => import("./IconRenderer").then((mod) => mod.IconRenderer), { loading: () => <LoadingPlaceholder type="icon" /> });
-const LocationSingleRenderer = dynamic(() => import("./LocationSingleRenderer").then((mod) => mod.LocationSingleRenderer), { loading: () => <LoadingPlaceholder type="location_single" /> });
-const LocationsMultiRenderer = dynamic(() => import("./LocationsMultiRenderer").then((mod) => mod.LocationsMultiRenderer), { loading: () => <LoadingPlaceholder type="locations_multi" /> });
+const PlacesRenderer = dynamic(() => import("./PlacesRenderer").then((mod) => mod.PlacesRenderer), { loading: () => <LoadingPlaceholder type="locations_multi" /> });
 const LocationSuggestionsRenderer = dynamic(() => import("./LocationSuggestionsRenderer").then((mod) => mod.LocationSuggestionsRenderer), { loading: () => <LoadingPlaceholder type="location_suggestions" /> });
-const RouteRenderer = dynamic(() => import("./RouteRenderer").then((mod) => mod.RouteRenderer), { loading: () => <LoadingPlaceholder type="route" /> });
 const AttachmentsRenderer = dynamic(() => import("./AttachmentsRenderer").then((mod) => mod.AttachmentsRenderer), { loading: () => <LoadingPlaceholder type="attachments" /> });
 const ImagesRenderer = dynamic(() => import("./ImagesRenderer").then((mod) => mod.ImagesRenderer), { loading: () => <LoadingPlaceholder type="images" /> });
 const MoodboardRenderer = dynamic(() => import("./MoodboardRenderer").then((mod) => mod.MoodboardRenderer), { loading: () => <LoadingPlaceholder type="moodboard" /> });
@@ -123,13 +121,13 @@ export function WidgetDispatcher({
 
     // Phase 4
     case "location_single":
-      return <LocationSingleRenderer module={m} index={index} />;
+      return <PlacesRenderer module={m} index={index} />;
     case "locations_multi":
-      return <LocationsMultiRenderer module={m} index={index} />;
+      return <PlacesRenderer module={m} index={index} />;
     case "location_suggestions":
       return <LocationSuggestionsRenderer module={m} index={index} state={s} />;
     case "route":
-      return <RouteRenderer module={m} index={index} />;
+      return <PlacesRenderer module={m} index={index} />;
 
     // Phase 5
     case "phases":
