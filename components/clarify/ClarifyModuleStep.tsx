@@ -6,6 +6,28 @@ import type { ClarifyPrefill, Module } from "@/lib/types";
 import { MapCanvas, OSM_TILES } from "@/components/widgets/MapCanvas";
 
 /**
+ * Close a floating results list on Escape or on a pointer/tap outside the
+ * referenced box. Without this the geocoder dropdown had no dismissal — it
+ * stayed open over the map and blocked the rest of the element.
+ */
+function useDismiss<T extends HTMLElement>(close: () => void) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const onPointer = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [close]);
+  return ref;
+}
+
+/**
  * ClarifyModuleStep — renders the interactive editor for one prefilled
  * module during the clarify flow, and reports the user's configured
  * Module (or null if they leave it unset / skip).
@@ -78,6 +100,7 @@ function LocationEditor({
   const [mapVersion, setMapVersion] = useState(0);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedRef = useRef<GeoMatch | null>(initialSel);
+  const boxRef = useDismiss<HTMLDivElement>(useCallback(() => setResults([]), []));
 
   const emit = useCallback((s: GeoMatch | null) => {
     selectedRef.current = s;
@@ -124,7 +147,7 @@ function LocationEditor({
   return (
     <div className="space-y-3">
       {/* Search field */}
-      <div className="relative">
+      <div className="relative" ref={boxRef}>
         <input
           autoFocus
           value={query}
@@ -237,6 +260,7 @@ function MultiPointEditor({
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointsRef = useRef<GeoMatch[]>(points);
   pointsRef.current = points;
+  const boxRef = useDismiss<HTMLDivElement>(useCallback(() => setResults([]), []));
 
   const emit = useCallback((list: GeoMatch[]) => {
     const pts = list.map((p) => ({ lng: p.lng, lat: p.lat, label: p.label }));
@@ -315,7 +339,7 @@ function MultiPointEditor({
   return (
     <div className="space-y-3">
       {/* Search field */}
-      <div className="relative">
+      <div className="relative" ref={boxRef}>
         <input
           autoFocus
           value={query}
