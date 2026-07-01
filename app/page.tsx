@@ -171,13 +171,18 @@ export default function HomePage() {
         return;
       }
       const nextSteps = Array.isArray(json.steps) ? json.steps : [];
+      setLanguage(json.language || "en");
+      setComingToLife(typeof json.comingToLife === "string" ? json.comingToLife : "");
       if (nextSteps.length === 0) {
-        setError("Keine Rückfragen erhalten. Bitte erneut versuchen.");
+        // No genuine gaps — the input already carries what the build needs, so
+        // skip the questions and build the space directly.
+        setSteps([]);
+        setAnswers({});
+        setConfigured({});
+        await goBuild(true);
         return;
       }
       setSteps(nextSteps);
-      setLanguage(json.language || "en");
-      setComingToLife(typeof json.comingToLife === "string" ? json.comingToLife : "");
       setAnswers({});
       setConfigured({});
       setStepIndex(0);
@@ -232,8 +237,8 @@ export default function HomePage() {
     }
   }
 
-  async function goBuild() {
-    if (busy) return;
+  async function goBuild(force = false) {
+    if (!force && busy) return;
     // Final commit — the grid answers from the centre and keeps pulsing
     // through the build wait.
     const cx = window.innerWidth / 2;
@@ -274,7 +279,7 @@ export default function HomePage() {
       }, BUILD_TIMEOUT_MS);
       if (!res.ok) {
         setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
-        setStage("clarify");
+        setStage(force ? "input" : "clarify");
         setBusy(false);
         setStatusText("");
         dotFieldRef.current?.setThinking(false);
@@ -286,7 +291,7 @@ export default function HomePage() {
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "classify_failed";
       setError(formatFlowError(message));
-      setStage("clarify");
+      setStage(force ? "input" : "clarify");
       setBusy(false);
       setStatusText("");
       dotFieldRef.current?.setThinking(false);
@@ -461,7 +466,7 @@ export default function HomePage() {
                     </span>
                     {/* Skip all → submit immediately */}
                     <button
-                      onClick={goBuild}
+                      onClick={() => goBuild()}
                       disabled={busy}
                       className="mono text-[9px] tracking-widest opacity-30 hover:opacity-60 disabled:opacity-20"
                     >

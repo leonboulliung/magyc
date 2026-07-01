@@ -17,7 +17,7 @@ const MAX_INPUT_CHARS = 1200;
  *
  *   Body: { input: string, anonToken?: string }
  *
- * Returns 2–4 multiple-choice clarification questions. The frontend
+ * Returns 0–4 gap-filling clarification steps (0 = build directly). The frontend
  * collects answers and POSTs them with the original input to
  * /api/spaces.
  *
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       userId,
       anonId: typeof body.anonToken === "string" ? body.anonToken.slice(0, 64) : null,
       eventType: "clarify",
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       input,
       output: {
         language: result.language,
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
       userId,
       anonId: typeof body.anonToken === "string" ? body.anonToken.slice(0, 64) : null,
       eventType: "clarify",
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       status: "error",
       input,
       error: msg,

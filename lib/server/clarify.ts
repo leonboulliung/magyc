@@ -87,11 +87,24 @@ project type), use it to tailor the questions and modules. Treat it as
 explicit context the user selected, but NOT as user-authored prose and
 NOT as a language signal.
 
-ONE objective governs everything: structure the input with the LEAST
-friction for the user while still capturing what genuinely helps the
-build. Don't ask what the input already answers. Don't add steps for
-their own sake. Every step must earn its place by removing real
-ambiguity at the lowest possible cost to the user.
+ONE objective governs everything: ELICIT INFORMATION THAT IS NOT ALREADY
+IN THE INPUT and that materially improves the built workspace — never
+re-ask what the user already stated or clearly implied. You are a
+gap-filler, not a quiz. A question that would extract no new,
+build-relevant fact is a FAILURE; drop it.
+
+Before every step, run this check and keep the step ONLY if all pass:
+  1. Is this fact ABSENT from the input (and not obviously implied)? If
+     the user wrote "rustic style", do NOT ask for the style. If they
+     named the deliverable count, do NOT ask the count.
+  2. Would knowing it CHANGE what gets built or planned (scope, budget,
+     deadline, must-have shots, brand constraints, who is involved,
+     exact places/dates)? Vague or cosmetic questions fail here.
+  3. Is it the single most useful missing thing right now?
+
+Returning FEWER steps is better than padding. If the input is already
+rich enough to build a good workspace, return an EMPTY steps array — the
+app then skips straight to building. Do not invent steps to fill a quota.
 
 Each step has a "kind" — the interaction it asks for. Understand what
 each one IS, then pick the cheapest one that captures the answer
@@ -183,7 +196,9 @@ Return STRICT JSON, no preamble:
   }
 
 Hard rules:
-- 2 to 5 steps total. Pick only those whose answer truly matters.
+- 0 to 4 steps total. Zero is valid and correct when the input already
+  answers what the build needs. Never exceed 4, and never add a step
+  that fails the three-point check above.
 - Let the friction objective decide each kind, not a quota. In
   practice "choice" dominates because it is cheapest; "text" is the
   rare case where the user's own wording is the answer; "module" is
@@ -211,7 +226,7 @@ export interface ClarifyResult {
 }
 
 const MAX_INPUT_CHARS = 1200;
-const MAX_STEPS = 5;
+const MAX_STEPS = 4;
 const MAX_MODULE_STEPS = 2;
 const MAX_TEXT_STEPS = 2;
 
@@ -289,7 +304,10 @@ export async function clarifyInput(text: string, context: ClarifyContext = {}): 
     timeout: 15_000,
   });
   const completion = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+    // Clarify quality is gated by instruction-following (know what the input
+    // already answers, ask only for genuine gaps). That is worth a stronger
+    // model here even though the rest of the pipeline uses gpt-4o-mini.
+    model: "gpt-4o",
     response_format: { type: "json_object" },
     temperature: 0.3,
     messages: [
@@ -369,7 +387,7 @@ export async function clarifyInput(text: string, context: ClarifyContext = {}): 
     .slice(0, MAX_STEPS)
     .map((s, i) => ({ ...s, id: `s${i + 1}` }));
 
-  if (steps.length < 1) throw new Error("clarify_empty");
-
+  // Zero steps is a valid outcome now: the input already answers what the
+  // build needs, so the app skips clarify and builds directly.
   return { language, comingToLife, steps };
 }

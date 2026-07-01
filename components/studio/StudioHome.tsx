@@ -224,8 +224,14 @@ export function StudioHome({
         return;
       }
       const nextSteps = Array.isArray(json.steps) ? json.steps : [];
+      setComingToLife(typeof json.comingToLife === "string" ? json.comingToLife : "");
       if (nextSteps.length === 0) {
-        setError("Keine Rückfragen erhalten. Bitte erneut versuchen.");
+        // The input already answers what the build needs — clarify returned no
+        // gaps, so skip the questions and build directly.
+        setSteps([]);
+        setAnswers({});
+        setConfigured({});
+        await goBuild(true);
         return;
       }
       setSteps(nextSteps);
@@ -277,8 +283,10 @@ export function StudioHome({
     }
   }
 
-  async function goBuild() {
-    if (busy) return;
+  // `force` is used by the no-questions path: clarify is still holding `busy`
+  // when it hands off, and there is no clarify screen to fall back to on error.
+  async function goBuild(force = false) {
+    if (!force && busy) return;
     setBusy(true);
     setStage("building");
     setError("");
@@ -316,7 +324,7 @@ export function StudioHome({
         const description = formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown });
         showActionError("Projekt nicht erstellt", { id: "create-project", description });
         setError(description);
-        setStage("clarify");
+        setStage(force ? "input" : "clarify");
         return;
       }
       showActionSuccess("Projekt erstellt", { id: "create-project", description: "Die Planung wird geöffnet." });
@@ -326,7 +334,7 @@ export function StudioHome({
       const description = formatFlowError(message);
       showActionError("Projekt nicht erstellt", { id: "create-project", description });
       setError(description);
-      setStage("clarify");
+      setStage(force ? "input" : "clarify");
     } finally {
       setBusy(false);
       setStatusText("");
@@ -397,7 +405,7 @@ export function StudioHome({
                     {stepIndex + 1} / {totalSteps}
                   </span>
                   <button
-                    onClick={goBuild}
+                    onClick={() => goBuild()}
                     disabled={busy}
                     className="mono text-[9px] tracking-widest opacity-30 hover:opacity-60 disabled:opacity-20"
                   >
