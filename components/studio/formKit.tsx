@@ -63,7 +63,10 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`${FIELD} mt-1.5 resize-none leading-relaxed ${props.className ?? ""}`} />;
+  // Grow with content (field-sizing) so long clauses aren't trapped in a tiny
+  // scroll box, keep a sensible floor, and always allow manual vertical drag
+  // as the fallback where field-sizing isn't supported yet.
+  return <textarea {...props} className={`${FIELD} mt-1.5 resize-y leading-relaxed [field-sizing:content] min-h-[3.2rem] ${props.className ?? ""}`} />;
 }
 
 export function Select({ options, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { options: { value: string; label: string }[] }) {
