@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { Module, ModuleType } from "@/lib/types";
@@ -132,18 +133,46 @@ export function WidgetPickerContent({
   const ctx = useWidgetContext();
   const lang = ctx.language || "en";
   const emergent = ctx.labels.widgetLabels;
-  const groups = allowedTypes
-    ? WIDGET_PICKER_GROUPS.map((group) => ({
+  const [query, setQuery] = useState("");
+
+  const groups = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase();
+    const base = allowedTypes
+      ? WIDGET_PICKER_GROUPS.map((group) => ({
+          ...group,
+          entries: group.entries.filter((entry) => allowedTypes.has(entry.type)),
+        }))
+      : WIDGET_PICKER_GROUPS;
+    return base
+      .map((group) => ({
         ...group,
-        entries: group.entries.filter((entry) => allowedTypes.has(entry.type)),
-      })).filter((group) => group.entries.length > 0)
-    : WIDGET_PICKER_GROUPS;
+        entries: q
+          ? group.entries.filter((entry) => labelFor(entry.type, lang, emergent).toLocaleLowerCase().includes(q))
+          : group.entries,
+      }))
+      .filter((group) => group.entries.length > 0);
+  }, [allowedTypes, query, lang, emergent]);
 
   return (
     // Width and scrolling are owned by the container (desktop popover /
     // mobile sheet). Keeping this layer unscrollable prevents nested
     // scroll areas, which felt sticky and unnatural in the picker.
     <div style={{ width: "100%" }}>
+      <div className="sticky top-0 z-10 p-1.5" style={{ borderBottom: "1px solid var(--v-rule)", background: "var(--v-bg)" }}>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Element suchen"
+          autoFocus
+          className="w-full rounded-[calc(var(--v-radius)*0.6)] bg-transparent px-3 py-2 text-[13px] outline-none"
+          style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+        />
+      </div>
+      {groups.length === 0 && (
+        <div className="px-3 py-6 text-center mono text-[11px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
+          Kein Element gefunden
+        </div>
+      )}
       {groups.map((group, gi) => (
         <div key={gi} style={{ borderBottom: gi < groups.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
           <div
