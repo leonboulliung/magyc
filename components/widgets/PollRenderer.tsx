@@ -199,7 +199,7 @@ export function PollRenderer({
                           }
                         }}
                         aria-label="Option entfernen"
-                        className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover/option:opacity-50 hover:!opacity-100"
+                        className="touch-visible mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover/option:opacity-50 hover:!opacity-100"
                         style={{ color: "var(--v-muted)" }}
                       >
                         ×

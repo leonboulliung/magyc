@@ -94,7 +94,7 @@ export function ImagesRenderer({
                     type="button"
                     onClick={() => removeImage(img.key)}
                     aria-label="Bild entfernen"
-                    className="mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
+                    className="touch-visible mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
                     style={{ background: "rgba(0,0,0,0.55)" }}
                   >
                     ×

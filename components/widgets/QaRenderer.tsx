@@ -223,7 +223,7 @@ function QuestionBlock({
           type="button"
           onClick={() => onDeleteQuestion()}
           aria-label="Frage löschen"
-          className="mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/q:opacity-50 hover:!opacity-100"
+          className="touch-visible mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/q:opacity-50 hover:!opacity-100"
           style={{ color: "var(--v-muted)" }}
         >
           ×
@@ -285,7 +285,7 @@ function QuestionBlock({
                   type="button"
                   onClick={() => onDeleteAnswer(aid)}
                   aria-label="Antwort löschen"
-                  className="mono text-[12px] opacity-0 transition-opacity group-hover/a:opacity-50 hover:!opacity-100"
+                  className="touch-visible mono text-[12px] opacity-0 transition-opacity group-hover/a:opacity-50 hover:!opacity-100"
                   style={{ color: "var(--v-muted)" }}
                 >
                   ×

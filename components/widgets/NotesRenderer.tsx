@@ -181,7 +181,7 @@ function NoteCard({
           type="button"
           onClick={() => onDelete()}
           aria-label="Notiz löschen"
-          className="mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/note:opacity-50 hover:!opacity-100"
+          className="touch-visible mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/note:opacity-50 hover:!opacity-100"
           style={{ color: "var(--v-muted)" }}
         >
           ×

@@ -224,7 +224,7 @@ export function MoodboardRenderer({
                     type="button"
                     onClick={() => removeImage(img.key)}
                     aria-label="Bild entfernen"
-                    className="mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
+                    className="touch-visible mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
                     style={{ background: "rgba(0,0,0,0.55)" }}
                   >
                     ×
@@ -532,7 +532,7 @@ function DirectionRow({
           type="button"
           onClick={onDelete}
           aria-label="entfernen"
-          className="mono mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-50 hover:!opacity-100"
+          className="touch-visible mono mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-50 hover:!opacity-100"
           style={{ color: "var(--v-muted)" }}
         >
           ×

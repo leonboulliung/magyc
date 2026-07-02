@@ -183,7 +183,7 @@ export function GifRenderer({
             />
             {ctx.isOwner && (
               <span
-                className="absolute bottom-2 left-2 mono text-[10px] tracking-widest px-2 py-1 rounded-full opacity-0 group-hover/gif:opacity-100 transition-opacity"
+                className="touch-visible absolute bottom-2 left-2 mono text-[10px] tracking-widest px-2 py-1 rounded-full opacity-0 group-hover/gif:opacity-100 transition-opacity"
                 style={{ background: "rgba(0,0,0,0.6)", color: "#fff" }}
               >
                 ⎘ change

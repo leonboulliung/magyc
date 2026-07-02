@@ -125,7 +125,7 @@ export function AttachmentsRenderer({
                     type="button"
                     onClick={() => remove(f.key)}
                     aria-label="Anhang entfernen"
-                    className="mono shrink-0 text-[13px] opacity-0 transition-opacity group-hover/att:opacity-50 hover:!opacity-100"
+                    className="touch-visible mono shrink-0 text-[13px] opacity-0 transition-opacity group-hover/att:opacity-50 hover:!opacity-100"
                     style={{ color: "var(--v-muted)" }}
                   >
                     ×

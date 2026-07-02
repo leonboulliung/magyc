@@ -484,3 +484,10 @@ html[data-studio-theme="dark"] .studio-selected {
 @media (hover: none) {
   .reveal-on-hover { opacity: 0.5; }
 }
+
+/* Additive companion for controls that already use Tailwind's (often named)
+   group-hover opacity pattern for the desktop reveal: keep that intact and
+   only force visibility where there is no hover (touch). */
+@media (hover: none) {
+  .touch-visible { opacity: 1 !important; }
+}
