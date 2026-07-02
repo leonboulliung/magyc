@@ -5,27 +5,28 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-07-02 (Claude — branded auth shell on staging)_
+_Last updated: 2026-07-02 (Claude — Clerk production cutover complete)_
 
 ---
 
-## PENDING PROMOTION — staging is ahead of main
+## Done 2026-07-02 — Clerk production cutover (launch blocker cleared)
 
-- [ ] **Promote the branded sign-up/sign-in shell to production.** On `staging`
-  only (commit `1f1ef23`): `components/auth/AuthShell.tsx` wraps the native
-  Clerk `SignUp`/`SignIn` in a two-column layout (value panel + benefit bullets
-  + EU-hosting trust line beside the form) so cold ad-email traffic sees the
-  promise before the form. Typecheck clean; verified live on
-  `https://magyc-git-staging-base-layer.vercel.app/sign-up` (SSR copy renders,
-  Clerk widget bootstraps). Production `/sign-up` is deliberately untouched.
-  Review on staging, then `git checkout main && git merge staging && git push`.
-- Context: this supports Leon's outbound-sales ad email (manual send, drives
-  cold photographers to try the tool). The email's **primary CTA points to the
-  home page** for instant anonymous creation (no auth barrier, no Clerk dev
-  badge) — the most reliable activation path today; a secondary link goes to
-  `/sign-up`. The auth form still shows Clerk's **development-mode badge** until
-  the production Clerk instance exists (see launch-blocker below) — that, not
-  the page wrapper, is what makes sign-up feel unpolished for cold leads.
+- **Production now runs the Clerk production instance.** Verified live:
+  `clerk.magyc.site` returns HTTP 200 with a valid TLS cert (Google Trust
+  Services), `/v1/environment` reports `instance_environment_type: production`,
+  and `www.magyc.site/sign-up` ships `pk_live_…` with zero `clerk.accounts.dev`
+  references. Email OTP is enabled.
+- **Vercel env split per environment** (via API): Production = `pk_live`/
+  `sk_live`; Preview/staging keeps `pk_test`/`sk_test` (live keys are
+  domain-locked to magyc.site and would fail on `*.vercel.app`).
+- **DNS at IONOS**: five Clerk CNAMEs added (`clerk`, `accounts`, `clkmail`,
+  `clk._domainkey`, `clk2._domainkey`); `www` still points to Vercel (site
+  untouched).
+- **Branded auth shell promoted to prod** (`components/auth/AuthShell.tsx`):
+  `/sign-up` and `/sign-in` now show a value panel beside the Clerk form.
+- **Follow-ups:** (1) Do one real sign-up on www.magyc.site to confirm OTP email
+  delivery (also completes Clerk's "create your first user" checklist).
+  (2) **Rotate `sk_live`** — it was pasted in a chat transcript once.
 
 ## TODO — next operational step
 
@@ -40,11 +41,6 @@ _Last updated: 2026-07-02 (Claude — branded auth shell on staging)_
   in the SQL editor or via Supabase MCP, then re-run the probe
   (`spaces?select=modules_rev` with the anon key must return `42501`, not
   `42703`).
-- [ ] **Create and configure the Clerk production instance.** Clerk Doctor
-  confirms that MAGYC currently has only a development instance; the Vercel
-  production deployment consequently uses test credentials. Replace the
-  publishable and secret production keys together, then test email OTP,
-  sign-up, sign-in, redirects and sign-out on `www.magyc.site`.
 - [ ] **Run `npm run ops:backup-check` + read `ops_migration_log` with
   service-role access.** Schema-level presence of 019-027 is verified (see
   Done 2026-07-02), but the service-role checks (table counts, bucket privacy,

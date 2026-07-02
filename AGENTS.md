@@ -62,7 +62,7 @@ same commit.
 | Framework | Next.js 15 App Router, React 18, TS, Tailwind | Dynamic route `params`/`searchParams` are promises and must be awaited |
 | Hosting | Vercel, region `fra1` (vercel.json), domain magyc.site | `vercel` CLI is logged in locally |
 | DB + Realtime + Storage | Supabase Postgres/Realtime/Storage, project ref `zpkgofpkksetnbuizvhi` (eu-central-1) | client: anon key; API routes: `supabaseAdmin()` (service_role, bypasses RLS); media uses signed direct uploads + signed reads through `lib/server/storage.ts` |
-| Auth | Clerk (`@clerk/nextjs`), email OTP | publish binds a draft to a Clerk account; as of 2026-06-30 only a development instance exists, so production-instance cutover is launch-blocking |
+| Auth | Clerk (`@clerk/nextjs`), email OTP | publish binds a draft to a Clerk account; **production instance live since 2026-07-02** (frontend API `clerk.magyc.site`, `pk_live`/`sk_live` on Vercel Production). Preview/staging keeps `pk_test` (live keys are domain-locked to magyc.site). Rotate `sk_live` — it was pasted in a chat once. |
 | AI | OpenAI `gpt-4o-mini` (classify, clarify, regenerate) | |
 | Maps | Leaflet + CARTO tiles; geocoding via Komoot Photon (free, no key) | |
 | Anim | motion/react · dnd-kit (grid reorder) · Radix (popover/dialog) | |
