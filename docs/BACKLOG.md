@@ -5,9 +5,27 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-07-02 (Claude — production migration verification + staging)_
+_Last updated: 2026-07-02 (Claude — branded auth shell on staging)_
 
 ---
+
+## PENDING PROMOTION — staging is ahead of main
+
+- [ ] **Promote the branded sign-up/sign-in shell to production.** On `staging`
+  only (commit `1f1ef23`): `components/auth/AuthShell.tsx` wraps the native
+  Clerk `SignUp`/`SignIn` in a two-column layout (value panel + benefit bullets
+  + EU-hosting trust line beside the form) so cold ad-email traffic sees the
+  promise before the form. Typecheck clean; verified live on
+  `https://magyc-git-staging-base-layer.vercel.app/sign-up` (SSR copy renders,
+  Clerk widget bootstraps). Production `/sign-up` is deliberately untouched.
+  Review on staging, then `git checkout main && git merge staging && git push`.
+- Context: this supports Leon's outbound-sales ad email (manual send, drives
+  cold photographers to try the tool). The email's **primary CTA points to the
+  home page** for instant anonymous creation (no auth barrier, no Clerk dev
+  badge) — the most reliable activation path today; a secondary link goes to
+  `/sign-up`. The auth form still shows Clerk's **development-mode badge** until
+  the production Clerk instance exists (see launch-blocker below) — that, not
+  the page wrapper, is what makes sign-up feel unpolished for cold leads.
 
 ## TODO — next operational step
 
