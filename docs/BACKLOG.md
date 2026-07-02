@@ -5,25 +5,66 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-07-01 (Codex — creation, contract and upload quality audit)_
+_Last updated: 2026-07-02 (Claude — production migration verification + staging)_
 
 ---
 
 ## TODO — next operational step
 
-- [ ] **Apply migration 027 in Supabase.** This enables the Preset page's
-  server-synchronized 30-day recently-deleted area. Code remains compatible
-  before the migration and preserves the queue locally across navigation, but
-  server rows still use the previous immediate-delete behavior.
+- [ ] **CRITICAL: apply migration 018 in Supabase — it is MISSING in
+  production.** Verified 2026-07-02 via read-only PostgREST probes (see Done
+  below): `spaces.modules_rev` does not exist (Postgres `42703`), while every
+  other migration's marker object exists. Consequence today: structural widget
+  writes run on the graceful no-`modules_rev` fallback, i.e. **no optimistic
+  concurrency (silent lost updates between stale tabs) and no claim
+  unique-index guard (slot double-booking possible)**. The file
+  `supabase/migrations/018_modules_rev_claim_guard.sql` is idempotent; apply it
+  in the SQL editor or via Supabase MCP, then re-run the probe
+  (`spaces?select=modules_rev` with the anon key must return `42501`, not
+  `42703`).
 - [ ] **Create and configure the Clerk production instance.** Clerk Doctor
   confirms that MAGYC currently has only a development instance; the Vercel
   production deployment consequently uses test credentials. Replace the
   publishable and secret production keys together, then test email OTP,
   sign-up, sign-in, redirects and sign-out on `www.magyc.site`.
-- [ ] **Verify migrations 024-026 in production** through
-  `ops_migration_log`, then run `npm run ops:backup-check`. Do not infer schema
-  state from deployed code. Secure invitation acceptance specifically requires
-  migration 026.
+- [ ] **Run `npm run ops:backup-check` + read `ops_migration_log` with
+  service-role access.** Schema-level presence of 019-027 is verified (see
+  Done 2026-07-02), but the service-role checks (table counts, bucket privacy,
+  migration log entries) still need valid keys: `.env.local` holds
+  placeholders and Vercel marks the values sensitive (`vercel env pull`
+  returns them empty). Leon: paste current anon + service_role keys into
+  `.env.local` from the Supabase dashboard, or authenticate the Supabase MCP
+  in an interactive session.
+
+## Done 2026-07-02 — production migration verification + online staging
+
+- **Verified the production schema for migrations 001-027 without service-role
+  access**, using the public anon key (extracted from the deployed client
+  bundle) against PostgREST and distinguishing Postgres error codes:
+  `42703` (column/object missing) vs `42501` (exists, access revoked) vs
+  `PGRST205` (table missing) vs `200`. Results:
+  - **Applied:** 002-017, 019-027. Highlights: `project_invitations` +
+    `respond_project_invitation` (026), `studio_presets.deleted_at` (027),
+    `upsert_module_edit` + `admin_user_activity_rollup` (024, correctly
+    revoked from anon), `project_members` + `studio_project_summaries` (023),
+    `template_state` (022), support/audit/ops tables (020/021),
+    `rate_limits` (019).
+  - **Migration 025 confirmed live:** anon `SELECT` on `profiles`, `spaces`,
+    `module_state`, `space_versions` returns `42501 permission denied` — the
+    public-read lockdown is active in production.
+  - **Missing: 018** (`spaces.modules_rev`) — see TODO above.
+- Created one anonymous draft space `sa95nenamv` through the public create API
+  to obtain the space-page bundle (the anon key only ships on `/s/[id]`).
+  There is no anonymous-draft delete route; the draft is private post-025 and
+  harmless — delete it via `/admin` if desired.
+- **Online staging is live:** branch `staging`, auto-deployed by the existing
+  GitHub→Vercel integration to the stable preview URL
+  **https://magyc-git-staging-base-layer.vercel.app**. All env vars already
+  covered Preview. Scope caveat: this is code/UI staging only — it shares the
+  production Supabase project and the Clerk (dev) instance. A separate staging
+  database needs a second Supabase project (Leon decision: plan/cost) plus
+  Preview-scoped `SUPABASE_*` env overrides; `staging.magyc.site` as a nicer
+  domain needs a DNS record at the third-party nameserver.
 
 ## Open engineering priorities
 
