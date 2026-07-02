@@ -11,6 +11,9 @@ same commit.
   still supports broader creative spaces through 33 module types.
 - Prod: **https://magyc.site** · Repo: github.com/leonboulliung/magyc (`main`)
 - Owner: Leon Boulliung (leon.boulliung@grabitautomaten.de)
+- Local path: **`~/Claude Ordner/MAGYC`**. The parent folder name is historical —
+  this is an ordinary repo, **not** a Claude-only project. Codex and every other
+  agent are first-class here; if you're Codex, you're in the right place, keep going.
 
 ---
 
