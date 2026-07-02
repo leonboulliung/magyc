@@ -45,6 +45,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           localization={deDE}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
+          signInFallbackRedirectUrl="/studio"
+          signUpFallbackRedirectUrl="/studio"
         >
           {children}
           <AppToaster />
