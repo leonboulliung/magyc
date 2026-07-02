@@ -302,7 +302,19 @@ export function PresetBuilder() {
       {/* Compact editor pop-up */}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title="Preset bearbeiten" maxWidth={820}>
         {editing && (
-          <div className="max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-2xl border border-black/12 bg-white shadow-2xl sm:max-h-[88vh]">
+          <div className="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-2xl border border-black/12 bg-white shadow-2xl sm:max-h-[88vh]">
+            <div className="flex shrink-0 items-center gap-3 border-b border-black/10 px-4 py-3 sm:px-6">
+              <button
+                type="button"
+                onClick={finish}
+                aria-label="Schließen"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/12 text-[16px] leading-none text-black/50 transition-colors hover:border-black/30 hover:text-black"
+              >
+                ×
+              </button>
+              <span className="mono text-[10px] uppercase tracking-widest text-black/40">Preset bearbeiten</span>
+            </div>
+            <div className="flex-1 overflow-y-auto">
             <div className="space-y-5 p-4 sm:p-6">
               <div className="max-w-md">
                 <label className="block">
@@ -370,7 +382,7 @@ export function PresetBuilder() {
                   )}
                 </AnimatePresence>
                 {editing.modules.length > 0 ? (
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-2.5 pt-0.5 [scrollbar-width:thin]">
                     {editing.modules.map((m, i) => (
                       <span
                         key={i}
@@ -438,8 +450,9 @@ export function PresetBuilder() {
                 </span>
               </button>
             </div>
+            </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-black/10 bg-black/[0.03] px-5 py-3.5 sm:px-6">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/10 bg-black/[0.03] px-5 py-3.5 sm:px-6">
               <button type="button" onClick={() => deletePreset(editing.id)} className="rounded-full border border-black/12 px-3.5 py-2 text-[13px] text-black/45 transition-colors hover:border-red-300/40 hover:text-red-200">
                 Löschen
               </button>
