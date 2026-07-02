@@ -60,7 +60,11 @@ _Last updated: 2026-07-02 (Claude — production migration verification + stagin
 - **Online staging is live:** branch `staging`, auto-deployed by the existing
   GitHub→Vercel integration to the stable preview URL
   **https://magyc-git-staging-base-layer.vercel.app**. All env vars already
-  covered Preview. Scope caveat: this is code/UI staging only — it shares the
+  covered Preview. **Config change:** Vercel Authentication (deployment
+  protection) was disabled for the project so the staging URL works without a
+  Vercel login — preview URLs are now public-but-unlisted; re-enable under
+  Vercel → Settings → Deployment Protection if that trade-off changes.
+  Scope caveat: this is code/UI staging only — it shares the
   production Supabase project and the Clerk (dev) instance. A separate staging
   database needs a second Supabase project (Leon decision: plan/cost) plus
   Preview-scoped `SUPABASE_*` env overrides; `staging.magyc.site` as a nicer
