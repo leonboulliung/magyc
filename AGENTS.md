@@ -65,10 +65,27 @@ be checked before local verification. Names: `NEXT_PUBLIC_SUPABASE_URL`,
 (+ Clerk URL vars). Never print or commit values.
 
 DB schema: `supabase/migrations/` (current through 027), `supabase/migrations-archive/`
-(predecessor app, historical only). Schema changes are applied manually in the
-Supabase SQL editor — there is no migration runner wired up. Operational
-checks live in `docs/OPERATIONS.md`; run `npm run ops:backup-check` after
-applying migrations that affect storage/events/core tables.
+(predecessor app, historical only). Two ways to touch the DB:
+
+- **Supabase MCP (preferred for agents).** Both Claude Code (project
+  `.mcp.json`) and Codex (global `~/.codex/config.toml`) have the Supabase MCP
+  server wired to project `zpkgofpkksetnbuizvhi` with the full feature set
+  (docs, account, database, debugging, development, functions, branching,
+  storage). Use it to inspect schema, `list_migrations`, run read queries, and
+  `apply_migration`. **It is read-write against production** — read and inspect
+  freely, but treat every write (`apply_migration`, DDL, data mutation) as a
+  deploy: announce it, keep the SQL in the next numbered file under
+  `supabase/migrations/`, and run the backup-check below. First use needs a
+  one-off OAuth login — Claude: approved via `.mcp.json`; Codex:
+  `codex mcp login supabase`. To go read-only, append `&read_only=true` to the
+  MCP URL. Supabase agent skills are installed under `.agents/skills/`
+  (`supabase`, `supabase-postgres-best-practices`) and apply to every tool.
+- **Supabase SQL editor (manual fallback).** Still valid; there is no automated
+  migration runner on deploy, so the numbered files in `supabase/migrations/`
+  remain the source of truth no matter how a change was applied.
+
+Operational checks live in `docs/OPERATIONS.md`; run `npm run ops:backup-check`
+after applying migrations that affect storage/events/core tables.
 
 Required local verification before every push: `npm test`,
 `npm run typecheck`, and `npm run build`. Vitest covers the deterministic state,
