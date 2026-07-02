@@ -33,6 +33,13 @@ same commit.
    ```
    Fallback if the webhook breaks again: `vercel --prod --yes` deploys the
    local working tree directly.
+   **Staging:** the `staging` branch auto-deploys to the stable preview URL
+   **https://magyc-git-staging-base-layer.vercel.app** (Vercel Preview env,
+   same GitHub webhook). Use it for risky UI/flow changes before merging to
+   `main`. It shares the production Supabase project and Clerk instance —
+   it is code-level staging, not a data sandbox; collaborative writes there
+   hit production data. Keep it fresh with
+   `git checkout staging && git merge main && git push`.
 4. **AI must not invent facts** (Leon's product rule). The AI layer may
    abstract and structure the user's own input — never add specifics the user
    didn't say (no fake dates, places, numbers).
