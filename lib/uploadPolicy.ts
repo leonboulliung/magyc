@@ -30,7 +30,7 @@ export function isMimeAllowed(mime: string): boolean {
 export function isMimeAllowedForModule(moduleType: unknown, mime: string): boolean {
   if (!isMimeAllowed(mime)) return false;
   if (moduleType === "attachments") return true;
-  if (moduleType === "images" || moduleType === "moodboard" || moduleType === "selection") return IMAGE_MIMES.includes(mime);
+  if (moduleType === "images" || moduleType === "moodboard" || moduleType === "selection" || moduleType === "parts_list") return IMAGE_MIMES.includes(mime);
   if (moduleType === "audio") return AUDIO_MIMES.includes(mime);
   return false;
 }

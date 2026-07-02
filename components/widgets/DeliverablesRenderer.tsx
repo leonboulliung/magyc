@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { newLocalId } from "@/lib/id";
-import { displayActorName, getSelfId } from "@/lib/state";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type {
   DeliverableStatus,
@@ -11,16 +10,20 @@ import type {
   ModuleStateEntry,
 } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
-import { ActorDot, WidgetCard } from "./WidgetCard";
-import { useInlineEdit } from "./useInlineEdit";
+import { WidgetCard } from "./WidgetCard";
 import { workflowLabels } from "./workflowLabels";
 
-const STATUSES: readonly DeliverableStatus[] = [
-  "planned",
-  "in_progress",
-  "ready",
-  "delivered",
-] as const;
+/**
+ * Deliverables — the concrete outputs the client receives.
+ *
+ * Rebuilt for clarity: one titled entry per deliverable, a single tap-to-cycle
+ * status, and a small set of clearly LABELLED optional fields (quantity,
+ * format, due date, note) so their meaning is obvious and they invite filling
+ * in — instead of a row of unlabelled pills. Every entry can be deleted.
+ * Seed items live in widget config; collaborator entries live in module_state.
+ */
+
+const STATUSES: readonly DeliverableStatus[] = ["planned", "in_progress", "ready", "delivered"] as const;
 
 function nextStatus(status: DeliverableStatus): DeliverableStatus {
   const idx = STATUSES.indexOf(status);
@@ -30,11 +33,11 @@ function nextStatus(status: DeliverableStatus): DeliverableStatus {
 function statusTone(status: DeliverableStatus) {
   switch (status) {
     case "in_progress":
-      return { border: "rgba(59,130,246,0.28)", background: "rgba(59,130,246,0.10)" };
+      return { border: "rgba(59,130,246,0.32)", background: "rgba(59,130,246,0.12)" };
     case "ready":
-      return { border: "rgba(34,197,94,0.28)", background: "rgba(34,197,94,0.10)" };
+      return { border: "rgba(34,197,94,0.32)", background: "rgba(34,197,94,0.12)" };
     case "delivered":
-      return { border: "rgba(34,39,46,0.22)", background: "rgba(34,39,46,0.10)" };
+      return { border: "rgba(34,197,94,0.5)", background: "rgba(34,197,94,0.2)" };
     default:
       return { border: "var(--v-rule)", background: "transparent" };
   }
@@ -46,6 +49,7 @@ interface DeliverableView {
   details?: string;
   quantity?: string;
   format?: string;
+  due?: string;
   status: DeliverableStatus;
 }
 
@@ -61,22 +65,6 @@ export function DeliverablesRenderer({
   const ctx = useWidgetContext();
   const lex = workflowLabels(ctx.language);
   const items = buildDeliverables(m, state);
-  const owners = buildOwners(state);
-  const myId = getSelfId();
-
-  async function updateItem(
-    itemKey: string,
-    patch: Partial<Pick<DeliverableView, "label" | "details" | "quantity" | "format" | "status">>,
-  ) {
-    await ctx.act(index, "edit", { id: itemKey, ...patch });
-  }
-
-  async function toggleOwner(itemKey: string) {
-    const owner = owners.get(itemKey);
-    if (owner && owner.actorId !== myId) return;
-    const claiming = !owner || owner.actorId !== myId;
-    await ctx.act(index, "claim", { slotLabel: itemKey, claimed: claiming });
-  }
 
   const [pending, setPending] = useState("");
   const [adding, setAdding] = useState(false);
@@ -86,12 +74,34 @@ export function DeliverablesRenderer({
     setPending("");
     setAdding(false);
     if (!value) return;
-    await ctx.act(index, "add", {
-      id: newLocalId("dlv"),
-      label: value,
-      status: "planned",
-    });
+    await ctx.act(index, "add", { id: newLocalId("dlv"), label: value, status: "planned" });
   }
+
+  function update(key: string, patch: Partial<Omit<DeliverableView, "key">>) {
+    return ctx.act(index, "edit", { id: key, ...patch });
+  }
+
+  async function remove(key: string) {
+    if (key.startsWith("seed-")) {
+      const i = Number(key.slice(5));
+      if (!Number.isInteger(i)) return;
+      await ctx.saveModule(index, { ...m, items: m.items.filter((_, j) => j !== i) });
+      return;
+    }
+    await ctx.act(index, "edit", { id: key, deleted: true });
+  }
+
+  const addBtn = (
+    <button
+      type="button"
+      onClick={() => setAdding(true)}
+      aria-label="Ergebnis hinzufügen"
+      className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
+      style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
+    >
+      {items.length === 0 ? "+ Erstes Ergebnis hinzufügen" : "+ Eintrag hinzufügen"}
+    </button>
+  );
 
   return (
     <WidgetShell
@@ -99,7 +109,7 @@ export function DeliverablesRenderer({
       index={index}
       renderSuggestion={(s) =>
         s.type === "deliverables" ? (
-          <ul className="text-[11px] leading-snug opacity-80 list-disc pl-4">
+          <ul className="list-disc pl-4 text-[11px] leading-snug opacity-80">
             {s.items.slice(0, 4).map((item, i) => (
               <li key={i} className="truncate">{item.label}</li>
             ))}
@@ -108,22 +118,10 @@ export function DeliverablesRenderer({
       }
     >
       <WidgetCard microTitle={m.microTitle} description={m.description}>
-        {items.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left"
-            style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
-          >
-            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>+ Erstes Ergebnis hinzufügen</div>
-          </button>
-        ) : (
         <div className="space-y-2">
           <AnimatePresence initial={false}>
             {items.map((item) => {
               const tone = statusTone(item.status);
-              const owner = owners.get(item.key);
-              const mine = owner?.actorId === myId;
               return (
                 <motion.div
                   key={item.key}
@@ -132,108 +130,48 @@ export function DeliverablesRenderer({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   transition={{ duration: 0.18 }}
-                  className="rounded-[var(--v-radius)] p-3"
-                  style={{
-                    border: "1px solid var(--v-rule)",
-                    background: "var(--v-card)",
-                    boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08)",
-                  }}
+                  className="group relative rounded-[var(--v-radius)] p-3"
+                  style={{ border: "1px solid var(--v-rule)", background: "var(--v-card)" }}
                 >
-                  <div className="flex items-start gap-3">
+                  <button
+                    type="button"
+                    onClick={() => remove(item.key)}
+                    aria-label="Ergebnis entfernen"
+                    className="mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:!opacity-100 group-hover:opacity-50"
+                    style={{ color: "var(--v-muted)" }}
+                  >
+                    ×
+                  </button>
+
+                  <div className="flex items-start gap-3 pr-7">
                     <button
                       type="button"
-                      onClick={() => updateItem(item.key, { status: nextStatus(item.status) })}
-                      className="shrink-0 rounded-full px-2.5 py-1 mono text-[9px] tracking-widest uppercase"
-                      style={{
-                        border: `1px solid ${tone.border}`,
-                        background: tone.background,
-                        color: "var(--v-fg)",
-                      }}
+                      onClick={() => update(item.key, { status: nextStatus(item.status) })}
+                      title="Status ändern"
+                      className="mono shrink-0 rounded-full px-2.5 py-1 text-[9px] uppercase tracking-widest"
+                      style={{ border: `1px solid ${tone.border}`, background: tone.background, color: "var(--v-fg)" }}
                     >
                       {labelForStatus(item.status, lex)}
                     </button>
 
-                    <div className="flex-1 min-w-0">
-                      <InlineWorkflowText
+                    <div className="min-w-0 flex-1 space-y-2.5">
+                      <Field
                         value={item.label}
-                        placeholder="Ergebnis benennen"
-                        onSave={(next) => updateItem(item.key, { label: next })}
-                        className="text-[13px] leading-snug"
+                        placeholder="Was wird geliefert?"
+                        onSave={(v) => v.trim() && update(item.key, { label: v })}
+                        bold
                       />
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <InlineWorkflowText
-                          value={item.quantity ?? ""}
-                          placeholder="Menge"
-                          onSave={(next) => updateItem(item.key, { quantity: next })}
-                          allowEmpty
-                          className="mono text-[9px] tracking-widest uppercase"
-                          buttonStyle={{
-                            border: "1px dashed var(--v-rule)",
-                            borderRadius: 999,
-                            padding: "4px 10px",
-                            color: item.quantity ? "var(--v-fg)" : "var(--v-muted)",
-                          }}
-                          inputStyle={{
-                            border: "1px dashed var(--v-rule)",
-                            borderRadius: 999,
-                            padding: "4px 10px",
-                          }}
-                        />
-
-                        <InlineWorkflowText
-                          value={item.format ?? ""}
-                          placeholder="Format"
-                          onSave={(next) => updateItem(item.key, { format: next })}
-                          allowEmpty
-                          className="mono text-[9px] tracking-widest uppercase"
-                          buttonStyle={{
-                            border: "1px dashed var(--v-rule)",
-                            borderRadius: 999,
-                            padding: "4px 10px",
-                            color: item.format ? "var(--v-fg)" : "var(--v-muted)",
-                          }}
-                          inputStyle={{
-                            border: "1px dashed var(--v-rule)",
-                            borderRadius: 999,
-                            padding: "4px 10px",
-                          }}
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => toggleOwner(item.key)}
-                          disabled={!!owner && !mine}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                          style={{
-                            border: "1px dashed var(--v-rule)",
-                            color: "var(--v-fg)",
-                            opacity: owner && !mine ? 0.8 : 1,
-                          }}
-                        >
-                          {owner ? (
-                            <>
-                              <ActorDot color={owner.color} displayName={displayActorName({ id: owner.actorId, kind: "user", displayName: owner.name })} size={16} />
-                              <span className="mono text-[9px] tracking-widest uppercase">
-                                {mine ? lex.release : displayActorName({ id: owner.actorId, kind: "user", displayName: owner.name })}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="mono text-[9px] tracking-widest uppercase">
-                              {lex.assign}
-                            </span>
-                          )}
-                        </button>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        <Field label="Menge" value={item.quantity ?? ""} placeholder="z. B. 15–20" onSave={(v) => update(item.key, { quantity: v })} />
+                        <Field label="Format" value={item.format ?? ""} placeholder="z. B. JPG · 4000px" onSave={(v) => update(item.key, { format: v })} />
+                        <Field label="Frist" value={item.due ?? ""} type="date" onSave={(v) => update(item.key, { due: v })} />
                       </div>
-
-                      <div className="mt-2">
-                        <InlineWorkflowText
-                          value={item.details ?? ""}
-                          placeholder="Kanal, Motivgruppe oder Übergabehinweis"
-                          onSave={(next) => updateItem(item.key, { details: next })}
-                          allowEmpty
-                          className="text-[12px] leading-snug"
-                        />
-                      </div>
+                      <Field
+                        label="Notiz"
+                        value={item.details ?? ""}
+                        placeholder="Kanal, Motivgruppe oder Übergabehinweis"
+                        onSave={(v) => update(item.key, { details: v })}
+                      />
                     </div>
                   </div>
                 </motion.div>
@@ -241,9 +179,8 @@ export function DeliverablesRenderer({
             })}
           </AnimatePresence>
         </div>
-        )}
 
-        <div className={`mt-3 ${items.length === 0 && !adding ? "hidden" : ""}`}>
+        <div className="mt-3">
           {adding ? (
             <input
               autoFocus
@@ -255,20 +192,12 @@ export function DeliverablesRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={200}
-              placeholder="Ergebnis hinzufügen ..."
-              className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
+              placeholder="Ergebnis benennen …"
+              className="w-full rounded-[var(--v-radius)] bg-transparent px-2 py-1 text-[13px] outline-none"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
           ) : (
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              aria-label="Ergebnis hinzufügen"
-              className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
-              style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
-            >
-              + Eintrag hinzufügen
-            </button>
+            addBtn
           )}
         </div>
       </WidgetCard>
@@ -276,18 +205,66 @@ export function DeliverablesRenderer({
   );
 }
 
+/**
+ * A labelled, always-visible field. The small caption makes each slot's
+ * meaning explicit; edits commit on blur / Enter. Local draft resyncs when the
+ * underlying value changes (e.g. a realtime edit) while not being typed into.
+ */
+function Field({
+  value,
+  onSave,
+  label,
+  placeholder,
+  type = "text",
+  bold = false,
+}: {
+  value: string;
+  onSave: (next: string) => void;
+  label?: string;
+  placeholder?: string;
+  type?: "text" | "date";
+  bold?: boolean;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => { setDraft(value); }, [value]);
+  const commit = () => { if (draft.trim() !== value.trim()) onSave(draft.trim()); };
+
+  return (
+    <label className="block">
+      {label && (
+        <span className="mono mb-1 block text-[8px] uppercase tracking-[0.18em]" style={{ color: "var(--v-muted)" }}>
+          {label}
+        </span>
+      )}
+      <input
+        type={type}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }}
+        placeholder={placeholder}
+        maxLength={200}
+        className={`w-full rounded-[10px] bg-transparent px-2 py-1.5 outline-none ${bold ? "text-[14px] font-medium" : "text-[12px]"}`}
+        style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+      />
+    </label>
+  );
+}
+
 function buildDeliverables(module: DeliverablesWidget, state: ModuleStateEntry[]): DeliverableView[] {
   const byId = new Map<string, DeliverableView>();
+  const deleted = new Set<string>();
 
   module.items.forEach((item, i) => {
     byId.set(`seed-${i}`, {
       key: `seed-${i}`,
       label: item.label,
-        details: item.details,
-        quantity: item.quantity,
-        format: item.format,
-        status: item.status ?? "planned",
-      });
+      details: item.details,
+      quantity: item.quantity,
+      format: item.format,
+      due: item.due,
+      status: item.status ?? "planned",
+    });
   });
 
   state
@@ -303,6 +280,7 @@ function buildDeliverables(module: DeliverablesWidget, state: ModuleStateEntry[]
         details: typeof e.data.details === "string" ? e.data.details : undefined,
         quantity: typeof e.data.quantity === "string" ? e.data.quantity : undefined,
         format: typeof e.data.format === "string" ? e.data.format : undefined,
+        due: typeof e.data.due === "string" ? e.data.due : undefined,
         status: isDeliverableStatus(e.data.status) ? e.data.status : "planned",
       });
     });
@@ -313,39 +291,18 @@ function buildDeliverables(module: DeliverablesWidget, state: ModuleStateEntry[]
     .forEach((e) => {
       const id = typeof e.data.id === "string" ? e.data.id : null;
       if (!id) return;
+      if (e.data.deleted === true) { deleted.add(id); return; }
       const item = byId.get(id);
       if (!item) return;
       if (typeof e.data.label === "string" && e.data.label.trim()) item.label = e.data.label;
       if (typeof e.data.details === "string") item.details = e.data.details.trim() ? e.data.details : undefined;
       if (typeof e.data.quantity === "string") item.quantity = e.data.quantity.trim() ? e.data.quantity : undefined;
       if (typeof e.data.format === "string") item.format = e.data.format.trim() ? e.data.format : undefined;
+      if (typeof e.data.due === "string") item.due = e.data.due.trim() ? e.data.due : undefined;
       if (isDeliverableStatus(e.data.status)) item.status = e.data.status;
     });
 
-  return [...byId.values()];
-}
-
-function buildOwners(state: ModuleStateEntry[]) {
-  const latestPerActorItem = new Map<string, ModuleStateEntry>();
-  for (const e of state) {
-    if (e.kind !== "claim") continue;
-    const slot = typeof e.data.slotLabel === "string" ? e.data.slotLabel : "";
-    if (!slot) continue;
-    latestPerActorItem.set(`${e.actor.id}::${slot}`, e);
-  }
-
-  const owners = new Map<string, { actorId: string; color?: string; name?: string }>();
-  for (const [, e] of latestPerActorItem) {
-    if (e.data.claimed === false) continue;
-    const slot = typeof e.data.slotLabel === "string" ? e.data.slotLabel : "";
-    if (!slot || owners.has(slot)) continue;
-    owners.set(slot, {
-      actorId: e.actor.id,
-      color: typeof e.data.color === "string" ? e.data.color : undefined,
-      name: e.actor.displayName,
-    });
-  }
-  return owners;
+  return [...byId.values()].filter((item) => !deleted.has(item.key));
 }
 
 function isDeliverableStatus(value: unknown): value is DeliverableStatus {
@@ -363,54 +320,4 @@ function labelForStatus(status: DeliverableStatus, lex: ReturnType<typeof workfl
     default:
       return lex.planned;
   }
-}
-
-function InlineWorkflowText({
-  value,
-  placeholder,
-  onSave,
-  className,
-  allowEmpty = false,
-  buttonStyle,
-  inputStyle,
-}: {
-  value: string;
-  placeholder: string;
-  onSave: (next: string) => Promise<void> | void;
-  className?: string;
-  allowEmpty?: boolean;
-  buttonStyle?: React.CSSProperties;
-  inputStyle?: React.CSSProperties;
-}) {
-  const { editing, setEditing, editProps } = useInlineEdit<HTMLInputElement>({
-    value,
-    onSave: (next) => {
-      if (!allowEmpty && !next.trim()) return;
-      return onSave(next);
-    },
-    submitOn: "enter",
-    focusMode: "all",
-  });
-
-  if (editing) {
-    return (
-      <input
-        {...editProps}
-        maxLength={200}
-        className={`w-full bg-transparent outline-none ${className ?? ""}`}
-        style={{ color: "var(--v-fg)", ...inputStyle }}
-      />
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => setEditing(true)}
-      className={`text-left ${className ?? ""}`}
-      style={buttonStyle ?? { color: value ? "var(--v-fg)" : "var(--v-muted)" }}
-    >
-      {value || placeholder}
-    </button>
-  );
 }

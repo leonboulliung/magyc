@@ -156,34 +156,15 @@ export function PartsListRenderer({
                 className="w-full rounded-[var(--v-radius)] bg-transparent px-2 py-1 text-[13px] outline-none"
                 style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
               />
-              <div className="grid gap-2 sm:grid-cols-[1fr_1.5fr_auto]">
+              <div className="flex flex-wrap items-center gap-2">
                 <input
                   value={pendingQty}
                   onChange={(e) => setPendingQty(e.target.value)}
                   placeholder="Anzahl / Status"
                   maxLength={40}
-                  className="mono rounded-[var(--v-radius)] bg-transparent px-2 py-1 text-[11px] outline-none"
+                  className="mono w-28 rounded-[var(--v-radius)] bg-transparent px-2 py-1 text-[11px] outline-none"
                   style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                 />
-                <input
-                  value={/^https?:\/\//i.test(pendingUrl) ? pendingUrl : ""}
-                  onChange={(e) => setPendingUrl(e.target.value)}
-                  placeholder="Bild-URL optional"
-                  maxLength={500}
-                  className="mono rounded-[var(--v-radius)] bg-transparent px-2 py-1 text-[11px] outline-none"
-                  style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
-                />
-                <button
-                  type="button"
-                  onClick={() => add(false)}
-                  disabled={!pendingName.trim()}
-                  className="mono rounded-full px-3 py-1 text-[10px] tracking-widest disabled:opacity-30"
-                  style={{ background: "var(--v-fg)", color: "var(--v-bg)" }}
-                >
-                  Speichern
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
                 <UploadZone
                   spaceId={ctx.spaceId}
                   moduleIndex={index}
@@ -192,11 +173,17 @@ export function PartsListRenderer({
                   compact
                   onDone={(files) => { if (files[0]?.path) setPendingUrl(files[0].path); }}
                 >
-                  <span className="mono text-[10px] tracking-widest opacity-70">+ Bild hochladen</span>
+                  <span className="mono text-[10px] tracking-widest opacity-70">{pendingUrl ? "✓ Bild" : "+ Bild"}</span>
                 </UploadZone>
-                {pendingUrl && !/^https?:\/\//i.test(pendingUrl) && (
-                  <span className="mono text-[10px] tracking-widest opacity-60" style={{ color: "var(--v-muted)" }}>✓ Bild angehängt</span>
-                )}
+                <button
+                  type="button"
+                  onClick={() => add(false)}
+                  disabled={!pendingName.trim()}
+                  className="mono ml-auto rounded-full px-3 py-1 text-[10px] tracking-widest disabled:opacity-30"
+                  style={{ background: "var(--v-fg)", color: "var(--v-bg)" }}
+                >
+                  Speichern
+                </button>
               </div>
             </div>
           ) : (
@@ -239,11 +226,6 @@ function PartRow({
   const quantityEdit = useInlineEdit<HTMLInputElement>({
     value: item.quantity ?? "",
     onSave: (quantity) => onSave({ quantity }),
-    submitOn: "enter",
-  });
-  const imageEdit = useInlineEdit<HTMLInputElement>({
-    value: item.imageUrl ?? "",
-    onSave: (imageUrl) => onSave({ imageUrl }),
     submitOn: "enter",
   });
 
@@ -289,32 +271,30 @@ function PartRow({
             </button>
           )}
 
-          <div className="grid gap-1.5 sm:grid-cols-2">
-            <MiniField edit={quantityEdit} value={item.quantity ?? ""} placeholder="Anzahl / Status" />
-            <div className="flex items-center gap-1.5">
-              <UploadZone
-                spaceId={spaceId}
-                moduleIndex={moduleIndex}
-                accept={IMAGE_ACCEPT}
-                multiple={false}
-                compact
-                onDone={(files) => { if (files[0]?.path) onSave({ imageUrl: files[0].path }); }}
-              >
-                <span className="mono text-[10px] tracking-widest opacity-70">{item.imageUrl ? "Bild ändern" : "+ Bild"}</span>
-              </UploadZone>
-              {item.imageUrl ? (
-                <button
-                  type="button"
-                  onClick={() => onSave({ imageUrl: "" })}
-                  className="mono text-[10px] tracking-widest opacity-50 transition-opacity hover:opacity-100"
-                  style={{ color: "var(--v-muted)" }}
-                >
-                  entfernen
-                </button>
-              ) : (
-                <MiniField edit={imageEdit} value={/^https?:\/\//i.test(item.imageUrl ?? "") ? (item.imageUrl ?? "") : ""} placeholder="oder URL" />
-              )}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-32">
+              <MiniField edit={quantityEdit} value={item.quantity ?? ""} placeholder="Anzahl / Status" />
             </div>
+            <UploadZone
+              spaceId={spaceId}
+              moduleIndex={moduleIndex}
+              accept={IMAGE_ACCEPT}
+              multiple={false}
+              compact
+              onDone={(files) => { if (files[0]?.path) onSave({ imageUrl: files[0].path }); }}
+            >
+              <span className="mono text-[10px] tracking-widest opacity-70">{item.imageUrl ? "Bild ändern" : "+ Bild"}</span>
+            </UploadZone>
+            {item.imageUrl && (
+              <button
+                type="button"
+                onClick={() => onSave({ imageUrl: "" })}
+                className="mono text-[10px] tracking-widest opacity-50 transition-opacity hover:opacity-100"
+                style={{ color: "var(--v-muted)" }}
+              >
+                entfernen
+              </button>
+            )}
           </div>
         </div>
         {item.authorName && (

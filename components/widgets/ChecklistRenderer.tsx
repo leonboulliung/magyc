@@ -30,6 +30,13 @@ export function ChecklistRenderer({
   const ctx = useWidgetContext();
   const presetMode = ctx.mode === "preset";
 
+  // Soft-deleted entries (collaborator adds tombstoned via an `edit`).
+  const deleted = new Set(
+    state
+      .filter((e) => e.kind === "edit" && e.data.deleted === true && typeof e.data.id === "string")
+      .map((e) => e.data.id as string),
+  );
+
   // Reconstruct items — seed first (in original order), then collab adds.
   const added = state
     .filter((e) => e.kind === "add")
@@ -38,10 +45,10 @@ export function ChecklistRenderer({
       key: e.id,
       text: String(e.data.text ?? ""),
     }))
-    .filter((it) => it.text);
+    .filter((it) => it.text && !deleted.has(it.key));
 
   const items = [
-    ...m.items.map((it, i) => ({ key: `seed-${i}`, text: it.text })),
+    ...m.items.map((it, i) => ({ key: `seed-${i}`, text: it.text })).filter((it) => !deleted.has(it.key)),
     ...added,
   ];
 
@@ -93,6 +100,16 @@ export function ChecklistRenderer({
     await ctx.act(index, "add", { text: v });
   }
 
+  async function deleteItem(key: string) {
+    if (key.startsWith("seed-")) {
+      const i = Number(key.slice(5));
+      if (!Number.isInteger(i)) return;
+      await ctx.saveModule(index, { ...m, items: m.items.filter((_, j) => j !== i) });
+      return;
+    }
+    await ctx.act(index, "edit", { id: key, deleted: true });
+  }
+
   return (
     <WidgetShell
       module={m}
@@ -121,7 +138,7 @@ export function ChecklistRenderer({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 3 }}
                   transition={{ duration: 0.15 }}
-                  className="flex items-center gap-2.5"
+                  className="group flex items-center gap-2.5"
                 >
                   {!presetMode && (
                     <CheckBox
@@ -141,6 +158,15 @@ export function ChecklistRenderer({
                   >
                     {it.text}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => deleteItem(it.key)}
+                    aria-label="Eintrag entfernen"
+                    className="mono shrink-0 rounded-full px-1.5 text-[13px] leading-none opacity-0 transition-opacity hover:!opacity-100 group-hover:opacity-50"
+                    style={{ color: "var(--v-muted)" }}
+                  >
+                    ×
+                  </button>
                 </motion.li>
               );
             })}
