@@ -94,12 +94,8 @@ export function PartsListRenderer({
   }
 
   async function deleteItem(key: string) {
-    if (key.startsWith("seed-")) {
-      const seedIndex = Number(key.slice(5));
-      if (!Number.isInteger(seedIndex)) return;
-      await ctx.saveModule(index, { ...m, items: m.items.filter((_, i) => i !== seedIndex) });
-      return;
-    }
+    // Tombstone seed + collaborator entries alike. Splicing a seed item out of
+    // config would shift later seed-N indices and mis-map existing state.
     await ctx.act(index, "edit", { id: key, deleted: true });
   }
 

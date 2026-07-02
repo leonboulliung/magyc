@@ -95,12 +95,8 @@ export function ApprovalsRenderer({
   }
 
   async function remove(key: string) {
-    if (key.startsWith("seed-")) {
-      const i = Number(key.slice(5));
-      if (!Number.isInteger(i)) return;
-      await ctx.saveModule(index, { ...m, items: m.items.filter((_, j) => j !== i) });
-      return;
-    }
+    // Tombstone seed + collaborator entries alike: splicing seed items out of
+    // config shifts later seed-N indices and mis-maps existing state.
     await ctx.act(index, "edit", { id: key, deleted: true });
   }
 

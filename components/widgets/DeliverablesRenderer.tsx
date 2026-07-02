@@ -82,12 +82,9 @@ export function DeliverablesRenderer({
   }
 
   async function remove(key: string) {
-    if (key.startsWith("seed-")) {
-      const i = Number(key.slice(5));
-      if (!Number.isInteger(i)) return;
-      await ctx.saveModule(index, { ...m, items: m.items.filter((_, j) => j !== i) });
-      return;
-    }
+    // Tombstone for BOTH seed and collaborator entries. Splicing seed items out
+    // of config would shift every later seed-N index, so existing edits/checks
+    // keyed to those positions would silently attach to the wrong entry.
     await ctx.act(index, "edit", { id: key, deleted: true });
   }
 

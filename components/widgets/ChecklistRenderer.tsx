@@ -101,12 +101,9 @@ export function ChecklistRenderer({
   }
 
   async function deleteItem(key: string) {
-    if (key.startsWith("seed-")) {
-      const i = Number(key.slice(5));
-      if (!Number.isInteger(i)) return;
-      await ctx.saveModule(index, { ...m, items: m.items.filter((_, j) => j !== i) });
-      return;
-    }
+    // Tombstone seed + collaborator entries alike. Splicing a seed item out of
+    // config would shift later seed-N indices, so check/edit state keyed to
+    // those positions would attach to the wrong item.
     await ctx.act(index, "edit", { id: key, deleted: true });
   }
 
