@@ -177,7 +177,8 @@ export function ShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="Projekt teilen" maxWidth={460}>
-      <div className="max-h-[85vh] overflow-y-auto rounded-2xl border border-black/12 bg-white p-6 text-[#17171a] shadow-2xl">
+      <div className="overflow-hidden rounded-2xl border border-black/12 bg-white text-[#17171a] shadow-2xl">
+        <div className="max-h-[85vh] overflow-y-auto p-6">
         <h2 className="font-brand text-[20px] font-bold tracking-[-0.01em]">Projekt teilen</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-black/60">
           Wer den Link hat, kann das Projekt sehen und mitarbeiten (kommentieren, abstimmen,
@@ -293,6 +294,7 @@ export function ShareDialog({
           >
             Schließen
           </button>
+        </div>
         </div>
       </div>
     </Dialog>

@@ -88,13 +88,15 @@ export function LocationPointsEditor({
           />
           {loading && <span className="mono absolute right-3 top-2.5 text-[10px] opacity-45">…</span>}
           {results.length > 0 && (
-            <div className="absolute inset-x-0 top-[calc(100%+4px)] z-40 max-h-52 overflow-y-auto rounded-[var(--v-radius)]" style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)", boxShadow: "0 12px 28px rgba(0,0,0,0.22)" }}>
+            <div className="absolute inset-x-0 top-[calc(100%+4px)] z-40 overflow-hidden rounded-[var(--v-radius)]" style={{ border: "1px solid var(--v-rule)", background: "var(--v-bg)", boxShadow: "0 12px 28px rgba(0,0,0,0.22)" }}>
+              <div className="max-h-52 overflow-y-auto">
               {results.map((result, index) => (
                 <button key={`${result.lng}-${result.lat}-${index}`} type="button" onMouseDown={(event) => { event.preventDefault(); pick(result); }} className="flex w-full items-start gap-2 px-3 py-2 text-left text-[12px] transition-colors hover:bg-white/[0.06]" style={{ color: "var(--v-fg)", borderBottom: "1px solid var(--v-rule)" }}>
                   <span aria-hidden className="mt-0.5 opacity-45">⊙</span>
                   <span>{result.label}</span>
                 </button>
               ))}
+              </div>
             </div>
           )}
         </div>
