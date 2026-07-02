@@ -470,3 +470,17 @@ html[data-studio-theme="dark"] .studio-selected {
   .print-keep { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
+
+/* Row actions (delete ×, etc.) that reveal on hover on the desktop. On touch
+   devices there is no hover, so a hover-only control is invisible and the
+   action becomes impossible — keep it visible there. Put `reveal-on-hover` on
+   the control and `group` on its row. */
+.reveal-on-hover {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.group:hover .reveal-on-hover { opacity: 0.5; }
+.reveal-on-hover:hover { opacity: 1; }
+@media (hover: none) {
+  .reveal-on-hover { opacity: 0.5; }
+}

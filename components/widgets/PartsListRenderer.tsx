@@ -230,12 +230,12 @@ function PartRow({
   });
 
   return (
-    <div className="group/part relative rounded-[var(--v-radius)] p-2" style={{ border: "1px solid var(--v-rule)", background: "rgba(255,255,255,0.03)" }}>
+    <div className="group group/part relative rounded-[var(--v-radius)] p-2" style={{ border: "1px solid var(--v-rule)", background: "rgba(255,255,255,0.03)" }}>
       <button
         type="button"
         onClick={onDelete}
         aria-label="Eintrag entfernen"
-        className="mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover/part:opacity-50 hover:!opacity-100"
+        className="reveal-on-hover mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none hover:bg-white/10"
         style={{ color: "var(--v-muted)" }}
       >
         ×

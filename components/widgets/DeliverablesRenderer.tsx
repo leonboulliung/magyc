@@ -137,7 +137,7 @@ export function DeliverablesRenderer({
                     type="button"
                     onClick={() => remove(item.key)}
                     aria-label="Ergebnis entfernen"
-                    className="mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:!opacity-100 group-hover:opacity-50"
+                    className="reveal-on-hover mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none"
                     style={{ color: "var(--v-muted)" }}
                   >
                     ×

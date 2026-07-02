@@ -162,7 +162,7 @@ export function ChecklistRenderer({
                     type="button"
                     onClick={() => deleteItem(it.key)}
                     aria-label="Eintrag entfernen"
-                    className="mono shrink-0 rounded-full px-1.5 text-[13px] leading-none opacity-0 transition-opacity hover:!opacity-100 group-hover:opacity-50"
+                    className="reveal-on-hover mono shrink-0 rounded-full px-1.5 text-[13px] leading-none"
                     style={{ color: "var(--v-muted)" }}
                   >
                     ×
