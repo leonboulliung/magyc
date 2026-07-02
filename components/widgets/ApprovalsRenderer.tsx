@@ -94,6 +94,16 @@ export function ApprovalsRenderer({
     });
   }
 
+  async function remove(key: string) {
+    if (key.startsWith("seed-")) {
+      const i = Number(key.slice(5));
+      if (!Number.isInteger(i)) return;
+      await ctx.saveModule(index, { ...m, items: m.items.filter((_, j) => j !== i) });
+      return;
+    }
+    await ctx.act(index, "edit", { id: key, deleted: true });
+  }
+
   return (
     <WidgetShell
       module={m}
@@ -138,14 +148,23 @@ export function ApprovalsRenderer({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   transition={{ duration: 0.18 }}
-                  className="rounded-[var(--v-radius)] p-3"
+                  className="group relative rounded-[var(--v-radius)] p-3"
                   style={{
                     border: "1px solid var(--v-rule)",
                     background: "var(--v-card)",
                     boxShadow: "inset 0 1px 1px rgba(255,255,255,0.08)",
                   }}
                 >
-                  <div className="flex items-start gap-3">
+                  <button
+                    type="button"
+                    onClick={() => remove(item.key)}
+                    aria-label="Freigabe entfernen"
+                    className="mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:!opacity-100 group-hover:opacity-50"
+                    style={{ color: "var(--v-muted)" }}
+                  >
+                    ×
+                  </button>
+                  <div className="flex items-start gap-3 pr-7">
                     <button
                       type="button"
                       onClick={() => toggleApproval(item.key)}
@@ -301,6 +320,7 @@ export function ApprovalsRenderer({
 
 function buildApprovals(module: ApprovalsWidget, state: ModuleStateEntry[]): ApprovalView[] {
   const byId = new Map<string, ApprovalView>();
+  const deleted = new Set<string>();
 
   module.items.forEach((item, i) => {
     byId.set(`seed-${i}`, {
@@ -334,13 +354,14 @@ function buildApprovals(module: ApprovalsWidget, state: ModuleStateEntry[]): App
     .forEach((e) => {
       const id = typeof e.data.id === "string" ? e.data.id : null;
       if (!id) return;
+      if (e.data.deleted === true) { deleted.add(id); return; }
       const item = byId.get(id);
       if (!item) return;
       if (typeof e.data.text === "string" && e.data.text.trim()) item.text = e.data.text;
       if (isApprovalStatus(e.data.status)) item.status = e.data.status;
     });
 
-  return [...byId.values()];
+  return [...byId.values()].filter((item) => !deleted.has(item.key));
 }
 
 function buildOwners(state: ModuleStateEntry[]) {
