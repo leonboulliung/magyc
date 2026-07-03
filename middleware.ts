@@ -18,9 +18,12 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   if (isStudio(request)) {
     const { userId } = await auth();
     if (!userId) {
+      // Send guests to the dedicated auth page (login + registration),
+      // returning to the requested Studio path after sign-in.
       const url = request.nextUrl.clone();
-      url.pathname = "/";
-      url.searchParams.set("next", request.nextUrl.pathname);
+      url.pathname = "/sign-in";
+      url.search = "";
+      url.searchParams.set("redirect_url", request.nextUrl.pathname);
       return NextResponse.redirect(url);
     }
   }

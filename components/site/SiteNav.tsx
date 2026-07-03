@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { MAIN_NAV, USE_CASES, isNavGroup } from "@/lib/site";
 
 /**
@@ -24,6 +24,10 @@ export function SiteNav() {
       setSignInTarget(next);
     }
   }, []);
+
+  // Dedicated auth page (login + link to registration), returning to the
+  // originally requested Studio path after auth via Clerk's redirect_url.
+  const signInHref = `/sign-in?redirect_url=${encodeURIComponent(signInTarget)}`;
 
   return (
     <header
@@ -71,18 +75,10 @@ export function SiteNav() {
             ),
           )}
           <SignedOut>
-            {/* One CTA: Clerk sign-in (which also offers sign-up). */}
-            <SignInButton
-              mode="modal"
-              forceRedirectUrl={signInTarget}
-              fallbackRedirectUrl={signInTarget}
-              signUpForceRedirectUrl={signInTarget}
-              signUpFallbackRedirectUrl={signInTarget}
-            >
-              <button type="button" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
-                Studio Login
-              </button>
-            </SignInButton>
+            {/* One CTA → dedicated auth page (login + registration). */}
+            <Link href={signInHref} className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
+              Studio Login
+            </Link>
           </SignedOut>
           <SignedIn>
             <Link href="/studio" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">
@@ -129,15 +125,9 @@ export function SiteNav() {
             </div>
             <div className="mt-4 flex items-center gap-3 border-t border-black/10 pt-4">
               <SignedOut>
-                <SignInButton
-                  mode="modal"
-                  forceRedirectUrl={signInTarget}
-                  fallbackRedirectUrl={signInTarget}
-                  signUpForceRedirectUrl={signInTarget}
-                  signUpFallbackRedirectUrl={signInTarget}
-                >
-                  <button type="button" className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">Studio Login</button>
-                </SignInButton>
+                <Link href={signInHref} onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">
+                  Studio Login
+                </Link>
               </SignedOut>
               <SignedIn>
                 <Link href="/studio" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">
