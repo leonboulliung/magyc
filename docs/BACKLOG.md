@@ -28,6 +28,54 @@ _Last updated: 2026-07-02 (Claude — Clerk production cutover complete)_
   delivery (also completes Clerk's "create your first user" checklist).
   (2) **Rotate `sk_live`** — it was pasted in a chat transcript once.
 
+## FEATURE SPEC — attachments at creation, routed to the right elements
+
+_Requested by Leon 2026-07-03. This is the "drop a customer inquiry + its
+attachments and get a ready project" flow. The text-import half is done
+(prompt reframed as an import surface, input limit raised to 4000 so a full
+pasted email fits). Files/attachments at creation are NOT built yet — this is
+what it would take._
+
+**Current state (verified in code):**
+- Uploads only work **after** a space exists: the browser asks
+  `POST /api/spaces/[id]/upload` for a signed Supabase Storage token, uploads
+  directly, then commits an `upload` row into `module_state` keyed by
+  `module_index`. No space/module at creation time = nowhere to attach.
+- The **MIME → element routing logic already exists**:
+  `lib/uploadPolicy.ts#isMimeAllowedForModule` maps `attachments` = any allowed
+  file; `images`/`moodboard`/`selection`/`parts_list` = image MIMEs;
+  `audio` = audio MIMEs. Limits: 50 MB/file, 2 GB/project, MIME allowlist in
+  `lib/server/uploadSecurity.ts`.
+- The classifier can **force-include** module types
+  (`lib/server/classify.ts#selectModuleTypes(scores, forced)` — the `explicit`
+  path), so we can guarantee a holder element exists.
+
+**What's needed (recommended approach = create-then-attach, reuses all infra):**
+1. **Prompt UI drop zone.** Add a file drop/paste area to `PromptStart` that
+   stages files in memory (with an "Anhänge" chip list) before submit. No new
+   backend for staging.
+2. **Force the holder elements.** From the staged files' MIME categories, pass
+   forced module types into creation (`/api/spaces`, `/api/projects`): images →
+   Moodboard (or Images), documents → Attachments, audio → Audio. So the built
+   space always has a place for them.
+3. **Route on submit.** After the space is created (it already returns
+   `id` + `anonOwnerToken` synchronously), for each staged file: resolve
+   MIME → target module type (reuse `isMimeAllowedForModule`), find that
+   module's index in the new space, then run the existing signed-upload +
+   `module_state` commit against it. Multiple images → the one Moodboard.
+4. **Raise per-file staging feedback + errors** through the existing
+   `UploadZone`/feedback helpers; keep the client accept list and
+   `uploadSecurity` allowlist in sync (already the rule).
+5. **Optional later (bigger):** let the AI *read* attachments — vision on
+   reference images, text-extract a PDF brief — to inform the classifier and
+   authoring. Not required for routing; separate slice.
+
+**Effort:** medium. Upload infra, MIME→element mapping, and forced-module
+selection all exist; the new work is the client drop-zone + a submit
+orchestration (create space, then upload+route files) + passing forced types.
+No new Storage/DB architecture if we use create-then-attach. Ties into the
+streamed-creation idea (P2 #8).
+
 ## TODO — next operational step
 
 - [ ] **CRITICAL: apply migration 018 in Supabase — it is MISSING in
