@@ -10,7 +10,7 @@ import { cleanSettings } from "@/lib/studioProfile";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 15_000;
-const MAX_INPUT_CHARS = 1200;
+const MAX_INPUT_CHARS = 4000;
 
 /**
  * POST /api/spaces/clarify — first leg of the create flow.

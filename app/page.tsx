@@ -395,11 +395,11 @@ export default function HomePage() {
                       <div>
                         <p className="mono text-[10px] uppercase tracking-[0.22em] text-black/42">Dein nächster Auftrag</p>
                         <h2 className="mt-2 font-brand text-[28px] font-bold leading-tight text-[#17171a] sm:text-[38px]">
-                          Starte mit dem, was du schon weißt
+                          Kundenanfrage rein, Projekt raus
                         </h2>
                       </div>
                       <p className="max-w-md text-[14px] leading-relaxed text-black/52 sm:text-right">
-                        Beschreibe dein Shooting so konkret wie möglich: Orte, Menschen, Requisiten, Ziel, Ablauf und Termine.
+                        Füge die Nachricht oder E-Mail deines Kunden ein — oder beschreibe das Shooting selbst. MAGYC baut daraus dein Projekt.
                       </p>
                     </div>
                     <PromptStart

@@ -76,7 +76,7 @@ export function PromptStart({
         autoFocus={autoFocus}
         rows={rows}
         highlight={highlight}
-        placeholder="z. B. Produktshooting für eine handgemachte Keramik-Serie, clean und warm …"
+        placeholder="Kundenanfrage einfügen — die Nachricht oder E-Mail deines Kunden hier hineinkopieren. Oder das Shooting selbst kurz beschreiben …"
         theme="light"
         topSlot={showPresetChoice ? (
           <div className="flex flex-wrap gap-2">

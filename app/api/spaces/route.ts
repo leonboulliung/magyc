@@ -23,7 +23,7 @@ const lastCallAt = new Map<string, number>();
 // 8 s window — enough to prevent double-submit spam but allows
 // quick retries during testing / development.
 const RATE_WINDOW_MS = 8_000;
-const MAX_INPUT_CHARS = 1200;
+const MAX_INPUT_CHARS = 4000;
 const MAX_ANSWERS = 6;
 const FIELD_MAX = 600;
 const str = (v: unknown) =>

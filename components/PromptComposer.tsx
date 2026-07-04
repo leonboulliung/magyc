@@ -44,7 +44,7 @@ export const PromptComposer = forwardRef<HTMLTextAreaElement, {
   /** Surface theme. The shared Home/Studio composer uses light via PromptStart. */
   theme?: "light" | "dark";
 }>(function PromptComposer(
-  { value, onChange, onSubmit, placeholder, disabled, maxLength = 1200, rows = 3, autoFocus, topSlot, chips, footer, highlight, id, className, theme = "dark" },
+  { value, onChange, onSubmit, placeholder, disabled, maxLength = 4000, rows = 3, autoFocus, topSlot, chips, footer, highlight, id, className, theme = "dark" },
   ref,
 ) {
   const [focused, setFocused] = useState(false);

@@ -348,8 +348,8 @@ export function StudioHome({
         Plane deinen nächsten Fotografie-Auftrag
       </h1>
       <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-black/55">
-        Beschreibe dein Shooting so konkret wie möglich: Standort(e), beteiligte Personen,
-        Requisiten, Ziel des Projekts, Ablaufphasen und geplante Termine.
+        Füge die Kundenanfrage ein — Nachricht oder E-Mail. Oder beschreibe das Shooting
+        selbst: Standort(e), beteiligte Personen, Ziel, Ablaufphasen und geplante Termine.
       </p>
 
       <div className="mt-7">
