@@ -16,8 +16,8 @@ export function StudioAccountControls() {
         </button>
       </SignOutButton>
       <Link
-        href="/studio/profile"
-        aria-label="Profil öffnen"
+        href="/studio/konto"
+        aria-label="Konto öffnen"
         className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-black/10 bg-black/[0.06] text-[12px] font-semibold text-black/70 transition-transform hover:scale-105"
         title={name}
       >

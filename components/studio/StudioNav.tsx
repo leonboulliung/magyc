@@ -12,8 +12,7 @@ const ITEMS = [
   { href: "/studio/vertragsinhalte", label: "Vertragsinhalte" },
   { href: "/studio/konnektoren", label: "Konnektoren" },
   { href: "/studio/users", label: "Nutzer" },
-  { href: "/studio/profile", label: "Profil" },
-  { href: "/studio/settings", label: "Einstellungen" },
+  { href: "/studio/konto", label: "Konto" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
