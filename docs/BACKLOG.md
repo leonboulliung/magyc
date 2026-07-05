@@ -37,18 +37,22 @@ Done + deployed:
   and time-bounds the Clerk call, claim/invite return clean 5xx instead of 500.
   Invitations have no email notification yet (needs email infra — separate).
 
+Done (batch 2):
+- **#14** Profil + Einstellungen merged into a single `/studio/konto` page
+  (one `useStudioProfile` hook). Nav dropped the two items for one "Konto";
+  old `/studio/profile` + `/studio/settings` redirect there; topbar avatar links
+  to Konto. (Leon chose a dedicated Konto page, Nutzer stays separate.)
+- **#15** Project workspaces moved to `/project/[id]` (new route + layout,
+  middleware-guarded). `/studio/[id]` permanently redirects to `/project/[id]`
+  for old/shared links. All project links updated (dashboard cards, create/
+  claim/publish redirects, Nutzer member links). Verified: all routes 307→
+  sign-in when signed out, no 404s.
+
 Remaining:
-- [ ] **#14** Merge the Profil + Einstellungen studio pages into one (under the
-  user/account area). Studio shell pages live in `app/studio/(shell)/`
-  (profile, settings, users, vertragsinhalte, fast-prompts, presets).
-- [ ] **#15** Project links `/studio/[id]` → `/project/[id]`. Small scope: add
-  `app/project/[id]/` (mirror of `app/studio/[id]/page.tsx`, full-screen, outside
-  the shell), redirect `/studio/[id]` → `/project/[id]` for old/shared links,
-  guard `/project` in `middleware.ts`, and update the ~3 link sites
-  (`StudioHome.tsx:331`, `PublishButton.tsx:81`, claim route `redirectTo`).
-  Do this LAST per Leon.
 - [ ] **#7** Mails land in spam — needs **IONOS DKIM** enabled (Leon's action)
   + DMARC tighten. Domain reputation (3-week-old domain) also a factor.
+- Leon to spot-check the authed flows for #14/#15 (open a project → /project/id;
+  old /studio/id link redirects; Konto page shows both sections).
 
 ---
 
