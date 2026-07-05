@@ -328,7 +328,7 @@ export function StudioHome({
         return;
       }
       showActionSuccess("Projekt erstellt", { id: "create-project", description: "Die Planung wird geöffnet." });
-      router.push(`/studio/${id}`);
+      router.push(`/project/${id}`);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "classify_failed";
       const description = formatFlowError(message);
@@ -633,7 +633,7 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
   return (
     <div className={`group relative origin-center transform-gpu rounded-2xl transition-[transform,box-shadow] duration-200 ease-out hover:scale-[1.015] hover:shadow-[0_14px_34px_rgba(0,0,0,0.13)] ${dim ? "opacity-75" : ""}`}>
       <Link
-        href={`/studio/${p.id}`}
+        href={`/project/${p.id}`}
         className="block h-44 transform-gpu overflow-hidden rounded-2xl border border-black/10"
       >
         <MoodGradient seed={p.id} className={`absolute inset-0 transition-transform duration-500 group-hover:scale-[1.02] ${dim ? "saturate-[0.6]" : ""}`} />

@@ -82,5 +82,5 @@ export async function POST(
     }
   }
 
-  return NextResponse.json({ ok: true, id, redirectTo: `/studio/${id}` });
+  return NextResponse.json({ ok: true, id, redirectTo: `/project/${id}` });
 }

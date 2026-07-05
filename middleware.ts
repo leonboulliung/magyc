@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // The Creator Suite is account-first: every /studio route requires a
 // signed-in user. Everything else (homepage demo, public spaces, API)
 // stays open.
-const isStudio = createRouteMatcher(["/studio(.*)"]);
+const isStudio = createRouteMatcher(["/studio(.*)", "/project(.*)"]);
 
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   // Redirect root domain (magyc.site) to www (www.magyc.site)

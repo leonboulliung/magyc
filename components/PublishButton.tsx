@@ -78,7 +78,7 @@ export function PublishButton({
         description: "Du wirst jetzt ins Studio weitergeleitet.",
       });
       setOpen(false);
-      router.push(typeof json.redirectTo === "string" ? json.redirectTo : `/studio/${space.id}`);
+      router.push(typeof json.redirectTo === "string" ? json.redirectTo : `/project/${space.id}`);
     } catch {
       const message = "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
       setError(message);
