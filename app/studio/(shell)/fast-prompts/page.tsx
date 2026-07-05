@@ -48,7 +48,7 @@ export default function FastPromptsPage() {
       </div>
       <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">
         Wiederkehrende Textbausteine, die beim Anlegen unter dem Prompt-Feld erscheinen
-        und sich per Klick einfügen lassen — z. B. „Location: 92 Rue Victor Hugo, Ivry-sur-Seine".
+        und sich per Klick einfügen lassen — z. B. „Deliverables für Web, Social Media und Print vorbereiten".
         Optional einfärbbar.
       </p>
 

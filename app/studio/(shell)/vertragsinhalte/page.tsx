@@ -55,7 +55,10 @@ export default function VertragsinhaltePage() {
                 <Field label="USt-IdNr."><Input value={settings.business.vatId} onChange={(e) => setBiz({ vatId: e.target.value })} placeholder="DE…" maxLength={40} /></Field>
                 <Field label="Steuernummer"><Input value={settings.business.taxNumber} onChange={(e) => setBiz({ taxNumber: e.target.value })} maxLength={40} /></Field>
               </div>
-              <Field label="Telefon"><Input value={settings.business.phone} onChange={(e) => setBiz({ phone: e.target.value })} maxLength={40} /></Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Telefon"><Input value={settings.business.phone} onChange={(e) => setBiz({ phone: e.target.value })} placeholder="+49 …" maxLength={40} /></Field>
+                <Field label="E-Mail"><Input type="email" value={settings.business.email} onChange={(e) => setBiz({ email: e.target.value })} placeholder="name@studio.de" maxLength={120} /></Field>
+              </div>
             </div>
           </Card>
 

@@ -408,7 +408,6 @@ export default function HomePage() {
                       onChange={(v) => { setPromptNudge(false); setText(v); }}
                       onSubmit={submitInput}
                       disabled={busy}
-                      autoFocus
                       rows={5}
                       highlight={promptNudge}
                       presets={MARKETING_STARTER_PRESETS}

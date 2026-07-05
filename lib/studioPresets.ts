@@ -193,7 +193,7 @@ export const MARKETING_STARTER_PRESETS: StudioPreset[] = [
 export function createStudioPreset(): StudioPreset {
   return {
     id: `preset-${Date.now()}`,
-    name: "Neues Preset",
+    name: "",
     description: "",
     modules: [],
     templateState: [],

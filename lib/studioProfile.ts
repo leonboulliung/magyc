@@ -70,6 +70,7 @@ export interface StudioBusiness {
   vatId: string;
   taxNumber: string;
   phone: string;
+  email: string;
 }
 
 export type DeliveryFormat = "Digitaler Download" | "Online-Galerie" | "Print" | "USB-Stick" | "Fotobuch";
@@ -116,7 +117,7 @@ export interface StudioConditions {
 }
 
 export const DEFAULT_BUSINESS: StudioBusiness = {
-  legalName: "", address: "", vatId: "", taxNumber: "", phone: "",
+  legalName: "", address: "", vatId: "", taxNumber: "", phone: "", email: "",
 };
 
 export const DEFAULT_CONDITIONS: StudioConditions = {
@@ -166,6 +167,7 @@ export function cleanBusiness(raw: unknown): StudioBusiness {
     vatId: asStr(o.vatId, 40),
     taxNumber: asStr(o.taxNumber, 40),
     phone: asStr(o.phone, 40),
+    email: asStr(o.email, 120),
   };
 }
 

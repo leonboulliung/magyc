@@ -163,9 +163,10 @@ export function WidgetPickerContent({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Element suchen"
-          autoFocus
-          className="w-full rounded-[calc(var(--v-radius)*0.6)] bg-transparent px-3 py-2 text-[13px] outline-none"
-          style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
+          className="w-full rounded-[calc(var(--v-radius)*0.6)] bg-transparent px-3 py-2 outline-none"
+          // 16px prevents iOS Safari from auto-zooming the viewport on focus;
+          // no autoFocus so tapping "+" on mobile doesn't jump into the field.
+          style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)", fontSize: "16px" }}
         />
       </div>
       {groups.length === 0 && (
@@ -177,7 +178,9 @@ export function WidgetPickerContent({
         <div key={gi} style={{ borderBottom: gi < groups.length - 1 ? "1px solid var(--v-rule)" : "none" }}>
           <div
             className="grid gap-0.5 p-1.5"
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))" }}
+            // auto-fill (not auto-fit) keeps empty tracks so a partial row
+            // stays left-aligned instead of stretching/centering its items.
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(132px, 1fr))", justifyContent: "start" }}
           >
             {group.entries.map((e) => (
               <motion.button
