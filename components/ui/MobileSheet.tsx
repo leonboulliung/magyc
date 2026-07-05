@@ -32,12 +32,31 @@ export function MobileSheet({
   title?: string;
   children: React.ReactNode;
 }) {
-  // Resolve the portal target on the client (the themed, un-transformed
-  // root). Falls back to <body> if the root isn't found (e.g. showroom).
+  // Portal to <body> (guaranteed outside every transformed ancestor) so the
+  // `fixed` backdrop covers the real viewport, then carry the vibe CSS vars
+  // over so the sheet keeps the space's theme. Portaling into `.vibe-root`
+  // is not reliable: an ancestor transform still bounds `fixed` to a box,
+  // which showed up as a partial grey "vignette".
   const [target, setTarget] = useState<Element | null>(null);
+  const [themeStyle, setThemeStyle] = useState<React.CSSProperties>({});
   useEffect(() => {
-    setTarget(document.querySelector(".vibe-root") ?? document.body);
-  }, []);
+    if (!open) return;
+    setTarget(document.body);
+    const root = document.querySelector(".vibe-root");
+    if (!root) return;
+    const cs = getComputedStyle(root);
+    const style: Record<string, string> = {};
+    for (const v of [
+      "--v-accent", "--v-fg", "--v-page", "--v-bg", "--v-rule", "--v-muted",
+      "--v-card", "--v-control", "--v-widget", "--v-widget-border", "--v-grid",
+      "--v-grid-dot", "--v-grid-shadow", "--v-widget-shadow", "--v-radius",
+      "--v-font", "--v-heading",
+    ]) {
+      const val = cs.getPropertyValue(v);
+      if (val) style[v] = val.trim();
+    }
+    setThemeStyle(style as React.CSSProperties);
+  }, [open]);
 
   // Drag-to-dismiss. Drag is started only from the grab handle (via
   // dragControls + dragListener={false}) so a scroll gesture inside the
@@ -61,6 +80,7 @@ export function MobileSheet({
   if (!target) return null;
 
   return createPortal(
+    <div style={themeStyle}>
     <AnimatePresence>
       {open && (
         <>
@@ -120,7 +140,8 @@ export function MobileSheet({
           </motion.div>
         </>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+    </div>,
     target,
   );
 }

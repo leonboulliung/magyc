@@ -533,11 +533,32 @@ function WidgetPickerOverlay({
   onPick: (w: Module) => void;
 }) {
   const [target, setTarget] = useState<Element | null>(null);
+  const [themeStyle, setThemeStyle] = useState<React.CSSProperties>({});
   const isMobile = useIsMobile();
 
+  // Portal to <body>, NOT into .vibe-root: a transformed ancestor of the
+  // workspace makes `position: fixed` anchor to that box instead of the
+  // viewport, which turned the full-screen backdrop into a bounded grey
+  // "vignette" (only clickable in its centre). Snapshot the vibe CSS vars so
+  // the portaled picker keeps the project's theme.
   useEffect(() => {
-    setTarget(document.querySelector(".vibe-root") ?? document.body);
-  }, []);
+    if (!open) return;
+    setTarget(document.body);
+    const root = document.querySelector(".vibe-root");
+    if (!root) return;
+    const cs = getComputedStyle(root);
+    const style: Record<string, string> = {};
+    for (const v of [
+      "--v-accent", "--v-fg", "--v-page", "--v-bg", "--v-rule", "--v-muted",
+      "--v-card", "--v-control", "--v-widget", "--v-widget-border", "--v-grid",
+      "--v-grid-dot", "--v-grid-shadow", "--v-widget-shadow", "--v-radius",
+      "--v-font", "--v-heading",
+    ]) {
+      const val = cs.getPropertyValue(v);
+      if (val) style[v] = val.trim();
+    }
+    setThemeStyle(style as React.CSSProperties);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -556,7 +577,7 @@ function WidgetPickerOverlay({
   if (!target || !open) return null;
 
   return createPortal(
-    <>
+    <div style={themeStyle}>
       <motion.button
         type="button"
         aria-label="close widget picker"
@@ -610,7 +631,7 @@ function WidgetPickerOverlay({
           </div>
         </motion.div>
       </div>
-    </>,
+    </div>,
     target,
   );
 }
