@@ -125,8 +125,9 @@ streamed-creation idea (P2 #8).
 
 ## TODO — next operational step
 
-- [ ] **CRITICAL: apply migration 018 in Supabase — it is MISSING in
-  production.** Verified 2026-07-02 via read-only PostgREST probes (see Done
+- [x] **DONE 2026-07-05: migration 018 applied in production** — `spaces.modules_rev`
+  now resolves (`42501`, was `42703`). Optimistic concurrency + claim unique
+  index are active. (was:)** **CRITICAL: apply migration 018 in Supabase.** Verified 2026-07-02 via read-only PostgREST probes (see Done
   below): `spaces.modules_rev` does not exist (Postgres `42703`), while every
   other migration's marker object exists. Consequence today: structural widget
   writes run on the graceful no-`modules_rev` fallback, i.e. **no optimistic
