@@ -123,7 +123,11 @@ export function StyleEditor({
   // way to dismiss the popover.
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!open) return;
+    // On mobile the panel lives in a portaled bottom sheet OUTSIDE
+    // containerRef, so this document-level outside-click check would treat
+    // every tap inside the sheet as "outside" and close it before the
+    // setting applies. The sheet dismisses itself via its own backdrop.
+    if (!open || isMobile) return;
     function onDown(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) close();
     }
@@ -136,7 +140,7 @@ export function StyleEditor({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, close]);
+  }, [open, close, isMobile]);
 
   // Shared panel body — rendered inside a bottom sheet on phones and an
   // anchored popover on desktop.

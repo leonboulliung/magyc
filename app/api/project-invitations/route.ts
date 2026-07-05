@@ -91,7 +91,13 @@ export async function POST(req: Request) {
   if (!emails.length) return NextResponse.json({ error: "email_not_verified" }, { status: 403 });
 
   const admin = supabaseAdmin();
-  await ensureProfile(userId);
+  // Accepting inserts a project_members row (FK -> profiles); the row must exist.
+  try {
+    await ensureProfile(userId);
+  } catch (profileErr) {
+    console.error("[project-invitations] ensureProfile failed:", profileErr);
+    return NextResponse.json({ error: "profile_unavailable" }, { status: 503 });
+  }
   const { data, error } = await admin.rpc("respond_project_invitation", {
     p_invitation_id: parsed.data.invitationId,
     p_user_id: userId,
