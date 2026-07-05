@@ -1,3 +1,4 @@
+import "server-only";
 import OpenAI from "openai";
 import { sanitizeModule } from "@/lib/modules";
 import type { Module, ModuleType, SpaceLabels, Vibe } from "@/lib/types";

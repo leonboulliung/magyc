@@ -1,3 +1,4 @@
+import "server-only";
 import OpenAI from "openai";
 import type { Module } from "@/lib/types";
 import { buildProjectFacts, type ProjectFacts } from "@/lib/projectFacts";

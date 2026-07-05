@@ -1,3 +1,4 @@
+import "server-only";
 import OpenAI from "openai";
 import { MODULE_META, mandatoryConfigTypes } from "@/lib/modules";
 import type { ClarifyStep, ClarifyPrefill, ModuleType } from "@/lib/types";
