@@ -16,11 +16,14 @@ export default async function StudioDashboard() {
   const { userId } = await auth();
   if (!userId) return null; // middleware guards this; defensive.
 
+  // Profile init is best-effort for the READ path: a brand-new account with
+  // no projects must still see an (empty) dashboard, not an error screen.
+  // Writes that actually need the row (claim/publish) call ensureProfile
+  // themselves and surface a real error there.
   try {
     await ensureProfile(userId);
   } catch (error) {
-    console.error("[studio] profile initialization failed", error);
-    return <StudioDataUnavailable />;
+    console.error("[studio] profile initialization failed (continuing with dashboard)", error);
   }
   const admin = supabaseAdmin();
   let all;

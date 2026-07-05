@@ -52,7 +52,13 @@ export async function POST(
     return NextResponse.json({ error: "already_published" }, { status: 409 });
   }
 
-  await ensureProfile(userId);
+  // The FK spaces.owner_id -> profiles(id) requires the row to exist first.
+  try {
+    await ensureProfile(userId);
+  } catch (profileErr) {
+    console.error("[claim] ensureProfile failed:", profileErr);
+    return NextResponse.json({ error: "profile_unavailable" }, { status: 503 });
+  }
 
   if (!space.owner_id || !space.stage) {
     const { data: updated, error: upErr } = await admin
