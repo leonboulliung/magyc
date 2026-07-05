@@ -5,7 +5,50 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-07-02 (Claude — Clerk production cutover complete)_
+_Last updated: 2026-07-03 (Claude — 15-point /goal, batch 1)_
+
+---
+
+## /goal 2026-07-03 — 15-point QA pass (Leon)
+
+Done + deployed:
+- **#1** Home no longer autofocuses the prompt → page loads at the top.
+- **#5** Element picker search: no autofocus + 16px font (no mobile jump / iOS zoom).
+- **#10** Picker grid auto-fit→auto-fill → partial rows left-align.
+- **#11** New preset starts with an empty name (placeholder shows).
+- **#12** Private address removed from the fast-prompts example copy.
+- **#13** Vertragsinhalte: E-Mail field beside Telefon (both half-width).
+  Added `StudioBusiness.email` (type + default + sanitizer).
+- **#9** Mobile StyleEditor: skip the document outside-click listener on mobile
+  (the portaled sheet lives outside containerRef; taps were closing it).
+- **#6 Vignette — root cause found + fixed.** The widget picker and MobileSheet
+  portaled into `.vibe-root`; an ancestor transform makes `position:fixed`
+  resolve to that box, shrinking the full-screen backdrop to a partial grey
+  region (only clickable in its centre — Leon's decisive hint). Both now portal
+  to `document.body` and carry a snapshot of the `--v-*` vars so the theme is
+  kept. (Previous removal attempts failed because there was no vignette element
+  to delete — it was the mis-anchored backdrop.)
+- **#2/#3/#4/#8 (new-account failures) — diagnosed + resolved.** Not a code bug:
+  the `profiles` row was transiently missing for the brand-new prod account
+  (clock-skew right after the Clerk cutover). A temp diag endpoint confirmed
+  `ensureProfile` upsert + summaries RPC + space list + invitations all succeed
+  once the row exists; Leon confirmed Studio/save/invite work. Hardening kept:
+  Studio read is non-fatal on profile hiccup, `ensureProfile` retries the upsert
+  and time-bounds the Clerk call, claim/invite return clean 5xx instead of 500.
+  Invitations have no email notification yet (needs email infra — separate).
+
+Remaining:
+- [ ] **#14** Merge the Profil + Einstellungen studio pages into one (under the
+  user/account area). Studio shell pages live in `app/studio/(shell)/`
+  (profile, settings, users, vertragsinhalte, fast-prompts, presets).
+- [ ] **#15** Project links `/studio/[id]` → `/project/[id]`. Small scope: add
+  `app/project/[id]/` (mirror of `app/studio/[id]/page.tsx`, full-screen, outside
+  the shell), redirect `/studio/[id]` → `/project/[id]` for old/shared links,
+  guard `/project` in `middleware.ts`, and update the ~3 link sites
+  (`StudioHome.tsx:331`, `PublishButton.tsx:81`, claim route `redirectTo`).
+  Do this LAST per Leon.
+- [ ] **#7** Mails land in spam — needs **IONOS DKIM** enabled (Leon's action)
+  + DMARC tighten. Domain reputation (3-week-old domain) also a factor.
 
 ---
 
