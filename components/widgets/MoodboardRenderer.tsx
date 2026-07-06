@@ -144,9 +144,29 @@ export function MoodboardRenderer({
   const [pending, setPending] = useState("");
   const [expanded, setExpanded] = useState(false);
 
-  // Side-scroll navigation for the galleries (compact + fullscreen).
+  // Side-scroll navigation for the compact gallery.
   const compactRail = useRail([images.length]);
-  const fullRail = useRail([images.length, expanded]);
+
+  // Fullscreen is a centered one-image carousel: swipe or click to step
+  // through, one image at a time, always centred.
+  const [activeIndex, setActiveIndex] = useState(0);
+  useEffect(() => { if (expanded) setActiveIndex(0); }, [expanded]);
+  const imageCount = images.length;
+  const safeIndex = imageCount ? Math.min(activeIndex, imageCount - 1) : 0;
+  const goImage = useCallback(
+    (delta: number) => setActiveIndex((i) => (imageCount ? (i + delta + imageCount) % imageCount : 0)),
+    [imageCount],
+  );
+  const touchStartX = useRef<number | null>(null);
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") goImage(1);
+      else if (e.key === "ArrowLeft") goImage(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded, goImage]);
 
   async function updateDirection(
     key: string,
@@ -304,42 +324,23 @@ export function MoodboardRenderer({
       {expanded && (
         <FullscreenOverlay title={(m.microTitle as string) || "Moodboard"} onClose={() => setExpanded(false)}>
           <div className="flex h-full flex-col">
-            {/* Gallery — a single horizontal row that fills the height; all
-                images are visible side by side, scrolling only sideways. */}
-            <div className="relative min-h-0 flex-1">
-              <div
-                ref={fullRail.ref}
-                onScroll={fullRail.update}
-                className="no-scrollbar h-full overflow-x-auto overflow-y-hidden"
-              >
-              <div className="flex h-full items-stretch gap-6 px-6 py-6 sm:px-10">
-                {images.length === 0 && (
-                  <div className="mono flex shrink-0 items-center text-[12px] opacity-50" style={{ color: "var(--v-muted)" }}>
+            {/* Gallery — one centred image at a time; swipe or use the arrows
+                (or ← → keys) to step through, one image per view. */}
+            <div
+              className="relative min-h-0 flex-1"
+              onTouchStart={(e) => { touchStartX.current = e.touches[0]?.clientX ?? null; }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null) return;
+                const dx = (e.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+                touchStartX.current = null;
+                if (Math.abs(dx) > 40) goImage(dx < 0 ? 1 : -1);
+              }}
+            >
+              {imageCount === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-4 px-6">
+                  <span className="mono text-[12px] opacity-50" style={{ color: "var(--v-muted)" }}>
                     Noch keine Bilder — lade welche hoch.
-                  </div>
-                )}
-                {images.map((img) => (
-                  <figure key={img.key} className="m-0 flex h-full shrink-0 flex-col">
-                    <a
-                      href={img.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="flex min-h-0 flex-1 items-center justify-center"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={img.url}
-                        alt={img.name}
-                        className="max-h-full w-auto rounded-[var(--v-radius)] object-contain"
-                        style={{ border: "1px solid var(--v-rule)" }}
-                      />
-                    </a>
-                    <div className="mx-auto mt-3 w-full" style={{ maxWidth: 520 }}>
-                      <ImageCaption value={img.caption} onSave={(c) => setCaption(img.key, c)} />
-                    </div>
-                  </figure>
-                ))}
-                <div className="flex h-full shrink-0 items-center">
+                  </span>
                   <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple tile>
                     <span className="text-[20px] leading-none opacity-60">＋</span>
                     <span className="mono tracking-widest opacity-60">Bilder</span>
@@ -348,10 +349,40 @@ export function MoodboardRenderer({
                     </span>
                   </UploadZone>
                 </div>
-              </div>
-              </div>
-              {fullRail.edge.left && <RailArrow dir={-1} onClick={() => fullRail.by(-1)} />}
-              {fullRail.edge.right && <RailArrow dir={1} onClick={() => fullRail.by(1)} />}
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center px-6 py-6 sm:px-16">
+                  <a
+                    href={images[safeIndex]!.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="flex min-h-0 w-full flex-1 items-center justify-center"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={images[safeIndex]!.url}
+                      alt={images[safeIndex]!.name}
+                      className="max-h-full max-w-full rounded-[var(--v-radius)] object-contain"
+                      style={{ border: "1px solid var(--v-rule)" }}
+                    />
+                  </a>
+                  <div className="mt-3 w-full" style={{ maxWidth: 520 }}>
+                    <ImageCaption value={images[safeIndex]!.caption} onSave={(c) => setCaption(images[safeIndex]!.key, c)} />
+                  </div>
+                  <div className="mono mt-2 text-[11px] tracking-widest opacity-50" style={{ color: "var(--v-muted)" }}>
+                    {safeIndex + 1} / {imageCount}
+                  </div>
+                </div>
+              )}
+              {imageCount > 0 && (
+                <div className="absolute bottom-4 left-4 z-10 w-24">
+                  <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple tile>
+                    <span className="text-[16px] leading-none opacity-60">＋</span>
+                    <span className="mono text-[9px] tracking-widest opacity-60">Bilder</span>
+                  </UploadZone>
+                </div>
+              )}
+              {imageCount > 1 && <RailArrow dir={-1} onClick={() => goImage(-1)} />}
+              {imageCount > 1 && <RailArrow dir={1} onClick={() => goImage(1)} />}
             </div>
 
             {/* Refs / directions listed below the gallery. */}
