@@ -207,17 +207,30 @@ export function SpaceView({
       patchModule(index, module);
       if (!options?.quiet) announce({ tone: "saving", message: "saving…" }, 0);
       try {
-        const res = await fetch(`/api/spaces/${space.id}/widgets/${index}`, {
+        // Single-widget edits use optimistic concurrency on modules_rev. A
+        // just-added element (or a collaborator's edit) can leave our local
+        // rev one behind, which used to 409 and roll the edit back — the
+        // "element won't fill" bug. On conflict the server returns the fresh
+        // rev; retry once against it (last-write-wins on this one widget).
+        const attempt = (rev: number) => fetch(`/api/spaces/${space.id}/widgets/${index}`, {
           method: "PUT",
           headers: { "content-type": "application/json" },
           body: JSON.stringify(withOwnerToken({
             widget: module,
-            modulesRev: space.modulesRev,
+            modulesRev: rev,
             note: options?.note,
             resolveExternal: options?.resolveExternal,
           }, ownerToken)),
         });
-        const json = await readApiJson(res);
+        let res = await attempt(space.modulesRev);
+        let json = await readApiJson(res);
+        if (res.status === 409 && (json as { error?: unknown })?.error === "modules_conflict") {
+          const freshRev = (json as { modulesRev?: unknown }).modulesRev;
+          if (typeof freshRev === "number") {
+            res = await attempt(freshRev);
+            json = await readApiJson(res);
+          }
+        }
         if (!res.ok) throw new Error(apiErrorMessage(json, options?.errorMessage ?? "save_failed"));
         const nextRev = typeof (json as { modulesRev?: unknown })?.modulesRev === "number"
           ? (json as { modulesRev: number }).modulesRev
@@ -360,11 +373,12 @@ export function SpaceView({
         return false;
       }
       const snapshot = liveStateRef.current;
+      const moduleId = modulesRef.current[moduleIndex]?.id ?? null;
       const entry = makeOptimisticEntry(space.id, moduleIndex, kind, data, {
         kind: user ? "user" : "anon",
         id: user?.id ?? getSelfId(),
         displayName: user?.username ?? user?.fullName ?? undefined,
-      });
+      }, moduleId);
       setLiveState((prev) => applyActionLocally(prev, entry));
       const result = await postState(space.id, moduleIndex, kind, data);
       if (!result.ok) {
@@ -467,15 +481,36 @@ export function SpaceView({
   // not from the fetched snapshot — this is what makes every click
   // feel instant and other users' actions appear without a reload.
   const stateByModule = useMemo(() => {
-    const out = new Map<number, ModuleStateEntry[]>();
+    // Associate collaborative state to modules by their STABLE id, falling
+    // back to positional index only for rows written before the id
+    // migration. This is the fix for content bleeding into the wrong
+    // element on reorder: the id travels with the widget, the index does
+    // not. Each entry's moduleIndex is then normalised to the module's
+    // CURRENT position so renderers that re-filter by index (stateFor,
+    // voteCounts, …) keep working without any renderer change.
+    const byId = new Map<string, ModuleStateEntry[]>();
+    const byIndex = new Map<number, ModuleStateEntry[]>();
     for (const e of liveState) {
-      const arr = out.get(e.moduleIndex) || [];
-      arr.push(e);
-      out.set(e.moduleIndex, arr);
+      if (e.moduleId) {
+        const arr = byId.get(e.moduleId);
+        if (arr) arr.push(e); else byId.set(e.moduleId, [e]);
+      } else {
+        const arr = byIndex.get(e.moduleIndex);
+        if (arr) arr.push(e); else byIndex.set(e.moduleIndex, [e]);
+      }
     }
-    for (const arr of out.values()) arr.sort((a, b) => a.createdAt - b.createdAt);
+    const out = new Map<number, ModuleStateEntry[]>();
+    displayedModules.forEach((m, i) => {
+      const fromId = m.id ? byId.get(m.id) : undefined;
+      const fromIndex = byIndex.get(i);
+      if (!fromId && !fromIndex) return;
+      const merged = [...(fromId ?? []), ...(fromIndex ?? [])]
+        .map((e) => (e.moduleIndex === i ? e : { ...e, moduleIndex: i }))
+        .sort((a, b) => a.createdAt - b.createdAt);
+      out.set(i, merged);
+    });
     return out;
-  }, [liveState]);
+  }, [liveState, displayedModules]);
 
   // Split into header zones + body.
   const { hero, tagsModule, tagsIndex, body } = useMemo(() => {

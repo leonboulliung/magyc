@@ -168,6 +168,14 @@ export async function POST(
   if (!Array.isArray(space.modules) || moduleIndex >= space.modules.length) {
     return NextResponse.json({ error: "module_out_of_range" }, { status: 400 });
   }
+  // Stamp the owning module's STABLE id on every row so collaborative state
+  // stays bound to the widget across reorders/deletes (the read side
+  // associates by module_id, not by position). Null only for legacy modules
+  // that predate the id backfill.
+  const moduleRow = (space.modules as unknown[])[moduleIndex];
+  const moduleId = moduleRow && typeof (moduleRow as { id?: unknown }).id === "string"
+    ? (moduleRow as { id: string }).id
+    : null;
   // Suite projects accept signed owners/members. Anonymous collaboration is
   // available only while the explicit share link is enabled.
   if (space.stage) {
@@ -225,6 +233,7 @@ export async function POST(
       id: newId(),
       space_id: params.id,
       module_index: moduleIndex,
+      module_id: moduleId,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,
@@ -265,6 +274,7 @@ export async function POST(
         id: newId(),
         space_id: params.id,
         module_index: moduleIndex,
+        module_id: moduleId,
         actor_kind: actorKind,
         actor_id: actorId,
         display_name: displayName,
@@ -320,6 +330,7 @@ export async function POST(
       id: newId(),
       space_id: params.id,
       module_index: moduleIndex,
+      module_id: moduleId,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,
@@ -343,6 +354,7 @@ export async function POST(
       id: newId(),
       space_id: params.id,
       module_index: moduleIndex,
+      module_id: moduleId,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,
@@ -392,6 +404,7 @@ export async function POST(
         p_id: rowId,
         p_space_id: params.id,
         p_module_index: moduleIndex,
+        p_module_id: moduleId,
         p_actor_kind: actorKind,
         p_actor_id: actorId,
         p_display_name: displayName,
@@ -409,6 +422,7 @@ export async function POST(
       id: rowId,
       space_id: params.id,
       module_index: moduleIndex,
+      module_id: moduleId,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,
@@ -431,6 +445,7 @@ export async function POST(
       id: newId(),
       space_id: params.id,
       module_index: moduleIndex,
+      module_id: moduleId,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,
@@ -452,6 +467,7 @@ export async function POST(
       id: newId(),
       space_id: params.id,
       module_index: moduleIndex,
+      module_id: moduleId,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,
@@ -479,6 +495,7 @@ export async function POST(
       id: newId(),
       space_id: params.id,
       module_index: moduleIndex,
+      module_id: moduleId,
       actor_kind: actorKind,
       actor_id: actorId,
       display_name: displayName,

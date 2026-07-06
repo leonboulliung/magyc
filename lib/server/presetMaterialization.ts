@@ -126,10 +126,12 @@ export async function materializePresetState(input: {
         data = { ...data, path: destination };
         delete data.url;
       }
+      const destModuleId = (projectModules[moduleIndex] as { id?: unknown } | undefined)?.id;
       return {
         id: idMap.get(entry.id)!,
         space_id: projectId,
         module_index: moduleIndex,
+        module_id: typeof destModuleId === "string" ? destModuleId : null,
         actor_kind: "user",
         actor_id: ownerId,
         display_name: null,

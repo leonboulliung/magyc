@@ -26,6 +26,7 @@ export type ModuleStateRow = {
   id: string;
   space_id: string;
   module_index: number;
+  module_id?: string | null;
   actor_kind: "user" | "anon";
   actor_id: string;
   display_name: string | null;
@@ -133,6 +134,7 @@ function mapModuleStateEntry(row: ModuleStateRow): ModuleStateEntry {
     id: row.id,
     spaceId: row.space_id,
     moduleIndex: row.module_index,
+    moduleId: row.module_id ?? null,
     actor,
     kind: ALLOWED_STATE_KINDS.has(row.kind as ModuleStateKind)
       ? (row.kind as ModuleStateKind)
@@ -262,7 +264,7 @@ const SPACE_SELECT = `
   owner_id, visibility,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
-  state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
+  state:module_state(id, space_id, module_index, module_id, actor_kind, actor_id, display_name, kind, data, created_at),
   versions:space_versions(id, space_id, version, title, note, created_at)
 `;
 
@@ -272,7 +274,7 @@ const SPACE_SELECT_WITHOUT_CONTRACT = `
   owner_id, visibility,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
-  state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
+  state:module_state(id, space_id, module_index, module_id, actor_kind, actor_id, display_name, kind, data, created_at),
   versions:space_versions(id, space_id, version, title, note, created_at)
 `;
 
@@ -282,7 +284,7 @@ const SPACE_SELECT_LEGACY = `
   owner_id, visibility,
   created_at, published_at,
   owner:profiles!spaces_owner_id_fkey(id, display_name, avatar_url, color, created_at),
-  state:module_state(id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at),
+  state:module_state(id, space_id, module_index, module_id, actor_kind, actor_id, display_name, kind, data, created_at),
   versions:space_versions(id, space_id, version, title, note, created_at)
 `;
 

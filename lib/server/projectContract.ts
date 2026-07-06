@@ -13,6 +13,7 @@ type StateRow = {
   id: string;
   space_id: string;
   module_index: number;
+  module_id: string | null;
   actor_kind: ActorKind;
   actor_id: string;
   display_name: string | null;
@@ -26,6 +27,7 @@ function mapState(row: StateRow): ModuleStateEntry {
     id: row.id,
     spaceId: row.space_id,
     moduleIndex: row.module_index,
+    moduleId: row.module_id ?? null,
     actor: {
       kind: row.actor_kind === "anon" ? "anon" : "user",
       id: row.actor_id,
@@ -107,10 +109,18 @@ export async function ensureProjectContractDraft({
   const language = (space.language || "de").split("-")[0];
   const { data: stateRows } = await admin
     .from("module_state")
-    .select("id, space_id, module_index, actor_kind, actor_id, display_name, kind, data, created_at")
+    .select("id, space_id, module_index, module_id, actor_kind, actor_id, display_name, kind, data, created_at")
     .eq("space_id", spaceId)
     .order("created_at", { ascending: true });
-  const state = ((stateRows || []) as StateRow[]).map(mapState);
+  // buildProjectFacts associates state by positional index; normalise each
+  // entry's index to its module's CURRENT position via the stable id so a
+  // prior reorder can't misattribute collaborative content in the contract.
+  const idToIndex = new Map<string, number>();
+  modules.forEach((m, i) => { const id = (m as { id?: unknown }).id; if (typeof id === "string") idToIndex.set(id, i); });
+  const state = ((stateRows || []) as StateRow[]).map(mapState).map((entry) => {
+    const idx = entry.moduleId ? idToIndex.get(entry.moduleId) : undefined;
+    return idx === undefined || idx === entry.moduleIndex ? entry : { ...entry, moduleIndex: idx };
+  });
   const facts = buildProjectFacts(modules, state);
 
   const started = Date.now();

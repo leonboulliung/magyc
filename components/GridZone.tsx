@@ -335,7 +335,11 @@ export function GridZone({
                 >
                   {items.map((item) => (
                     <SortableCell
-                      key={`${item.index}::${item.module.type}`}
+                      // Key on the stable module id so reordering preserves each
+                      // widget's component instance (no remount → no content
+                      // flashing away until reload). Falls back to index for
+                      // any pre-id module.
+                      key={item.module.id ?? `${item.index}::${item.module.type}`}
                       item={item}
                       stateEntries={stateByModule.get(item.index) ?? []}
                       isOwner={isOwner}

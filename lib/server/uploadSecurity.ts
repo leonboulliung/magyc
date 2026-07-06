@@ -144,6 +144,16 @@ export function moduleTypeAt(space: SpaceForUpload, moduleIndex: number): unknow
   return module && typeof module === "object" ? (module as { type?: unknown }).type : null;
 }
 
+/** The stable id of the module at this index (null for legacy pre-id
+ *  modules). Uploaded rows carry it so they stay bound to their widget
+ *  across reorders. */
+export function moduleIdAt(space: SpaceForUpload, moduleIndex: number): string | null {
+  if (!moduleExists(space, moduleIndex)) return null;
+  const module = (space.modules as unknown[])[moduleIndex];
+  const id = module && typeof module === "object" ? (module as { id?: unknown }).id : null;
+  return typeof id === "string" ? id : null;
+}
+
 export async function takePersistentRateLimit(
   admin: SupabaseClient,
   key: string,

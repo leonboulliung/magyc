@@ -133,7 +133,11 @@ export async function PUT(
   }
   if (upErr) return apiServerError("save_failed", "widget/write", upErr);
   if (!updated || updated.length === 0) {
-    return NextResponse.json({ error: "modules_conflict" }, { status: 409 });
+    // Optimistic-lock miss: the space advanced under us. Hand back the
+    // current rev so a single-widget edit can retry against it instead of
+    // silently failing (which looked to the user like "the element won't
+    // fill" right after adding it, when the add had just bumped the rev).
+    return NextResponse.json({ error: "modules_conflict", modulesRev: currentRev }, { status: 409 });
   }
 
   // If published: snapshot a version — but COALESCE rapid edits. A pin

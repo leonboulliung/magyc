@@ -25,6 +25,7 @@ import {
   MAX_UPLOAD_SIZE_BYTES,
   moduleExists,
   moduleTypeAt,
+  moduleIdAt,
   PROJECT_UPLOAD_QUOTA_BYTES,
   readSpaceUploadUsage,
   takePersistentRateLimit,
@@ -199,10 +200,12 @@ export async function POST(
     size: b.size,
     mimeType: b.mimeType,
   };
+  const uploadModuleId = moduleIdAt(space, b.moduleIndex);
   const { error: stateErr } = await admin.from("module_state").insert({
     id: stateId,
     space_id: params.id,
     module_index: b.moduleIndex,
+    module_id: uploadModuleId,
     actor_kind: actor.kind,
     actor_id: actor.id,
     display_name: actor.displayName,
@@ -233,6 +236,7 @@ export async function POST(
     entry: {
       id: stateId,
       moduleIndex: b.moduleIndex,
+      moduleId: uploadModuleId,
       kind: "upload",
       data: stateData,
       createdAt: createdAt.getTime(),

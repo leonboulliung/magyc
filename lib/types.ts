@@ -48,6 +48,13 @@ export interface Profile {
 // ============================================================
 
 export interface WidgetBase {
+  /** Stable, permanent identifier for this module — assigned once at
+   *  creation and never reused. Collaborative state (module_state) is
+   *  associated by this id, not by array position, so reordering or
+   *  deleting elements can never leak content into the wrong widget.
+   *  Optional only for backward-compat with pre-id snapshots; the
+   *  sanitizer always populates it. */
+  id?: string;
   /** AI-generated small label in the configured language. Most widgets
    *  show this above the content; some (icon, gif) ignore it. */
   microTitle?: string;
@@ -608,6 +615,9 @@ export interface ModuleStateEntry {
   id: string;
   spaceId: string;
   moduleIndex: number;
+  /** Stable id of the owning module. Preferred association key; falls
+   *  back to moduleIndex for rows written before the id migration. */
+  moduleId?: string | null;
   actor: Actor;
   kind: ModuleStateKind;
   data: Record<string, unknown>;

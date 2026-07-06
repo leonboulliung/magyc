@@ -209,18 +209,17 @@ export async function DELETE(
   const failure = await persistModules(admin, params.id, next, expectedRev);
   if (failure) return failure;
 
-  // Keep module_state aligned with the now-shifted module indices.
-  // module_state is keyed by positional module_index; without this, the
-  // deleted widget's collaborative rows (uploads, votes, comments) would
-  // orphan onto whatever widget slides into its index — the "images bleed
-  // between widgets" bug. Drop the deleted module's rows, then shift every
-  // higher index down by one. Ascending order means each target slot is
-  // already vacated, so there are no unique-index collisions.
-  const { error: delErr } = await admin
-    .from("module_state")
-    .delete()
-    .eq("space_id", params.id)
-    .eq("module_index", idx);
+  // Drop the deleted module's collaborative rows. State is associated by the
+  // stable module_id now, so we delete by id when the module has one — that
+  // hits exactly this widget's rows regardless of index drift. The
+  // module_index shift below is kept only to keep the legacy positional key
+  // tidy for the index-based write-path; it is no longer load-bearing for
+  // correctness (reads associate by id).
+  const deletedModuleId = (current[idx] as { id?: unknown } | undefined)?.id;
+  const delBase = admin.from("module_state").delete().eq("space_id", params.id);
+  const { error: delErr } = typeof deletedModuleId === "string"
+    ? await delBase.eq("module_id", deletedModuleId)
+    : await delBase.eq("module_index", idx);
   if (delErr) console.error("[widgets] state cleanup failed:", delErr.message);
   for (let k = idx + 1; k < current.length; k++) {
     const { error: shiftErr } = await admin

@@ -4,7 +4,7 @@ import type { ModuleStateEntry, ModuleStateKind } from "@/lib/types";
 
 export type PresetStateEntry = Pick<
   ModuleStateEntry,
-  "id" | "moduleIndex" | "kind" | "data" | "createdAt"
+  "id" | "moduleIndex" | "moduleId" | "kind" | "data" | "createdAt"
 >;
 
 const ALLOWED_KINDS = new Set<ModuleStateKind>([

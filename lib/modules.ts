@@ -13,6 +13,7 @@
  */
 
 import { ALL_MODULE_TYPES, type Module, type ModuleType } from "./types";
+import { newId } from "./id";
 
 // ============================================================
 // Common helpers
@@ -63,13 +64,20 @@ function attribution(raw: unknown): Module["attribution"] {
 }
 
 function base(raw: Record<string, unknown>): {
+  id: string;
   microTitle?: string;
   description?: string;
   attribution?: Module["attribution"];
 } {
+  // Preserve an existing stable id; assign one when missing (freshly
+  // authored modules, or legacy modules being backfilled). The id is
+  // what collaborative state binds to, so it must survive every save.
+  const rawId = typeof raw.id === "string" ? raw.id.trim().slice(0, 24) : "";
+  const id = rawId || newId();
   const microTitle = (clean(raw.microTitle, 80) ? stripTags(clean(raw.microTitle, 80)) : undefined) || undefined;
   const description = clean(raw.description, 200) || undefined;
   return {
+    id,
     microTitle,
     description,
     attribution: attribution(raw.attribution),

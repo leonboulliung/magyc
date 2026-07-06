@@ -107,6 +107,7 @@ export function makeOptimisticEntry(
   kind: ModuleStateKind,
   data: Record<string, unknown>,
   actor?: { id: string; kind: "anon" | "user"; displayName?: string },
+  moduleId?: string | null,
 ): ModuleStateEntry {
   const currentActor = actor ?? (selfUserId
     ? { kind: "user" as const, id: selfUserId, displayName: selfUserName || undefined }
@@ -115,6 +116,7 @@ export function makeOptimisticEntry(
     id: `tmp_${Math.random().toString(36).slice(2, 10)}`,
     spaceId,
     moduleIndex,
+    moduleId: moduleId ?? null,
     actor: {
       kind: currentActor.kind,
       id: currentActor.id,
@@ -143,7 +145,7 @@ export function applyActionLocally(
   entry: ModuleStateEntry,
 ): ModuleStateEntry[] {
   const me = entry.actor.id;
-  const { moduleIndex, kind, data } = entry;
+  const { kind, data } = entry;
 
   // vote / check / claim keep one active row per actor (per scope). The dedup
   // keys + retraction rule live in lib/stateDedup.ts so the client and the
@@ -153,13 +155,24 @@ export function applyActionLocally(
     const scoped = scopeValue(rule, data);
     const field = rule.scopeField;
     const next = entries.filter(
-      (e) => !(e.kind === kind && e.moduleIndex === moduleIndex && e.actor.id === me &&
+      (e) => !(e.kind === kind && sameModule(e, entry) && e.actor.id === me &&
         (field ? e.data[field] === scoped : true)),
     );
     return rule.isRetraction(data) ? next : [...next, entry];
   }
 
   return [...entries, entry];
+}
+
+/** Two state entries belong to the same module when their stable module
+ *  ids match; for pre-migration rows without an id we fall back to the
+ *  positional index. */
+function sameModule(
+  a: { moduleId?: string | null; moduleIndex: number },
+  b: { moduleId?: string | null; moduleIndex: number },
+): boolean {
+  if (a.moduleId && b.moduleId) return a.moduleId === b.moduleId;
+  return a.moduleIndex === b.moduleIndex;
 }
 
 /**
@@ -176,7 +189,7 @@ export function mergeRealtimeInsert(
   if (incoming.actor.id === selfActorId) {
     const i = next.findIndex(
       (e) => e.id.startsWith("tmp_") &&
-        e.moduleIndex === incoming.moduleIndex &&
+        sameModule(e, incoming) &&
         e.kind === incoming.kind,
     );
     if (i >= 0) next = [...next.slice(0, i), ...next.slice(i + 1)];
