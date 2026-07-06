@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMounted } from "@/lib/useMounted";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { AppointmentWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -19,6 +20,10 @@ export function AppointmentRenderer({
 }) {
   const ctx = useWidgetContext();
   const [editing, setEditing] = useState(false);
+  // Until mounted, format in UTC so the server HTML and the first client render
+  // agree (no hydration mismatch); after mount, switch to the viewer's local
+  // timezone so the appointment shows the wall-time the owner actually picked.
+  const mounted = useMounted();
 
   async function save(next: string) {
     setEditing(false);
@@ -28,7 +33,7 @@ export function AppointmentRenderer({
     await ctx.saveModule(index, updated);
   }
 
-  const parts = formatDateTime(m.datetime, ctx.language);
+  const parts = formatDateTime(m.datetime, ctx.language, mounted ? undefined : "UTC");
   const inputValue = toLocalInputValue(m.datetime);
 
   return (
@@ -89,16 +94,17 @@ export function AppointmentRenderer({
   );
 }
 
-function formatDateTime(iso: string, lang: string) {
+function formatDateTime(iso: string, lang: string, timeZone?: string) {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) throw new Error("bad");
     const locale = lang || undefined;
+    const tz = timeZone ? { timeZone } : {};
     return {
-      weekday: d.toLocaleDateString(locale, { weekday: "short" }).toUpperCase(),
-      day: d.toLocaleDateString(locale, { day: "numeric" }),
-      monthYear: d.toLocaleDateString(locale, { month: "short", year: "numeric" }).toUpperCase(),
-      time: d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }),
+      weekday: d.toLocaleDateString(locale, { weekday: "short", ...tz }).toUpperCase(),
+      day: d.toLocaleDateString(locale, { day: "numeric", ...tz }),
+      monthYear: d.toLocaleDateString(locale, { month: "short", year: "numeric", ...tz }).toUpperCase(),
+      time: d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", ...tz }),
     };
   } catch {
     return { weekday: "—", day: "—", monthYear: "—", time: iso || "—" };

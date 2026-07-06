@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useMounted } from "@/lib/useMounted";
 import { useWidgetContext } from "@/lib/widgetContext";
 import type { AppointmentsWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -122,8 +123,10 @@ function EntryRow({
   const [editingTime, setEditingTime] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
   const [hover, setHover] = useState(false);
+  // UTC until mounted so server/first-client agree (no #418), then local.
+  const mounted = useMounted();
 
-  const parts = formatDateTime(datetime, language);
+  const parts = formatDateTime(datetime, language, mounted ? undefined : "UTC");
   const inputValue = toLocalInputValue(datetime);
 
   return (
@@ -222,16 +225,17 @@ function EntryRow({
   );
 }
 
-function formatDateTime(iso: string, lang: string) {
+function formatDateTime(iso: string, lang: string, timeZone?: string) {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) throw new Error("bad");
     const locale = lang || undefined;
+    const tz = timeZone ? { timeZone } : {};
     return {
-      weekday: d.toLocaleDateString(locale, { weekday: "short" }).toUpperCase(),
-      day: d.toLocaleDateString(locale, { day: "numeric" }),
-      monthYear: d.toLocaleDateString(locale, { month: "short" }).toUpperCase(),
-      time: d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }),
+      weekday: d.toLocaleDateString(locale, { weekday: "short", ...tz }).toUpperCase(),
+      day: d.toLocaleDateString(locale, { day: "numeric", ...tz }),
+      monthYear: d.toLocaleDateString(locale, { month: "short", ...tz }).toUpperCase(),
+      time: d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", ...tz }),
     };
   } catch {
     return { weekday: "—", day: "—", monthYear: "—", time: iso || "—" };
