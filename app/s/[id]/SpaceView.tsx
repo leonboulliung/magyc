@@ -101,9 +101,17 @@ export function SpaceView({
   const [loaded, setLoaded] = useState(!!initialSpace);
   const [viewVersion, setViewVersion] = useState<number | null>(null);
 
+  // modulesRev drives optimistic-concurrency on writes. It deliberately lives
+  // OUTSIDE the `space` object: a post-save rev bump must not replace `space`,
+  // because the [space] effects below re-seed localModules AND liveState from
+  // the (now stale) server snapshot — which would revert the edit that was
+  // just saved and drop freshly-added entries until a reload. Synced from the
+  // server only on a genuine (re)fetch.
+  const [modulesRev, setModulesRev] = useState<number>(initialSpace?.modulesRev ?? 0);
+
   const refresh = useCallback(() => {
     fetchSpaceSnapshot(id)
-      .then((s) => { setSpace(s); setLoaded(true); })
+      .then((s) => { setSpace(s); if (s) setModulesRev(s.modulesRev); setLoaded(true); })
       .catch(() => setLoaded(true));
   }, [id]);
 
@@ -222,7 +230,7 @@ export function SpaceView({
             resolveExternal: options?.resolveExternal,
           }, ownerToken)),
         });
-        let res = await attempt(space.modulesRev);
+        let res = await attempt(modulesRev);
         let json = await readApiJson(res);
         if (res.status === 409 && (json as { error?: unknown })?.error === "modules_conflict") {
           const freshRev = (json as { modulesRev?: unknown }).modulesRev;
@@ -234,10 +242,10 @@ export function SpaceView({
         if (!res.ok) throw new Error(apiErrorMessage(json, options?.errorMessage ?? "save_failed"));
         const nextRev = typeof (json as { modulesRev?: unknown })?.modulesRev === "number"
           ? (json as { modulesRev: number }).modulesRev
-          : space.modulesRev + 1;
-        setSpace((current) => current && current.id === space.id
-          ? { ...current, modulesRev: nextRev }
-          : current);
+          : modulesRev + 1;
+        // Advance the rev WITHOUT touching `space` — see the modulesRev note
+        // above. Touching space here is exactly what reverted the edit.
+        setModulesRev(nextRev);
         const persisted = (json && typeof json === "object" && "widget" in json)
           ? (json as { widget?: Module }).widget
           : null;
@@ -275,7 +283,7 @@ export function SpaceView({
         return false;
       }
     },
-    [announce, broadcastConfigChange, ownerToken, patchModule, space?.id, space?.modulesRev],
+    [announce, broadcastConfigChange, ownerToken, patchModule, space?.id, modulesRev],
   );
 
   // Lazy external-reference hydration. Creation stores Wikipedia widgets
@@ -778,7 +786,7 @@ export function SpaceView({
                   ownerToken={ownerToken}
                   isOwner={editable}
                   labels={{ emptyGrid: space.labels.emptyGrid, emptyGridHint: space.labels.emptyGridHint }}
-                  modulesRev={space.modulesRev}
+                  modulesRev={modulesRev}
                   onRefresh={refreshEverywhere}
                 />
               </motion.div>
