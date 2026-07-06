@@ -57,16 +57,22 @@ export function AppointmentRenderer({
               style={{ cursor: ctx.isOwner ? "text" : "default" }}
             >
               {m.datetime ? <div className="leading-none">
-                <div className="mono text-[11px] tracking-[0.28em] opacity-60" style={{ color: "var(--v-muted)" }}>
+                {/* Date/time is locale + timezone dependent: the server (UTC)
+                    and the browser (local TZ) format it differently, which
+                    would throw a hydration mismatch (React #418) and destabilise
+                    the whole subtree. suppressHydrationWarning tells React the
+                    difference is intentional — the client value wins after
+                    hydration, no error, no freeze. */}
+                <div suppressHydrationWarning className="mono text-[11px] tracking-[0.28em] opacity-60" style={{ color: "var(--v-muted)" }}>
                   {parts.weekday}
                 </div>
-                <div className="mt-2 font-black text-[56px] leading-none" style={{ color: "var(--v-fg)" }}>
+                <div suppressHydrationWarning className="mt-2 font-black text-[56px] leading-none" style={{ color: "var(--v-fg)" }}>
                   {parts.day}
                 </div>
-                <div className="mono mt-2 text-[12px] tracking-[0.24em]" style={{ color: "var(--v-muted)" }}>
+                <div suppressHydrationWarning className="mono mt-2 text-[12px] tracking-[0.24em]" style={{ color: "var(--v-muted)" }}>
                   {parts.monthYear}
                 </div>
-                <div className="mono mt-4 text-[18px] tracking-[0.18em]" style={{ color: "var(--v-fg)" }}>
+                <div suppressHydrationWarning className="mono mt-4 text-[18px] tracking-[0.18em]" style={{ color: "var(--v-fg)" }}>
                   {parts.time}
                 </div>
                 {m.timezone && (

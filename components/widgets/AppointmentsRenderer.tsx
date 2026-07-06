@@ -155,16 +155,18 @@ function EntryRow({
           className="shrink-0 text-left leading-none w-16"
           style={{ cursor: isOwner ? "text" : "default" }}
         >
-          <div className="mono text-[9px] tracking-widest opacity-60" style={{ color: "var(--v-muted)" }}>
+          {/* Locale/TZ-formatted date differs server (UTC) vs client; suppress
+              the hydration mismatch (React #418). */}
+          <div suppressHydrationWarning className="mono text-[9px] tracking-widest opacity-60" style={{ color: "var(--v-muted)" }}>
             {parts.weekday}
           </div>
-          <div className="font-black text-[18px] leading-none mt-0.5" style={{ color: "var(--v-fg)" }}>
+          <div suppressHydrationWarning className="font-black text-[18px] leading-none mt-0.5" style={{ color: "var(--v-fg)" }}>
             {parts.day}
           </div>
-          <div className="mono text-[9px] tracking-widest mt-0.5" style={{ color: "var(--v-muted)" }}>
+          <div suppressHydrationWarning className="mono text-[9px] tracking-widest mt-0.5" style={{ color: "var(--v-muted)" }}>
             {parts.monthYear}
           </div>
-          <div className="mono text-[10px] mt-1 tabular-nums" style={{ color: "var(--v-fg)" }}>
+          <div suppressHydrationWarning className="mono text-[10px] mt-1 tabular-nums" style={{ color: "var(--v-fg)" }}>
             {parts.time}
           </div>
         </button>

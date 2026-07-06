@@ -57,9 +57,11 @@ export function DateRenderer({
               style={{ cursor: ctx.isOwner ? "text" : "default" }}
             >
               {m.date ? <>
-                <div className="mono text-[11px] tracking-[0.28em] opacity-60" style={{ color: "var(--v-muted)" }}>{parts.weekday}</div>
-                <div className="mt-2 font-black text-[64px] leading-none" style={{ color: "var(--v-fg)" }}>{parts.day}</div>
-                <div className="mono mt-2 text-[12px] tracking-[0.26em]" style={{ color: "var(--v-muted)" }}>{parts.monthYear}</div>
+                {/* Locale-formatted date differs server (UTC) vs client (local
+                    TZ); suppress the hydration mismatch (React #418). */}
+                <div suppressHydrationWarning className="mono text-[11px] tracking-[0.28em] opacity-60" style={{ color: "var(--v-muted)" }}>{parts.weekday}</div>
+                <div suppressHydrationWarning className="mt-2 font-black text-[64px] leading-none" style={{ color: "var(--v-fg)" }}>{parts.day}</div>
+                <div suppressHydrationWarning className="mono mt-2 text-[12px] tracking-[0.26em]" style={{ color: "var(--v-muted)" }}>{parts.monthYear}</div>
               </> : <span className="mono rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>+ Datum festlegen</span>}
             </button>
           )}
