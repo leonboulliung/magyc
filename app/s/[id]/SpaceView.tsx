@@ -628,6 +628,24 @@ export function SpaceView({
           </div>
         )}
 
+        {/* Share loop — a viewer (client / community visitor without an
+            account) sees a subtle "made with MAGYC, try it" prompt. Hidden for
+            the owner, who already has an account. */}
+        {!isOwner && (
+          <a
+            href="/"
+            className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full px-3.5 py-2 shadow-sm transition-transform hover:scale-[1.03]"
+            style={{ background: "var(--v-card)", border: "1px solid var(--v-rule)" }}
+          >
+            <span className="mono text-[9px] tracking-widest uppercase" style={{ color: "var(--v-muted)" }}>
+              Mit MAGYC erstellt
+            </span>
+            <span className="text-[12px] font-medium" style={{ color: "var(--v-fg)" }}>
+              Selbst ausprobieren&#8202;→
+            </span>
+          </a>
+        )}
+
         {/* HEADER ZONE — heading + rich_text, not in grid. */}
         <header className="w-full">
           <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-10 pt-24 sm:pt-24 pb-8 sm:pb-12 space-y-6">
