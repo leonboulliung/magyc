@@ -34,8 +34,9 @@ export default function OpengraphImage() {
           <div style={{ fontSize: 30, color: accent, fontWeight: 700, marginBottom: 18 }}>
             Das Projekt-Werkzeug für Fotograf:innen
           </div>
-          <div style={{ fontSize: 82, fontWeight: 800, color: "#0d0d0d", lineHeight: 1.02 }}>
-            Von der Kundenanfrage<br />zum Vertrag.
+          <div style={{ display: "flex", flexDirection: "column", fontSize: 82, fontWeight: 800, color: "#0d0d0d", lineHeight: 1.02 }}>
+            <div style={{ display: "flex" }}>Von der Kundenanfrage</div>
+            <div style={{ display: "flex" }}>zum Vertrag.</div>
           </div>
         </div>
 
