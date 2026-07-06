@@ -1,5 +1,5 @@
 -- ============================================================
--- 019 — Stable module ids for collaborative state
+-- 028 — Stable module ids for collaborative state
 -- ============================================================
 --
 -- Collaborative state (module_state) has always been keyed by the module's

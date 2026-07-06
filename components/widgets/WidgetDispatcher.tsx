@@ -66,7 +66,12 @@ export function WidgetDispatcher({
   index: number;
   state?: ModuleStateEntry[];
 }) {
-  const s = state ?? [];
+  // Render-boundary guard: a widget may only ever see state that belongs to
+  // it. The upstream grouping already associates by module id, but this makes
+  // it impossible — even during an optimistic reorder or a realtime race — for
+  // one element to optically show another's content. Entries without an id
+  // (pre-migration rows) are trusted to their index-based slice.
+  const s = (state ?? []).filter((e) => !e.moduleId || !m.id || e.moduleId === m.id);
   switch (m.type) {
     // Phase 1
     case "heading":
