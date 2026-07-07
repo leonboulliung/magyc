@@ -111,7 +111,11 @@ export function SpaceView({
 
   const refresh = useCallback(() => {
     fetchSpaceSnapshot(id)
-      .then((s) => { setSpace(s); if (s) setModulesRev(s.modulesRev); setLoaded(true); })
+      .then((s) => {
+        // eslint-disable-next-line no-console
+        console.log("[dbg] refresh fetched state=", s?.state?.length, "mods=", s?.modules?.length, "modIds=", s?.modules?.map((m) => (m as { id?: string }).id).join(","));
+        setSpace(s); if (s) setModulesRev(s.modulesRev); setLoaded(true);
+      })
       .catch(() => setLoaded(true));
   }, [id]);
 
@@ -313,6 +317,8 @@ export function SpaceView({
   liveStateRef.current = liveState;
 
   useEffect(() => {
+    // eslint-disable-next-line no-console
+    if (space) console.log("[dbg] effect setLiveState <-", space.state?.length);
     if (space) setLiveState(space.state);
   }, [space]);
 
@@ -517,6 +523,8 @@ export function SpaceView({
         .sort((a, b) => a.createdAt - b.createdAt);
       out.set(i, merged);
     });
+    // eslint-disable-next-line no-console
+    console.log("[dbg] stateByModule live=", liveState.length, "disp=", displayedModules.length, "dispIds=", displayedModules.map((m) => m.id).join(","), "liveMids=", [...new Set(liveState.map((e) => e.moduleId))].join(","), "outSize=", out.size);
     return out;
   }, [liveState, displayedModules]);
 
