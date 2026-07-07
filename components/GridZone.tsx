@@ -98,7 +98,12 @@ export function GridZone({
   // the round-trip, with no transition.
   const [optimisticItems, setOptimisticItems] = useState<BodyItem[] | null>(null);
   const items = optimisticItems ?? bodyItems;
-  const serverOrderKey = bodyItems.map((it) => it.index).join(",");
+  // Track the server order by module IDENTITY, not by position. A reorder
+  // swaps which module sits at each index but the index set stays {3,4,5,…},
+  // so a position-based key never changed — the optimistic override was never
+  // cleared after a swap, leaving GridZone rendering stale items whose indices
+  // no longer match stateByModule (content then blanked out until reload).
+  const serverOrderKey = bodyItems.map((it) => it.module.id ?? it.index).join(",");
   useEffect(() => {
     // Server order caught up (or changed underneath us) → drop the override.
     setOptimisticItems(null);
