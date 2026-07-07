@@ -97,17 +97,25 @@ export function GridZone({
   // hadn't changed yet) and the real order then appeared abruptly after
   // the round-trip, with no transition.
   const [optimisticItems, setOptimisticItems] = useState<BodyItem[] | null>(null);
-  const items = optimisticItems ?? bodyItems;
-  // Track the server order by module IDENTITY, not by position. A reorder
-  // swaps which module sits at each index but the index set stays {3,4,5,…},
-  // so a position-based key never changed — the optimistic override was never
-  // cleared after a swap, leaving GridZone rendering stale items whose indices
-  // no longer match stateByModule (content then blanked out until reload).
+  // Order is tracked by module IDENTITY, not by position: a reorder swaps which
+  // module sits at each index but the index set stays {3,4,5,…}, so a
+  // position-based key never changes.
+  //
+  // We DERIVE whether the optimistic override is still ahead of the server,
+  // rather than clearing it in an effect. An effect fires one render late — and
+  // in that render the new server order (bodyItems) is live while the stale
+  // optimistic items, whose indices no longer match the freshly re-associated
+  // state, are still shown; the widget's module_id guard then blanks the
+  // swapped elements for a frame (the brief flash). Deriving switches back to
+  // server truth in the SAME render the new order arrives — no flash.
   const serverOrderKey = bodyItems.map((it) => it.module.id ?? it.index).join(",");
+  const optimisticOrderKey = optimisticItems?.map((it) => it.module.id ?? it.index).join(",") ?? null;
+  const items = optimisticItems && optimisticOrderKey !== serverOrderKey ? optimisticItems : bodyItems;
   useEffect(() => {
-    // Server order caught up (or changed underneath us) → drop the override.
-    setOptimisticItems(null);
-  }, [serverOrderKey]);
+    // Once the server order matches, drop the now-unused override so the next
+    // drag starts clean. The render already ignores it, so this can lag safely.
+    if (optimisticItems && optimisticOrderKey === serverOrderKey) setOptimisticItems(null);
+  }, [optimisticItems, optimisticOrderKey, serverOrderKey]);
 
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
