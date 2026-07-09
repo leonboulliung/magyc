@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { displayActorName, getSelfId } from "@/lib/state";
 import type { CrewWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -25,6 +26,7 @@ export function CrewRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const presetMode = ctx.mode === "preset";
   const myId = getSelfId();
 
@@ -46,7 +48,7 @@ export function CrewRenderer({
   }
 
   function save(next: CrewWidget) {
-    return ctx.saveModule(index, next, { errorMessage: "Die Rollen konnten nicht gespeichert werden." });
+    return ctx.saveModule(index, next, { errorMessage: tr.elements.crewSaveError });
   }
 
   function setRole(roleIndex: number, name: string) {
@@ -98,7 +100,7 @@ export function CrewRenderer({
               cursor: ctx.isOwner ? "pointer" : "default",
             }}
           >
-            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{ctx.isOwner ? "+ Erstes Mitglied hinzufügen" : "Noch keine Mitglieder"}</div>
+            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{ctx.isOwner ? tr.elements.addFirstMember : "Noch keine Mitglieder"}</div>
           </button>
         ) : (
           <ul className="space-y-2">
@@ -142,7 +144,7 @@ export function CrewRenderer({
                           value={role.name}
                           isOwner={ctx.isOwner}
                           onSave={(next) => setRole(roleIndex, next)}
-                          placeholder="Rolle oder Person benennen"
+                          placeholder={tr.elements.nameRoleOrPerson}
                           className="block text-[13px] leading-snug"
                         />
 
@@ -178,8 +180,8 @@ export function CrewRenderer({
                           <button
                             type="button"
                             onClick={() => copyRoleLink(role.name)}
-                            aria-label="Rollenlink kopieren"
-                            title="Rollenlink kopieren"
+                            aria-label={tr.elements.copyRoleLink}
+                            title={tr.elements.copyRoleLink}
                             className="mono rounded-full px-2 py-1 text-[10px] tracking-widest transition-opacity hover:opacity-100"
                             style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)", opacity: 0.72 }}
                           >
@@ -190,7 +192,7 @@ export function CrewRenderer({
                           <button
                             type="button"
                             onClick={() => removeRole(roleIndex)}
-                            aria-label="Rolle entfernen"
+                            aria-label={tr.elements.removeRole}
                             className="mono rounded-full px-2 py-1 text-[12px] transition-opacity hover:opacity-100"
                             style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)", opacity: 0.72 }}
                           >

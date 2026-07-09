@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useMounted } from "@/lib/useMounted";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { AppointmentsWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -23,6 +24,7 @@ export function AppointmentsRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
 
   async function save(next: AppointmentsWidget) {
     await ctx.saveModule(index, next);
@@ -96,7 +98,7 @@ export function AppointmentsRenderer({
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              {m.entries.length === 0 ? "+ Ersten Termin hinzufügen" : "+ Termin hinzufügen"}
+              {m.entries.length === 0 ? tr.elements.addFirstAppointment : tr.elements.addAppointment}
             </button>
           </div>
         )}
@@ -123,6 +125,7 @@ function EntryRow({
   const [editingTime, setEditingTime] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
   const [hover, setHover] = useState(false);
+  const tr = useT();
   // UTC until mounted so server/first-client agree (no #418), then local.
   const mounted = useMounted();
 
@@ -186,7 +189,7 @@ function EntryRow({
               if (e.key === "Enter") { e.preventDefault(); onChange({ label: (e.target as HTMLInputElement).value }); setEditingLabel(false); }
               else if (e.key === "Escape") setEditingLabel(false);
             }}
-            placeholder="Termin benennen"
+            placeholder={tr.elements.nameAppointment}
             maxLength={120}
             className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
             style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
@@ -200,7 +203,7 @@ function EntryRow({
               color: label ? "var(--v-fg)" : "var(--v-muted)",
             }}
           >
-            {label || "Termin benennen"}
+            {label || tr.elements.nameAppointment}
           </div>
         )}
       </div>
@@ -213,7 +216,7 @@ function EntryRow({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
             onClick={onRemove}
-            aria-label="Termin entfernen"
+            aria-label={tr.elements.removeAppointment}
             className="mono text-[12px] opacity-60 hover:opacity-100"
             style={{ color: "var(--v-fg)" }}
           >

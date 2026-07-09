@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { newLocalId } from "@/lib/id";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { ModuleStateEntry, MoodboardDirectionStatus, MoodboardWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -89,11 +90,12 @@ function RailArrow({
   dir: 1 | -1;
   onClick: () => void;
 }) {
+  const tr = useT();
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={dir === 1 ? "weiter" : "zurück"}
+      aria-label={dir === 1 ? tr.elements.next : tr.elements.prev}
       className={`absolute top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[15px] leading-none text-white opacity-90 shadow-lg transition-opacity hover:opacity-100 ${dir === 1 ? "right-1.5" : "left-1.5"}`}
       style={{ background: "rgba(0,0,0,0.62)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(6px)" }}
     >
@@ -112,6 +114,7 @@ export function MoodboardRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const directions = buildDirections(m, state);
   const assetPaths = state
     .filter((e) => e.kind === "upload")
@@ -197,7 +200,7 @@ export function MoodboardRenderer({
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {empty && (
           <p className="mono mb-2 pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "Lade Referenzen hoch oder notiere eine Richtung."}
+            {m.placeholder ?? tr.elements.moodboardEmpty}
           </p>
         )}
 
@@ -226,7 +229,7 @@ export function MoodboardRenderer({
                     type="button"
                     onClick={() => setExpanded(true)}
                     className="block h-full w-full"
-                    title={img.caption || "Groß ansehen"}
+                    title={img.caption || tr.elements.viewLarge}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
@@ -292,7 +295,7 @@ export function MoodboardRenderer({
               else if (e.key === "Escape") { setPending(""); setAdding(false); }
             }}
             maxLength={140}
-            placeholder="z. B. Warmes, gerichtetes Seitenlicht — Enter für weitere"
+            placeholder={tr.elements.moodboardDirectionPlaceholder}
             className="mt-2 w-full rounded-[var(--v-radius)] bg-transparent px-3 py-2 text-[13px] outline-none"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           />
@@ -411,7 +414,7 @@ export function MoodboardRenderer({
                       else if (e.key === "Escape") { setPending(""); setAdding(false); }
                     }}
                     maxLength={140}
-                    placeholder="z. B. Warmes, gerichtetes Seitenlicht — Enter für weitere"
+                    placeholder={tr.elements.moodboardDirectionPlaceholder}
                     className="w-full rounded-[var(--v-radius)] bg-transparent px-3 py-2 text-[13px] outline-none"
                     style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
                   />
@@ -442,6 +445,7 @@ function ImageCaption({
   value: string;
   onSave: (text: string) => void;
 }) {
+  const tr = useT();
   const edit = useInlineEdit<HTMLTextAreaElement>({
     value,
     onSave,
@@ -456,7 +460,7 @@ function ImageCaption({
         {...edit.editProps}
         rows={1}
         maxLength={CAPTION_MAX}
-        placeholder="Notiz zum Bild …"
+        placeholder={tr.elements.imageNote}
         className="w-full resize-none rounded-[var(--v-radius)] px-3 py-2 text-center text-[13px] leading-relaxed outline-none"
         style={{ color: "var(--v-fg)", background: "var(--v-bg)", border: "1px solid var(--v-rule)" }}
       />
@@ -486,6 +490,7 @@ function DirectionRow({
   onDelete: () => void;
   expanded?: boolean;
 }) {
+  const tr = useT();
   const labelEdit = useInlineEdit<HTMLTextAreaElement>({
     value: direction.label,
     onSave: (label) => onSave({ label }),
@@ -543,7 +548,7 @@ function DirectionRow({
               {...noteEdit.editProps}
               rows={1}
               maxLength={400}
-              placeholder="URL oder Notiz …"
+              placeholder={tr.elements.urlOrNote}
               className="mt-1.5 w-full resize-none bg-transparent text-[12px] leading-snug outline-none placeholder:opacity-50"
               style={{ color: "var(--v-muted)" }}
             />
@@ -554,7 +559,7 @@ function DirectionRow({
               className={`mt-1 block w-full whitespace-pre-wrap break-words text-left text-[12px] leading-snug ${direction.note ? "" : "opacity-50"}`}
               style={{ color: "var(--v-muted)" }}
             >
-              {direction.note || "URL oder Notiz …"}
+              {direction.note || tr.elements.urlOrNote}
             </button>
           )}
         </div>

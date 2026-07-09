@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { newLocalId } from "@/lib/id";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { ModuleStateEntry, ShotListWidget, ShotPriority, ShotStatus } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -68,6 +69,7 @@ export function ShotListRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const shots = buildShots(m, state);
   const [adding, setAdding] = useState(false);
   const [pending, setPending] = useState("");
@@ -140,7 +142,7 @@ export function ShotListRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={160}
-              placeholder="Motiv benennen, Enter für weiteres"
+              placeholder={tr.elements.shotSubjectPlaceholder}
               className="w-full bg-transparent px-2 py-1 text-[13px] outline-none rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -148,7 +150,7 @@ export function ShotListRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="Eintrag hinzufügen"
+              aria-label={tr.elements.addPartsEntry}
               className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
@@ -174,6 +176,7 @@ function ShotRow({
   onSave: (patch: Partial<Pick<ShotView, "label" | "purpose" | "setup" | "location" | "notes" | "priority" | "status">>) => void;
   onDelete: () => void;
 }) {
+  const tr = useT();
   const titleEdit = useInlineEdit<HTMLTextAreaElement>({
     value: shot.label,
     onSave: (label) => onSave({ label }),
@@ -212,7 +215,7 @@ function ShotRow({
       <button
         type="button"
         onClick={onDelete}
-        aria-label="Aufnahme entfernen"
+        aria-label={tr.elements.removeShot}
         className="touch-visible mono absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-60 hover:!opacity-100"
         style={{ color: "var(--v-muted)" }}
       >
@@ -249,7 +252,7 @@ function ShotRow({
           <InlineField
             edit={titleEdit}
             value={shot.label}
-            placeholder="Motiv benennen …"
+            placeholder={tr.elements.nameShotSubject}
             className="mt-2 text-[14px] font-medium"
           />
 

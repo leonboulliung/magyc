@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { newLocalId } from "@/lib/id";
 import { displayActorName } from "@/lib/state";
 import type { ModuleStateEntry, QAWidget } from "@/lib/types";
@@ -29,6 +30,7 @@ export function QaRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
 
   const voices = state
     .filter((e) => e.kind === "voice")
@@ -121,7 +123,7 @@ export function QaRenderer({
             className="mono mb-3 block w-full rounded-[var(--v-radius)] px-3 py-3 text-left text-[11px] leading-relaxed opacity-65 transition-opacity hover:opacity-100"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
           >
-            {m.placeholder ?? "Noch keine Frage - stell die erste."}
+            {m.placeholder ?? tr.elements.qaEmpty}
           </button>
         )}
 
@@ -164,7 +166,7 @@ export function QaRenderer({
               }}
               rows={2}
               maxLength={600}
-              placeholder="Frage formulieren"
+              placeholder={tr.elements.formulateQuestion}
               className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -172,7 +174,7 @@ export function QaRenderer({
             <button
               type="button"
               onClick={() => setAskOpen(true)}
-              aria-label="Frage hinzufügen"
+              aria-label={tr.elements.addQuestion}
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
@@ -207,6 +209,7 @@ function QuestionBlock({
   onDeleteAnswer: (id: string) => void;
 }) {
   const [replyOpen, setReplyOpen] = useState(false);
+  const tr = useT();
   const [pending, setPending] = useState("");
 
   async function submit() {
@@ -222,7 +225,7 @@ function QuestionBlock({
         <button
           type="button"
           onClick={() => onDeleteQuestion()}
-          aria-label="Frage löschen"
+          aria-label={tr.elements.deleteQuestion}
           className="touch-visible mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/q:opacity-50 hover:!opacity-100"
           style={{ color: "var(--v-muted)" }}
         >
@@ -284,7 +287,7 @@ function QuestionBlock({
                 <button
                   type="button"
                   onClick={() => onDeleteAnswer(aid)}
-                  aria-label="Antwort löschen"
+                  aria-label={tr.elements.deleteAnswer}
                   className="touch-visible mono text-[12px] opacity-0 transition-opacity group-hover/a:opacity-50 hover:!opacity-100"
                   style={{ color: "var(--v-muted)" }}
                 >
@@ -309,7 +312,7 @@ function QuestionBlock({
             }}
             rows={2}
             maxLength={600}
-            placeholder={question.answerHint || "Antwort schreiben"}
+            placeholder={question.answerHint || tr.elements.writeAnswer}
             className="w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           />

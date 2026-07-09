@@ -95,7 +95,7 @@ export function ImagesRenderer({
                   <button
                     type="button"
                     onClick={() => removeImage(img.key)}
-                    aria-label="Bild entfernen"
+                    aria-label={tr.elements.removeImage}
                     className="touch-visible mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
                     style={{ background: "rgba(0,0,0,0.55)" }}
                   >
@@ -109,13 +109,13 @@ export function ImagesRenderer({
 
         <div className="mt-3">
           <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple compact>
-            <span className="mono tracking-widest opacity-70">▨ Bilder hochladen · JPG PNG WEBP HEIC · max. 50 MB</span>
+            <span className="mono tracking-widest opacity-70">{tr.elements.uploadImagesHint}</span>
           </UploadZone>
         </div>
       </WidgetCard>
 
       {lightbox && (
-        <FullscreenOverlay title={lightbox.name || "Bild"} onClose={() => setLightbox(null)}>
+        <FullscreenOverlay title={lightbox.name || tr.elements.imageLabel} onClose={() => setLightbox(null)}>
           <div className="flex h-full items-center justify-center p-4 sm:p-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

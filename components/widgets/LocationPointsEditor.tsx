@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 export type LocationPoint = { lng: number; lat: number; label?: string };
 
@@ -11,13 +12,14 @@ export function LocationPointsEditor({
   points,
   onChange,
   minItems,
-  addLabel = "+ Ort hinzufügen",
+  addLabel,
 }: {
   points: LocationPoint[];
   onChange: (points: LocationPoint[]) => void;
   minItems: number;
   addLabel?: string;
 }) {
+  const tr = useT();
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeoMatch[]>([]);
@@ -69,7 +71,7 @@ export function LocationPointsEditor({
             </button>
             <button type="button" onClick={() => begin(index)} className="text-[10px] opacity-60 transition-opacity hover:opacity-100" style={{ color: "var(--v-muted)" }}>Bearbeiten</button>
             {points.length > minItems && (
-              <button type="button" onClick={() => onChange(points.filter((_, current) => current !== index))} aria-label="Ort entfernen" className="mono grid h-5 w-5 place-items-center rounded-full text-[12px] opacity-45 hover:opacity-100" style={{ color: "var(--v-muted)" }}>×</button>
+              <button type="button" onClick={() => onChange(points.filter((_, current) => current !== index))} aria-label={tr.elements.removeLocation} className="mono grid h-5 w-5 place-items-center rounded-full text-[12px] opacity-45 hover:opacity-100" style={{ color: "var(--v-muted)" }}>×</button>
             )}
           </div>
         ))}
@@ -82,7 +84,7 @@ export function LocationPointsEditor({
             value={query}
             onChange={(event) => search(event.target.value)}
             onKeyDown={(event) => { if (event.key === "Escape") setEditing(null); else if (event.key === "Enter" && results[0]) pick(results[0]); }}
-            placeholder="Ort oder Adresse suchen"
+            placeholder={tr.elements.searchLocation}
             className="w-full rounded-[var(--v-radius)] bg-transparent px-3 py-2 text-[12px] outline-none"
             style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
           />
@@ -102,7 +104,7 @@ export function LocationPointsEditor({
         </div>
       ) : (
         <button type="button" onClick={() => begin("new")} className="mono mt-2 rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>
-          {addLabel}
+          {addLabel ?? tr.elements.addLocation}
         </button>
       )}
     </div>

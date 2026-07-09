@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { newLocalId } from "@/lib/id";
 import { displayActorName, getSelfId } from "@/lib/state";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { ModuleStateEntry, SelectionWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -40,6 +41,7 @@ export function SelectionRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const myId = getSelfId();
   const [openId, setOpenId] = useState<string | null>(null);
   const [pending, setPending] = useState("");
@@ -128,7 +130,7 @@ export function SelectionRenderer({
                       <button
                         type="button"
                         onClick={() => toggleSelect(p.id)}
-                        aria-label={mine ? "Auswahl entfernen" : "Auswählen"}
+                        aria-label={mine ? tr.elements.selectRemove : tr.elements.select}
                         className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full text-[13px] transition-transform active:scale-90"
                         style={{
                           background: mine ? "#fff" : "rgba(0,0,0,0.5)",
@@ -196,7 +198,7 @@ export function SelectionRenderer({
         ) : (
           <div className="px-4 py-3">
             <p className="mono text-[11px] opacity-50" style={{ color: "var(--v-muted)" }}>
-              {m.placeholder ?? (ctx.isOwner ? "Lade Bilder zur Auswahl hoch." : "Noch keine Bilder zur Auswahl.")}
+              {m.placeholder ?? (ctx.isOwner ? tr.elements.selectionOwnerEmpty : tr.elements.selectionEmpty)}
             </p>
           </div>
         )}
@@ -204,7 +206,7 @@ export function SelectionRenderer({
         {ctx.isOwner && (
           <div className="px-3 pb-3">
             <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple onDone={() => {}}>
-              <span className="mono text-[10px] tracking-widest opacity-60">▨ Bilder hinzufügen</span>
+              <span className="mono text-[10px] tracking-widest opacity-60">{tr.elements.addSelectionImages}</span>
               <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
                 {uploadHintForAccept(IMAGE_ACCEPT)}
               </span>

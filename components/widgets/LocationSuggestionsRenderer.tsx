@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { getSelfId } from "@/lib/state";
 import type { LocationSuggestionsWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -31,6 +32,7 @@ export function LocationSuggestionsRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const presetMode = ctx.mode === "preset";
 
   function saveSuggestions(suggestions: LocationSuggestionsWidget["suggestions"]) {
@@ -84,7 +86,7 @@ export function LocationSuggestionsRenderer({
     <WidgetShell module={m} index={index}>
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {m.suggestions.length === 0 && (
-          <p className="text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>Noch keine Vorschläge.</p>
+          <p className="text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>{tr.elements.noSuggestions}</p>
         )}
 
         <ul className="space-y-2">
@@ -108,7 +110,7 @@ export function LocationSuggestionsRenderer({
                       type="button"
                       onClick={() => vote(sug.label)}
                       className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition-all"
-                      aria-label={selected ? "Stimme entfernen" : "Für diesen Ort stimmen"}
+                      aria-label={selected ? tr.elements.voteRemove : tr.elements.voteForLocation}
                       style={{
                         border: `1.5px solid ${selected ? "var(--v-fg)" : "var(--v-rule)"}`,
                         background: selected ? "var(--v-fg)" : "transparent",
@@ -123,7 +125,7 @@ export function LocationSuggestionsRenderer({
                       value={sug.label}
                       isOwner={ctx.isOwner}
                       onSave={(value) => patchSuggestion(i, { label: value })}
-                      placeholder="Vorschlag benennen"
+                      placeholder={tr.elements.nameSuggestion}
                       className="text-[13px] leading-snug"
                     />
                     {(ctx.isOwner || sug.address) && (
@@ -132,7 +134,7 @@ export function LocationSuggestionsRenderer({
                           value={sug.address ?? ""}
                           isOwner={ctx.isOwner}
                           onSave={(value) => patchSuggestion(i, { address: value })}
-                          placeholder="Details oder Hinweis ergänzen"
+                          placeholder={tr.elements.suggestionHint}
                           className="mono text-[10px] opacity-60"
                         />
                       </div>
@@ -170,7 +172,7 @@ export function LocationSuggestionsRenderer({
                     <button
                       type="button"
                       onClick={() => removeSuggestion(i)}
-                      aria-label="Vorschlag entfernen"
+                      aria-label={tr.elements.removeSuggestion}
                       className="mono grid h-6 w-6 shrink-0 place-items-center rounded-full text-[13px] opacity-45 transition-opacity hover:opacity-100"
                       style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
                     >

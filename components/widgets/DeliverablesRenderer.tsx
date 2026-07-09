@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { newLocalId } from "@/lib/id";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type {
   DeliverableStatus,
   DeliverablesWidget,
@@ -63,6 +64,7 @@ export function DeliverablesRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const lex = workflowLabels(ctx.language);
   const items = buildDeliverables(m, state);
 
@@ -92,11 +94,11 @@ export function DeliverablesRenderer({
     <button
       type="button"
       onClick={() => setAdding(true)}
-      aria-label="Ergebnis hinzufügen"
+      aria-label={tr.elements.addDeliverable}
       className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
       style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
     >
-      {items.length === 0 ? "+ Erstes Ergebnis hinzufügen" : "+ Eintrag hinzufügen"}
+      {items.length === 0 ? tr.elements.addFirstDeliverable : tr.elements.addEntry}
     </button>
   );
 
@@ -133,7 +135,7 @@ export function DeliverablesRenderer({
                   <button
                     type="button"
                     onClick={() => remove(item.key)}
-                    aria-label="Ergebnis entfernen"
+                    aria-label={tr.elements.removeDeliverable}
                     className="reveal-on-hover mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none"
                     style={{ color: "var(--v-muted)" }}
                   >
@@ -144,7 +146,7 @@ export function DeliverablesRenderer({
                     <button
                       type="button"
                       onClick={() => update(item.key, { status: nextStatus(item.status) })}
-                      title="Status ändern"
+                      title={tr.elements.changeStatus}
                       className="mono shrink-0 rounded-full px-2.5 py-1 text-[9px] uppercase tracking-widest"
                       style={{ border: `1px solid ${tone.border}`, background: tone.background, color: "var(--v-fg)" }}
                     >
@@ -154,7 +156,7 @@ export function DeliverablesRenderer({
                     <div className="min-w-0 flex-1 space-y-2.5">
                       <Field
                         value={item.label}
-                        placeholder="Was wird geliefert?"
+                        placeholder={tr.elements.deliverableWhat}
                         onSave={(v) => v.trim() && update(item.key, { label: v })}
                         bold
                       />
@@ -166,7 +168,7 @@ export function DeliverablesRenderer({
                       <Field
                         label="Notiz"
                         value={item.details ?? ""}
-                        placeholder="Kanal, Motivgruppe oder Übergabehinweis"
+                        placeholder={tr.elements.deliverableHint}
                         onSave={(v) => update(item.key, { details: v })}
                       />
                     </div>
@@ -189,7 +191,7 @@ export function DeliverablesRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={200}
-              placeholder="Ergebnis benennen …"
+              placeholder={tr.elements.nameDeliverable}
               className="w-full rounded-[var(--v-radius)] bg-transparent px-2 py-1 text-[13px] outline-none"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />

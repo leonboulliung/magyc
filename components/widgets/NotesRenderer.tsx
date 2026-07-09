@@ -90,13 +90,13 @@ export function NotesRenderer({
                   else if (e.key === "Escape") { setPending(""); setAdding(false); }
                 }}
                 maxLength={1000}
-                placeholder="Notiz schreiben"
+                placeholder={tr.elements.writeNote}
                 rows={2}
                 className="w-full text-[13px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
                 style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
               />
               <p className="mono text-[9px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
-                Strg/⌘ + Enter speichert
+                {tr.elements.cmdEnterSaves}
               </p>
             </div>
           ) : (
@@ -107,7 +107,7 @@ export function NotesRenderer({
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              + Eintrag hinzufügen
+              {tr.elements.addEntry}
             </button>
           )}
         </div>
@@ -191,7 +191,7 @@ function NoteCard({
         </button>
       )}
       <div className="flex items-start gap-2.5">
-        <ActorDot color={note.authorColor} displayName={note.authorName || "Mitglied"} size={16} />
+        <ActorDot color={note.authorColor} displayName={note.authorName || tr.elements.member} size={16} />
         {editing ? (
           <div className="min-w-0 flex-1 space-y-1.5">
             <textarea
@@ -209,7 +209,7 @@ function NoteCard({
               style={{ color: "var(--v-fg)" }}
             />
             <p className="mono text-[9px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
-              Ctrl/⌘ + Enter speichert
+              {tr.elements.cmdEnterSaves}
             </p>
           </div>
         ) : (
@@ -218,7 +218,7 @@ function NoteCard({
             className="min-w-0 flex-1 cursor-text whitespace-pre-wrap break-words text-[13px] leading-relaxed [overflow-wrap:anywhere]"
             style={{ color: "var(--v-fg)" }}
           >
-            {note.text || "Notiz schreiben"}
+            {note.text || tr.elements.writeNote}
           </div>
         )}
       </div>

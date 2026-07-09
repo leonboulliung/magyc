@@ -117,7 +117,7 @@ export function AttachmentsRenderer({
                   <a
                     href={f.url}
                     download={f.name}
-                    aria-label={`${f.name} herunterladen`}
+                    aria-label={`${f.name} ${tr.elements.download}`}
                     className="mono shrink-0 rounded-full px-2 py-1 text-[9px] tracking-widest opacity-55 transition-opacity hover:opacity-100"
                     style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
                   >
@@ -126,7 +126,7 @@ export function AttachmentsRenderer({
                   <button
                     type="button"
                     onClick={() => remove(f.key)}
-                    aria-label="Anhang entfernen"
+                    aria-label={tr.elements.removeAttachment}
                     className="touch-visible mono shrink-0 text-[13px] opacity-0 transition-opacity group-hover/att:opacity-50 hover:!opacity-100"
                     style={{ color: "var(--v-muted)" }}
                   >

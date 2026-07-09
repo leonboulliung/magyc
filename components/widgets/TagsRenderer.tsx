@@ -91,7 +91,7 @@ export function TagsRenderer({
               {ctx.isOwner && (
                 <button
                   onClick={() => remove(t)}
-                  aria-label={`${t} entfernen`}
+                  aria-label={`${t} ${tr.elements.remove}`}
                   className="opacity-30 hover:opacity-100 transition-opacity"
                   style={{ color: "var(--v-fg)" }}
                 >

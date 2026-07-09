@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { newLocalId } from "@/lib/id";
 import { displayActorName, getSelfId } from "@/lib/state";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type {
   ApprovalAudience,
   ApprovalStatus,
@@ -53,6 +54,7 @@ export function ApprovalsRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const lex = workflowLabels(ctx.language);
   const items = buildApprovals(m, state);
   const owners = buildOwners(state);
@@ -122,7 +124,7 @@ export function ApprovalsRenderer({
             className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
           >
-            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>+ Erste Freigabe hinzufügen</div>
+            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{tr.elements.addFirstApproval} hinzufügen</div>
           </button>
         ) : (
         <div className="space-y-2">
@@ -154,7 +156,7 @@ export function ApprovalsRenderer({
                   <button
                     type="button"
                     onClick={() => remove(item.key)}
-                    aria-label="Freigabe entfernen"
+                    aria-label={tr.elements.removeApproval}
                     className="reveal-on-hover mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none"
                     style={{ color: "var(--v-muted)" }}
                   >
@@ -212,7 +214,7 @@ export function ApprovalsRenderer({
                       <div className="mt-2">
                         <InlineWorkflowText
                           value={item.text}
-                          placeholder="Freigabe benennen ..."
+                          placeholder={tr.elements.nameApproval}
                           onSave={(next) => updateItem(item.key, { text: next })}
                           className="text-[13px] leading-snug"
                         />
@@ -293,7 +295,7 @@ export function ApprovalsRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={200}
-              placeholder="Freigabe hinzufügen ..."
+              placeholder={tr.elements.addApprovalPlaceholder}
               className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -301,7 +303,7 @@ export function ApprovalsRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="Freigabe hinzufügen"
+              aria-label={tr.elements.addApproval}
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >

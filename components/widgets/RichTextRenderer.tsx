@@ -67,7 +67,7 @@ export function RichTextRenderer({
         {title.editing ? (
           <input
             {...title.editProps}
-            placeholder="Abschnitt benennen"
+            placeholder={tr.elements.nameSection}
             maxLength={60}
             className="mono text-[10px] tracking-widest uppercase bg-transparent border-0 outline-none px-0 py-0"
             style={{ color: "var(--v-muted)" }}
@@ -86,7 +86,7 @@ export function RichTextRenderer({
               textAlign: "left",
             }}
           >
-            {m.microTitle || "Abschnitt benennen"}
+            {m.microTitle || tr.elements.nameSection}
           </button>
         )}
 

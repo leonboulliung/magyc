@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { newLocalId } from "@/lib/id";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { ModuleStateEntry, PartsListWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -38,6 +39,7 @@ export function PartsListRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const items = buildItems(m, state);
   const [adding, setAdding] = useState(false);
   const [pendingName, setPendingName] = useState("");
@@ -169,7 +171,7 @@ export function PartsListRenderer({
                   compact
                   onDone={(files) => { if (files[0]?.path) setPendingUrl(files[0].path); }}
                 >
-                  <span className="mono text-[10px] tracking-widest opacity-70">{pendingUrl ? "✓ Bild" : "+ Bild"}</span>
+                  <span className="mono text-[10px] tracking-widest opacity-70">{pendingUrl ? tr.elements.imageSelected : tr.elements.addImage}</span>
                 </UploadZone>
                 <button
                   type="button"
@@ -186,11 +188,11 @@ export function PartsListRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="Eintrag hinzufügen"
+              aria-label={tr.elements.addPartsEntry}
               className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              {items.length === 0 ? "+ Ersten Eintrag hinzufügen" : "+ Eintrag hinzufügen"}
+              {items.length === 0 ? tr.elements.addFirstPartsEntry : tr.elements.addPartsEntryShort}
             </button>
           )}
         </div>
@@ -214,6 +216,7 @@ function PartRow({
   onSave: (patch: Partial<Pick<Item, "name" | "quantity" | "imageUrl">>) => void;
   onDelete: () => void;
 }) {
+  const tr = useT();
   const nameEdit = useInlineEdit<HTMLInputElement>({
     value: item.name,
     onSave: (name) => onSave({ name }),
@@ -230,7 +233,7 @@ function PartRow({
       <button
         type="button"
         onClick={onDelete}
-        aria-label="Eintrag entfernen"
+        aria-label={tr.elements.removeEntry}
         className="reveal-on-hover mono absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-[12px] leading-none hover:bg-white/10"
         style={{ color: "var(--v-muted)" }}
       >
@@ -252,7 +255,7 @@ function PartRow({
             <input
               {...nameEdit.editProps}
               maxLength={120}
-              placeholder="Eintrag benennen"
+              placeholder={tr.elements.namePartsEntry}
               className="w-full bg-transparent text-[13px] font-medium outline-none"
               style={{ color: "var(--v-fg)" }}
             />
@@ -263,7 +266,7 @@ function PartRow({
               className="block w-full truncate text-left text-[13px] font-medium"
               style={{ color: item.name ? "var(--v-fg)" : "var(--v-muted)" }}
             >
-              {item.name || "Eintrag benennen"}
+              {item.name || tr.elements.namePartsEntry}
             </button>
           )}
 
@@ -279,7 +282,7 @@ function PartRow({
               compact
               onDone={(files) => { if (files[0]?.path) onSave({ imageUrl: files[0].path }); }}
             >
-              <span className="mono text-[10px] tracking-widest opacity-70">{item.imageUrl ? "Bild ändern" : "+ Bild"}</span>
+              <span className="mono text-[10px] tracking-widest opacity-70">{item.imageUrl ? tr.elements.changeImage : tr.elements.addImage}</span>
             </UploadZone>
             {item.imageUrl && (
               <button

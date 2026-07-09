@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, PollWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -25,6 +26,7 @@ export function PollRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const presetMode = ctx.mode === "preset";
 
   // Last vote per actor.
@@ -91,7 +93,7 @@ export function PollRenderer({
             value={question}
             isOwner={ctx.isOwner}
             onSave={(v) => save({ ...m, question: v })}
-            placeholder="Welche Entscheidung soll getroffen werden?"
+            placeholder={tr.elements.pollQuestionPlaceholder}
             multiline
             className="text-[13px] font-medium leading-snug [overflow-wrap:anywhere]"
           />
@@ -198,7 +200,7 @@ export function PollRenderer({
                             removeOption(i);
                           }
                         }}
-                        aria-label="Option entfernen"
+                        aria-label={tr.elements.removeOption}
                         className="touch-visible mono grid h-5 w-5 shrink-0 place-items-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover/option:opacity-50 hover:!opacity-100"
                         style={{ color: "var(--v-muted)" }}
                       >
@@ -219,7 +221,7 @@ export function PollRenderer({
             className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 hover:opacity-100"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           >
-            {options.length === 0 ? "+ Erste Option hinzufügen" : "+ Option hinzufügen"}
+            {options.length === 0 ? tr.elements.addFirstOption : tr.elements.addOption}
           </button>
         )}
 

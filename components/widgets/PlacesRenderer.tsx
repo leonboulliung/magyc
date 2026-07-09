@@ -40,7 +40,7 @@ export function PlacesRenderer({ module: m, index }: { module: PlacesWidget; ind
   return (
     <WidgetShell module={m} index={index}>
       <WidgetCard
-        microTitle={m.microTitle ?? "Orte"}
+        microTitle={m.microTitle ?? tr.elements.placesTitle}
         description={m.description}
         attribution={m.attribution ?? { name: "OpenStreetMap", url: "https://www.openstreetmap.org/copyright", license: "ODbL" }}
         bare

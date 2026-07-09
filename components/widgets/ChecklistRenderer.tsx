@@ -160,7 +160,7 @@ export function ChecklistRenderer({
                   <button
                     type="button"
                     onClick={() => deleteItem(it.key)}
-                    aria-label="Eintrag entfernen"
+                    aria-label={tr.elements.removeEntry}
                     className="reveal-on-hover mono shrink-0 rounded-full px-1.5 text-[13px] leading-none"
                     style={{ color: "var(--v-muted)" }}
                   >

@@ -160,6 +160,7 @@ function CellEditor({
   mono?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const tr = useT();
   const [draft, setDraft] = useState(value);
 
   function commit() {
@@ -190,7 +191,7 @@ function CellEditor({
       className={`min-h-[18px] ${isOwner ? "cursor-text" : ""} ${mono ? "mono text-[10px] tracking-widest uppercase" : "text-[12px]"}`}
       style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}
     >
-      {value || (mono ? "Spalte benennen" : "Inhalt eingeben")}
+      {value || (mono ? tr.elements.nameColumn : tr.elements.enterContent)}
     </div>
   );
 }

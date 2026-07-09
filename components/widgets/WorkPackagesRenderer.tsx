@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { displayActorName, getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, WorkPackagesWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -24,6 +25,7 @@ export function WorkPackagesRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const presetMode = ctx.mode === "preset";
   const myId = getSelfId();
 
@@ -45,7 +47,7 @@ export function WorkPackagesRenderer({
   }
 
   function save(next: WorkPackagesWidget) {
-    return ctx.saveModule(index, next, { errorMessage: "Die Aufgaben konnten nicht gespeichert werden." });
+    return ctx.saveModule(index, next, { errorMessage: tr.elements.workPackagesSaveError });
   }
 
   function setPackage(
@@ -98,7 +100,7 @@ export function WorkPackagesRenderer({
             className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
           >
-            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{ctx.isOwner ? "+ Erste Aufgabe hinzufügen" : "Noch keine Aufgaben"}</div>
+            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{ctx.isOwner ? tr.elements.addFirstWorkPackage : tr.elements.noWorkPackages}</div>
           </button>
         ) : (
           <div className="space-y-2">
@@ -144,7 +146,7 @@ export function WorkPackagesRenderer({
                           value={pkg.label}
                           isOwner={ctx.isOwner}
                           onSave={(next) => setPackage(packageIndex, { label: next })}
-                          placeholder="Aufgabe benennen"
+                          placeholder={tr.elements.nameWorkPackage}
                           className="block text-[13px] leading-snug"
                         />
 
@@ -154,7 +156,7 @@ export function WorkPackagesRenderer({
                               value={pkg.description ?? ""}
                               isOwner={ctx.isOwner}
                               onSave={(next) => setPackage(packageIndex, { description: next })}
-                              placeholder="Was muss hier passieren?"
+                              placeholder={tr.elements.workPackagePlaceholder}
                               multiline
                               className="text-[12px] leading-snug"
                             />
@@ -192,7 +194,7 @@ export function WorkPackagesRenderer({
                         <button
                           type="button"
                           onClick={() => removePackage(packageIndex)}
-                          aria-label="Aufgabe entfernen"
+                          aria-label={tr.elements.removeWorkPackage}
                           className="mono rounded-full px-2 py-1 text-[12px] transition-opacity hover:opacity-100"
                           style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)", opacity: 0.72 }}
                         >

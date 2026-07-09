@@ -88,7 +88,7 @@ export function AudioRenderer({
                   <button
                     type="button"
                     onClick={() => removeTrack(t.key)}
-                    aria-label={`${t.name} entfernen`}
+                    aria-label={`${t.name} ${tr.elements.remove}`}
                     className="mono grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] opacity-45 transition-opacity hover:opacity-100"
                     style={{ border: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
                   >
