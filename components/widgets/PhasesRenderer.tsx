@@ -57,7 +57,7 @@ export function PhasesRenderer({
         <WidgetCard microTitle={m.microTitle} description={m.description}>
           {ctx.isOwner ? (
             <button type="button" onClick={() => savePresetPhases([{ label: "" }])} className="mono rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>
-              + Erste Phase hinzufügen
+              {tr.elements.addFirstPhase}
             </button>
           ) : (
             <p className="text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>{tr.elements.noPhases}</p>
@@ -76,17 +76,17 @@ export function PhasesRenderer({
               <div key={phaseIndex} className="flex items-start gap-3 rounded-[var(--v-radius)] px-3 py-2.5" style={{ border: "1px solid var(--v-rule)" }}>
                 <span className="mono mt-0.5 text-[10px] opacity-45" style={{ color: "var(--v-muted)" }}>{phaseIndex + 1}</span>
                 <div className="min-w-0 flex-1">
-                  <InlineText value={phase.label} isOwner onSave={(label) => savePresetPhases(phases.map((item, index) => index === phaseIndex ? { ...item, label } : item))} placeholder="Phase benennen" className="text-[13px] font-medium" />
+                  <InlineText value={phase.label} isOwner onSave={(label) => savePresetPhases(phases.map((item, index) => index === phaseIndex ? { ...item, label } : item))} placeholder={tr.elements.namePhase} className="text-[13px] font-medium" />
                   <div className="mt-1">
-                    <InlineText value={phase.description ?? ""} isOwner multiline onSave={(description) => savePresetPhases(phases.map((item, index) => index === phaseIndex ? { ...item, description } : item))} placeholder="Optional beschreiben" className="text-[11px]" />
+                    <InlineText value={phase.description ?? ""} isOwner multiline onSave={(description) => savePresetPhases(phases.map((item, index) => index === phaseIndex ? { ...item, description } : item))} placeholder={tr.elements.describeOptional} className="text-[11px]" />
                   </div>
                 </div>
-                <button type="button" onClick={() => savePresetPhases(phases.filter((_, index) => index !== phaseIndex))} aria-label="Phase entfernen" className="mono text-[12px] opacity-45 hover:opacity-100">×</button>
+                <button type="button" onClick={() => savePresetPhases(phases.filter((_, index) => index !== phaseIndex))} aria-label={tr.elements.removePhase} className="mono text-[12px] opacity-45 hover:opacity-100">×</button>
               </div>
             ))}
           </div>
           <button type="button" onClick={() => savePresetPhases([...phases, { label: "" }])} className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>
-            + Phase hinzufügen
+            {tr.elements.addPhase}
           </button>
         </WidgetCard>
       </WidgetShell>

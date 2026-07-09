@@ -166,7 +166,7 @@ export function DeliverablesRenderer({
                         <Field label="Frist" value={item.due ?? ""} type="date" onSave={(v) => update(item.key, { due: v })} />
                       </div>
                       <Field
-                        label="Notiz"
+                        label={tr.elements.noteLabel}
                         value={item.details ?? ""}
                         placeholder={tr.elements.deliverableHint}
                         onSave={(v) => update(item.key, { details: v })}

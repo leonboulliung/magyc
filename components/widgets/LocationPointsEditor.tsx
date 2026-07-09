@@ -69,7 +69,7 @@ export function LocationPointsEditor({
             <button type="button" onClick={() => begin(index)} className="min-w-0 flex-1 truncate text-left text-[12px]" style={{ color: "var(--v-fg)" }}>
               {point.label || `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`}
             </button>
-            <button type="button" onClick={() => begin(index)} className="text-[10px] opacity-60 transition-opacity hover:opacity-100" style={{ color: "var(--v-muted)" }}>Bearbeiten</button>
+            <button type="button" onClick={() => begin(index)} className="text-[10px] opacity-60 transition-opacity hover:opacity-100" style={{ color: "var(--v-muted)" }}>{tr.common.edit}</button>
             {points.length > minItems && (
               <button type="button" onClick={() => onChange(points.filter((_, current) => current !== index))} aria-label={tr.elements.removeLocation} className="mono grid h-5 w-5 place-items-center rounded-full text-[12px] opacity-45 hover:opacity-100" style={{ color: "var(--v-muted)" }}>×</button>
             )}

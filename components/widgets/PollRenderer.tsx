@@ -100,7 +100,7 @@ export function PollRenderer({
         </div>
 
         {options.length === 0 && !ctx.isOwner && (
-          <p className="mb-2 text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>Diese Umfrage ist noch nicht vorbereitet.</p>
+          <p className="mb-2 text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>{tr.elements.pollEmpty}</p>
         )}
 
         <ul className="space-y-2">

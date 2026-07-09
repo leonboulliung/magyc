@@ -124,7 +124,7 @@ export function ApprovalsRenderer({
             className="w-full rounded-[var(--v-radius)] px-3 py-4 text-left"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
           >
-            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{tr.elements.addFirstApproval} hinzufügen</div>
+            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{tr.elements.addFirstApproval}</div>
           </button>
         ) : (
         <div className="space-y-2">

@@ -100,7 +100,7 @@ export function CrewRenderer({
               cursor: ctx.isOwner ? "pointer" : "default",
             }}
           >
-            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{ctx.isOwner ? tr.elements.addFirstMember : "Noch keine Mitglieder"}</div>
+            <div className="mono text-[10px] tracking-widest" style={{ color: "var(--v-fg)" }}>{ctx.isOwner ? tr.elements.addFirstMember : tr.elements.noMembers}</div>
           </button>
         ) : (
           <ul className="space-y-2">
@@ -215,7 +215,7 @@ export function CrewRenderer({
             className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest transition-opacity hover:opacity-100"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)", opacity: 0.72 }}
           >
-            + Mitglied hinzufügen
+            {tr.elements.addMember}
           </button>
         )}
       </WidgetCard>

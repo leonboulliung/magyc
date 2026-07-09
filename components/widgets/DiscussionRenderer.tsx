@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { newLocalId } from "@/lib/id";
 import { displayActorName } from "@/lib/state";
 import type { DiscussionWidget, ModuleStateEntry } from "@/lib/types";
@@ -28,6 +29,7 @@ export function DiscussionRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
 
   const voices = state
     .filter((e) => e.kind === "voice")
@@ -123,7 +125,7 @@ export function DiscussionRenderer({
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-muted)" }}
             >
               <span aria-hidden>↩</span>
-              <span className="opacity-70">{m.placeholder || "Kommentar schreiben …"}</span>
+              <span className="opacity-70">{m.placeholder || tr.elements.writeComment}</span>
             </button>
           )}
         </div>
@@ -147,6 +149,7 @@ function MessageNode({
 }) {
   const myId = typeof entry.data.id === "string" ? (entry.data.id as string) : entry.id;
   const kids = childMap.get(myId) || [];
+  const tr = useT();
   const [replyOpen, setReplyOpen] = useState(false);
   const [pending, setPending] = useState("");
 
@@ -197,7 +200,7 @@ function MessageNode({
               }}
               rows={2}
               maxLength={1000}
-              placeholder="Antworten …"
+              placeholder={tr.elements.answersPlaceholder}
               className="mt-2 w-full text-[12.5px] leading-relaxed bg-transparent outline-none resize-none p-2 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />

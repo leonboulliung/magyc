@@ -238,7 +238,7 @@ export function MoodboardRenderer({
                     <span
                       className="pointer-events-none absolute bottom-1.5 left-1.5 flex h-5 w-5 items-center justify-center rounded-md text-[11px] leading-none text-white"
                       style={{ background: "rgba(0,0,0,0.6)" }}
-                      title="Notiz vorhanden"
+                      title={tr.elements.hasNote}
                     >
                       ✎
                     </span>
@@ -246,7 +246,7 @@ export function MoodboardRenderer({
                   <button
                     type="button"
                     onClick={() => removeImage(img.key)}
-                    aria-label="Bild entfernen"
+                    aria-label={tr.elements.removeImage}
                     className="touch-visible mono absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none text-white opacity-0 transition-opacity group-hover/img:opacity-90 hover:!opacity-100"
                     style={{ background: "rgba(0,0,0,0.55)" }}
                   >
@@ -258,7 +258,7 @@ export function MoodboardRenderer({
             <div className="shrink-0">
               <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple tile>
                 <span className="text-[20px] leading-none opacity-60">＋</span>
-                <span className="mono tracking-widest opacity-60">Bilder</span>
+                <span className="mono tracking-widest opacity-60">{tr.elements.moodboardImages}</span>
                 <span className="mono px-2 text-center text-[8px] leading-tight tracking-widest opacity-45">
                   JPG PNG WEBP HEIC · max. 50 MB
                 </span>
@@ -346,7 +346,7 @@ export function MoodboardRenderer({
                   </span>
                   <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple tile>
                     <span className="text-[20px] leading-none opacity-60">＋</span>
-                    <span className="mono tracking-widest opacity-60">Bilder</span>
+                    <span className="mono tracking-widest opacity-60">{tr.elements.moodboardImages}</span>
                     <span className="mono px-2 text-center text-[8px] leading-tight tracking-widest opacity-45">
                       JPG PNG WEBP HEIC · max. 50 MB
                     </span>
@@ -380,7 +380,7 @@ export function MoodboardRenderer({
                 <div className="absolute bottom-4 left-4 z-10 w-24">
                   <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple tile>
                     <span className="text-[16px] leading-none opacity-60">＋</span>
-                    <span className="mono text-[9px] tracking-widest opacity-60">Bilder</span>
+                    <span className="mono text-[9px] tracking-widest opacity-60">{tr.elements.moodboardImages}</span>
                   </UploadZone>
                 </div>
               )}
@@ -474,7 +474,7 @@ function ImageCaption({
       className="block w-full whitespace-pre-wrap break-words px-3 py-1 text-center text-[13px] leading-relaxed"
       style={{ color: value ? "var(--v-fg)" : "var(--v-muted)" }}
     >
-      {value || "+ Notiz"}
+      {value || tr.elements.addDirection}
     </button>
   );
 }
@@ -528,7 +528,7 @@ function DirectionRow({
               {...labelEdit.editProps}
               rows={1}
               maxLength={140}
-              placeholder="Richtung benennen …"
+              placeholder={tr.elements.nameDirection}
               className="w-full resize-none bg-transparent text-[13px] leading-snug outline-none placeholder:opacity-50"
               style={{ color: "var(--v-fg)" }}
             />
@@ -539,7 +539,7 @@ function DirectionRow({
               className={`block w-full whitespace-pre-wrap break-words text-left text-[13px] leading-snug ${direction.label ? "" : "opacity-50"}`}
               style={{ color: direction.label ? "var(--v-fg)" : "var(--v-muted)" }}
             >
-              {direction.label || "Richtung benennen …"}
+              {direction.label || tr.elements.nameDirection}
             </button>
           )}
 
@@ -567,7 +567,7 @@ function DirectionRow({
         <button
           type="button"
           onClick={onDelete}
-          aria-label="entfernen"
+          aria-label={tr.elements.remove}
           className="touch-visible mono mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] leading-none opacity-0 transition-opacity hover:bg-white/10 group-hover:opacity-50 hover:!opacity-100"
           style={{ color: "var(--v-muted)" }}
         >

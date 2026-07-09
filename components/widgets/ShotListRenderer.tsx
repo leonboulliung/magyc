@@ -259,7 +259,7 @@ function ShotRow({
           <div className="mt-2 grid gap-x-3 gap-y-1.5 sm:grid-cols-3">
             <InlineField edit={purposeEdit} value={shot.purpose ?? ""} label="Zweck" mono />
             <InlineField edit={setupEdit} value={shot.setup ?? ""} label="Setup / Licht" mono />
-            <InlineField edit={locationEdit} value={shot.location ?? ""} label="Ort" mono />
+            <InlineField edit={locationEdit} value={shot.location ?? ""} label={tr.elements.placeColumn} mono />
           </div>
         </div>
       </div>

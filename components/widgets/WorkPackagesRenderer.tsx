@@ -84,7 +84,7 @@ export function WorkPackagesRenderer({
           <ul className="list-disc pl-4 text-[11px] leading-snug opacity-80">
             {suggestion.packages.slice(0, 4).map((item, itemIndex) => (
               <li key={itemIndex} className="truncate">
-                {item.label || "Aufgabe"}
+                {item.label || tr.elements.workPackage}
               </li>
             ))}
           </ul>
