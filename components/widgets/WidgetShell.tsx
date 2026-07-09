@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Module } from "@/lib/types";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { Popover } from "@/components/ui/Popover";
 import { readApiJson, showApiError, showUnknownError } from "@/lib/client/feedback";
 import { useCellChrome } from "./cellChrome";
@@ -11,8 +12,8 @@ import { useCellChrome } from "./cellChrome";
  *  the box rewrites this widget from a plain-language instruction. */
 const PROMPT_PLACEHOLDER: Record<string, string> = {
   en: "Describe how to change this…",
-  de: "Wie soll das geändert werden?",
-  fr: "Comment modifier ceci ?",
+  de: "Wie soll das geändert werden?", // i18n-ignore: project-language, multilingual
+  fr: "Comment modifier ceci ?", // i18n-ignore
   es: "¿Cómo cambiar esto?",
   it: "Come modificare questo?",
   pt: "Como alterar isto?",
@@ -60,6 +61,7 @@ export function WidgetShell({
   onPick?: (s: Module) => Promise<void> | void;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const presetPreview = ctx.spaceId.startsWith("preset:");
   const cell = useCellChrome();
   const [hover, setHover] = useState(false);
@@ -83,25 +85,25 @@ export function WidgetShell({
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        const message = showApiError("Änderung nicht angewendet", json, {
-          fallback: "Die Prompt-Änderung konnte gerade nicht angewendet werden.",
+        const message = showApiError(tr.elements.changeNotAppliedTitle, json, {
+          fallback: tr.elements.changeNotApplied,
         });
         setError(message);
         return;
       }
       const next = Array.isArray(json.suggestions) ? json.suggestions[0] : null;
       if (!next) {
-        const message = "MAGYC hat keine passende Variante zurückgegeben.";
+        const message = tr.elements.noVariant;
         setError(message);
-        showUnknownError("Änderung nicht angewendet", new Error(message));
+        showUnknownError(tr.elements.changeNotAppliedTitle, new Error(message));
         return;
       }
       await pick(next as Module);
       setBubbleOpen(false);
       setPrompt("");
     } catch (error) {
-      const message = showUnknownError("Änderung nicht angewendet", error, {
-        fallback: "Die Prompt-Änderung konnte gerade nicht angewendet werden.",
+      const message = showUnknownError(tr.elements.changeNotAppliedTitle, error, {
+        fallback: tr.elements.changeNotApplied,
       });
       setError(message);
     } finally {

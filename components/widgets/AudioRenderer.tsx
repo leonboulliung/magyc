@@ -117,7 +117,7 @@ export function AudioRenderer({
         >
           <span className="mono text-[10px] tracking-widest opacity-60">{tr.elements.addAudio}</span>
           <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
-            {uploadHintForAccept(AUDIO_ACCEPT)}
+            {uploadHintForAccept(AUDIO_ACCEPT, undefined, tr)}
           </span>
         </UploadZone>
       </WidgetCard>

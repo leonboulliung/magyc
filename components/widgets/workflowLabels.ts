@@ -34,12 +34,12 @@ const WORKFLOW_LABELS: Record<string, WorkflowLexicon> = {
     planned: "geplant",
     inProgress: "in arbeit",
     ready: "bereit",
-    delivered: "geliefert",
+    delivered: "geliefert", // i18n-ignore: project-language content
     pending: "offen",
     requested: "angefragt",
     approved: "freigegeben",
     assign: "uebernehmen",
-    release: "freigeben",
+    release: "freigeben", // i18n-ignore: project-language content
     due: "faellig",
     client: "kunde",
     internal: "intern",

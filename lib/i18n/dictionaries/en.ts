@@ -197,6 +197,8 @@ export const en: Dictionary = {
     imagePrepFailedTitle: "Image could not be prepared",
     fileUploaded: "File uploaded",
     filesUploaded: "Files uploaded",
+    uploadFailed: "Upload failed",
+    useSupportedFormats: "Please use JPG, PNG, WebP or HEIC and try again.",
     regenerateQuestion: "How should this be changed?",
     noMembers: "No members yet",
     addMember: "+ Add member",

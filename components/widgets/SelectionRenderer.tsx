@@ -208,7 +208,7 @@ export function SelectionRenderer({
             <UploadZone spaceId={ctx.spaceId} moduleIndex={index} accept={IMAGE_ACCEPT} multiple onDone={() => {}}>
               <span className="mono text-[10px] tracking-widest opacity-60">{tr.elements.addSelectionImages}</span>
               <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
-                {uploadHintForAccept(IMAGE_ACCEPT)}
+                {uploadHintForAccept(IMAGE_ACCEPT, undefined, tr)}
               </span>
             </UploadZone>
           </div>

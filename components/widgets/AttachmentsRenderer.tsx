@@ -147,7 +147,7 @@ export function AttachmentsRenderer({
         >
           <span className="mono text-[10px] tracking-widest opacity-60">{tr.elements.addFile}</span>
           <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
-            {uploadHintForAccept(ATTACHMENT_ACCEPT)}
+            {uploadHintForAccept(ATTACHMENT_ACCEPT, undefined, tr)}
           </span>
         </UploadZone>
       </WidgetCard>

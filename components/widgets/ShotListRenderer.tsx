@@ -25,7 +25,7 @@ function nextPriority(priority: ShotPriority): ShotPriority {
 
 function statusLabel(status: ShotStatus, language: string): string {
   const de = language.toLowerCase().startsWith("de");
-  if (status === "captured") return de ? "im Kasten" : "captured";
+  if (status === "captured") return de ? "im Kasten" : "captured"; // i18n-ignore: project-language content
   if (status === "selected") return de ? "select" : "selected";
   return de ? "geplant" : "planned";
 }

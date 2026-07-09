@@ -5,6 +5,8 @@ import { getAnonToken, getAnonDisplayName } from "@/lib/anonId";
 import { supabase } from "@/lib/supabase";
 import { assetApiBase } from "@/lib/client/assetRoutes";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
+import type { Dictionary } from "@/lib/i18n/dictionaries/de";
 import type { PresetStateEntry } from "@/lib/presetState";
 import { AUDIO_ACCEPT, DEFAULT_MAX_UPLOAD_MB, IMAGE_ACCEPT } from "@/lib/uploadPolicy";
 export { AUDIO_ACCEPT, IMAGE_ACCEPT } from "@/lib/uploadPolicy";
@@ -41,14 +43,15 @@ export const ATTACHMENT_ACCEPT = [
   "text/csv",
 ].join(",");
 
-export function uploadHintForAccept(accept: string, maxSizeMb = DEFAULT_MAX_UPLOAD_MB): string {
+export function uploadHintForAccept(accept: string, maxSizeMb: number | undefined, tr: Dictionary): string {
+  maxSizeMb = maxSizeMb ?? DEFAULT_MAX_UPLOAD_MB;
   const normalized = accept.replace(/\s+/g, "").toLowerCase();
   if (normalized === IMAGE_ACCEPT) return `JPG, PNG, WebP, HEIC/HEIF · max. ${maxSizeMb} MB`;
   if (normalized === AUDIO_ACCEPT) return `MP3, WAV, M4A, AAC · max. ${maxSizeMb} MB`;
   if (normalized.includes("application/pdf") || normalized.includes("video/mp4") || normalized.includes(".doc")) {
-    return `Bilder, Audio, MP4, PDF, Office, Text/CSV · max. ${maxSizeMb} MB`;
+    return `${tr.elements.uploadHintMedia} · max. ${maxSizeMb} MB`;
   }
-  return `Erlaubte Medien und Dokumente · max. ${maxSizeMb} MB`;
+  return `${tr.elements.uploadAllowed} · max. ${maxSizeMb} MB`;
 }
 
 function isAccepted(file: File, accept: string): boolean {
@@ -130,6 +133,7 @@ export function UploadZone({
   children?: React.ReactNode;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -143,8 +147,8 @@ export function UploadZone({
     const wrongType = incoming.filter((f) => !isAccepted(f, accept));
     if (wrongType.length) {
       const names = wrongType.map((f) => f.name).join(", ");
-      const message = `Dateityp nicht erlaubt: ${names}. Erlaubt: ${uploadHintForAccept(accept, maxSizeMb)}.`;
-      showActionError("Dateityp nicht erlaubt", { id: toastId, description: message });
+      const message = `${tr.elements.typeNotAllowedPrefix}: ${names}. ${tr.elements.allowedColon}: ${uploadHintForAccept(accept, maxSizeMb, tr)}.`;
+      showActionError(tr.elements.typeNotAllowedTitle, { id: toastId, description: message });
       setError(message);
     }
     incoming = incoming.filter((f) => isAccepted(f, accept));
@@ -157,8 +161,8 @@ export function UploadZone({
     incoming = incoming.filter((f) => f.size <= limit);
     if (tooBig.length) {
       const names = tooBig.map((f) => `${f.name} (${fmtSize(f.size)})`).join(", ");
-      const message = `Zu groß: ${names}. Maximal ${maxSizeMb} MB pro Datei.`;
-      showActionError("Datei zu groß", { id: toastId, description: message });
+      const message = `${tr.elements.tooLargePrefix}: ${names}. ${tr.elements.maxLabel} ${maxSizeMb} MB ${tr.elements.maxPerFile}.`;
+      showActionError(tr.elements.tooLargeTitle, { id: toastId, description: message });
       setError(message);
     }
     if (!incoming.length) { setBusy(false); return; }
@@ -167,14 +171,14 @@ export function UploadZone({
     // visible and always releases the busy state.
     const hasImage = incoming.some((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
     if (hasImage) {
-      showActionLoading(incoming.length === 1 ? "Bild wird vorbereitet …" : "Bilder werden vorbereitet …", toastId);
+      showActionLoading(incoming.length === 1 ? tr.elements.preparingImage : tr.elements.preparingImages, toastId);
       try {
         const { compressImageFile } = await import("@/lib/client/imageCompress");
         const prepared: File[] = [];
         for (const f of incoming) prepared.push(await compressImageFile(f));
         incoming = prepared;
       } catch (error) {
-        const message = showUnknownError("Bild konnte nicht vorbereitet werden", error, { id: toastId, fallback: "Bitte verwende JPG, PNG, WebP oder HEIC und versuche es erneut." });
+        const message = showUnknownError(tr.elements.imagePrepFailedTitle, error, { id: toastId, fallback: tr.elements.useSupportedFormats });
         setError(message);
         setBusy(false);
         return;
@@ -185,7 +189,7 @@ export function UploadZone({
 
     if (!tooBig.length) setError("");
     const results: { url: string; path: string; name: string; size: number; mimeType: string }[] = [];
-    showActionLoading(files.length === 1 ? "Datei wird hochgeladen …" : "Dateien werden hochgeladen …", toastId);
+    showActionLoading(files.length === 1 ? tr.elements.uploadingFile : tr.elements.uploadingFiles, toastId);
     for (const file of files) {
       try {
         const actor = { anonToken: getAnonToken(), anonName: getAnonDisplayName() };
@@ -204,9 +208,9 @@ export function UploadZone({
         });
         const prepareJson = await readApiJson(prepareRes) as { path?: unknown; token?: unknown };
         if (!prepareRes.ok || typeof prepareJson.path !== "string" || typeof prepareJson.token !== "string") {
-          const message = showApiError("Upload fehlgeschlagen", prepareJson, {
+          const message = showApiError(tr.elements.uploadFailed, prepareJson, {
             id: toastId,
-            fallback: `${file.name} konnte nicht vorbereitet werden.`,
+            fallback: `${file.name} ${tr.elements.prepFailedSuffix}`,
           });
           setError(message);
           continue;
@@ -219,8 +223,8 @@ export function UploadZone({
             upsert: false,
           });
         if (uploadError) {
-          const message = uploadError.message || `${file.name} konnte nicht hochgeladen werden.`;
-          showActionError("Upload fehlgeschlagen", { id: toastId, description: message });
+          const message = uploadError.message || `${file.name} ${tr.elements.uploadFailedSuffix}`;
+          showActionError(tr.elements.uploadFailed, { id: toastId, description: message });
           setError(message);
           continue;
         }
@@ -251,23 +255,23 @@ export function UploadZone({
             ctx.ingestStateEntry?.(completeJson.entry as PresetStateEntry);
           }
         } else {
-          const message = showApiError("Upload fehlgeschlagen", completeJson, {
+          const message = showApiError(tr.elements.uploadFailed, completeJson, {
             id: toastId,
-            fallback: `${file.name} konnte nicht im Projekt gespeichert werden.`,
+            fallback: `${file.name} ${tr.elements.saveFailedSuffix}`,
           });
           setError(message);
         }
       } catch (error) {
-        const message = showUnknownError("Upload fehlgeschlagen", error, {
+        const message = showUnknownError(tr.elements.uploadFailed, error, {
           id: toastId,
-          fallback: `${file.name} konnte nicht hochgeladen werden.`,
+          fallback: `${file.name} ${tr.elements.uploadFailedSuffix}`,
         });
         setError(message);
       }
     }
     setBusy(false);
     if (results.length > 0) {
-      showActionSuccess(results.length === 1 ? "Datei hochgeladen" : "Dateien hochgeladen", {
+      showActionSuccess(results.length === 1 ? tr.elements.fileUploaded : tr.elements.filesUploaded, {
         id: toastId,
       });
       onDone?.(results);

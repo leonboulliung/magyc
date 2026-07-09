@@ -220,6 +220,8 @@ export const de = {
     imagePrepFailedTitle: "Bild konnte nicht vorbereitet werden",
     fileUploaded: "Datei hochgeladen",
     filesUploaded: "Dateien hochgeladen",
+    uploadFailed: "Upload fehlgeschlagen",
+    useSupportedFormats: "Bitte verwende JPG, PNG, WebP oder HEIC und versuche es erneut.",
     regenerateQuestion: "Wie soll das geändert werden?",
     noMembers: "Noch keine Mitglieder",
     addMember: "+ Mitglied hinzufügen",

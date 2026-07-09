@@ -16,7 +16,7 @@ import { WidgetCard } from "./WidgetCard";
  * is clipped to the card's corners and re-opens the picker on click.
  */
 const SEARCH_PLACEHOLDER: Record<string, string> = {
-  en: "Search GIFs…", de: "GIFs suchen…", fr: "Rechercher des GIF…",
+  en: "Search GIFs…", de: "GIFs suchen…", fr: "Rechercher des GIF…", // i18n-ignore: project-language content
   es: "Buscar GIFs…", it: "Cerca GIF…", pt: "Pesquisar GIFs…", nl: "GIF's zoeken…",
 };
 function searchPlaceholder(lang: string): string {
