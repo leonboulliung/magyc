@@ -1,0 +1,21 @@
+name: ci
+
+# Fast, dependency-free checks on every push / PR: typecheck + unit tests.
+# The heavier browser + concurrency suite runs post-deploy in e2e.yml.
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test

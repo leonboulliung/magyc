@@ -217,9 +217,15 @@ async function main() {
   const brokeAt = rows.find((r) => r.invariants !== "OK");
   if (brokeAt) console.log(`❌ invariants first violated at N=${brokeAt.N}: ${brokeAt.invariants}`);
   else console.log("✅ all invariants held at every level (no orphans / dup ids / lost-rev corruption / double claims)");
+  // Also fail if every structural level lost the race entirely (0 ok anywhere) —
+  // that would mean the API rejected all writes (a regression), not contention.
+  const noWritesLanded = rows.every((r) => r.ok === 0);
   const contention = rows.map((r) => `N${r.N}:ok${r.ok}/409${r.conflict409}`).join("  ");
   console.log(`contention (structural writes; expect ~1 ok, rest 409 under a shared rev): ${contention}`);
   console.log(`\ntest space left as a draft: ${BASE.replace("www.", "")}/  id=${id}  (unpublished; delete from the dashboard if desired)`);
+
+  // CI signal: fail on any invariant violation, or if no write ever landed.
+  if (brokeAt || noWritesLanded) process.exit(1);
 }
 
 main().catch((e) => { console.error("harness crashed:", e); process.exit(1); });

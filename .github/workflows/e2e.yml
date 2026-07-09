@@ -1,0 +1,43 @@
+name: e2e
+
+# Runs the browser + concurrency suite against the just-shipped PRODUCTION
+# deployment. Vercel's GitHub integration emits a `deployment_status` with the
+# live URL, so no Vercel token / secret is needed. We gate on Production to
+# avoid preview deploys that may sit behind Vercel's deployment protection.
+#
+# Note: these tests hit the real (shared) database via public endpoints and
+# create isolated throwaway anonymous drafts — safe, but they do write.
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    if: ${{ github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production' }}
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: ${{ github.event.deployment_status.target_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Concurrency invariants (1→8 actors)
+        run: node scripts/concurrency-harness.mjs --base "$E2E_BASE_URL" --levels 1,2,4,8
+
+      - name: Multi-tab reorder E2E
+        run: npm run e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
