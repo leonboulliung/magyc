@@ -8,6 +8,8 @@
  * The marketing site keeps one fixed light brand look (see `brand` below).
  */
 
+import type { Dictionary } from "@/lib/i18n/dictionaries/de";
+
 /** Fixed brand palette for the marketing site (not per-space themed). */
 export const brand = {
   bg: "#f4f4f1",
@@ -40,71 +42,59 @@ export function isNavGroup(e: NavEntry): e is NavGroup {
  * segment landing page (lib/segments.ts). Order = adjacency to our
  * strengths (see docs/STRATEGY.md §11).
  */
-export const USE_CASES: NavLink[] = [
-  { href: "/product", label: "Produkt" },
-  { href: "/event", label: "Event" },
-  { href: "/wedding", label: "Hochzeit" },
-  { href: "/corporate", label: "Corporate" },
-  { href: "/fashion", label: "Fashion" },
-];
+export function useCases(t: Dictionary): NavLink[] {
+  return [
+    { href: "/product", label: t.nav.product },
+    { href: "/event", label: t.nav.event },
+    { href: "/wedding", label: t.nav.wedding },
+    { href: "/corporate", label: t.nav.corporate },
+    { href: "/fashion", label: t.nav.fashion },
+  ];
+}
 
-/** Top navigation (primary). "Anmelden" + the CTA are rendered separately.
+/** Top navigation (primary). Sign-in + the CTA are rendered separately.
  *  Roadmap deliberately lives in the footer, not here. */
-export const MAIN_NAV: NavEntry[] = [
-  { label: "Anwendungsfälle", items: USE_CASES },
-  { href: "/how-it-works", label: "So funktioniert's" },
-];
+export function mainNav(t: Dictionary): NavEntry[] {
+  return [
+    { label: t.nav.useCasesLabel, items: useCases(t) },
+    { href: "/how-it-works", label: t.nav.howItWorks },
+  ];
+}
 
 export interface FooterGroup {
   title: string;
   links: NavLink[];
 }
 
-export const FOOTER_GROUPS: FooterGroup[] = [
-  {
-    title: "Anwendungsfälle",
-    links: USE_CASES,
-  },
-  {
-    title: "Produkt",
-    links: [
-      { href: "/how-it-works", label: "So funktioniert's" },
-      { href: "/roadmap", label: "Roadmap" },
-      { href: "/changelog", label: "Changelog" },
-    ],
-  },
-  {
-    title: "Unternehmen",
-    links: [
-      { href: "/story", label: "Geschichte" },
-      { href: "/docs", label: "Doku" },
-      { href: "/contact", label: "Kontakt" },
-    ],
-  },
-  {
-    title: "Rechtliches",
-    links: [
-      { href: "/legal/imprint", label: "Impressum" },
-      { href: "/legal/privacy", label: "Datenschutz" },
-      { href: "/legal/terms", label: "AGB" },
-    ],
-  },
-];
-
-/**
- * Locale options for the footer language switch. EN is a placeholder until
- * Phase 5 (real i18n with /en routes); `enabled:false` renders it disabled.
- */
-export interface LocaleOption {
-  code: string;
-  label: string;
-  href: string;
-  enabled: boolean;
+export function footerGroups(t: Dictionary): FooterGroup[] {
+  return [
+    { title: t.nav.useCasesLabel, links: useCases(t) },
+    {
+      title: t.nav.product,
+      links: [
+        { href: "/how-it-works", label: t.nav.howItWorks },
+        { href: "/roadmap", label: t.nav.roadmap },
+        { href: "/changelog", label: t.nav.changelog },
+      ],
+    },
+    {
+      title: t.nav.company,
+      links: [
+        { href: "/story", label: t.nav.story },
+        { href: "/docs", label: t.nav.docs },
+        { href: "/contact", label: t.nav.contact },
+      ],
+    },
+    {
+      title: t.nav.legal,
+      links: [
+        { href: "/legal/imprint", label: t.nav.imprint },
+        { href: "/legal/privacy", label: t.nav.privacy },
+        { href: "/legal/terms", label: t.nav.terms },
+      ],
+    },
+  ];
 }
-export const LOCALES: LocaleOption[] = [
-  { code: "de", label: "DE", href: "/", enabled: true },
-  { code: "en", label: "EN", href: "/en", enabled: false },
-];
 
 /**
  * Creative "areas" — the public segment pages. They mirror the product's

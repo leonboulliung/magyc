@@ -1,13 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { brand, FOOTER_GROUPS } from "@/lib/site";
+import { brand, footerGroups } from "@/lib/site";
 import { SiteTrustAnchors } from "@/components/site/SiteTrustAnchors";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * SiteFooter — link columns + wordmark. Stable across the marketing site.
  */
 export function SiteFooter() {
+  const t = useT();
   return (
     <>
       <SiteTrustAnchors />
@@ -19,11 +23,11 @@ export function SiteFooter() {
                 <Image src="/magyc-logo.png" alt="MAGYC" width={182} height={40} className="h-[20px] w-auto" />
               </Link>
               <p className="mt-3 leading-relaxed" style={{ fontSize: 13, color: brand.muted, maxWidth: 220 }}>
-                Eine Idee rein, eine lebendige, gemeinsame Struktur raus.
+                {t.nav.brandLine}
               </p>
             </div>
 
-            {FOOTER_GROUPS.map((group) => (
+            {footerGroups(t).map((group) => (
               <div key={group.title}>
                 <h3 className="font-mono uppercase tracking-widest" style={{ fontSize: 10, color: brand.muted }}>
                   {group.title}
@@ -52,7 +56,7 @@ export function SiteFooter() {
               {/* Real DE / EN toggle (cookie-based i18n). */}
               <LanguageSwitcher />
               <span className="font-mono tracking-widest" style={{ fontSize: 11, color: brand.muted }}>
-                Für kreative Arbeit gebaut
+                {t.nav.tagline}
               </span>
             </div>
           </div>

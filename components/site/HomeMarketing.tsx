@@ -6,7 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { MediaFrame } from "@/components/site/MediaFrame";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { USE_CASES } from "@/lib/site";
+import { useCases } from "@/lib/site";
 import type { MediaKey } from "@/lib/siteMedia";
 import { useT } from "@/components/i18n/LocaleProvider";
 
@@ -208,7 +208,7 @@ export function HomeMarketing() {
           <h2 className="mt-4 font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">{t.home.forYouTitle}</h2>
         </Reveal>
         <div className="mt-9 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-          {USE_CASES.map((useCase, index) => (
+          {useCases(t).map((useCase, index) => (
             <Reveal key={useCase.href} delay={index * 0.05}>
               <Link href={useCase.href} className="group block overflow-hidden bg-white">
                 <MediaFrame media={USE_CASE_MEDIA[useCase.href] ?? "shootingSetup"} ratio="4 / 5" className="[&_div]:rounded-none [&_img]:transition-transform [&_img]:duration-700 group-hover:[&_img]:scale-[1.035]" sizes="(max-width:1024px) 50vw, 20vw" />
