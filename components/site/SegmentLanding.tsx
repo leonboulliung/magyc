@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useT } from "@/components/i18n/LocaleProvider";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { Container } from "@/components/site/sections";
@@ -37,9 +40,10 @@ function Eyebrow({ children, light = false }: { children: React.ReactNode; light
 }
 
 export function SegmentLanding({ segment }: { segment: Segment }) {
+  const t = useT();
   const others = SEGMENTS.filter((item) => item.slug !== segment.slug);
   const heroSrc = segment.hero.image?.src ?? FALLBACK_HERO[segment.slug] ?? "/media/marketing/hero-footage.jpg";
-  const heroAlt = segment.hero.image?.alt ?? `${segment.label} im Einsatz`;
+  const heroAlt = segment.hero.image?.alt ?? `${segment.label} ${t.marketing.inUse}`;
   const workMedia = segment.work.images?.map((item) => item.src).slice(0, 3) ?? WORK_MEDIA[segment.slug] ?? [];
 
   return (
@@ -107,14 +111,14 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
 
       <Container className="py-20 sm:py-28">
         <SiteReveal>
-          <Eyebrow>Ein Projekt, drei Phasen</Eyebrow>
-          <h2 className="mt-4 max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">Von der Idee bis zum sauberen Abschluss.</h2>
+          <Eyebrow>{t.marketing.threePhases}</Eyebrow>
+          <h2 className="mt-4 max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{t.marketing.fromIdeaToClose}</h2>
         </SiteReveal>
         <div className="mt-10 divide-y divide-black/10 border-y border-black/10">
           {[
-            ["01", "Planung", "Anfrage, Bildidee, Orte, Motive und Beteiligte werden zu einem gemeinsamen Arbeitsraum."],
-            ["02", "Vertrag", "Der abgestimmte Plan wird geprüft, ergänzt und mit der passenden Signatur verbindlich gemacht."],
-            ["03", "Abgeschlossen", "Ergebnisse, Referenzen und Projektwissen bleiben sauber aufbereitet und auffindbar."],
+            ["01", t.marketing.planningTitle, t.marketing.planningBody],
+            ["02", t.marketing.contractTitle, t.marketing.contractBody],
+            ["03", t.marketing.closedTitle, t.marketing.closedBody],
           ].map(([number, title, copy], index) => (
             <SiteReveal key={number} delay={index * 0.05}>
               <div className="grid gap-3 py-7 sm:grid-cols-[80px_220px_1fr] sm:items-center">
@@ -159,7 +163,7 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
           </SiteReveal>
           <SiteReveal delay={0.08}>
             <div className="relative aspect-[16/10] overflow-hidden bg-black">
-              <Image src="/media/marketing/finale-uebergabe.png" alt="Fertig aufbereitete Projektübergabe in MAGYC" fill sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
+              <Image src="/media/marketing/finale-uebergabe.png" alt={t.marketing.handoverAlt} fill sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
             </div>
           </SiteReveal>
         </div>
@@ -178,7 +182,7 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
             </div>
           </div>
           <div className="mt-10 flex flex-wrap items-center gap-2">
-            <span className="mono mr-3 text-[10px] uppercase tracking-[0.2em] text-black/40">Auch für</span>
+            <span className="mono mr-3 text-[10px] uppercase tracking-[0.2em] text-black/40">{t.marketing.alsoFor}</span>
             {others.map((item) => (
               <Link key={item.slug} href={`/${item.slug}`} className="rounded-full border border-black/12 px-4 py-2 text-[13px] text-black/65 transition-colors hover:border-black/35 hover:text-black">{item.label}</Link>
             ))}
