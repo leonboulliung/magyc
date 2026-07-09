@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:prod-smoke": "node scripts/production-smoke.mjs",
     "test:role-matrix": "node scripts/role-matrix-check.mjs",
-    "ops:backup-check": "node scripts/backup-check.mjs"
+    "ops:backup-check": "node scripts/backup-check.mjs",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.74",
@@ -40,6 +41,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/leaflet": "^1.9.12",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",

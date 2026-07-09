@@ -31,3 +31,7 @@ next-env.d.ts
 
 # claude — personal local settings (permissions etc.), never commit
 .claude/settings.local.json
+test-results/
+playwright-report/
+/blob-report/
+.playwright/
