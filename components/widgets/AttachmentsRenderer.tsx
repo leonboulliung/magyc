@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { AttachmentsWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -25,6 +26,7 @@ export function AttachmentsRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const assetPaths = state
     .filter((e) => e.kind === "upload")
     .map((e) => assetPathFromData(e.data))
@@ -63,7 +65,7 @@ export function AttachmentsRenderer({
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {uploads.length === 0 && (
           <p className="mono text-[11px] opacity-50 mb-3" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "Dateien hier ablegen oder hochladen."}
+            {m.placeholder ?? tr.elements.attachmentsEmpty}
           </p>
         )}
 
@@ -143,7 +145,7 @@ export function AttachmentsRenderer({
           multiple
           onDone={() => {}}
         >
-          <span className="mono text-[10px] tracking-widest opacity-60">↑ Datei hinzufügen</span>
+          <span className="mono text-[10px] tracking-widest opacity-60">{tr.elements.addFile}</span>
           <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
             {uploadHintForAccept(ATTACHMENT_ACCEPT)}
           </span>

@@ -40,7 +40,7 @@ export function useLocale(): LocaleContextValue {
   return ctx;
 }
 
-/** The typed dictionary for the active locale. `const t = useT(); t.common.save` */
+/** The typed dictionary for the active locale. `const tr = useT(); tr.common.save` */
 export function useT(): Dictionary {
   return useLocale().t;
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { getSelfId } from "@/lib/state";
 import type { ChecklistWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -28,6 +29,7 @@ export function ChecklistRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const presetMode = ctx.mode === "preset";
 
   // Soft-deleted entries (collaborator adds tombstoned via an `edit`).
@@ -182,7 +184,7 @@ export function ChecklistRenderer({
                 else if (e.key === "Escape") { setPending(""); setAdding(false); }
               }}
               maxLength={200}
-              placeholder="Punkt hinzufügen …"
+              placeholder={tr.elements.addChecklistItem}
               className="w-full text-[13px] bg-transparent outline-none px-2 py-1 rounded-[var(--v-radius)]"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             />
@@ -190,7 +192,7 @@ export function ChecklistRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="Punkt hinzufügen"
+              aria-label={tr.elements.addChecklistItem}
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >

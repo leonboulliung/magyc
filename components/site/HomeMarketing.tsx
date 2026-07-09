@@ -11,7 +11,7 @@ import type { MediaKey } from "@/lib/siteMedia";
 import { useT } from "@/components/i18n/LocaleProvider";
 
 // Non-translatable metadata; the title/body copy comes from the dictionary
-// (t.home.problems / .features / .steps) and is merged by index.
+// (tr.home.problems / .features / .steps) and is merged by index.
 const PROBLEM_ICONS = ["ph:chat-circle-dots", "ph:stack", "ph:seal-check"] as const;
 const FEATURE_META = [
   { icon: "ph:list-checks", accent: "#5b7cfa" },
@@ -58,22 +58,22 @@ function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 export function HomeMarketing() {
-  const t = useT();
+  const tr = useT();
   return (
     <div className="relative w-full pt-20 sm:pt-28">
       <Section>
         <div className="grid gap-10 border-y border-black/10 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-16">
           <Reveal>
-            <Eyebrow>{t.home.eyebrowWork}</Eyebrow>
+            <Eyebrow>{tr.home.eyebrowWork}</Eyebrow>
             <h2 className="mt-4 max-w-xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
-              {t.home.heroTitle}
+              {tr.home.heroTitle}
             </h2>
             <p className="mt-5 max-w-lg text-[16px] leading-relaxed text-black/58">
-              {t.home.heroBody}
+              {tr.home.heroBody}
             </p>
           </Reveal>
           <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-1">
-            {t.home.problems.map((item, index) => (
+            {tr.home.problems.map((item, index) => (
               <Reveal key={item.title} delay={index * 0.07}>
                 <div className="flex gap-4 border-t border-black/10 pt-5 first:border-0 first:pt-0 sm:block sm:border-0 sm:pt-0 lg:flex lg:border-t lg:pt-5 lg:first:border-0 lg:first:pt-0">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#17171a] text-white">
@@ -92,9 +92,9 @@ export function HomeMarketing() {
 
       <Section className="pt-20 sm:pt-28">
         <Reveal>
-          <Eyebrow>{t.home.eyebrowRequest}</Eyebrow>
+          <Eyebrow>{tr.home.eyebrowRequest}</Eyebrow>
           <h2 className="mt-4 max-w-3xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
-            {t.home.requestTitle}
+            {tr.home.requestTitle}
           </h2>
         </Reveal>
         <div className="mt-9 grid items-stretch gap-5 lg:grid-cols-[0.72fr_1.28fr]">
@@ -102,12 +102,12 @@ export function HomeMarketing() {
             <div className="flex h-full min-h-[320px] flex-col justify-between bg-[#ede8e0] p-6 sm:p-8">
               <div className="flex items-center gap-2 text-[12px] text-black/45">
                 <Icon icon="ph:chat-circle-text" width="18" height="18" aria-hidden />
-                {t.home.requestLabel}
+                {tr.home.requestLabel}
               </div>
               <blockquote className="mt-10 font-brand text-[24px] font-medium leading-[1.25] text-[#17171a] sm:text-[30px]">
-                {t.home.requestQuote}
+                {tr.home.requestQuote}
               </blockquote>
-              <p className="mt-8 text-[13px] leading-relaxed text-black/48">{t.home.requestCaption}</p>
+              <p className="mt-8 text-[13px] leading-relaxed text-black/48">{tr.home.requestCaption}</p>
             </div>
           </Reveal>
           <Reveal delay={0.08}>
@@ -115,8 +115,8 @@ export function HomeMarketing() {
               <MediaFrame media="projectPage" ratio="16 / 10" className="h-full [&_div]:h-full [&_div]:rounded-none [&_video]:min-h-full" sizes="(max-width:1024px) 100vw, 62vw" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 bg-black/75 p-5 text-white sm:p-6">
                 <div>
-                  <p className="mono text-[9px] uppercase tracking-[0.2em] text-white/52">{t.home.workspaceLabel}</p>
-                  <p className="mt-1 text-[15px] font-medium">{t.home.workspaceItems}</p>
+                  <p className="mono text-[9px] uppercase tracking-[0.2em] text-white/52">{tr.home.workspaceLabel}</p>
+                  <p className="mt-1 text-[15px] font-medium">{tr.home.workspaceItems}</p>
                 </div>
                 <Icon icon="ph:arrow-up-right" width="22" height="22" aria-hidden className="shrink-0 text-white/70" />
               </div>
@@ -127,9 +127,9 @@ export function HomeMarketing() {
 
       <Section className="pt-20 sm:pt-28">
         <Reveal>
-          <Eyebrow>{t.home.eyebrowAllInOne}</Eyebrow>
+          <Eyebrow>{tr.home.eyebrowAllInOne}</Eyebrow>
           <h2 className="mt-4 max-w-4xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
-            {t.home.allInOneTitle}
+            {tr.home.allInOneTitle}
           </h2>
         </Reveal>
         <div className="mt-9 grid gap-4 lg:grid-cols-12">
@@ -141,14 +141,14 @@ export function HomeMarketing() {
                   <Icon icon="ph:images-square" width="21" height="21" aria-hidden />
                 </span>
                 <div>
-                  <h3 className="text-[18px] font-semibold text-[#17171a]">{t.home.moodboardTitle}</h3>
-                  <p className="mt-1.5 max-w-lg text-[14px] leading-relaxed text-black/52">{t.home.moodboardBody}</p>
+                  <h3 className="text-[18px] font-semibold text-[#17171a]">{tr.home.moodboardTitle}</h3>
+                  <p className="mt-1.5 max-w-lg text-[14px] leading-relaxed text-black/52">{tr.home.moodboardBody}</p>
                 </div>
               </div>
             </div>
           </Reveal>
           <div className="grid gap-4 sm:grid-cols-2 lg:col-span-5">
-            {t.home.features.map((feature, index) => (
+            {tr.home.features.map((feature, index) => (
               <Reveal key={feature.title} delay={index * 0.05}>
                 <div className="h-full border border-black/10 bg-white p-5 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_16px_38px_rgba(20,20,24,0.08)]">
                   <span className="grid h-10 w-10 place-items-center rounded-full" style={{ background: `${FEATURE_META[index].accent}18`, color: FEATURE_META[index].accent }}>
@@ -166,8 +166,8 @@ export function HomeMarketing() {
                 <span className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white">
                   <Icon icon="ph:signature" width="20" height="20" aria-hidden />
                 </span>
-                <h3 className="mt-5 text-[18px] font-semibold">{t.home.contractTitle}</h3>
-                <p className="mt-2 max-w-md text-[14px] leading-relaxed text-white/62">{t.home.contractBody}</p>
+                <h3 className="mt-5 text-[18px] font-semibold">{tr.home.contractTitle}</h3>
+                <p className="mt-2 max-w-md text-[14px] leading-relaxed text-white/62">{tr.home.contractBody}</p>
               </div>
               <Icon icon="ph:arrow-right" width="24" height="24" aria-hidden className="shrink-0 text-white/55" />
             </div>
@@ -177,13 +177,13 @@ export function HomeMarketing() {
 
       <Section className="pt-20 sm:pt-28">
         <Reveal>
-          <Eyebrow>{t.home.eyebrowHow}</Eyebrow>
+          <Eyebrow>{tr.home.eyebrowHow}</Eyebrow>
           <h2 className="mt-4 max-w-3xl font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">
-            {t.home.howTitle}
+            {tr.home.howTitle}
           </h2>
         </Reveal>
         <div className="mt-9 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {t.home.steps.map((step, index) => (
+          {tr.home.steps.map((step, index) => (
             <Reveal key={STEP_META[index].n} delay={index * 0.07}>
               <div className="group">
                 <div className="overflow-hidden bg-black">
@@ -204,11 +204,11 @@ export function HomeMarketing() {
 
       <Section className="pt-20 sm:pt-28">
         <Reveal>
-          <Eyebrow>{t.home.eyebrowForYou}</Eyebrow>
-          <h2 className="mt-4 font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">{t.home.forYouTitle}</h2>
+          <Eyebrow>{tr.home.eyebrowForYou}</Eyebrow>
+          <h2 className="mt-4 font-brand text-[30px] font-bold leading-[1.08] text-[#17171a] sm:text-[46px]">{tr.home.forYouTitle}</h2>
         </Reveal>
         <div className="mt-9 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-          {useCases(t).map((useCase, index) => (
+          {useCases(tr).map((useCase, index) => (
             <Reveal key={useCase.href} delay={index * 0.05}>
               <Link href={useCase.href} className="group block overflow-hidden bg-white">
                 <MediaFrame media={USE_CASE_MEDIA[useCase.href] ?? "shootingSetup"} ratio="4 / 5" className="[&_div]:rounded-none [&_img]:transition-transform [&_img]:duration-700 group-hover:[&_img]:scale-[1.035]" sizes="(max-width:1024px) 50vw, 20vw" />
@@ -226,13 +226,13 @@ export function HomeMarketing() {
         <Reveal>
           <div className="grid overflow-hidden bg-[#17171a] text-white lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="p-7 sm:p-11">
-              <Eyebrow><span className="text-white/48">{t.home.eyebrowCta}</span></Eyebrow>
-              <h2 className="mt-4 max-w-2xl font-brand text-[30px] font-bold leading-[1.08] sm:text-[46px]">{t.home.ctaTitle}</h2>
-              <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/62">{t.home.ctaBody}</p>
+              <Eyebrow><span className="text-white/48">{tr.home.eyebrowCta}</span></Eyebrow>
+              <h2 className="mt-4 max-w-2xl font-brand text-[30px] font-bold leading-[1.08] sm:text-[46px]">{tr.home.ctaTitle}</h2>
+              <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/62">{tr.home.ctaBody}</p>
             </div>
             <div className="flex gap-3 p-7 pt-0 sm:p-11 sm:pt-0 lg:pt-11">
-              <Link href="/#start" className="rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">{t.home.ctaPlan}</Link>
-              <Link href="/showcase" className="rounded-full border border-white/22 px-5 py-3 text-[14px] font-medium text-white/78 transition-colors hover:border-white/45 hover:text-white">{t.home.ctaExample}</Link>
+              <Link href="/#start" className="rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">{tr.home.ctaPlan}</Link>
+              <Link href="/showcase" className="rounded-full border border-white/22 px-5 py-3 text-[14px] font-medium text-white/78 transition-colors hover:border-white/45 hover:text-white">{tr.home.ctaExample}</Link>
             </div>
           </div>
         </Reveal>

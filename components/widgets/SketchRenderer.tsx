@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { getMyColor, getSelfId } from "@/lib/state";
 import type { ModuleStateEntry, SketchWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -87,6 +88,7 @@ function SketchCanvas({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const tr = useT();
   const gridId = `sketch-grid-${useId()}`;
   const svgRef = useRef<SVGSVGElement>(null);
   const liveRef = useRef<SVGElement | null>(null);
@@ -233,7 +235,7 @@ function SketchCanvas({
       {strokes.length === 0 && !drawing && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span className="mono text-[11px] tracking-widest opacity-30" style={{ color: "var(--v-muted)" }}>
-            {placeholder ?? "Leere Fläche — zeichne los."}
+            {placeholder ?? tr.elements.sketchEmpty}
           </span>
         </div>
       )}
@@ -351,6 +353,7 @@ export function SketchRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const myColor = getMyColor();
 
   const [tool, setTool] = useState<Tool>("pen");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { LocationSingleWidget, LocationsMultiWidget, RouteWidget } from "@/lib/types";
 import { LocationPointsEditor, type LocationPoint } from "./LocationPointsEditor";
 import { MapCanvas, OSM_TILES } from "./MapCanvas";
@@ -19,6 +20,7 @@ function pointsFor(module: PlacesWidget): LocationPoint[] {
 /** One place model and one editor for all historic map element variants. */
 export function PlacesRenderer({ module: m, index }: { module: PlacesWidget; index: number }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const points = pointsFor(m);
 
   function save(points: LocationPoint[]) {
@@ -56,7 +58,7 @@ export function PlacesRenderer({ module: m, index }: { module: PlacesWidget; ind
             ))}
           </div>
         ) : (
-          <p className="px-3.5 pb-3 text-[12px]" style={{ color: "var(--v-muted)" }}>Noch keine Orte festgelegt.</p>
+          <p className="px-3.5 pb-3 text-[12px]" style={{ color: "var(--v-muted)" }}>{tr.elements.noPlaces}</p>
         )}
 
         <div className="mx-3.5 overflow-hidden rounded-[calc(var(--v-radius)*0.72)]">

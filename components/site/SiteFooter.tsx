@@ -11,7 +11,7 @@ import { useT } from "@/components/i18n/LocaleProvider";
  * SiteFooter — link columns + wordmark. Stable across the marketing site.
  */
 export function SiteFooter() {
-  const t = useT();
+  const tr = useT();
   return (
     <>
       <SiteTrustAnchors />
@@ -23,11 +23,11 @@ export function SiteFooter() {
                 <Image src="/magyc-logo.png" alt="MAGYC" width={182} height={40} className="h-[20px] w-auto" />
               </Link>
               <p className="mt-3 leading-relaxed" style={{ fontSize: 13, color: brand.muted, maxWidth: 220 }}>
-                {t.nav.brandLine}
+                {tr.nav.brandLine}
               </p>
             </div>
 
-            {footerGroups(t).map((group) => (
+            {footerGroups(tr).map((group) => (
               <div key={group.title}>
                 <h3 className="font-mono uppercase tracking-widest" style={{ fontSize: 10, color: brand.muted }}>
                   {group.title}
@@ -56,7 +56,7 @@ export function SiteFooter() {
               {/* Real DE / EN toggle (cookie-based i18n). */}
               <LanguageSwitcher />
               <span className="font-mono tracking-widest" style={{ fontSize: 11, color: brand.muted }}>
-                {t.nav.tagline}
+                {tr.nav.tagline}
               </span>
             </div>
           </div>

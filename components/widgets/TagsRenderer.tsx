@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { TagsWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 
@@ -25,6 +26,7 @@ export function TagsRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const [pending, setPending] = useState("");
   const [adding, setAdding] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -123,7 +125,7 @@ export function TagsRenderer({
           ) : (
             <button
               onClick={() => setAdding(true)}
-              aria-label="Tag hinzufügen"
+              aria-label={tr.elements.addTag}
               className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
               style={{
                 border: "1px dashed var(--v-rule)",

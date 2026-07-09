@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { ImagesWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -31,6 +32,7 @@ export function ImagesRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
   const assetPaths = state
     .filter((e) => e.kind === "upload")
@@ -62,7 +64,7 @@ export function ImagesRenderer({
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {images.length === 0 ? (
           <p className="mono pr-24 text-[11px] leading-relaxed opacity-50" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "Noch keine Bilder — lade welche hoch."}
+            {m.placeholder ?? tr.elements.imagesEmpty}
           </p>
         ) : (
           <div
@@ -85,7 +87,7 @@ export function ImagesRenderer({
                     type="button"
                     onClick={() => setLightbox({ url: img.url, name: img.name })}
                     className="block h-full w-full"
-                    title="Groß ansehen"
+                    title={tr.elements.viewLarge}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.url} alt={img.name} className="h-full w-full object-cover" />

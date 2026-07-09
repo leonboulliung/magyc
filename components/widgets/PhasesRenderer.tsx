@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { PhasesWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -32,6 +33,7 @@ export function PhasesRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const presetMode = ctx.mode === "preset";
   const phases = m.phases;
   const current = Math.max(0, Math.min(m.currentPhase, phases.length - 1));
@@ -58,7 +60,7 @@ export function PhasesRenderer({
               + Erste Phase hinzufügen
             </button>
           ) : (
-            <p className="text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>Noch keine Phasen festgelegt.</p>
+            <p className="text-[12px] opacity-55" style={{ color: "var(--v-muted)" }}>{tr.elements.noPhases}</p>
           )}
         </WidgetCard>
       </WidgetShell>

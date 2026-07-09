@@ -16,7 +16,7 @@ import { useT } from "@/components/i18n/LocaleProvider";
  * art piece.
  */
 export function SiteNav() {
-  const t = useT();
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const [signInTarget, setSignInTarget] = useState("/studio");
 
@@ -50,7 +50,7 @@ export function SiteNav() {
 
         {/* ── Desktop nav ─────────────────────────────────────── */}
         <nav className="hidden items-center gap-7 md:flex">
-          {mainNav(t).map((entry) =>
+          {mainNav(tr).map((entry) =>
             isNavGroup(entry) ? (
               <div key={entry.label} className="group relative">
                 <button type="button" className="flex items-center gap-1 rounded-full px-3 py-1.5 font-body text-[13px] text-black/70 transition-colors duration-200 hover:bg-black/[0.05] hover:text-black">
@@ -78,10 +78,10 @@ export function SiteNav() {
           )}
           <SignedOut>
             {/* One CTA → dedicated auth page (login + registration). */}
-            <Link href={signInHref} className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">{t.nav.studioLogin}</Link>
+            <Link href={signInHref} className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">{tr.nav.studioLogin}</Link>
           </SignedOut>
           <SignedIn>
-            <Link href="/studio" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">{t.nav.toStudio}</Link>
+            <Link href="/studio" className="rounded-full bg-[#17171a] px-4 py-1.5 font-body text-sm font-medium text-white transition-all duration-200 hover:bg-black/80 active:scale-[0.98]">{tr.nav.toStudio}</Link>
           </SignedIn>
         </nav>
 
@@ -89,7 +89,7 @@ export function SiteNav() {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          aria-label={open ? t.nav.menuClose : t.nav.menuOpen}
+          aria-label={open ? tr.nav.menuClose : tr.nav.menuOpen}
           aria-expanded={open}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/[0.04] text-black md:hidden"
         >
@@ -103,16 +103,16 @@ export function SiteNav() {
       {open && (
         <div className="md:hidden">
           <div className="mx-4 mt-2 rounded-2xl border border-black/10 bg-white p-5 shadow-xl">
-            <p className="mono mb-2 text-[10px] uppercase tracking-[0.2em] text-black/35">{t.nav.useCasesLabel}</p>
+            <p className="mono mb-2 text-[10px] uppercase tracking-[0.2em] text-black/35">{tr.nav.useCasesLabel}</p>
             <div className="mb-4 grid grid-cols-2 gap-1">
-              {useCases(t).map((it) => (
+              {useCases(tr).map((it) => (
                 <Link key={it.href} href={it.href} onClick={() => setOpen(false)} className="rounded-lg px-2 py-2 font-body text-[15px] text-black/70 hover:bg-black/[0.04] hover:text-black">
                   {it.label}
                 </Link>
               ))}
             </div>
             <div className="flex flex-col gap-1 border-t border-black/10 pt-4">
-              {mainNav(t).filter((e) => !isNavGroup(e)).map((e) => {
+              {mainNav(tr).filter((e) => !isNavGroup(e)).map((e) => {
                 const link = e as { href: string; label: string };
                 return (
                   <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="rounded-lg px-2 py-2 font-body text-[15px] text-black/70 hover:bg-black/[0.04] hover:text-black">
@@ -123,10 +123,10 @@ export function SiteNav() {
             </div>
             <div className="mt-4 flex items-center gap-3 border-t border-black/10 pt-4">
               <SignedOut>
-                <Link href={signInHref} onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">{t.nav.studioLogin}</Link>
+                <Link href={signInHref} onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">{tr.nav.studioLogin}</Link>
               </SignedOut>
               <SignedIn>
-                <Link href="/studio" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">{t.nav.toStudio}</Link>
+                <Link href="/studio" onClick={() => setOpen(false)} className="ml-auto rounded-full bg-[#17171a] px-4 py-2 font-body text-sm font-medium text-white">{tr.nav.toStudio}</Link>
               </SignedIn>
             </div>
           </div>

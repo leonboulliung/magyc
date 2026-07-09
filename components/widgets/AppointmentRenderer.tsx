@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMounted } from "@/lib/useMounted";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { AppointmentWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -19,6 +20,7 @@ export function AppointmentRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const [editing, setEditing] = useState(false);
   // Until mounted, format in UTC so the server HTML and the first client render
   // agree (no hydration mismatch); after mount, switch to the viewer's local
@@ -85,7 +87,7 @@ export function AppointmentRenderer({
                     {m.timezone}
                   </div>
                 )}
-              </div> : <span className="mono rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>+ Termin festlegen</span>}
+              </div> : <span className="mono rounded-full px-3 py-1.5 text-[10px] tracking-widest opacity-70" style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}>{tr.elements.setAppointment}</span>}
             </button>
           )}
         </div>

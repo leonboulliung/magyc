@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { newLocalId } from "@/lib/id";
 import type { ModuleStateEntry, NotesWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
@@ -26,6 +27,7 @@ export function NotesRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const notes = buildNotes(state);
   const [pending, setPending] = useState("");
   const [adding, setAdding] = useState(false);
@@ -54,7 +56,7 @@ export function NotesRenderer({
             className="mono text-[11px] opacity-50 mb-3"
             style={{ color: "var(--v-muted)" }}
           >
-            {m.placeholder ?? "Noch keine Notiz — schreib die erste."}
+            {m.placeholder ?? tr.elements.notesEmpty}
           </p>
         )}
 
@@ -101,7 +103,7 @@ export function NotesRenderer({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              aria-label="Notiz hinzufügen"
+              aria-label={tr.elements.addNote}
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
@@ -160,6 +162,7 @@ function NoteCard({
   onEdit: (text: string) => Promise<void> | void;
   onDelete: () => Promise<void> | void;
 }) {
+  const tr = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);
 
@@ -180,7 +183,7 @@ function NoteCard({
         <button
           type="button"
           onClick={() => onDelete()}
-          aria-label="Notiz löschen"
+          aria-label={tr.elements.deleteNote}
           className="touch-visible mono absolute right-2 top-2 text-[13px] opacity-0 transition-opacity group-hover/note:opacity-50 hover:!opacity-100"
           style={{ color: "var(--v-muted)" }}
         >

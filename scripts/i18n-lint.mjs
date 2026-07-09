@@ -28,14 +28,27 @@ const EXCLUDE_FILE = (p) =>
 
 // Unambiguous German markers that don't rely on umlauts. Word-bounded.
 const GERMAN_WORDS = [
+  // function words
   "der", "die", "das", "und", "oder", "nicht", "wird", "werden", "ist", "sind",
   "ein", "eine", "einen", "einem", "einer", "kein", "keine", "dein", "deine", "deinen",
   "mit", "von", "vom", "zum", "zur", "auf", "aus", "im", "beim", "durch", "ohne",
   "mehr", "alle", "allen", "schon", "noch", "wenn", "dann", "hier", "wie", "was",
   "wer", "sowie", "bereits", "jetzt", "sofort", "bitte", "danke", "erst", "auch",
-  "Projekt", "Auftrag", "Vertrag", "Termin", "Anmelden", "Abmelden", "Registrieren",
-  "Einstellungen", "Speichern", "Abbrechen", "Entfernen", "Bearbeiten", "Freigabe",
+  "Erste", "Ersten", "Erstes", "Neue", "Neuen", "Neues",
+  // German-only verbs (no umlaut → otherwise missed)
+  "entfernen", "benennen", "kopieren", "hochladen", "auswählen", "festlegen",
+  "ergänzen", "formulieren", "speichern", "hinzufügen", "löschen", "bearbeiten",
+  "verschieben", "herunterladen", "teilen", "einladen", "anmelden", "abmelden",
+  "registrieren", "unterschreiben", "freigeben", "absenden", "schreiben", "suchen",
+  "stimmen", "vorbereiten", "erstellen", "vorbereitet", "gespeichert", "geliefert",
+  // German-only nouns
+  "Projekt", "Auftrag", "Vertrag", "Termin", "Freigabe", "Freigaben", "Eintrag",
+  "Einträge", "Rolle", "Rollen", "Rollenlink", "Aufgabe", "Aufgaben", "Motiv",
+  "Motive", "Frage", "Fragen", "Antwort", "Antworten", "Ergebnis", "Ergebnisse",
+  "Auswahl", "Vorschlag", "Vorschläge", "Notiz", "Notizen", "Spalte", "Datei",
+  "Dateien", "Ort", "Orte", "Bild", "Bilder", "Aufnahme", "Nutzer", "Konto",
   "Kunde", "Kunden", "Fotograf", "Anfrage", "Nachricht", "Übersicht", "Zurück",
+  "Einstellungen", "Abbrechen", "Bearbeiten", "Punkt", "Stimme", "Vorschau",
 ];
 const wordRe = new RegExp(`\\b(${GERMAN_WORDS.join("|")})\\b`);
 const umlautRe = /[äöüÄÖÜß]/;

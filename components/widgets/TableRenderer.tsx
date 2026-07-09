@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { TableWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard } from "./WidgetCard";
@@ -22,6 +23,7 @@ export function TableRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
 
   async function save(next: TableWidget) {
     await ctx.saveModule(index, next);
@@ -127,7 +129,7 @@ export function TableRenderer({
               + Zeile hinzufügen
             </button>}
             <button onClick={addColumn} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)" }}>
-              {m.columns.length === 0 ? "+ Erste Spalte hinzufügen" : "+ Spalte hinzufügen"}
+              {m.columns.length === 0 ? tr.elements.addFirstColumn : tr.elements.addColumn}
             </button>
             {m.rows.length > 0 && (
               <button onClick={() => removeRow(m.rows.length - 1)} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-50 hover:opacity-100">

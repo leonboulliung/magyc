@@ -24,7 +24,7 @@ export function EditControls({
   onCancel: () => void;
   className?: string;
 }) {
-  const t = useT();
+  const tr = useT();
   return (
     <motion.div
       initial={{ opacity: 0, y: 2 }}
@@ -36,8 +36,8 @@ export function EditControls({
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onCancel}
-        aria-label={t.elements.cancelEdit}
-        title={t.elements.cancel}
+        aria-label={tr.elements.cancelEdit}
+        title={tr.elements.cancel}
         className="mono text-[12px] w-6 h-6 rounded-full flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
         style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)", background: "var(--v-bg)" }}
       >
@@ -47,8 +47,8 @@ export function EditControls({
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onSave}
-        aria-label={t.elements.saveChange}
-        title={t.common.save}
+        aria-label={tr.elements.saveChange}
+        title={tr.common.save}
         className="mono text-[12px] w-6 h-6 rounded-full flex items-center justify-center"
         style={{ background: "var(--v-fg)", color: "var(--v-bg)", border: "1px solid var(--v-fg)" }}
       >

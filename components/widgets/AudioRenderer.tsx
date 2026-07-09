@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { AudioWidget, ModuleStateEntry } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { WidgetCard, ActorDot } from "./WidgetCard";
@@ -22,6 +23,7 @@ export function AudioRenderer({
   state: ModuleStateEntry[];
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const assetPaths = state
     .filter((e) => e.kind === "upload")
     .map((e) => assetPathFromData(e.data))
@@ -54,7 +56,7 @@ export function AudioRenderer({
       <WidgetCard microTitle={m.microTitle} description={m.description}>
         {tracks.length === 0 && (
           <p className="mono text-[11px] opacity-50 mb-3" style={{ color: "var(--v-muted)" }}>
-            {m.placeholder ?? "Noch keine Audiodatei — lade eine hoch."}
+            {m.placeholder ?? tr.elements.audioEmpty}
           </p>
         )}
 
@@ -113,7 +115,7 @@ export function AudioRenderer({
           multiple
           onDone={() => {}}
         >
-          <span className="mono text-[10px] tracking-widest opacity-60">♫ Audio hinzufügen</span>
+          <span className="mono text-[10px] tracking-widest opacity-60">{tr.elements.addAudio}</span>
           <span className="mono px-4 text-center text-[8px] leading-tight tracking-widest opacity-45">
             {uploadHintForAccept(AUDIO_ACCEPT)}
           </span>

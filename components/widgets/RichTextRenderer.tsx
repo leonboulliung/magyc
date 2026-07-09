@@ -1,6 +1,7 @@
 "use client";
 
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { RichTextWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { EditControls } from "./EditControls";
@@ -26,6 +27,7 @@ export function RichTextRenderer({
   index: number;
 }) {
   const ctx = useWidgetContext();
+  const tr = useT();
   const title = useInlineEdit<HTMLInputElement>({
     value: m.microTitle ?? "",
     onSave: (v) => ctx.saveModule(index, { ...m, microTitle: v || undefined }),
@@ -93,7 +95,7 @@ export function RichTextRenderer({
           <div className="max-w-2xl">
             <textarea
               {...body.editProps}
-              placeholder={m.placeholder ?? "Projektbeschreibung ergänzen"}
+              placeholder={m.placeholder ?? tr.elements.richTextPlaceholder}
               maxLength={4000}
               rows={3}
               className="vibe-heading text-[17px] sm:text-[19px] leading-relaxed w-full bg-transparent border-0 outline-none resize-none overflow-hidden"
@@ -107,7 +109,7 @@ export function RichTextRenderer({
             className={`vibe-heading text-[17px] sm:text-[19px] leading-relaxed max-w-2xl whitespace-pre-wrap ${ctx.isOwner ? "cursor-text" : ""}`}
             style={{ color: emptyBody ? "var(--v-muted)" : "var(--v-fg)" }}
           >
-            {emptyBody ? (m.placeholder ?? "Projektbeschreibung ergänzen") : m.text}
+            {emptyBody ? (m.placeholder ?? tr.elements.richTextPlaceholder) : m.text}
           </p>
         )}
       </div>
