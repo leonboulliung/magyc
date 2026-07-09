@@ -886,6 +886,7 @@ export const de = {
     bullet1: "Aus einem Satz eine fertige Projektseite mit den richtigen Bausteinen",
     bullet2: "Gemeinsam mit dem Kunden abstimmen — per Link, ohne operatives Chaos",
     bullet3: "Ein Klick vom Plan zum abgestimmten, signierten Vertrag",
+    trustLine: "EU-gehostet · dokumentierte elektronische Signaturen",
   },
   marketing: {
     trustEyebrow: "Vertrauen & Infrastruktur",

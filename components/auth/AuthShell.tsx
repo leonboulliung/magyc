@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { useT } from "@/components/i18n/LocaleProvider";
 import Link from "next/link";
@@ -48,7 +50,7 @@ export function AuthShell({ mode, children }: { mode: "signup" | "signin"; child
               ))}
             </ul>
             <p className="mt-8 font-mono text-[11px] tracking-[0.06em] text-black/45">
-              EU-gehostet · dokumentierte elektronische Signaturen
+              {t.auth.trustLine}
             </p>
           </section>
 

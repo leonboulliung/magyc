@@ -1,5 +1,6 @@
-import { SignUp } from "@clerk/nextjs";
+import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthWidget } from "@/components/auth/AuthWidget";
 
 /**
  * Native sign-up page. `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` points Clerk
@@ -9,24 +10,12 @@ import { AuthShell } from "@/components/auth/AuthShell";
  */
 export const metadata = { title: "Registrieren — MAGYC", robots: { index: false } };
 
-const appearance = {
-  variables: {
-    colorPrimary: "#0d0d0d",
-    colorText: "#17171a",
-    fontFamily: "Manrope, ui-sans-serif, system-ui, sans-serif",
-    borderRadius: "12px",
-  },
-  elements: {
-    rootBox: "w-full",
-    card: "shadow-none border border-black/10 bg-white",
-    headerTitle: "font-brand",
-  },
-} as const;
-
 export default function SignUpPage() {
   return (
     <AuthShell mode="signup">
-      <SignUp appearance={appearance} />
+      <Suspense fallback={<div className="h-[420px] w-full rounded-xl border border-black/10 bg-white" />}>
+        <AuthWidget mode="signup" />
+      </Suspense>
     </AuthShell>
   );
 }

@@ -863,6 +863,7 @@ export const en: Dictionary = {
     bullet1: "From one sentence to a finished project page with the right building blocks",
     bullet2: "Align with the client — via a link, without operational chaos",
     bullet3: "One click from plan to an agreed, signed contract",
+    trustLine: "EU-hosted · documented electronic signatures",
   },
   marketing: {
     trustEyebrow: "Trust & infrastructure",
