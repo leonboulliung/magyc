@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useT } from "@/components/i18n/LocaleProvider";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -56,6 +57,7 @@ const slideVariants = {
 };
 
 export default function HomePage() {
+  const t = useT();
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("input");
   const [text, setText] = useState("");
@@ -159,7 +161,7 @@ export default function HomePage() {
     if (trimmed.length < 3) return;
     setBusy(true);
     setError("");
-    setStatusText("Rückfragen werden vorbereitet …");
+    setStatusText(t.create.preparingQuestions);
     try {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
@@ -248,7 +250,7 @@ export default function HomePage() {
     setBusy(true);
     setStage("building");
     setError("");
-    setStatusText("Arbeitsraum wird erstellt …");
+    setStatusText(t.create.creatingWorkspace);
     // Choice + text steps become Q&A pairs; module steps become
     // pre-configured Modules. The classifier consumes both unchanged.
     const payloadAnswers: Answer[] = steps
@@ -357,7 +359,7 @@ export default function HomePage() {
                 <section className="relative min-h-[470px] overflow-hidden bg-[#17171a] sm:min-h-[540px]">
                   <Image
                     src="/media/marketing/hero-footage.jpg"
-                    alt="Fotograf hält seine Kamera ins warme Gegenlicht"
+                    alt={t.create.heroAlt}
                     fill
                     priority
                     sizes="100vw"
@@ -393,7 +395,7 @@ export default function HomePage() {
                   <div className="mx-auto w-full max-w-5xl px-5 pt-12 sm:px-8 sm:pt-16">
                     <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                       <div>
-                        <p className="mono text-[10px] uppercase tracking-[0.22em] text-black/42">Dein nächster Auftrag</p>
+                        <p className="mono text-[10px] uppercase tracking-[0.22em] text-black/42">{t.create.yourNextJob}</p>
                         <h2 className="mt-2 font-brand text-[28px] font-bold leading-tight text-[#17171a] sm:text-[38px]">
                           Kundenanfrage rein, Projekt raus
                         </h2>
@@ -469,7 +471,7 @@ export default function HomePage() {
                       disabled={busy}
                       className="mono text-[9px] tracking-widest opacity-30 hover:opacity-60 disabled:opacity-20"
                     >
-                      {hasAnyAnswer(answers, configured) ? "Überspringen" : "Alle überspringen"}
+                      {hasAnyAnswer(answers, configured) ? t.create.skip : t.create.skipAll}
                     </button>
                   </div>
                   <div
@@ -535,7 +537,7 @@ export default function HomePage() {
                             }}
                             rows={3}
                             maxLength={currentStep.maxLength ?? 240}
-                            placeholder={currentStep.placeholder ?? "Beschreibe deine Antwort kurz …"}
+                            placeholder={currentStep.placeholder ?? t.create.answerPlaceholder}
                             className="w-full resize-none rounded-[28px] p-4 text-[16px] leading-relaxed outline-none placeholder:text-black/28"
                             style={{ border: "1px solid rgba(0,0,0,0.14)", background: "rgba(0,0,0,0.025)", color: "#17171a" }}
                           />
@@ -594,7 +596,7 @@ export default function HomePage() {
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" && customDraft.trim()) goForward();
                               }}
-                              placeholder="Eigene Antwort"
+                              placeholder={t.create.customAnswer}
                               maxLength={120}
                               className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full bg-transparent outline-none"
                               style={{
@@ -625,7 +627,7 @@ export default function HomePage() {
                   <motion.button
                     onClick={goForward}
                     disabled={busy}
-                    aria-label={isLastStep ? "Projekt erstellen" : "Nächste Rückfrage"}
+                    aria-label={isLastStep ? t.create.createProject : t.create.nextQuestion}
                     className="mono rounded-full bg-[#17171a] px-5 py-2 text-[11px] tracking-widest text-white disabled:opacity-30"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}

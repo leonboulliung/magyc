@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { useWidgetContext } from "@/lib/widgetContext";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { Module, ModuleType } from "@/lib/types";
 import { defaultWidget, WIDGET_PICKER_GROUPS } from "@/lib/widgetCatalog";
 export { defaultWidget, widgetPickerGroups, widgetPickerSymbolFor } from "@/lib/widgetCatalog";
@@ -33,15 +34,15 @@ const TRANSLATIONS: Record<string, LangMap> = {
     attachments: "Files", images: "Images", moodboard: "Moodboard", selection: "Selection", audio: "Audio", sketch: "Sketch",
   },
   de: {
-    ai_summary: "KI-Einschätzung", icon: "Symbol", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notizen", qa: "Fragen", poll: "Umfrage",
-    crew: "Crew", work_packages: "Aufgaben", deliverables: "Ergebnisse", approvals: "Freigaben", checklist: "Checkliste",
-    date: "Datum", appointment: "Termin", appointments: "Termine",
-    range: "Von – Bis", phases: "Phasen",
-    location_single: "Ort (alt)", locations_multi: "Orte",
-    location_suggestions: "Vorschläge", route: "Orte (alt)",
-    table: "Tabelle", shot_list: "Shotlist", parts_list: "Utensilien",
-    attachments: "Anhänge", images: "Bilder", moodboard: "Moodboard", selection: "Auswahl", audio: "Audio", sketch: "Skizze",
+    ai_summary: "KI-Einschätzung", icon: "Symbol", wikipedia: "Wikipedia", gif: "GIF", // i18n-ignore: project-language widget labels
+    notes: "Notizen", qa: "Fragen", poll: "Umfrage", // i18n-ignore: project-language widget labels
+    crew: "Crew", work_packages: "Aufgaben", deliverables: "Ergebnisse", approvals: "Freigaben", checklist: "Checkliste", // i18n-ignore: project-language widget labels
+    date: "Datum", appointment: "Termin", appointments: "Termine", // i18n-ignore: project-language widget labels
+    range: "Von – Bis", phases: "Phasen", // i18n-ignore: project-language widget labels
+    location_single: "Ort (alt)", locations_multi: "Orte", // i18n-ignore: project-language widget labels
+    location_suggestions: "Vorschläge", route: "Orte (alt)", // i18n-ignore: project-language widget labels
+    table: "Tabelle", shot_list: "Shotlist", parts_list: "Utensilien", // i18n-ignore: project-language widget labels
+    attachments: "Anhänge", images: "Bilder", moodboard: "Moodboard", selection: "Auswahl", audio: "Audio", sketch: "Skizze", // i18n-ignore: project-language widget labels
   },
   fr: {
     ai_summary: "Synthèse IA", icon: "Icône", wikipedia: "Wikipedia", gif: "GIF",
@@ -134,6 +135,7 @@ export function WidgetPickerContent({
   const lang = ctx.language || "en";
   const emergent = ctx.labels.widgetLabels;
   const [query, setQuery] = useState("");
+  const t = useT();
 
   const groups = useMemo(() => {
     const q = query.trim().toLocaleLowerCase();
@@ -162,7 +164,7 @@ export function WidgetPickerContent({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Element suchen"
+          placeholder={t.create.searchElement}
           className="w-full rounded-[calc(var(--v-radius)*0.6)] bg-transparent px-3 py-2 outline-none"
           // 16px prevents iOS Safari from auto-zooming the viewport on focus;
           // no autoFocus so tapping "+" on mobile doesn't jump into the field.

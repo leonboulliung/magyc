@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -9,29 +10,13 @@ import Image from "next/image";
  * the form — not a bare auth screen. Copy switches on `mode`.
  */
 
-const COPY = {
-  signup: {
-    eyebrow: "Kostenlos starten",
-    title: "Vom Shooting-Gedanken zum wasserfesten Vertrag.",
-    sub: "Leg dein Konto an und verwandle in unter einer Minute einen Satz in eine fertige Projektseite — und mit einem Klick in einen rechtssicheren Vertrag.",
-    alt: { q: "Schon ein Konto?", href: "/sign-in", label: "Anmelden" },
-  },
-  signin: {
-    eyebrow: "Willkommen zurück",
-    title: "Weiter, wo du aufgehört hast.",
-    sub: "Melde dich an, um deine Projekte, Presets und Verträge zu verwalten.",
-    alt: { q: "Noch kein Konto?", href: "/sign-up", label: "Kostenlos registrieren" },
-  },
-} as const;
-
-const BULLETS = [
-  "Aus einem Satz eine fertige Projektseite mit den richtigen Bausteinen",
-  "Gemeinsam mit dem Kunden abstimmen — per Link, ohne operatives Chaos",
-  "Ein Klick vom Plan zum abgestimmten, signierten Vertrag",
-];
 
 export function AuthShell({ mode, children }: { mode: "signup" | "signin"; children: ReactNode }) {
-  const c = COPY[mode];
+  const t = useT();
+  const c = mode === "signup"
+    ? { eyebrow: t.auth.signupEyebrow, title: t.auth.signupTitle, sub: t.auth.signupSub, alt: { q: t.auth.haveAccount, href: "/sign-in", label: t.auth.signIn } }
+    : { eyebrow: t.auth.signinEyebrow, title: t.auth.signinTitle, sub: t.auth.signinSub, alt: { q: t.auth.noAccount, href: "/sign-up", label: t.auth.registerFree } };
+  const BULLETS = [t.auth.bullet1, t.auth.bullet2, t.auth.bullet3];
   return (
     <main className="min-h-screen w-full" style={{ background: "#f4f4f1", color: "#17171a" }}>
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-8 sm:px-8">
