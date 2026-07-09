@@ -1,5 +1,6 @@
 import { bodyTypes, sanitizeModule } from "@/lib/modules";
 import { cleanPresetState, type PresetStateEntry } from "@/lib/presetState";
+import { getDictionary, type Dictionary } from "@/lib/i18n";
 import type { Module, ModuleType } from "@/lib/types";
 
 export type StudioPreset = {
@@ -31,164 +32,149 @@ export const HIDDEN_PRESET_TYPES = new Set<ModuleType>([
 export const PRESET_ELEMENT_TYPES = bodyTypes().filter((type) => !HIDDEN_PRESET_TYPES.has(type));
 export const PRESET_ELEMENT_TYPE_SET = new Set(PRESET_ELEMENT_TYPES);
 
-export const DEFAULT_STUDIO_PRESETS: StudioPreset[] = [
-  {
-    id: "product",
-    name: "Produktshooting",
-    description: "Packshots, Editorials und Webshop-Serien.",
-    modules: [
-      { type: "moodboard", microTitle: "Moodboard", directions: [{ label: "Licht & Look" }, { label: "Material / Textur" }] },
-      { type: "shot_list", microTitle: "Shotlist", shots: [
-        { label: "Hero-Aufnahme", priority: "must", status: "planned" },
-        { label: "Detail / Prozess", priority: "should", status: "planned" },
-      ] },
-      { type: "table", microTitle: "Technikliste", columns: ["Bereich", "Vorgabe"], rows: [["Kamera", ""], ["Objektiv", ""], ["Licht", ""]] },
-      { type: "deliverables", microTitle: "Deliverables", items: [{ label: "Webshop" }, { label: "Social Crops" }] },
-      { type: "approvals", microTitle: "Freigaben", items: [{ text: "Look freigeben" }, { text: "Finale Auswahl freigeben" }] },
-    ],
-    templateState: [],
-    promptInjections: [
-      "Plane wie ein kommerzieller Produktfotograf: Deliverables, Nutzungsrechte, Shotlist und Freigaben explizit machen.",
-    ],
-    allowContextModules: true,
-  },
-  {
-    id: "wedding",
-    name: "Hochzeit",
-    description: "Ablauf, Orte, Must-have-Motive und Übergabe.",
-    modules: [
-      { type: "shot_list", microTitle: "Must-have-Motive", shots: [
-        { label: "Getting Ready", priority: "must", status: "planned" },
-        { label: "Trauung", priority: "must", status: "planned" },
-        { label: "Gruppenbilder", priority: "must", status: "planned" },
-      ] },
-      { type: "locations_multi", microTitle: "Orte", locations: [
-        { lng: 13.4049, lat: 52.52, label: "Trauung" },
-        { lng: 13.3903, lat: 52.5076, label: "Feier" },
-      ] },
-      { type: "appointment", microTitle: "Termin", datetime: new Date().toISOString() },
-      { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Ablauf bestätigen" }, { text: "Kontaktperson klären" }] },
-      { type: "deliverables", microTitle: "Übergabe", items: [{ label: "Online-Galerie" }, { label: "Highlight-Auswahl" }] },
-    ],
-    templateState: [],
-    promptInjections: ["Sensible Kommunikation, klare Timings und Must-have-Momente priorisieren."],
-    allowContextModules: true,
-  },
-];
+type LocalizedPresetModule = {
+  title: string;
+  directions?: string[];
+  shots?: string[];
+  purpose?: string[];
+  columns?: string[];
+  rows?: string[];
+  items?: string[];
+  formats?: string[];
+  roles?: string[];
+  text?: string;
+  dueSoon?: string;
+};
 
-export const MARKETING_STARTER_PRESETS: StudioPreset[] = [
-  {
-    id: "starter-product",
-    name: "Produktshooting",
-    description: "Webshop, Kampagne, Packshots und Social-Crops.",
+type LocalizedPresetModules = Record<string, LocalizedPresetModule>;
+
+function productDefaults(t: Dictionary["presets"]["defaults"]["defaultStudio"][number]): StudioPreset {
+  const modules = t.modules as unknown as LocalizedPresetModules;
+  return {
+    id: t.id,
+    name: t.name,
+    description: t.description,
     modules: [
-      { type: "moodboard", microTitle: "Moodboard", directions: [
-        { label: "Licht & Look", status: "reference" },
-        { label: "Material / Textur", status: "reference" },
-        { label: "No-Gos", status: "avoid" },
+      { type: "moodboard", microTitle: modules.moodboard.title, directions: (modules.moodboard.directions ?? []).map((label) => ({ label })) },
+      { type: "shot_list", microTitle: modules.shotList.title, shots: [
+        { label: modules.shotList.shots?.[0] ?? "", priority: "must", status: "planned" },
+        { label: modules.shotList.shots?.[1] ?? "", priority: "should", status: "planned" },
       ] },
-      { type: "shot_list", microTitle: "Shotlist", shots: [
-        { label: "Hero-Aufnahme", purpose: "Key Visual / Website", priority: "must", status: "planned" },
-        { label: "Detail / Textur", purpose: "Produktmerkmale sichtbar machen", priority: "should", status: "planned" },
-      ] },
-      { type: "table", microTitle: "Technikliste", columns: ["Bereich", "Vorgabe"], rows: [["Kamera", ""], ["Objektiv", ""], ["Licht", ""]] },
-      { type: "deliverables", microTitle: "Deliverables", items: [
-        { label: "Webshop", format: "JPG", status: "planned" },
-        { label: "Social Media", format: "Crops", status: "planned" },
-      ] },
-      { type: "approvals", microTitle: "Freigaben", items: [
-        { text: "Bildsprache freigeben", audience: "client", status: "pending" },
-        { text: "Finale Auswahl freigeben", audience: "client", status: "pending" },
-      ] },
-      { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Produkte reinigen / vorbereiten" }, { text: "Referenzen einsammeln" }] },
+      { type: "table", microTitle: modules.table.title, columns: modules.table.columns ?? [], rows: (modules.table.rows ?? []).map((row) => [row, ""]) },
+      { type: "deliverables", microTitle: modules.deliverables.title, items: (modules.deliverables.items ?? []).map((label) => ({ label })) },
+      { type: "approvals", microTitle: modules.approvals.title, items: (modules.approvals.items ?? []).map((text) => ({ text })) },
     ],
     templateState: [],
-    promptInjections: [
-      "Plane wie ein kommerzieller Produktfotograf in Deutschland: Bildsprache, Shotlist, Nutzungsrechte, Formate, Freigaben und Übergabetermin klar machen.",
-    ],
+    promptInjections: [t.prompt],
     allowContextModules: true,
-  },
-  {
-    id: "starter-wedding",
-    name: "Hochzeit",
-    description: "Ablauf, Orte, Must-have-Motive und Übergabe.",
+  };
+}
+
+function weddingDefaults(t: Dictionary["presets"]["defaults"]["defaultStudio"][number]): StudioPreset {
+  const modules = t.modules as unknown as LocalizedPresetModules;
+  return {
+    id: t.id,
+    name: t.name,
+    description: t.description,
     modules: [
-      { type: "appointments", microTitle: "Zeitplan", entries: [] },
-      { type: "locations_multi", microTitle: "Orte", locations: [] },
-      { type: "shot_list", microTitle: "Must-have-Motive", shots: [
-        { label: "Getting Ready", priority: "must", status: "planned" },
-        { label: "Trauung", priority: "must", status: "planned" },
-        { label: "Gruppenbilder", priority: "must", status: "planned" },
-        { label: "Paarshooting", priority: "must", status: "planned" },
+      { type: "shot_list", microTitle: modules.shotList.title, shots: (modules.shotList.shots ?? []).map((label) => ({ label, priority: "must", status: "planned" })) },
+      { type: "locations_multi", microTitle: modules.places.title, locations: [
+        { lng: 13.4049, lat: 52.52, label: modules.places.items?.[0] ?? "" },
+        { lng: 13.3903, lat: 52.5076, label: modules.places.items?.[1] ?? "" },
       ] },
-      { type: "crew", microTitle: "Kontakte", roles: [{ name: "Brautpaar" }, { name: "Trauzeug:innen" }, { name: "Locationkontakt" }] },
-      { type: "deliverables", microTitle: "Übergabe", items: [
-        { label: "Online-Galerie", status: "planned" },
-        { label: "Highlight-Auswahl", status: "planned" },
-      ] },
-      { type: "checklist", microTitle: "Vorbereitung", items: [{ text: "Ablaufplan bestätigen" }, { text: "Gruppenbildliste einsammeln" }] },
+      { type: "appointment", microTitle: modules.appointment.title, datetime: new Date().toISOString() },
+      { type: "checklist", microTitle: modules.checklist.title, items: (modules.checklist.items ?? []).map((text) => ({ text })) },
+      { type: "deliverables", microTitle: modules.deliverables.title, items: (modules.deliverables.items ?? []).map((label) => ({ label })) },
     ],
     templateState: [],
-    promptInjections: [
-      "Plane sensibel und zuverlässig für eine Hochzeit in Deutschland: Ablauf, Orte, Kontaktpersonen, Must-have-Motive, Backup-Plan und Bildübergabe priorisieren.",
-    ],
+    promptInjections: [t.prompt],
     allowContextModules: true,
-  },
-  {
-    id: "starter-business-portrait",
-    name: "Business-Portrait",
-    description: "Personal Branding, LinkedIn, Website und Teamfotos.",
-    modules: [
-      { type: "rich_text", microTitle: "Briefing", text: "Ziel, Zielgruppe, Einsatzorte und gewünschte Wirkung der Portraits festhalten." },
-      { type: "moodboard", microTitle: "Bildsprache", directions: [
-        { label: "Professionell / nahbar", status: "reference" },
-        { label: "Hintergrund & Licht", status: "reference" },
-      ] },
-      { type: "locations_multi", microTitle: "Location", locations: [] },
-      { type: "parts_list", microTitle: "Styling / Requisiten", items: [{ name: "Outfit 1" }, { name: "Outfit 2" }] },
-      { type: "shot_list", microTitle: "Shotlist", shots: [
-        { label: "LinkedIn Portrait", priority: "must", status: "planned" },
-        { label: "Website Hero", priority: "should", status: "planned" },
-        { label: "Arbeitsmoment / Kontext", priority: "nice", status: "planned" },
-      ] },
-      { type: "deliverables", microTitle: "Deliverables", items: [
-        { label: "LinkedIn / Profilbild", format: "Quadrat", status: "planned" },
-        { label: "Website", format: "Querformat", status: "planned" },
-      ] },
-    ],
-    templateState: [],
-    promptInjections: [
-      "Plane Business-Portraits mit Fokus auf Wirkung, Vertrauen, Einsatzkanäle, Styling, Location und klare Auswahlrunde.",
-    ],
-    allowContextModules: true,
-  },
-  {
-    id: "starter-event",
-    name: "Event-Reportage",
-    description: "Konferenz, Firmenveranstaltung, Launch oder Kultur-Event.",
-    modules: [
-      { type: "appointments", microTitle: "Ablauf", entries: [] },
-      { type: "locations_multi", microTitle: "Location-Plan", locations: [] },
-      { type: "crew", microTitle: "Team & Rollen", roles: [{ name: "Fotograf:in" }, { name: "Ansprechpartner:in" }, { name: "Social / Presse" }] },
-      { type: "shot_list", microTitle: "Shotlist", shots: [
-        { label: "Atmosphäre / Raum", priority: "must", status: "planned" },
-        { label: "Keynote / Programmpunkt", priority: "must", status: "planned" },
-        { label: "Gäste / Interaktion", priority: "should", status: "planned" },
-        { label: "Branding / Details", priority: "should", status: "planned" },
-      ] },
-      { type: "table", microTitle: "Technikliste", columns: ["Bereich", "Vorgabe"], rows: [["Kamera", ""], ["Objektiv", ""], ["Licht / Blitz", ""]] },
-      { type: "deliverables", microTitle: "Deliverables", items: [
-        { label: "Presseauswahl", due: "zeitnah", status: "planned" },
-        { label: "Gesamtübergabe", status: "planned" },
-      ] },
-    ],
-    templateState: [],
-    promptInjections: [
-      "Plane eine Event-Reportage mit Fokus auf Ablauf, Ansprechpartner, kritische Programmpunkte, schnelle Auswahl und saubere Übergabe.",
-    ],
-    allowContextModules: true,
-  },
-];
+  };
+}
+
+export function defaultStudioPresetsFor(t: Dictionary): StudioPreset[] {
+  const [product, wedding] = t.presets.defaults.defaultStudio;
+  return [productDefaults(product), weddingDefaults(wedding)];
+}
+
+export function marketingStarterPresetsFor(t: Dictionary): StudioPreset[] {
+  return t.presets.defaults.marketing.map((preset) => {
+    const modules = preset.modules as unknown as LocalizedPresetModules;
+    if (preset.id === "starter-product") {
+      return {
+        id: preset.id,
+        name: preset.name,
+        description: preset.description,
+        modules: [
+          { type: "moodboard", microTitle: modules.moodboard.title, directions: (modules.moodboard.directions ?? []).map((label, index) => ({ label, status: index === 2 ? "avoid" : "reference" })) },
+          { type: "shot_list", microTitle: modules.shotList.title, shots: (modules.shotList.shots ?? []).map((label, index) => ({ label, purpose: modules.shotList.purpose?.[index] ?? "", priority: index === 0 ? "must" : "should", status: "planned" })) },
+          { type: "table", microTitle: modules.table.title, columns: modules.table.columns ?? [], rows: (modules.table.rows ?? []).map((row) => [row, ""]) },
+          { type: "deliverables", microTitle: modules.deliverables.title, items: (modules.deliverables.items ?? []).map((label, index) => ({ label, format: modules.deliverables.formats?.[index] ?? "", status: "planned" })) },
+          { type: "approvals", microTitle: modules.approvals.title, items: (modules.approvals.items ?? []).map((text) => ({ text, audience: "client", status: "pending" })) },
+          { type: "checklist", microTitle: modules.checklist.title, items: (modules.checklist.items ?? []).map((text) => ({ text })) },
+        ],
+        templateState: [],
+        promptInjections: [preset.prompt],
+        allowContextModules: true,
+      };
+    }
+    if (preset.id === "starter-wedding") {
+      return {
+        id: preset.id,
+        name: preset.name,
+        description: preset.description,
+        modules: [
+          { type: "appointments", microTitle: modules.appointments.title, entries: [] },
+          { type: "locations_multi", microTitle: modules.places.title, locations: [] },
+          { type: "shot_list", microTitle: modules.shotList.title, shots: (modules.shotList.shots ?? []).map((label) => ({ label, priority: "must", status: "planned" })) },
+          { type: "crew", microTitle: modules.crew.title, roles: (modules.crew.roles ?? []).map((name) => ({ name })) },
+          { type: "deliverables", microTitle: modules.deliverables.title, items: (modules.deliverables.items ?? []).map((label) => ({ label, status: "planned" })) },
+          { type: "checklist", microTitle: modules.checklist.title, items: (modules.checklist.items ?? []).map((text) => ({ text })) },
+        ],
+        templateState: [],
+        promptInjections: [preset.prompt],
+        allowContextModules: true,
+      };
+    }
+    if (preset.id === "starter-business-portrait") {
+      return {
+        id: preset.id,
+        name: preset.name,
+        description: preset.description,
+        modules: [
+          { type: "rich_text", microTitle: modules.richText.title, text: modules.richText.text ?? "" },
+          { type: "moodboard", microTitle: modules.moodboard.title, directions: (modules.moodboard.directions ?? []).map((label) => ({ label, status: "reference" })) },
+          { type: "locations_multi", microTitle: modules.places.title, locations: [] },
+          { type: "parts_list", microTitle: modules.parts.title, items: (modules.parts.items ?? []).map((name) => ({ name })) },
+          { type: "shot_list", microTitle: modules.shotList.title, shots: (modules.shotList.shots ?? []).map((label, index) => ({ label, purpose: modules.shotList.purpose?.[index] ?? "", priority: index === 0 ? "must" : index === 1 ? "should" : "nice", status: "planned" })) },
+          { type: "deliverables", microTitle: modules.deliverables.title, items: (modules.deliverables.items ?? []).map((label, index) => ({ label, format: modules.deliverables.formats?.[index] ?? "", status: "planned" })) },
+        ],
+        templateState: [],
+        promptInjections: [preset.prompt],
+        allowContextModules: true,
+      };
+    }
+    return {
+      id: preset.id,
+      name: preset.name,
+      description: preset.description,
+      modules: [
+        { type: "appointments", microTitle: modules.appointments.title, entries: [] },
+        { type: "locations_multi", microTitle: modules.places.title, locations: [] },
+        { type: "crew", microTitle: modules.crew.title, roles: (modules.crew.roles ?? []).map((name) => ({ name })) },
+        { type: "shot_list", microTitle: modules.shotList.title, shots: (modules.shotList.shots ?? []).map((label, index) => ({ label, priority: index < 2 ? "must" : "should", status: "planned" })) },
+        { type: "table", microTitle: modules.table.title, columns: modules.table.columns ?? [], rows: (modules.table.rows ?? []).map((row) => [row, ""]) },
+        { type: "deliverables", microTitle: modules.deliverables.title, items: (modules.deliverables.items ?? []).map((label, index) => ({ label, due: index === 0 ? modules.deliverables.dueSoon : undefined, status: "planned" })) },
+      ],
+      templateState: [],
+      promptInjections: [preset.prompt],
+      allowContextModules: true,
+    };
+  });
+}
+
+export const DEFAULT_STUDIO_PRESETS: StudioPreset[] = defaultStudioPresetsFor(getDictionary("de"));
+export const MARKETING_STARTER_PRESETS: StudioPreset[] = marketingStarterPresetsFor(getDictionary("de"));
 
 export function createStudioPreset(): StudioPreset {
   return {
@@ -237,7 +223,7 @@ function canonicalPresetModule(raw: unknown): unknown {
     return {
       ...module,
       type: "locations_multi",
-      microTitle: module.microTitle || "Orte",
+      microTitle: module.microTitle || getDictionary("de").presets.labels.locations_multi,
       locations: center.length === 2 ? [{ lng: center[0], lat: center[1], label: module.label }] : [],
     };
   }
@@ -245,7 +231,7 @@ function canonicalPresetModule(raw: unknown): unknown {
     return {
       ...module,
       type: "locations_multi",
-      microTitle: module.microTitle || "Orte",
+      microTitle: module.microTitle || getDictionary("de").presets.labels.locations_multi,
       locations: Array.isArray(module.stops) ? module.stops : [],
     };
   }
@@ -293,7 +279,7 @@ export function cleanStudioPresets(raw: unknown): StudioPreset[] | null {
         : "";
       return {
         id,
-        name: name || "Unbenanntes Preset",
+        name: name || getDictionary("de").presets.unnamed,
         description: typeof candidate.description === "string" ? candidate.description.slice(0, 500) : "",
         modules,
         templateState: cleanPresetState(templateState, modules.length),

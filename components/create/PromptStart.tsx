@@ -1,28 +1,22 @@
 "use client";
 
 import { useState, type Ref } from "react";
+import { getDictionary, type Dictionary } from "@/lib/i18n";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { PromptComposer } from "@/components/PromptComposer";
 import type { StudioPreset } from "@/lib/studioPresets";
 import type { FastPrompt } from "@/lib/studioProfile";
 
-export const DEFAULT_CREATE_FAST_PROMPTS: FastPrompt[] = [
-  {
-    text: "Der Kunde soll vorab 2–3 Referenzen zur gewünschten Bildsprache schicken.",
-    color: "#8b7bff",
-  },
-  {
-    text: "Bitte plane eine klare Shotlist mit Must-have-Motiven und optionalen Zusatzmotiven.",
-    color: "#4aa8ff",
-  },
-  {
-    text: "Es sollen Deliverables für Website, Social Media und Archiv vorbereitet werden.",
-    color: "#39d2b4",
-  },
-  {
-    text: "Der Kunde soll eine Auswahlrunde mit Favoriten und finaler Freigabe bekommen.",
-    color: "#f5b740",
-  },
-];
+const DEFAULT_FAST_PROMPT_COLORS = ["#8b7bff", "#4aa8ff", "#39d2b4", "#f5b740"] as const;
+
+export function defaultCreateFastPromptsFor(t: Dictionary): FastPrompt[] {
+  return t.create.defaultFastPrompts.map((text, index) => ({
+    text,
+    color: DEFAULT_FAST_PROMPT_COLORS[index] ?? "#8b7bff",
+  }));
+}
+
+export const DEFAULT_CREATE_FAST_PROMPTS: FastPrompt[] = defaultCreateFastPromptsFor(getDictionary("de"));
 
 type PromptPreset = Pick<StudioPreset, "id" | "name" | "modules">;
 
@@ -61,6 +55,7 @@ export function PromptStart({
   showFastPrompts?: boolean;
   className?: string;
 }) {
+  const t = useT();
   const [fastPromptsOpen, setFastPromptsOpen] = useState(true);
   const showPresetChoice = presets.length > 0;
 
@@ -76,14 +71,14 @@ export function PromptStart({
         autoFocus={autoFocus}
         rows={rows}
         highlight={highlight}
-        placeholder="Kundenanfrage einfügen — die Nachricht oder E-Mail deines Kunden hier hineinkopieren. Oder das Shooting selbst kurz beschreiben …"
+        placeholder={t.create.promptPlaceholder}
         theme="light"
         topSlot={showPresetChoice ? (
           <div className="flex flex-wrap gap-2">
             <PresetChip
               active={selectedPresetId === "none"}
               onClick={() => onPresetChange("none")}
-              label="Ohne Preset"
+              label={t.create.noPreset}
               disabled={disabled}
             />
             {presets.map((preset) => (
@@ -107,7 +102,7 @@ export function PromptStart({
             className="flex w-full items-center justify-between px-3.5 py-2 text-left transition-colors hover:bg-black/[0.03]"
           >
             <span className="mono text-[10px] uppercase tracking-widest text-black/55">
-              Schnellbausteine <span className="text-black/35">({fastPrompts.length})</span>
+              {t.create.fastPrompts} <span className="text-black/35">({fastPrompts.length})</span>
             </span>
             <Chevron open={fastPromptsOpen} />
           </button>

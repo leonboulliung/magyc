@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { de } from "@/lib/i18n/dictionaries/de";
 
 // Node runtime: supabaseAdmin is server-only and uses the service-role client.
 export const runtime = "nodejs";
-export const alt = "MAGYC — Fotografie-Projekt";
+export const alt = de.openGraph.projectAlt;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -14,7 +15,7 @@ export const contentType = "image/png";
  */
 export default async function OpengraphImage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  let title = "Ein Fotografie-Projekt";
+  let title = de.openGraph.projectFallbackTitle;
   let accent = "#c0396e";
   try {
     const { data } = await supabaseAdmin()
@@ -55,7 +56,7 @@ export default async function OpengraphImage({ params }: { params: Promise<{ id:
         {/* Title */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 30, color: accent, fontWeight: 700, marginBottom: 18 }}>
-            Fotografie-Projekt
+            {de.openGraph.projectLabel}
           </div>
           <div style={{ fontSize: 76, fontWeight: 800, color: "#0d0d0d", lineHeight: 1.05, maxWidth: 1000 }}>
             {title}
@@ -65,7 +66,7 @@ export default async function OpengraphImage({ params }: { params: Promise<{ id:
         {/* Footer */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: 26, color: "#4a4a48" }}>
-            Gemeinsam planen · abstimmen · unterschreiben
+            {de.openGraph.projectFooter}
           </div>
           <div style={{ fontSize: 26, color: "#6a6a66", fontWeight: 600 }}>magyc.site</div>
         </div>

@@ -14,6 +14,9 @@ import { cleanSettings } from "@/lib/studioProfile";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { fetchOwnedPreset, materializePresetState } from "@/lib/server/presetMaterialization";
 import { mergeSeededModules, workflowRules } from "@/lib/createPipeline";
+import { getDictionary } from "@/lib/i18n";
+import { normalizeLocale } from "@/lib/i18n/locale";
+import type { Dictionary } from "@/lib/i18n";
 
 // The classifier makes two gpt-4o-mini calls + geocoding — give headroom.
 export const maxDuration = 60;
@@ -36,6 +39,7 @@ const promptRule = (v: unknown) =>
 
 function buildBriefInput(
   prompt: string,
+  t: Dictionary,
   f: {
     client: string;
     product: string;
@@ -47,22 +51,22 @@ function buildBriefInput(
   },
 ): string {
   const fieldLines: string[] = [];
-  if (f.client) fieldLines.push(`Kunde/Marke: ${f.client}.`);
-  if (f.product) fieldLines.push(`Produkt(e): ${f.product}.`);
-  if (f.goal) fieldLines.push(`Ziel & Verwendung: ${f.goal}.`);
-  if (f.usage) fieldLines.push(`Nutzungsrechte: ${f.usage}.`);
-  if (f.deadline) fieldLines.push(`Termin/Deadline: ${f.deadline}.`);
-  if (f.references) fieldLines.push(`Referenzen: ${f.references}.`);
-  if (f.scope) fieldLines.push(`Umfang/Budget: ${f.scope}.`);
+  if (f.client) fieldLines.push(`${t.apiCopy.clientBrand}: ${f.client}.`);
+  if (f.product) fieldLines.push(`${t.apiCopy.product}: ${f.product}.`);
+  if (f.goal) fieldLines.push(`${t.apiCopy.goalUsage}: ${f.goal}.`);
+  if (f.usage) fieldLines.push(`${t.apiCopy.usageRights}: ${f.usage}.`);
+  if (f.deadline) fieldLines.push(`${t.apiCopy.deadline}: ${f.deadline}.`);
+  if (f.references) fieldLines.push(`${t.apiCopy.references}: ${f.references}.`);
+  if (f.scope) fieldLines.push(`${t.apiCopy.scopeBudget}: ${f.scope}.`);
 
   // Prompt-first (matches the demo). A prompt and structured fields can
   // combine; with neither, fall back to a generic product-shoot seed so an
   // empty "just create one" still yields a starter brief.
   const parts: string[] = [];
   if (prompt) parts.push(prompt);
-  if (fieldLines.length) parts.push((prompt ? "Eckdaten — " : "Produktshooting-Briefing. ") + fieldLines.join(" "));
+  if (fieldLines.length) parts.push((prompt ? t.apiCopy.detailsPrefix : t.apiCopy.productBriefing) + fieldLines.join(" "));
   const input = parts.join(" ").trim();
-  return (input || "Neues Produktshooting.").slice(0, 1200);
+  return (input || t.apiCopy.fallbackProductShoot).slice(0, 1200);
 }
 
 export async function POST(req: Request) {
@@ -166,10 +170,11 @@ export async function POST(req: Request) {
 
   // Create works with a prompt, with structured fields, or with NOTHING
   // (an empty "just give me a starter project" path).
-  const inputBase = buildBriefInput(str(b.prompt), fields);
+  const t = getDictionary(normalizeLocale(defaultLanguage));
+  const inputBase = buildBriefInput(str(b.prompt), t, fields);
   const input = inputBase;
   const rules = workflowRules(
-    presetName ? [`Gewählter Workflow: ${presetName}.`] : [],
+    presetName ? [t.apiCopy.selectedWorkflow.replace("{name}", presetName)] : [],
     presetPromptInjections,
     studioRules,
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import type { SaveStatus } from "@/components/studio/useStudioProfile";
 
 /**
@@ -23,6 +24,7 @@ export function PageHeader({
   status?: SaveStatus;
   children?: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
@@ -31,7 +33,7 @@ export function PageHeader({
       </div>
       {status && (
         <span className="mono mt-2 shrink-0 text-[11px] tracking-widest text-black/40">
-          {status === "loading" ? "Lädt …" : status === "saving" ? "Speichert …" : status === "error" ? "Nicht gespeichert" : "✓ Gespeichert"}
+          {status === "loading" ? t.studio.saveStatusLoading : status === "saving" ? t.studio.saveStatusSaving : status === "error" ? t.studio.saveStatusError : t.studio.saveStatusSaved}
         </span>
       )}
     </div>
@@ -160,6 +162,7 @@ export function TagEditor({
   emptyHint?: string;
   maxLength?: number;
 }) {
+  const t = useT();
   return (
     <div>
       <div className="space-y-2">
@@ -168,7 +171,7 @@ export function TagEditor({
           <div key={i} className="group flex items-start gap-3 rounded-xl border border-black/10 bg-black/[0.015] px-3.5 py-2.5">
             <span className="mono mt-0.5 text-[12px] leading-none text-black/30">{glyph}</span>
             <span className="flex-1 text-[14px] leading-snug text-black/80">{it}</span>
-            <button type="button" onClick={() => onRemove(i)} aria-label="Entfernen" className="text-black/30 opacity-0 transition-opacity hover:text-black group-hover:opacity-100">×</button>
+            <button type="button" onClick={() => onRemove(i)} aria-label={t.common.remove} className="text-black/30 opacity-0 transition-opacity hover:text-black group-hover:opacity-100">×</button>
           </div>
         ))}
       </div>
@@ -178,6 +181,7 @@ export function TagEditor({
 }
 
 function AddRow({ placeholder, maxLength, onAdd }: { placeholder: string; maxLength: number; onAdd: (v: string) => void }) {
+  const t = useT();
   const [input, setInput] = useState("");
   function commit() {
     const v = input.trim();
@@ -195,7 +199,7 @@ function AddRow({ placeholder, maxLength, onAdd }: { placeholder: string; maxLen
         className={FIELD}
       />
       <button type="button" onClick={commit} disabled={!input.trim()} className="shrink-0 rounded-xl bg-[#17171a] px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40">
-        Hinzufügen
+        {t.studio.addButton}
       </button>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useLocale, useT } from "@/components/i18n/LocaleProvider";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,9 +11,9 @@ import { stagePage, chipGrid, clarifyItem } from "@/lib/anim";
 import type { ClarifyStep, Module } from "@/lib/types";
 import { ClarifyModuleStep } from "@/components/clarify/ClarifyModuleStep";
 import { DotField, type DotFieldHandle } from "@/components/DotField";
-import { DEFAULT_CREATE_FAST_PROMPTS, PromptStart } from "@/components/create/PromptStart";
+import { defaultCreateFastPromptsFor, PromptStart } from "@/components/create/PromptStart";
 import type { ProjectModeId } from "@/lib/projectModes";
-import { MARKETING_STARTER_PRESETS } from "@/lib/studioPresets";
+import { marketingStarterPresetsFor } from "@/lib/studioPresets";
 import { SiteNav } from "@/components/site/SiteNav";
 import { HomeMarketing } from "@/components/site/HomeMarketing";
 import { BuildingScreen } from "@/components/home/BuildingScreen";
@@ -58,6 +58,7 @@ const slideVariants = {
 
 export default function HomePage() {
   const t = useT();
+  const { locale } = useLocale();
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("input");
   const [text, setText] = useState("");
@@ -81,6 +82,8 @@ export default function HomePage() {
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dotFieldRef = useRef<DotFieldHandle>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const marketingPresets = marketingStarterPresetsFor(t);
+  const marketingFastPrompts = defaultCreateFastPromptsFor(t);
 
   // The landing page owns one internal scroll surface. Lock the outer
   // document so mobile browsers cannot add a second scrollbar or resize the
@@ -166,7 +169,7 @@ export default function HomePage() {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input: trimmed, projectMode: DEFAULT_PROJECT_MODE, language: "de", anonToken: getAnonToken() }),
+        body: JSON.stringify({ input: trimmed, projectMode: DEFAULT_PROJECT_MODE, language: locale, anonToken: getAnonToken() }),
       }, CLARIFY_TIMEOUT_MS);
       if (!res.ok) {
         setError(formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown }));
@@ -261,7 +264,7 @@ export default function HomePage() {
       .filter((s) => s.kind === "module")
       .map((s) => configured[s.id])
       .filter(Boolean);
-    const selectedPreset = MARKETING_STARTER_PRESETS.find((preset) => preset.id === presetId) || null;
+    const selectedPreset = marketingPresets.find((preset) => preset.id === presetId) || null;
     try {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces", {
         method: "POST",
@@ -269,7 +272,7 @@ export default function HomePage() {
         body: JSON.stringify({
           input: text.trim(),
           projectMode: DEFAULT_PROJECT_MODE,
-          language: "de",
+          language: locale,
           answers: payloadAnswers,
           configuredModules,
           presetName: selectedPreset?.name,
@@ -372,20 +375,20 @@ export default function HomePage() {
                   />
                   <div className="relative mx-auto flex min-h-[470px] w-full max-w-6xl flex-col justify-end px-5 py-10 sm:min-h-[540px] sm:px-8 sm:py-14">
                     <p className="mono text-[10px] uppercase tracking-[0.24em] text-white/65 sm:text-[11px]">
-                      Für Fotograf:innen
+                      {t.home.heroEyebrow}
                     </p>
                     <h1 className="mt-4 max-w-3xl font-brand text-[40px] font-bold leading-[1.02] text-white sm:text-[66px]">
-                      Fotografie-Aufträge, die klar beginnen und professionell enden.
+                      {t.home.heroHeadline}
                     </h1>
                     <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-white/75 sm:text-[18px]">
-                      MAGYC bringt Kund:innen, Team, Bildidee und Vertrag an einen Ort. Damit du weniger koordinierst und mehr fotografierst.
+                      {t.home.heroLead}
                     </p>
                     <button
                       type="button"
                       onClick={focusPrompt}
                       className="mt-7 flex h-11 w-fit items-center gap-2 rounded-full bg-white px-5 text-[14px] font-medium text-[#17171a] transition-transform hover:translate-y-[-2px]"
                     >
-                      Auftrag planen
+                      {t.home.heroCta}
                       <span aria-hidden>↓</span>
                     </button>
                   </div>
@@ -397,11 +400,11 @@ export default function HomePage() {
                       <div>
                         <p className="mono text-[10px] uppercase tracking-[0.22em] text-black/42">{t.create.yourNextJob}</p>
                         <h2 className="mt-2 font-brand text-[28px] font-bold leading-tight text-[#17171a] sm:text-[38px]">
-                          Kundenanfrage rein, Projekt raus
+                          {t.home.promptHeadline}
                         </h2>
                       </div>
                       <p className="max-w-md text-[14px] leading-relaxed text-black/52 sm:text-right">
-                        Füge die Nachricht oder E-Mail deines Kunden ein — oder beschreibe das Shooting selbst. MAGYC baut daraus dein Projekt.
+                        {t.home.promptBody}
                       </p>
                     </div>
                     <PromptStart
@@ -412,10 +415,10 @@ export default function HomePage() {
                       disabled={busy}
                       rows={5}
                       highlight={promptNudge}
-                      presets={MARKETING_STARTER_PRESETS}
+                      presets={marketingPresets}
                       selectedPresetId={presetId}
                       onPresetChange={(id) => { setPresetId(id); focusPrompt(); }}
-                      fastPrompts={DEFAULT_CREATE_FAST_PROMPTS}
+                      fastPrompts={marketingFastPrompts}
                       onFastPrompt={addPromptHint}
                     />
                   </div>
@@ -432,9 +435,9 @@ export default function HomePage() {
                 )}
 
                 <div className="mx-auto mt-1 flex w-full max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-5 text-[13px] text-black/55 sm:px-8">
-                  <span>Kostenlos. Ohne Setup. In Sekunden.</span>
+                  <span>{t.home.freeLine}</span>
                   <Link href="/showcase" className="font-medium text-black/75 underline-offset-4 transition-colors hover:text-black hover:underline">
-                    Beispielprojekt ansehen →
+                    {t.home.exampleProject}
                   </Link>
                 </div>
               </motion.div>

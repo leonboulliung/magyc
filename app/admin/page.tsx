@@ -5,6 +5,7 @@ import { CONTRACT_VERSION } from "@/lib/contract";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { AdminConsole, type AdminConsoleData, type AdminSpace, type AdminTicket, type AdminUser, type TimelineEntry } from "@/components/admin/AdminConsole";
 import type { AccountStatus, AdminPlan, SupportStatus } from "@/lib/adminAccount";
+import { de } from "@/lib/i18n/dictionaries/de";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,7 @@ function phaseLabel(space: SpaceRow): string {
   if (space.deleted_at) return "Geloescht";
   if (space.archived_at) return "Archiviert";
   if (space.stage === "brief") return "Planung";
-  if (space.stage === "production") return "Vertrag";
+  if (space.stage === "production") return de.admin.contractStage;
   if (space.stage === "handoff") return "Abgeschlossen";
   return "Entwurf";
 }
@@ -145,7 +146,7 @@ async function loadProfiles(
           .in("id", ids);
         if (fallback.error) throw fallback.error;
         rows = (fallback.data || []) as ProfileRow[];
-        warning = "Migration 021 fehlt noch: Plan, Account-Status und Admin-Notizen werden mit Standardwerten angezeigt.";
+        warning = de.admin.migration21Defaults;
       }
     }
     const rowById = new Map(rows.map((row) => [row.id, row]));
@@ -183,7 +184,7 @@ async function loadProfiles(
       .range(offset, offset + ADMIN_PAGE_SIZE - 1);
     if (options.query) query = query.ilike("display_name", `%${options.query}%`);
     const result = await query;
-    let fallbackWarning = "Clerk war nicht erreichbar; die Nutzerliste zeigt vorübergehend nur Supabase-Profile.";
+    let fallbackWarning = de.admin.clerkFallback;
     let fallbackProfiles: ProfileRow[];
     let filteredCount: number;
     if (result.error) {
@@ -197,7 +198,7 @@ async function loadProfiles(
       if (basic.error) throw basic.error;
       fallbackProfiles = (basic.data || []) as ProfileRow[];
       filteredCount = basic.count || 0;
-      fallbackWarning = "Clerk war nicht erreichbar; Migration 021 ist ebenfalls nicht vollständig verfügbar.";
+      fallbackWarning = de.admin.clerkAndMigrationFallback;
     } else {
       fallbackProfiles = (result.data || []) as ProfileRow[];
       filteredCount = result.count || 0;
@@ -262,7 +263,7 @@ async function loadAdminData(
     admin.rpc("space_upload_usage_by_space", { p_limit: 1000 }),
     loadOptionalTable<SupportTicketRow>(
       admin.from("support_tickets").select("id, user_id, email, type, status, message, route, space_id, last_error, created_at, done_at").order("created_at", { ascending: false }).limit(250),
-      "Migration 021 fehlt noch: Support-Tickets sind im Admin noch nicht sichtbar.",
+      de.admin.supportMigrationMissing,
     ),
     admin.rpc("admin_user_activity_rollup", { p_user_ids: userIds }),
     admin.from("spaces").select("id", { count: "exact", head: true }),
@@ -278,15 +279,15 @@ async function loadAdminData(
   const appEvents = appEventsRes.error ? [] : ((appEventsRes.data || []) as AppEventRow[]);
   const uploadUsageRows = uploadUsageRes.error ? [] : ((uploadUsageRes.data || []) as UploadUsageRow[]);
   const supportRows = supportRes.rows;
-  if (aiEventsRes.error) migrationWarnings.push("AI-Events sind nicht lesbar. Migration 009 pruefen.");
-  if (appEventsRes.error) migrationWarnings.push("Operations-Events sind nicht lesbar. Migration 020 pruefen.");
-  if (uploadUsageRes.error) migrationWarnings.push("Upload-Rollup ist nicht lesbar. Es wird aus aktuellen State-Zeilen angenaehert.");
+  if (aiEventsRes.error) migrationWarnings.push(de.admin.aiEventsUnreadable);
+  if (appEventsRes.error) migrationWarnings.push(de.admin.opsEventsUnreadable);
+  if (uploadUsageRes.error) migrationWarnings.push(de.admin.uploadRollupUnreadable);
   if (supportRes.warning) migrationWarnings.push(supportRes.warning);
 
   const spaces = (spacesRes.data || []) as SpaceRow[];
   const state = (stateRes.data || []) as StateRow[];
   const activityRows = activityRes.error ? [] : ((activityRes.data || []) as ActivityRollupRow[]);
-  if (activityRes.error) migrationWarnings.push("Migration 024 fehlt noch: Aktivitätszahlen sind auf den sichtbaren Verlauf begrenzt.");
+  if (activityRes.error) migrationWarnings.push(de.admin.activityMigrationMissing);
 
   const uploadUsageBySpace = new Map<string, { uploadCount: number; uploadBytes: number }>();
   for (const row of uploadUsageRows) {
@@ -331,7 +332,7 @@ async function loadAdminData(
     timeline.push({
       id: `space:${space.id}`,
       userId: space.owner_id,
-      label: "Projekt erstellt",
+      label: de.admin.projectCreated,
       detail: space.title || space.id,
       at: space.created_at,
       href: `/admin/spaces/${space.id}`,
@@ -494,10 +495,10 @@ function GateMessage({ reason }: { reason: NonNullable<Awaited<ReturnType<typeof
       <div className="max-w-lg space-y-3">
         <p className="mono text-[11px] uppercase tracking-[0.28em] opacity-50">MAGYC Admin</p>
         <h1 className="text-2xl font-semibold">
-          {reason === "not_configured" ? "Admin-Zugriff ist nicht konfiguriert" : "Kein Admin-Zugriff"}
+          {reason === "not_configured" ? de.admin.noAccessConfigured : de.admin.noAccess}
         </h1>
         <p className="text-sm leading-relaxed opacity-70">
-          Setze `ADMIN_EMAILS` oder `ADMIN_USER_IDS` in Vercel, um dieses Cockpit freizuschalten.
+          {de.admin.configureAccess}
         </p>
       </div>
     </main>

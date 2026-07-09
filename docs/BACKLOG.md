@@ -5,7 +5,20 @@ agent re-investigates from scratch. **Protocol:** pick from the top unless
 Leon directs otherwise; move finished items to the Done section (one line,
 date, commit); add new findings with enough context to act cold.
 
-_Last updated: 2026-07-03 (Claude — 15-point /goal, batch 1)_
+_Last updated: 2026-07-09 (Codex — DE/EN i18n consolidation)_
+
+---
+
+## Done 2026-07-09 — DE/EN i18n consolidation
+
+- Consolidated the remaining user-facing German UI/API copy into the existing
+  dictionaries and wired the marketing subpages, studio shell pages, preset
+  flows, invitations, render boundaries, OpenGraph copy, admin labels, and
+  project creation fallbacks through the shared i18n layer. `scripts/i18n-lint`
+  now reports no hardcoded German strings outside the dictionaries.
+- The static legal source files remain intentionally untranslated; translate
+  them only after legal review, then route them through the same legal document
+  component.
 
 ---
 

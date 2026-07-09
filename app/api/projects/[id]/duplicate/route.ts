@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { newId, newAnonToken } from "@/lib/id";
+import { de } from "@/lib/i18n/dictionaries/de";
 
 /**
  * POST /api/projects/[id]/duplicate — copy a suite project as a fresh
@@ -32,7 +33,7 @@ export async function POST(
   const { error } = await admin.from("spaces").insert({
     id,
     input_text: src.input_text,
-    title: src.title ? `Kopie von ${src.title}`.slice(0, 200) : "",
+    title: src.title ? de.apiCopy.copyOf.replace("{title}", src.title).slice(0, 200) : "",
     language: src.language,
     vibe: src.vibe,
     modules: src.modules ?? [],

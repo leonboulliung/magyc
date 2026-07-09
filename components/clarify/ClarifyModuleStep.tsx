@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { ClarifyPrefill, Module } from "@/lib/types";
 import { MapCanvas, OSM_TILES } from "@/components/widgets/MapCanvas";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * Close a floating results list on Escape or on a pointer/tap outside the
@@ -83,6 +84,7 @@ function LocationEditor({
   value: Module | null;
   onChange: (m: Module | null) => void;
 }) {
+  const t = useT();
   const initialLabel =
     value && value.type === "location_single" ? (value.label ?? "") :
     typeof draft.label === "string" ? draft.label :
@@ -152,7 +154,7 @@ function LocationEditor({
           autoFocus
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Ort oder Adresse suchen"
+          placeholder={t.clarifyEditor.searchPlace}
           className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
           style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
         />
@@ -246,6 +248,7 @@ function MultiPointEditor({
   value: Module | null;
   onChange: (m: Module | null) => void;
 }) {
+  const t = useT();
   const seed = (): GeoMatch[] => {
     if (value && value.type === "route") return value.stops.map((s) => ({ lng: s.lng, lat: s.lat, label: s.label ?? "" }));
     if (value && value.type === "locations_multi") return value.locations.map((s) => ({ lng: s.lng, lat: s.lat, label: s.label ?? "" }));
@@ -344,7 +347,7 @@ function MultiPointEditor({
           autoFocus
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Weiteren Ort suchen"
+          placeholder={t.clarifyEditor.searchAnotherPlace}
           className="w-full text-[16px] px-3 py-2.5 rounded-[var(--v-radius)] bg-transparent outline-none"
           style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
         />
@@ -449,6 +452,7 @@ function PhasesEditor({
   value: Module | null;
   onChange: (m: Module | null) => void;
 }) {
+  const t = useT();
   const seed: PhaseItem[] =
     value && value.type === "phases"
       ? value.phases
@@ -492,7 +496,7 @@ function PhasesEditor({
             <input
               value={p.label}
               onChange={(e) => setLabel(i, e.target.value)}
-              placeholder="Phase benennen"
+              placeholder={t.clarifyEditor.namePhase}
               maxLength={80}
               className="flex-1 text-[15px] px-3 py-2 rounded-[var(--v-radius)] bg-transparent outline-none"
               style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}

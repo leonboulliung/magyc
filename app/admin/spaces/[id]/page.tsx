@@ -6,6 +6,7 @@ import { ProjectFactsSummary } from "@/components/projects/ProjectFactsSummary";
 import { AiTraceTimeline, type AiTraceEvent } from "@/components/admin/AiTraceTimeline";
 import { buildProjectFacts } from "@/lib/projectFacts";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { de } from "@/lib/i18n/dictionaries/de";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function AdminSpaceInspectorPage({ params }: { params: Prom
         </div>
       </div>
       <div className="mx-auto max-w-7xl space-y-8 px-5 pt-6">
-        <ProjectFactsSummary facts={facts} title="Strukturierte Projektdaten (Ergebnis)" />
+        <ProjectFactsSummary facts={facts} title={de.projectFacts.structuredData} />
         <section>
           <h2 className="mono mb-3 text-[11px] uppercase tracking-[0.22em] text-black/45">
             KI- & Daten-Verlauf <span className="text-black/30">({events.length})</span>

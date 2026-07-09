@@ -14,6 +14,7 @@ import {
   type SupportStatus,
 } from "@/lib/adminAccount";
 import { readApiJson, showActionSuccess, showApiError, showUnknownError } from "@/lib/client/feedback";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 export type AdminUser = {
   id: string;
@@ -117,6 +118,7 @@ function shortId(id: string | null | undefined) {
 }
 
 export function AdminConsole({ initialData }: { initialData: AdminConsoleData }) {
+  const t = useT();
   const [users, setUsers] = useState(initialData.users);
   const [tickets, setTickets] = useState(initialData.tickets);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(initialData.users[0]?.id || null);
@@ -171,7 +173,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
   }
 
   async function updateUser(userId: string, patch: { plan?: AdminPlan; status?: AccountStatus; adminNotes?: string }) {
-    const reason = window.prompt("Grund fuer die Admin-Aenderung (optional)") || "";
+    const reason = window.prompt(t.admin.changeReasonPrompt) || "";
     setBusy(`user:${userId}`);
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -181,7 +183,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        showApiError("Nutzer nicht aktualisiert", json);
+        showApiError(t.admin.userNotUpdated, json);
         return;
       }
       setUsers((prev) => prev.map((user) => user.id === userId
@@ -192,9 +194,9 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
           adminNotes: patch.adminNotes ?? user.adminNotes,
         }
         : user));
-      showActionSuccess("Nutzer aktualisiert");
+      showActionSuccess(t.admin.userUpdated);
     } catch (error) {
-      showUnknownError("Nutzer nicht aktualisiert", error);
+      showUnknownError(t.admin.userNotUpdated, error);
     } finally {
       setBusy(null);
     }
@@ -210,7 +212,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        showApiError("Ticket nicht aktualisiert", json);
+        showApiError(t.admin.ticketNotUpdated, json);
         return;
       }
       const now = new Date().toISOString();
@@ -219,7 +221,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
         : ticket));
       showActionSuccess(status === "done" ? "Ticket erledigt" : "Ticket wieder geoeffnet");
     } catch (error) {
-      showUnknownError("Ticket nicht aktualisiert", error);
+      showUnknownError(t.admin.ticketNotUpdated, error);
     } finally {
       setBusy(null);
     }
@@ -245,7 +247,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
         ))}
 
         <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Nutzer" value={initialData.metrics.users} muted={`${initialData.metrics.activeUsers7d} aktiv / 7 Tage`} />
+          <Metric label={t.admin.users} value={initialData.metrics.users} muted={`${initialData.metrics.activeUsers7d} aktiv / 7 Tage`} />
           <Metric label="Projekte" value={initialData.metrics.spaces} muted={`${initialData.metrics.spaces7d} neu / 7 Tage`} />
           <Metric label="Support offen" value={openTickets.length} muted={`${tickets.length} gesamt`} />
           <Metric label="Medien" value={formatBytes(initialData.metrics.uploadedBytes)} muted={`${initialData.metrics.aiErrors + initialData.metrics.appErrors} Fehler geloggt`} />
@@ -266,7 +268,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                       <div className="mt-3 flex flex-wrap gap-2 text-xs text-black/45">
                         <span>{ticket.email || shortId(ticket.userId)}</span>
                         {ticket.route && <span>{ticket.route}</span>}
-                        {ticket.spaceId && <Link href={`/s/${ticket.spaceId}`} className="underline">Projekt {shortId(ticket.spaceId)}</Link>}
+                        {ticket.spaceId && <Link href={`/s/${ticket.spaceId}`} className="underline">{t.admin.project} {shortId(ticket.spaceId)}</Link>}
                       </div>
                     </div>
                     <button
@@ -280,11 +282,11 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                   </div>
                 </article>
               ))}
-              {tickets.length === 0 && <p className="text-sm text-black/45">Noch keine Support-Tickets.</p>}
+              {tickets.length === 0 && <p className="text-sm text-black/45">{t.admin.noTickets}</p>}
             </div>
           </Panel>
 
-          <Panel title="Nutzer Fokus">
+          <Panel title={t.admin.userFocus}>
             {focusedUser ? (
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
@@ -308,7 +310,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                 <Timeline entries={focusedTimeline} />
               </div>
             ) : (
-              <p className="text-sm text-black/45">Noch kein Nutzer ausgewaehlt.</p>
+              <p className="text-sm text-black/45">{t.admin.noUserSelected}</p>
             )}
           </Panel>
         </section>
@@ -319,7 +321,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
               <input
                 name="q"
                 defaultValue={initialData.pagination.query}
-                placeholder="Name, E-Mail oder Nutzer-ID suchen"
+                placeholder={t.admin.searchPlaceholder}
                 className="min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/35"
               />
               <button type="submit" className="rounded-lg bg-[#17171a] px-4 py-2 text-sm text-white">Suchen</button>
@@ -332,11 +334,11 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
             <table className="w-full min-w-[920px] text-sm">
               <thead className="mono text-[10px] uppercase tracking-[0.24em] text-black/40">
                 <tr className="border-b border-black/10 text-left">
-                  <th className="px-4 py-3">Nutzer</th>
+                  <th className="px-4 py-3">{t.admin.users}</th>
                   <th className="px-4 py-3">Plan</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Aktivitaet</th>
-                  <th className="px-4 py-3">Admin-Notiz</th>
+                  <th className="px-4 py-3">{t.admin.adminNote}</th>
                   <th className="px-4 py-3 text-right">Aktion</th>
                 </tr>
               </thead>
@@ -378,7 +380,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                           if (event.target.value !== user.adminNotes) updateUser(user.id, { adminNotes: event.target.value });
                         }}
                         className="w-full rounded-full border border-black/15 bg-white px-3 py-2 text-sm"
-                        placeholder="Interne Notiz"
+                        placeholder={t.admin.internalNote}
                       />
                     </td>
                     <td className="px-4 py-4 text-right">
@@ -398,7 +400,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
           {pageCount > 1 && (
             <div className="mt-4 flex items-center justify-end gap-2">
               {initialData.pagination.page > 1 && (
-                <Link href={pageHref(initialData.pagination.page - 1)} className="rounded-lg border border-black/15 px-3 py-2 text-sm">Zurück</Link>
+                <Link href={pageHref(initialData.pagination.page - 1)} className="rounded-lg border border-black/15 px-3 py-2 text-sm">{t.common.back}</Link>
               )}
               {initialData.pagination.page < pageCount && (
                 <Link href={pageHref(initialData.pagination.page + 1)} className="rounded-lg border border-black/15 px-3 py-2 text-sm">Weiter</Link>
@@ -508,6 +510,7 @@ function Panel({ title, children, className = "" }: { title: string; children: R
 }
 
 function Timeline({ entries }: { entries: TimelineEntry[] }) {
+  const t = useT();
   return (
     <div className="mt-3 space-y-3">
       {entries.map((entry) => (
@@ -521,7 +524,7 @@ function Timeline({ entries }: { entries: TimelineEntry[] }) {
           </div>
         </div>
       ))}
-      {entries.length === 0 && <p className="text-sm text-black/45">Noch keine Aktivitaet sichtbar.</p>}
+      {entries.length === 0 && <p className="text-sm text-black/45">{t.admin.noActivity}</p>}
     </div>
   );
 }

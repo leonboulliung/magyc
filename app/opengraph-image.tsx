@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
+import { de } from "@/lib/i18n/dictionaries/de";
 
 export const runtime = "edge";
-export const alt = "MAGYC — vom Prompt zum Vertrag";
+export const alt = de.openGraph.siteAlt;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -32,17 +33,17 @@ export default function OpengraphImage() {
 
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 30, color: accent, fontWeight: 700, marginBottom: 18 }}>
-            Das Projekt-Werkzeug für Fotograf:innen
+            {de.openGraph.siteLabel}
           </div>
           <div style={{ display: "flex", flexDirection: "column", fontSize: 82, fontWeight: 800, color: "#0d0d0d", lineHeight: 1.02 }}>
-            <div style={{ display: "flex" }}>Von der Kundenanfrage</div>
-            <div style={{ display: "flex" }}>zum Vertrag.</div>
+            <div style={{ display: "flex" }}>{de.openGraph.line1}</div>
+            <div style={{ display: "flex" }}>{de.openGraph.line2}</div>
           </div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: 26, color: "#4a4a48" }}>
-            Planen · abstimmen · unterschreiben — an einem Ort
+            {de.openGraph.siteFooter}
           </div>
           <div style={{ fontSize: 26, color: "#6a6a66", fontWeight: 600 }}>magyc.site</div>
         </div>

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useLocale, useT } from "@/components/i18n/LocaleProvider";
+import type { Dictionary } from "@/lib/i18n";
 import { Dialog } from "@/components/ui/Dialog";
 import { defaultWidget, widgetPickerGroups, widgetPickerSymbolFor } from "@/lib/widgetCatalog";
 import { WidgetDispatcher } from "@/components/widgets/WidgetDispatcher";
@@ -22,19 +24,13 @@ import {
 } from "@/lib/studioPresets";
 import type { Module, ModuleType, SpaceLabels } from "@/lib/types";
 
-const LABELS: Record<ModuleType, string> = {
-  heading: "Titel", rich_text: "Text", tags: "Tags", wikipedia: "Wikipedia",
-  ai_summary: "KI-Einschätzung", icon: "Icon", location_single: "Ort",
-  locations_multi: "Orte", location_suggestions: "Vorschläge", route: "Orte (alt)",
-  date: "Datum", appointment: "Termin", appointments: "Termine", range: "Von - Bis",
-  crew: "Team & Rollen", work_packages: "Aufgaben", deliverables: "Deliverables",
-  approvals: "Freigaben", notes: "Notizen", qa: "Fragen", poll: "Umfrage",
-  discussion: "Diskussion (alt)", phases: "Phasen", checklist: "Checkliste",
-  attachments: "Dateien", images: "Bilder", moodboard: "Moodboard",
-  selection: "Auswahl", audio: "Audio", sketch: "Skizze",
-  table: "Tabelle / Technikliste", shot_list: "Shotlist",
-  parts_list: "Material / Requisiten", gif: "GIF",
-};
+function labelsFor(t: Dictionary): Record<ModuleType, string> {
+  return t.presets.labels;
+}
+
+function interpolate(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+}
 
 const DELETED_PRESETS_STORAGE_KEY = `${STUDIO_PRESETS_STORAGE_KEY}.deleted`;
 
@@ -60,6 +56,9 @@ function cleanDeletedPresets(raw: unknown): Array<StudioPreset & { deletedAt: st
  * local fallback.
  */
 export function PresetBuilder() {
+  const t = useT();
+  const { locale } = useLocale();
+  const labels = useMemo(() => labelsFor(t), [t]);
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [deletedPresets, setDeletedPresets] = useState<Array<StudioPreset & { deletedAt: string }>>([]);
   const [deletedOpen, setDeletedOpen] = useState(false);
@@ -122,13 +121,13 @@ export function PresetBuilder() {
         const json = await readApiJson(res);
         if (!res.ok) {
           setSyncState("error"); remoteWritableRef.current = false;
-          showApiError("Presets nicht gespeichert", json, { fallback: "Deine Presets bleiben lokal erhalten." });
+          showApiError(t.studio.notSaved, json, { fallback: t.presets.builder.saveLocalFallback });
           return;
         }
         setSyncState("saved");
       } catch (error) {
         setSyncState("error"); remoteWritableRef.current = false;
-        showUnknownError("Presets nicht gespeichert", error, { fallback: "Deine Presets bleiben lokal erhalten." });
+        showUnknownError(t.studio.notSaved, error, { fallback: t.presets.builder.saveLocalFallback });
       }
     }, 650);
   }, [presets]);
@@ -176,7 +175,7 @@ export function PresetBuilder() {
     if (editing.modules.some((module) => module.type === type)) return;
     const w = defaultWidget(type);
     if (!w) return;
-    const next = [...editing.modules, { ...w, microTitle: w.microTitle || LABELS[type] }];
+    const next = [...editing.modules, { ...w, microTitle: w.microTitle || labels[type] }];
     patch(editing.id, { modules: next });
     setActiveElementIndex(next.length - 1);
     setPickerOpen(false);
@@ -209,8 +208,8 @@ export function PresetBuilder() {
 
   function finish() {
     if (editing && editing.modules.length === 0) {
-      showActionError("Preset noch unvollständig", {
-        description: "Wähle mindestens ein Element aus oder lösche das leere Preset.",
+      showActionError(t.presets.builder.incompleteTitle, {
+        description: t.presets.builder.incompleteDescription,
       });
       return;
     }
@@ -226,20 +225,19 @@ export function PresetBuilder() {
         <div>
           <div className="flex items-center gap-3">
             <span className="mono text-[11px] tracking-widest text-black/35">
-              {syncState === "loading" && "Lädt …"}
-              {syncState === "saved" && "✓ Gespeichert"}
-              {syncState === "local" && "Lokal gesichert"}
-              {syncState === "error" && "Nicht gespeichert"}
+              {syncState === "loading" && t.common.loading}
+              {syncState === "saved" && `✓ ${t.common.saved}`}
+              {syncState === "local" && t.presets.builder.localSaved}
+              {syncState === "error" && t.studio.notSaved}
             </span>
           </div>
-          <h1 className="mt-1 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Presets</h1>
+          <h1 className="mt-1 font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">{t.presets.builder.title}</h1>
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">
-            Wiederkehrende Projektstarts: einmal Elemente + Prompt-Regeln festlegen,
-            danach legst du solche Projekte strukturiert mit einem Klick an.
+            {t.presets.builder.intro}
           </p>
         </div>
         <button type="button" onClick={addPreset} className="rounded-full bg-[#17171a] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90">
-          Neues Preset
+          {t.presets.builder.newPreset}
         </button>
       </div>
 
@@ -248,7 +246,7 @@ export function PresetBuilder() {
         {syncState === "loading" && [0, 1].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-white/[0.04]" />)}
         {syncState !== "loading" && presets.length === 0 && (
           <p className="rounded-xl border border-dashed border-black/12 px-4 py-8 text-center text-[13px] text-black/40">
-            Noch keine Presets — leg mit „Neues Preset“ dein erstes an.
+            {t.presets.builder.empty}
           </p>
         )}
         {syncState !== "loading" && presets.map((p) => (
@@ -261,10 +259,10 @@ export function PresetBuilder() {
             <div className="min-w-0 flex-1">
               <div className="truncate text-[15px] font-medium text-[#17171a]">{p.name || "Unbenannt"}</div>
               <div className="mt-0.5 truncate text-[12px] text-black/45">
-                {p.modules.length > 0 ? p.modules.map((module) => module.microTitle || LABELS[module.type]).join(" · ") : "Noch keine Elemente"}
+                {p.modules.length > 0 ? p.modules.map((module) => module.microTitle || labels[module.type]).join(" · ") : t.presets.builder.noElements}
               </div>
             </div>
-            <span className="mono shrink-0 text-[11px] tracking-widest text-black/35">{p.modules.length} Elemente</span>
+            <span className="mono shrink-0 text-[11px] tracking-widest text-black/35">{interpolate(t.presets.builder.elementsCount, { count: p.modules.length })}</span>
             <span aria-hidden className="shrink-0 text-black/30">→</span>
           </button>
         ))}
@@ -273,7 +271,7 @@ export function PresetBuilder() {
       {deletedPresets.length > 0 && (
         <section className="mt-5 border-t border-black/10 pt-4">
           <button type="button" onClick={() => setDeletedOpen((open) => !open)} className="flex w-full items-center justify-between py-2 text-left text-[13px] text-black/50 transition-colors hover:text-black">
-            <span>Zuletzt gelöscht</span>
+            <span>{t.presets.builder.recentlyDeleted}</span>
             <span className="mono text-[10px] tracking-widest">{deletedPresets.length} {deletedOpen ? "↑" : "↓"}</span>
           </button>
           <AnimatePresence initial={false}>
@@ -286,9 +284,9 @@ export function PresetBuilder() {
                       <div key={preset.id} className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.025] px-4 py-3">
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[14px] text-black/65">{preset.name}</div>
-                          <div className="mt-0.5 text-[11px] text-black/35">Noch {remaining} Tage wiederherstellbar</div>
+                          <div className="mt-0.5 text-[11px] text-black/35">{interpolate(t.presets.builder.recoverableDays, { count: remaining })}</div>
                         </div>
-                        <button type="button" onClick={() => restorePreset(preset.id)} className="rounded-full border border-black/15 px-3 py-1.5 text-[12px] text-black/55 transition-colors hover:border-black/35 hover:text-black">Wiederherstellen</button>
+                        <button type="button" onClick={() => restorePreset(preset.id)} className="rounded-full border border-black/15 px-3 py-1.5 text-[12px] text-black/55 transition-colors hover:border-black/35 hover:text-black">{t.presets.builder.restore}</button>
                       </div>
                     );
                   })}
@@ -300,36 +298,36 @@ export function PresetBuilder() {
       )}
 
       {/* Compact editor pop-up */}
-      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title="Preset bearbeiten" maxWidth={820}>
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) finish(); }} title={t.presets.builder.editPreset} maxWidth={820}>
         {editing && (
           <div className="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-2xl border border-black/12 bg-white shadow-2xl sm:max-h-[88vh]">
             <div className="flex shrink-0 items-center gap-3 border-b border-black/10 px-4 py-3 sm:px-6">
               <button
                 type="button"
                 onClick={finish}
-                aria-label="Schließen"
+                aria-label={t.common.close}
                 className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/12 text-[16px] leading-none text-black/50 transition-colors hover:border-black/30 hover:text-black"
               >
                 ×
               </button>
-              <span className="mono text-[10px] uppercase tracking-widest text-black/40">Preset bearbeiten</span>
+              <span className="mono text-[10px] uppercase tracking-widest text-black/40">{t.presets.builder.editPreset}</span>
             </div>
             <div className="flex-1 overflow-y-auto">
             <div className="space-y-5 p-4 sm:p-6">
               <div className="max-w-md">
                 <label className="block">
-                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">Name</span>
-                  <input value={editing.name} onChange={(e) => patch(editing.id, { name: e.target.value })} placeholder="z. B. Hochzeit" maxLength={120} className={`${field} mt-1.5`} />
+                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">{t.presets.builder.name}</span>
+                  <input value={editing.name} onChange={(e) => patch(editing.id, { name: e.target.value })} placeholder={t.presets.builder.namePlaceholder} maxLength={120} className={`${field} mt-1.5`} />
                 </label>
               </div>
 
               {/* Elements */}
               <div>
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="mono text-[10px] uppercase tracking-widest text-black/40">Elemente auswählen</div>
+                  <div className="mono text-[10px] uppercase tracking-widest text-black/40">{t.presets.builder.chooseElements}</div>
                   {editing.modules.length > 0 && (
                     <button type="button" onClick={() => setPickerOpen((open) => !open)} className="rounded-full border border-black/12 px-3 py-1.5 text-[12px] text-black/55 transition-colors hover:border-black/30 hover:text-black">
-                      {pickerOpen ? "Auswahl schließen" : "+ Element"}
+                      {pickerOpen ? t.presets.builder.closeSelection : t.presets.builder.addElement}
                     </button>
                   )}
                 </div>
@@ -347,16 +345,16 @@ export function PresetBuilder() {
                           <input
                             value={elementQuery}
                             onChange={(event) => setElementQuery(event.target.value)}
-                            placeholder="Element suchen"
+                            placeholder={t.presets.builder.searchElement}
                             className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-[13px] outline-none placeholder:text-black/30 focus:border-black/30"
                           />
                         </div>
                         <div className="max-h-[190px] overflow-y-auto overscroll-contain sm:max-h-[220px]">
                         {widgetPickerGroups().map((group, groupIndex) => {
-                          const query = elementQuery.trim().toLocaleLowerCase("de");
+                          const query = elementQuery.trim().toLocaleLowerCase(locale);
                           const available = group.filter((type) => PRESET_ELEMENT_TYPES.includes(type)
                             && !editing.modules.some((module) => module.type === type)
-                            && (!query || LABELS[type].toLocaleLowerCase("de").includes(query)));
+                            && (!query || labels[type].toLocaleLowerCase(locale).includes(query)));
                           if (available.length === 0) return null;
                           return (
                             <div key={groupIndex} className="grid grid-cols-2 gap-1 border-b border-black/8 p-1.5 last:border-b-0 sm:grid-cols-3">
@@ -370,7 +368,7 @@ export function PresetBuilder() {
                                   className="flex min-h-10 min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] text-black/68"
                                 >
                                   <span className="mono w-5 shrink-0 text-center text-[11px] text-black/42">{widgetPickerSymbolFor(type)}</span>
-                                  <span className="truncate">{LABELS[type]}</span>
+                                  <span className="truncate">{labels[type]}</span>
                                 </motion.button>
                               ))}
                             </div>
@@ -395,9 +393,9 @@ export function PresetBuilder() {
                       >
                         <button type="button" onClick={() => setActiveElementIndex(i)} className="inline-flex min-w-0 items-center gap-1.5">
                           <span className="mono text-[10px] opacity-65">{widgetPickerSymbolFor(m.type)}</span>
-                          <span>{m.microTitle || LABELS[m.type]}</span>
+                          <span>{m.microTitle || labels[m.type]}</span>
                         </button>
-                        <button type="button" onClick={() => removeElement(i)} aria-label="Entfernen" className="grid h-5 w-5 place-items-center rounded-full text-[13px] leading-none opacity-55 hover:bg-white/10 hover:opacity-100">×</button>
+                        <button type="button" onClick={() => removeElement(i)} aria-label={t.common.remove} className="grid h-5 w-5 place-items-center rounded-full text-[13px] leading-none opacity-55 hover:bg-white/10 hover:opacity-100">×</button>
                       </span>
                     ))}
                   </div>
@@ -405,7 +403,7 @@ export function PresetBuilder() {
               </div>
 
               <div>
-                <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Element-Vorschau</div>
+                <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">{t.presets.builder.elementPreview}</div>
                 {activeModule ? (
                   <PresetModulePreview
                     presetId={editing.id}
@@ -415,10 +413,13 @@ export function PresetBuilder() {
                     onChange={(module) => setElement(activeElementIndex, module)}
                     onStateChange={(templateState) => patch(editing.id, { templateState })}
                     onIngest={(entry) => ingestStateEntry(editing.id, entry)}
+                    labels={labels}
+                    previewTitle={t.presets.builder.previewTitle}
+                    language={locale}
                   />
                 ) : (
                   <div className="rounded-2xl border border-dashed border-black/12 bg-black/[0.03] px-4 py-8 text-center text-[13px] text-black/40">
-                    Wähle links ein Element aus, um es für dieses Preset vorzukonfigurieren.
+                    {t.presets.builder.chooseElementHint}
                   </div>
                 )}
               </div>
@@ -426,15 +427,15 @@ export function PresetBuilder() {
               {/* Prompt rules */}
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">Prompt-Regeln</span>
-                  <button type="button" onClick={addPrompt} className="mono text-[11px] tracking-widest text-black/45 hover:text-[#17171a]">+ Regel</button>
+                  <span className="mono text-[10px] uppercase tracking-widest text-black/40">{t.presets.builder.promptRules}</span>
+                  <button type="button" onClick={addPrompt} className="mono text-[11px] tracking-widest text-black/45 hover:text-[#17171a]">{t.presets.builder.addRule}</button>
                 </div>
                 <div className="space-y-2">
-                  {editing.promptInjections.length === 0 && <p className="text-[12px] text-black/30">Keine Regeln.</p>}
+                  {editing.promptInjections.length === 0 && <p className="text-[12px] text-black/30">{t.presets.builder.noRules}</p>}
                   {editing.promptInjections.map((p, i) => (
                     <div key={i} className="group flex items-start gap-2">
-                      <textarea value={p} onChange={(e) => setPrompt(i, e.target.value)} rows={2} placeholder="Regel, die beim Erstellen in den Prompt geht." className={`${field} resize-none leading-relaxed`} />
-                      <button type="button" onClick={() => removePrompt(i)} aria-label="Entfernen" className="mt-2 text-black/30 transition-colors hover:text-[#17171a]">×</button>
+                      <textarea value={p} onChange={(e) => setPrompt(i, e.target.value)} rows={2} placeholder={t.presets.builder.rulePlaceholder} className={`${field} resize-none leading-relaxed`} />
+                      <button type="button" onClick={() => removePrompt(i)} aria-label={t.common.remove} className="mt-2 text-black/30 transition-colors hover:text-[#17171a]">×</button>
                     </div>
                   ))}
                 </div>
@@ -442,8 +443,8 @@ export function PresetBuilder() {
 
               <button type="button" onClick={() => patch(editing.id, { allowContextModules: editing.allowContextModules === false })} className="flex w-full items-center justify-between gap-4 border-t border-black/10 pt-5 text-left">
                 <span>
-                  <span className="block text-[14px] text-black/85">Passende Elemente automatisch ergänzen</span>
-                  <span className="mt-0.5 block text-[12px] leading-snug text-black/40">MAGYC darf den Projektkontext berücksichtigen.</span>
+                  <span className="block text-[14px] text-black/85">{t.presets.builder.allowContextTitle}</span>
+                  <span className="mt-0.5 block text-[12px] leading-snug text-black/40">{t.presets.builder.allowContextHint}</span>
                 </span>
                 <span aria-hidden className="relative h-6 w-11 shrink-0 rounded-full transition-colors" style={{ background: editing.allowContextModules !== false ? "var(--studio-ink)" : "var(--studio-rule)" }}>
                   <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform" style={{ left: 2, transform: editing.allowContextModules !== false ? "translateX(20px)" : "none" }} />
@@ -454,10 +455,10 @@ export function PresetBuilder() {
 
             <div className="flex shrink-0 items-center justify-between gap-3 border-t border-black/10 bg-black/[0.03] px-5 py-3.5 sm:px-6">
               <button type="button" onClick={() => deletePreset(editing.id)} className="rounded-full border border-black/12 px-3.5 py-2 text-[13px] text-black/45 transition-colors hover:border-red-300/40 hover:text-red-200">
-                Löschen
+                {t.common.delete}
               </button>
               <button type="button" onClick={finish} className="rounded-full bg-[#17171a] px-5 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90">
-                Fertig
+                {t.presets.builder.done}
               </button>
             </div>
           </div>
@@ -467,10 +468,6 @@ export function PresetBuilder() {
   );
 }
 
-const PREVIEW_LABELS: SpaceLabels = {
-  widgetLabels: Object.fromEntries(Object.entries(LABELS)),
-};
-
 function PresetModulePreview({
   presetId,
   module,
@@ -479,6 +476,9 @@ function PresetModulePreview({
   onChange,
   onStateChange,
   onIngest,
+  labels,
+  previewTitle,
+  language,
 }: {
   presetId: string;
   module: Module;
@@ -487,7 +487,11 @@ function PresetModulePreview({
   onChange: (module: Module) => void;
   onStateChange: (entries: PresetStateEntry[]) => void;
   onIngest: (entry: PresetStateEntry) => void;
+  labels: Record<ModuleType, string>;
+  previewTitle: string;
+  language: "de" | "en";
 }) {
+  const previewLabels: SpaceLabels = { widgetLabels: Object.fromEntries(Object.entries(labels)) };
   const previewState = presetStateForPreview(presetId, templateState, index);
   return (
     <div
@@ -511,9 +515,9 @@ function PresetModulePreview({
         value={{
           mode: "preset",
           spaceId: `preset:${presetId}`,
-          title: "Preset",
-          language: "de",
-          labels: PREVIEW_LABELS,
+          title: previewTitle,
+          language,
+          labels: previewLabels,
           isOwner: true,
           ownerToken: null,
           refresh: () => {},

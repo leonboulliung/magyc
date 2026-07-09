@@ -4,6 +4,7 @@ import { ensureProfile } from "@/lib/server/profile";
 import { fetchStudioProjectSummaries } from "@/lib/server/studioDashboard";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { StudioHome, type StudioProjectCard } from "@/components/studio/StudioHome";
+import { getServerI18n } from "@/lib/i18n/server";
 
 // Projects are mutable; never serve a stale dashboard from the data cache.
 export const dynamic = "force-dynamic";
@@ -68,19 +69,20 @@ export default async function StudioDashboard() {
   return <StudioHome projects={projects} archived={archived} deleted={deleted} />;
 }
 
-function StudioDataUnavailable() {
+async function StudioDataUnavailable() {
+  const { t } = await getServerI18n();
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-6xl items-center px-4 py-16 sm:px-8">
       <div className="max-w-xl">
-        <h1 className="text-3xl font-semibold">Deine Projekte konnten gerade nicht geladen werden.</h1>
+        <h1 className="text-3xl font-semibold">{t.messages.projectsLoadFailed}</h1>
         <p className="mt-4 max-w-lg text-[15px] leading-relaxed opacity-60">
-          Deine Daten bleiben erhalten. Bitte lade die Seite in einem Moment erneut.
+          {t.messages.projectsLoadFailedBody}
         </p>
         <a
           href="/studio"
           className="mt-7 inline-flex min-h-10 items-center rounded-full border border-current/20 px-5 text-sm font-medium transition-opacity hover:opacity-65"
         >
-          Erneut laden
+          {t.messages.reload}
         </a>
       </div>
     </main>

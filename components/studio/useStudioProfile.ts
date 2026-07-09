@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { readApiJson, showApiError, showUnknownError } from "@/lib/client/feedback";
 import { cleanProfile, type StudioProfile } from "@/lib/studioProfile";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 export type SaveStatus = "loading" | "saving" | "saved" | "error";
 
@@ -12,6 +13,7 @@ export type SaveStatus = "loading" | "saving" | "saved" | "error";
  * record with identical save semantics.
  */
 export function useStudioProfile() {
+  const t = useT();
   const [profile, setProfile] = useState<StudioProfile | null>(null);
   const [status, setStatus] = useState<SaveStatus>("loading");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -30,8 +32,8 @@ export function useStudioProfile() {
       } catch (error) {
         if (!cancelled) {
           setStatus("error");
-          showUnknownError("Profil nicht geladen", error, {
-            fallback: "Bitte später erneut versuchen.",
+          showUnknownError(t.messages.profileNotLoaded, error, {
+            fallback: t.messages.tryLater,
           });
         }
       }
@@ -40,7 +42,7 @@ export function useStudioProfile() {
       cancelled = true;
       if (timer.current) clearTimeout(timer.current);
     };
-  }, []);
+  }, [t.messages.profileNotLoaded, t.messages.tryLater]);
 
   const persist = useCallback(async (next: StudioProfile) => {
     setStatus("saving");
@@ -60,15 +62,15 @@ export function useStudioProfile() {
       const json = await readApiJson(res);
       if (!res.ok) {
         setStatus("error");
-        showApiError("Nicht gespeichert", json, { fallback: "Die Änderung konnte nicht gespeichert werden." });
+        showApiError(t.messages.notSaved, json, { fallback: t.messages.changeSaveFailed });
         return;
       }
       setStatus("saved");
     } catch (error) {
       setStatus("error");
-      showUnknownError("Nicht gespeichert", error, { fallback: "Die Änderung konnte nicht gespeichert werden." });
+      showUnknownError(t.messages.notSaved, error, { fallback: t.messages.changeSaveFailed });
     }
-  }, []);
+  }, [t.messages.changeSaveFailed, t.messages.notSaved]);
 
   const update = useCallback((patch: Partial<StudioProfile>) => {
     setProfile((prev) => {

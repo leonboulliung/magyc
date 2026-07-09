@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 import { useStudioProfile } from "@/components/studio/useStudioProfile";
 import { Popover } from "@/components/ui/Popover";
 import { FAST_PROMPT_COLORS, type FastPrompt } from "@/lib/studioProfile";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * Schnellbausteine — its own page. Reusable click-to-insert snippets that appear
@@ -12,6 +13,7 @@ import { FAST_PROMPT_COLORS, type FastPrompt } from "@/lib/studioProfile";
  * quick scanning. Stored in settings.fastPrompts (autosaved).
  */
 export default function FastPromptsPage() {
+  const t = useT();
   const { profile, status, update } = useStudioProfile();
   const [input, setInput] = useState("");
   const [color, setColor] = useState<string | undefined>(undefined);
@@ -40,16 +42,14 @@ export default function FastPromptsPage() {
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Schnellbausteine</h1>
+          <h1 className="font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">{t.studio.fastPromptsPage.title}</h1>
         </div>
         <span className="mono mt-2 text-[11px] tracking-widest text-black/35">
-          {status === "loading" ? "Lädt …" : status === "saving" ? "Speichert …" : status === "error" ? "Nicht gespeichert" : "✓ Gespeichert"}
+          {status === "loading" ? t.studio.saveStatusLoading : status === "saving" ? t.studio.saveStatusSaving : status === "error" ? t.studio.saveStatusError : t.studio.saveStatusSaved}
         </span>
       </div>
       <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">
-        Wiederkehrende Textbausteine, die beim Anlegen unter dem Prompt-Feld erscheinen
-        und sich per Klick einfügen lassen — z. B. „Deliverables für Web, Social Media und Print vorbereiten".
-        Optional einfärbbar.
+        {t.studio.fastPromptsPage.intro}
       </p>
 
       {!settings ? (
@@ -58,7 +58,7 @@ export default function FastPromptsPage() {
         <section className="mt-8 rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
           <div className="space-y-2">
             {settings.fastPrompts.length === 0 && (
-              <p className="text-[13px] text-black/35">Noch keine Schnellbausteine.</p>
+              <p className="text-[13px] text-black/35">{t.studio.fastPromptsPage.empty}</p>
             )}
             {settings.fastPrompts.map((fp, i) => (
               <div
@@ -69,7 +69,7 @@ export default function FastPromptsPage() {
                 <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: fp.color ?? "rgba(0,0,0,0.28)" }} />
                 <span className="flex-1 text-[14px] leading-snug text-black/85">{fp.text}</span>
                 <ColorSelect value={fp.color} onPick={(c) => recolor(i, c)} />
-                <button type="button" onClick={() => remove(i)} aria-label="Entfernen" className="text-black/30 opacity-0 transition-opacity hover:text-[#17171a] group-hover:opacity-100">×</button>
+                <button type="button" onClick={() => remove(i)} aria-label={t.common.remove} className="text-black/30 opacity-0 transition-opacity hover:text-[#17171a] group-hover:opacity-100">×</button>
               </div>
             ))}
           </div>
@@ -78,13 +78,13 @@ export default function FastPromptsPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-              placeholder="Baustein hinzufügen + Enter"
+              placeholder={t.studio.fastPromptsPage.addPlaceholder}
               maxLength={200}
               className="min-w-[180px] flex-1 rounded-xl border border-black/12 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 focus:border-black/35"
             />
             <ColorSelect value={color} onPick={setColor} showLabel />
             <button type="button" onClick={add} disabled={!input.trim()} className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40">
-              Hinzufügen
+              {t.common.add}
             </button>
           </div>
         </section>
@@ -103,6 +103,7 @@ function ColorSelect({
   onPick: (c: string | undefined) => void;
   showLabel?: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const choose = (next: string | undefined) => {
     onPick(next);
@@ -125,13 +126,13 @@ function ColorSelect({
         <button
           type="button"
           className={`inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-black/12 bg-white text-[12px] text-black/55 transition-colors hover:border-black/25 hover:text-black ${showLabel ? "px-3" : "w-9"}`}
-          aria-label="Farbe auswählen"
+          aria-label={t.studio.fastPromptsPage.colorAria}
         >
           <span
             className="h-3.5 w-3.5 rounded-full border border-black/15"
             style={{ background: value ?? "transparent" }}
           />
-          {showLabel && <span>{value ? "Farbe" : "Keine Farbe"}</span>}
+          {showLabel && <span>{value ? t.studio.fastPromptsPage.color : t.studio.fastPromptsPage.noColor}</span>}
           {showLabel && <Icon icon="lucide:chevron-down" className="h-3.5 w-3.5" />}
         </button>
       }
@@ -145,7 +146,7 @@ function ColorSelect({
           <span className="grid h-5 w-5 place-items-center rounded-full border border-black/20 bg-white">
             <Icon icon="lucide:minus" className="h-3 w-3 text-black/40" />
           </span>
-          Keine Farbe
+          {t.studio.fastPromptsPage.noColor}
         </button>
         <div className="mt-1 grid grid-cols-4 gap-1 p-1">
           {FAST_PROMPT_COLORS.map((c) => (
@@ -153,7 +154,7 @@ function ColorSelect({
               key={c}
               type="button"
               onClick={() => choose(c)}
-              aria-label={`Farbe ${c}`}
+              aria-label={t.studio.fastPromptsPage.colorLabel.replace("{color}", c)}
               className="grid h-10 place-items-center rounded-xl transition-colors hover:bg-black/[0.04]"
             >
               <span

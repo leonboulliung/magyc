@@ -8,6 +8,7 @@ import { useIsMobile } from "@/lib/hooks";
 import { withOwnerToken } from "@/lib/client/errors";
 import { readApiJson, showApiError, showUnknownError } from "@/lib/client/feedback";
 import { MobileSheet } from "./ui/MobileSheet";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * StyleEditor — owner-only popover to edit the few style controls that
@@ -33,6 +34,7 @@ export function StyleEditor({
   /** Called after a successful persist. */
   onSaved?: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<SpaceStyle>(style);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,8 +65,8 @@ export function StyleEditor({
         onPreview(lastSavedRef.current);
         setDraft(lastSavedRef.current);
         draftRef.current = lastSavedRef.current;
-        showApiError("Design nicht gespeichert", json, {
-          fallback: "Die Design-Änderung konnte nicht gespeichert werden.",
+        showApiError(t.messages.designNotSaved, json, {
+          fallback: t.messages.designSaveFailed,
         });
         return false;
       }
@@ -77,12 +79,12 @@ export function StyleEditor({
       onPreview(lastSavedRef.current);
       setDraft(lastSavedRef.current);
       draftRef.current = lastSavedRef.current;
-      showUnknownError("Design nicht gespeichert", error, {
-        fallback: "Die Design-Änderung konnte nicht gespeichert werden.",
+      showUnknownError(t.messages.designNotSaved, error, {
+        fallback: t.messages.designSaveFailed,
       });
       return false;
     }
-  }, [onPreview, onSaved, ownerToken, spaceId]);
+  }, [onPreview, onSaved, ownerToken, spaceId, t.messages.designNotSaved, t.messages.designSaveFailed]);
 
   const flushPending = useCallback((immediate = false) => {
     if (saveTimer.current) {

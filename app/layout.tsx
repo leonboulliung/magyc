@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import { AppToaster } from "@/components/AppToaster";
 import { LocaleProvider } from "@/components/i18n/LocaleProvider";
 import { getServerLocale } from "@/lib/i18n/server";
+import { de } from "@/lib/i18n/dictionaries/de";
 import "./globals.css";
 
 const clerkAppearance = {
@@ -25,7 +26,7 @@ const clerkAppearance = {
 
 export const metadata: Metadata = {
   title: "MAGYC",
-  description: "Fotografie-Aufträge gemeinsam planen, abstimmen, vertraglich festhalten und professionell abschließen.",
+  description: de.messages.appDescription,
   icons: {
     icon: [{ url: "/magyc-favicon.png", type: "image/png" }],
     apple: [{ url: "/magyc-favicon.png" }],

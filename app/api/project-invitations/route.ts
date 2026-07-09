@@ -4,6 +4,7 @@ import { z } from "zod";
 import { parseBody } from "@/lib/api/validate";
 import { ensureProfile } from "@/lib/server/profile";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { de } from "@/lib/i18n/dictionaries/de";
 
 function invitationsUnavailable(error: unknown): boolean {
   const value = error as { code?: string; message?: string } | null;
@@ -64,9 +65,9 @@ export async function GET() {
     invitations: rows.map((row) => ({
       id: row.id,
       spaceId: row.space_id,
-      projectTitle: spaceById.get(String(row.space_id))?.title || "Unbenanntes Projekt",
+      projectTitle: spaceById.get(String(row.space_id))?.title || de.invitations.untitledProject,
       role: row.role,
-      invitedBy: inviterById.get(String(row.invited_by))?.display_name || "Fotostudio",
+      invitedBy: inviterById.get(String(row.invited_by))?.display_name || de.apiCopy.studioFallback,
       expiresAt: row.expires_at,
       createdAt: row.created_at,
     })),

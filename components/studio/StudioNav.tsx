@@ -4,32 +4,40 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useT } from "@/components/i18n/LocaleProvider";
+import type { Dictionary } from "@/lib/i18n";
 
-const ITEMS = [
-  { href: "/studio", label: "Studio" },
-  { href: "/studio/presets", label: "Presets" },
-  { href: "/studio/fast-prompts", label: "Schnellbausteine" },
-  { href: "/studio/vertragsinhalte", label: "Vertragsinhalte" },
-  { href: "/studio/konnektoren", label: "Konnektoren" },
-  { href: "/studio/users", label: "Nutzer" },
-  { href: "/studio/konto", label: "Konto" },
-] as const;
+const ITEM_HREFS = ["/studio", "/studio/presets", "/studio/fast-prompts", "/studio/vertragsinhalte", "/studio/konnektoren", "/studio/users", "/studio/konto"] as const;
+
+function itemsFor(t: Dictionary) {
+  return [
+    { href: ITEM_HREFS[0], label: t.studio.navStudio },
+    { href: ITEM_HREFS[1], label: t.studio.navPresets },
+    { href: ITEM_HREFS[2], label: t.studio.navFastPrompts },
+    { href: ITEM_HREFS[3], label: t.studio.navContractContent },
+    { href: ITEM_HREFS[4], label: t.studio.navConnectors },
+    { href: ITEM_HREFS[5], label: t.studio.navUsers },
+    { href: ITEM_HREFS[6], label: t.studio.navAccount },
+  ];
+}
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/studio" ? pathname === "/studio" : pathname.startsWith(href);
 }
 
 export function StudioNav() {
+  const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const reducedMotion = useReducedMotion();
-  const current = ITEMS.find((i) => isActive(pathname, i.href)) ?? ITEMS[0];
+  const items = itemsFor(t);
+  const current = items.find((i) => isActive(pathname, i.href)) ?? items[0];
 
   return (
     <>
       {/* Desktop: horizontal */}
       <nav className="hidden min-w-0 items-center gap-1 lg:flex">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
@@ -57,7 +65,7 @@ export function StudioNav() {
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          aria-label="Menü"
+          aria-label={t.studio.menu}
           aria-expanded={open}
           className="flex items-center gap-1.5 rounded-full border border-black/12 bg-black/[0.04] px-3.5 py-1.5 text-[13px] text-black"
         >
@@ -77,7 +85,7 @@ export function StudioNav() {
               className="absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 py-1.5 shadow-xl"
               style={{ background: "var(--studio-surface)" }}
             >
-              {ITEMS.map((item) => {
+              {items.map((item) => {
                 const active = isActive(pathname, item.href);
                 return (
                   <Link

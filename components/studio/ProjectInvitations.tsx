@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { readApiJson, showApiError, showActionSuccess, showUnknownError } from "@/lib/client/feedback";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 interface ProjectInvitation {
   id: string;
@@ -15,6 +16,7 @@ interface ProjectInvitation {
 }
 
 export function ProjectInvitations() {
+  const t = useT();
   const router = useRouter();
   const [invitations, setInvitations] = useState<ProjectInvitation[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -43,14 +45,14 @@ export function ProjectInvitations() {
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        showApiError("Einladung nicht beantwortet", json);
+        showApiError(t.invitations.notAnswered, json);
         return;
       }
       setInvitations((current) => current.filter((item) => item.id !== invitation.id));
-      showActionSuccess(action === "accept" ? "Projektzugang angenommen" : "Einladung abgelehnt");
+      showActionSuccess(action === "accept" ? t.invitations.accepted : t.invitations.declined);
       if (action === "accept") router.refresh();
     } catch (error) {
-      showUnknownError("Einladung nicht beantwortet", error);
+      showUnknownError(t.invitations.notAnswered, error);
     } finally {
       setBusyId(null);
     }
@@ -62,7 +64,7 @@ export function ProjectInvitations() {
     <section className="mb-8 overflow-hidden rounded-2xl border border-black/10 bg-white">
       <div className="flex items-center gap-2 border-b border-black/10 px-4 py-3">
         <Icon icon="lucide:mail" className="h-4 w-4 text-black/45" />
-        <p className="text-[13px] font-medium text-[#17171a]">Projekt-Einladungen</p>
+        <p className="text-[13px] font-medium text-[#17171a]">{t.invitations.title}</p>
         <span className="mono ml-auto text-[10px] text-black/35">{invitations.length}</span>
       </div>
       <div className="divide-y divide-black/[0.07]">
@@ -71,7 +73,9 @@ export function ProjectInvitations() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-[14px] font-medium text-[#17171a]">{invitation.projectTitle}</p>
               <p className="mt-0.5 text-[12px] text-black/45">
-                {invitation.invitedBy} lädt dich {invitation.role === "editor" ? "als Teammitglied" : "als Kund:in"} ein.
+                {t.invitations.invitedAs
+                  .replace("{name}", invitation.invitedBy)
+                  .replace("{role}", invitation.role === "editor" ? t.invitations.asEditor : t.invitations.asClient)}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -81,7 +85,7 @@ export function ProjectInvitations() {
                 disabled={busyId === invitation.id}
                 className="rounded-full px-3.5 py-2 text-[12px] text-black/50 transition-colors hover:bg-black/[0.04] hover:text-black disabled:opacity-40"
               >
-                Ablehnen
+                {t.invitations.decline}
               </button>
               <button
                 type="button"
@@ -89,7 +93,7 @@ export function ProjectInvitations() {
                 disabled={busyId === invitation.id}
                 className="rounded-full bg-[#17171a] px-4 py-2 text-[12px] font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-40"
               >
-                Annehmen
+                {t.invitations.accept}
               </button>
             </div>
           </div>
@@ -98,4 +102,3 @@ export function ProjectInvitations() {
     </section>
   );
 }
-

@@ -40,6 +40,7 @@ import { StyleEditor } from "@/components/StyleEditor";
 import { DotField } from "@/components/DotField";
 import { RenderBoundary } from "@/components/ui/RenderBoundary";
 import { SupportWidget } from "@/components/support/SupportWidget";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 interface SpaceNotice {
   tone: "saving" | "success" | "error";
@@ -84,6 +85,7 @@ export function SpaceView({
   themeMode?: "dark" | "light";
   syncDocumentTheme?: boolean;
 }) {
+  const t = useT();
   const { user } = useUser();
 
   // Bridge the signed-in identity into the plain-function state layer so
@@ -277,13 +279,13 @@ export function SpaceView({
           tone: "error",
           message: error instanceof Error ? error.message : options?.errorMessage ?? "save_failed",
         }, 3600);
-        showActionError("Änderung nicht gespeichert", {
+        showActionError(t.messages.changeNotSaved, {
           description: error instanceof Error ? error.message : options?.errorMessage ?? "save_failed",
         });
         return false;
       }
     },
-    [announce, broadcastConfigChange, ownerToken, patchModule, space?.id, modulesRev],
+    [announce, broadcastConfigChange, ownerToken, patchModule, space?.id, modulesRev, t.messages.changeNotSaved],
   );
 
   // Lazy external-reference hydration. Creation stores Wikipedia widgets
@@ -377,7 +379,7 @@ export function SpaceView({
     async (moduleIndex: number, kind: ModuleStateKind, data: Record<string, unknown>) => {
       if (!space?.id) return false;
       if (space.stage === "production" || space.stage === "handoff") {
-        showActionError("Projekt im Vertrag", { description: "Die Projektseite ist gesperrt — Änderungen sind nicht mehr möglich." });
+        showActionError(t.messages.projectLockedTitle, { description: t.messages.projectLockedDescription });
         return false;
       }
       const snapshot = liveStateRef.current;
@@ -391,7 +393,7 @@ export function SpaceView({
       const result = await postState(space.id, moduleIndex, kind, data);
       if (!result.ok) {
         setLiveState(snapshot); // targeted rollback — no refetch
-        showActionError("Änderung nicht gespeichert", {
+        showActionError(t.messages.changeNotSaved, {
           description: apiErrorMessage(result.error),
         });
       } else {
@@ -399,7 +401,7 @@ export function SpaceView({
       }
       return result.ok;
     },
-    [broadcastStateChange, space?.id, user],
+    [broadcastStateChange, space?.id, t.messages.changeNotSaved, t.messages.projectLockedDescription, t.messages.projectLockedTitle, user],
   );
 
   // Direct uploads are committed by the upload endpoint rather than ctx.act.

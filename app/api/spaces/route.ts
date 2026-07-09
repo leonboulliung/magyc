@@ -13,6 +13,8 @@ import { parseBody } from "@/lib/api/validate";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { cleanSettings } from "@/lib/studioProfile";
 import { mergeSeededModules, workflowRules } from "@/lib/createPipeline";
+import { getDictionary } from "@/lib/i18n";
+import { normalizeLocale } from "@/lib/i18n/locale";
 
 // The v5 classifier makes two sequential gpt-4o-mini calls (analyze +
 // author) plus a Wikipedia hydration pass. Give the function headroom
@@ -96,10 +98,6 @@ export async function POST(req: Request) {
     ? body.presetPromptInjections.map(promptRule).filter(Boolean).slice(0, 6)
     : [];
   const seededModules: Module[] = mergeSeededModules(presetModules, configuredModules);
-  const rules = workflowRules(
-    presetName ? [`Gewählter Workflow: ${presetName}.`] : [],
-    presetPromptInjections,
-  );
 
   const anonToken = typeof body.anonToken === "string" && body.anonToken.length >= 16
     ? body.anonToken.slice(0, 64)
@@ -144,6 +142,11 @@ export async function POST(req: Request) {
       // Keep the safe public default if profile storage is temporarily absent.
     }
   }
+  const t = getDictionary(normalizeLocale(language));
+  const rules = workflowRules(
+    presetName ? [t.apiCopy.selectedWorkflow.replace("{name}", presetName)] : [],
+    presetPromptInjections,
+  );
 
   let result;
   const aiStarted = Date.now();

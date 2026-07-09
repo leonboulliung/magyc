@@ -3,10 +3,15 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReverification, useUser } from "@clerk/nextjs";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { useStudioProfile } from "@/components/studio/useStudioProfile";
 import { LANGUAGE_OPTIONS } from "@/lib/studioProfile";
 import { PageHeader, Card, Field, Input, Textarea, TagEditor, Segmented, Select, Toggle } from "@/components/studio/formKit";
 import { showActionError, showActionSuccess, showUnknownError } from "@/lib/client/feedback";
+
+function interpolate(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+}
 
 /**
  * Konto — the account holder's own page: identity (name, headline, bio,
@@ -16,6 +21,7 @@ import { showActionError, showActionSuccess, showUnknownError } from "@/lib/clie
  * useStudioProfile.
  */
 export default function StudioKontoPage() {
+  const t = useT();
   const router = useRouter();
   const { profile, status, update } = useStudioProfile();
   const { user } = useUser();
@@ -45,7 +51,7 @@ export default function StudioKontoPage() {
   async function uploadAvatar(file: File | null) {
     if (!file || !user || avatarBusy) return;
     if (!file.type.startsWith("image/")) {
-      showActionError("Profilbild nicht geändert", { description: "Bitte wähle eine Bilddatei aus." });
+      showActionError(t.studio.account.imageNotChanged, { description: t.studio.account.chooseImageFile });
       return;
     }
     setAvatarBusy(true);
@@ -53,9 +59,9 @@ export default function StudioKontoPage() {
       await user.setProfileImage({ file });
       await user.reload();
       update({ avatarUrl: user.imageUrl || null });
-      showActionSuccess("Profilbild aktualisiert");
+      showActionSuccess(t.studio.account.avatarUpdated);
     } catch (error) {
-      showUnknownError("Profilbild nicht geändert", error, { fallback: "Bitte erneut versuchen." });
+      showUnknownError(t.studio.account.imageNotChanged, error, { fallback: t.studio.account.tryAgain });
     } finally {
       setAvatarBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -66,7 +72,7 @@ export default function StudioKontoPage() {
     const nextEmail = email.trim().toLowerCase();
     if (!user || !nextEmail || emailBusy) return;
     if (user.emailAddresses.some((item) => item.emailAddress.toLowerCase() === nextEmail)) {
-      showActionError("E-Mail-Adresse nicht geändert", { description: "Diese Adresse gehört bereits zu deinem Account." });
+      showActionError(t.studio.account.emailNotChanged, { description: t.studio.account.emailAlreadyAdded });
       return;
     }
     setEmailBusy(true);
@@ -75,9 +81,9 @@ export default function StudioKontoPage() {
       await created.prepareVerification({ strategy: "email_code" });
       setPendingEmailId(created.id);
       setEmailCode("");
-      showActionSuccess("Bestätigungscode gesendet", { description: `Prüfe ${nextEmail}.` });
+      showActionSuccess(t.studio.account.codeSent, { description: interpolate(t.studio.account.checkEmail, { email: nextEmail }) });
     } catch (error) {
-      showUnknownError("E-Mail-Adresse nicht geändert", error, { fallback: "Clerk konnte die neue Adresse nicht vorbereiten." });
+      showUnknownError(t.studio.account.emailNotChanged, error, { fallback: t.studio.account.clerkEmailFailed });
     } finally {
       setEmailBusy(false);
     }
@@ -100,9 +106,9 @@ export default function StudioKontoPage() {
       setEmail("");
       setEmailCode("");
       setPendingEmailId(null);
-      showActionSuccess("E-Mail-Adresse aktualisiert");
+      showActionSuccess(t.studio.account.emailUpdated);
     } catch (error) {
-      showUnknownError("Code nicht bestätigt", error, { fallback: "Prüfe den Code und versuche es erneut." });
+      showUnknownError(t.studio.account.codeNotConfirmed, error, { fallback: t.studio.account.checkCode });
     } finally {
       setEmailBusy(false);
     }
@@ -124,10 +130,8 @@ export default function StudioKontoPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
-      <PageHeader eyebrow="Studio · Konto" title="Konto" status={status}>
-        Wer steht hinter dem Studio, und wie sollen neue Projekte standardmäßig
-        starten? Diese Angaben prägen deinen Auftritt und fließen als
-        Dienstleister-Identität in deine Verträge.
+      <PageHeader eyebrow={t.studio.account.eyebrow} title={t.studio.account.title} status={status}>
+        {t.studio.account.intro}
       </PageHeader>
 
       {!profile ? (
@@ -144,12 +148,12 @@ export default function StudioKontoPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  (profile.displayName || "S").slice(0, 1).toUpperCase()
+                  (profile.displayName || "M").slice(0, 1).toUpperCase()
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] leading-relaxed text-black/50">
-                  Dein Profilbild wird in deinem Konto gespeichert und hier für Kundenansicht, Team und Freigaben genutzt.
+                  {t.studio.account.avatarHint}
                 </p>
                 <div className="mt-3">
                   <input
@@ -165,19 +169,19 @@ export default function StudioKontoPage() {
                     disabled={avatarBusy}
                     className="rounded-full border border-black/15 px-3.5 py-2 text-[13px] text-black/70 transition-colors hover:border-black/35 hover:text-black disabled:opacity-40"
                   >
-                    {avatarBusy ? "Lädt …" : "Profilbild ändern"}
+                    {avatarBusy ? t.common.loading : t.studio.account.changeAvatar}
                   </button>
                 </div>
               </div>
             </div>
           </Card>
 
-          <Card title="Account-E-Mail" hint="Die neue Adresse wird erst nach einem Bestätigungscode als primär gesetzt.">
+          <Card title={t.studio.account.accountEmailTitle} hint={t.studio.account.accountEmailHint}>
             <div className="space-y-3">
               <div className="rounded-xl border border-black/10 bg-black/[0.02] px-3.5 py-2.5">
-                <span className="mono block text-[9px] uppercase tracking-widest text-black/35">Aktuell</span>
+                <span className="mono block text-[9px] uppercase tracking-widest text-black/35">{t.studio.account.current}</span>
                 <span className="mt-1 block text-[14px] text-black/75">
-                  {user?.primaryEmailAddress?.emailAddress || "Wird geladen …"}
+                  {user?.primaryEmailAddress?.emailAddress || t.studio.account.loadingEmail}
                 </span>
               </div>
               {!pendingEmailId ? (
@@ -187,7 +191,7 @@ export default function StudioKontoPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void beginEmailChange(); } }}
-                    placeholder="Neue E-Mail-Adresse"
+                    placeholder={t.studio.account.newEmailPlaceholder}
                     autoComplete="email"
                     className="min-w-0 flex-1 rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 focus:border-black/45"
                   />
@@ -197,13 +201,13 @@ export default function StudioKontoPage() {
                     disabled={emailBusy || !email.trim()}
                     className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-40"
                   >
-                    Code senden
+                    {t.studio.account.sendCode}
                   </button>
                 </div>
               ) : (
                 <div className="rounded-xl border border-black/10 p-3.5">
                   <p className="text-[13px] leading-relaxed text-black/55">
-                    Gib den Code ein, den Clerk an <span className="text-black/80">{email.trim()}</span> gesendet hat.
+                    {interpolate(t.studio.account.enterCode, { email: email.trim() })}
                   </p>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                     <input
@@ -212,7 +216,7 @@ export default function StudioKontoPage() {
                       onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void confirmEmailChange(); } }}
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      placeholder="Bestätigungscode"
+                      placeholder={t.studio.account.codePlaceholder}
                       maxLength={12}
                       className="min-w-0 flex-1 rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-[14px] text-[#17171a] outline-none placeholder:text-black/30 focus:border-black/45"
                     />
@@ -222,7 +226,7 @@ export default function StudioKontoPage() {
                       disabled={emailBusy || emailCode.trim().length < 4}
                       className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-40"
                     >
-                      Bestätigen
+                      {t.common.confirm}
                     </button>
                     <button
                       type="button"
@@ -230,7 +234,7 @@ export default function StudioKontoPage() {
                       disabled={emailBusy}
                       className="rounded-xl px-3 py-2.5 text-[13px] text-black/45 transition-colors hover:bg-black/[0.04] hover:text-black"
                     >
-                      Abbrechen
+                      {t.common.cancel}
                     </button>
                   </div>
                 </div>
@@ -240,51 +244,51 @@ export default function StudioKontoPage() {
 
           <Card>
             <div className="space-y-4">
-              <Field label="Anzeigename" hint="Name oder Studioname, der nach außen erscheint.">
+              <Field label={t.studio.account.displayName} hint={t.studio.account.displayNameHint}>
                 <Input
                   value={profile.displayName}
                   onChange={(e) => update({ displayName: e.target.value })}
-                  placeholder="z. B. Studio Lumen"
+                  placeholder={t.studio.account.displayNamePlaceholder}
                   maxLength={80}
                 />
               </Field>
-              <Field label="Headline" hint="Ein Satz, der dich beschreibt.">
+              <Field label={t.studio.account.headline} hint={t.studio.account.headlineHint}>
                 <Input
                   value={profile.headline}
                   onChange={(e) => update({ headline: e.target.value })}
-                  placeholder="z. B. Hochzeits- & Porträtfotografie in Köln"
+                  placeholder={t.studio.account.headlinePlaceholder}
                   maxLength={120}
                 />
               </Field>
-              <Field label="Über dich">
+              <Field label={t.studio.account.about}>
                 <Textarea
                   value={profile.bio}
                   onChange={(e) => update({ bio: e.target.value })}
                   rows={4}
-                  placeholder="Ein paar Sätze zu deiner Arbeit, deinem Stil, deinem Ansatz."
+                  placeholder={t.studio.account.aboutPlaceholder}
                   maxLength={600}
                 />
               </Field>
             </div>
           </Card>
 
-          <Card title="Schwerpunkte" hint="Womit arbeitest du? Per Enter hinzufügen.">
+          <Card title={t.studio.account.specialtiesTitle} hint={t.studio.account.specialtiesHint}>
             <TagEditor
               items={profile.specialties}
               onAdd={(v) => update({ specialties: [...profile.specialties, v].slice(0, 24) })}
               onRemove={(i) => update({ specialties: profile.specialties.filter((_, j) => j !== i) })}
-              placeholder="z. B. Hochzeit, Porträt, Editorial"
+              placeholder={t.studio.account.specialtiesPlaceholder}
               glyph="◆"
-              emptyHint="Noch keine Schwerpunkte."
+              emptyHint={t.studio.account.noSpecialties}
               maxLength={60}
             />
           </Card>
 
           {settings && (
             <>
-              <Card title="Neue Projekte">
+              <Card title={t.studio.account.newProjectsTitle}>
                 <div className="space-y-5">
-                  <Field label="Standardsprache" hint="In dieser Sprache werden neue Briefings erzeugt.">
+                  <Field label={t.studio.account.defaultLanguage} hint={t.studio.account.defaultLanguageHint}>
                     <Select
                       value={settings.defaultLanguage}
                       onChange={(e) => set({ defaultLanguage: e.target.value })}
@@ -295,21 +299,21 @@ export default function StudioKontoPage() {
                   <Toggle
                     checked={settings.defaultShared}
                     onChange={(v) => set({ defaultShared: v })}
-                    label="Neue Projekte direkt teilbar"
-                    hint="Projekte starten mit aktivem Teilen-Link statt privat."
+                    label={t.studio.account.defaultShared}
+                    hint={t.studio.account.defaultSharedHint}
                   />
                 </div>
               </Card>
 
-              <Card title="Darstellung">
-                <Field label="Projektseite" hint="Die Leinwand deiner Projektseiten. Die projektbezogene Akzentfarbe bleibt; nur Hintergrund und Schrift wechseln. Gilt auch für deine Kunden.">
+              <Card title={t.studio.account.appearanceTitle}>
+                <Field label={t.studio.account.projectPage} hint={t.studio.account.projectPageHint}>
                   <div className="mt-2">
                     <Segmented
                       value={settings.projectTheme}
                       onChange={setTheme}
                       options={[
-                        { value: "light", label: "Hell" },
-                        { value: "dark", label: "Dunkel" },
+                        { value: "light", label: t.studio.account.light },
+                        { value: "dark", label: t.studio.account.dark },
                       ]}
                     />
                   </div>

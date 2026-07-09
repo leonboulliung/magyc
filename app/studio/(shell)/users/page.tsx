@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { getServerI18n } from "@/lib/i18n/server";
 
 // Clients are derived from live contract data; never cache.
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ export default async function StudioUsersPage() {
   const { userId } = await auth();
   if (!userId) return null;
 
+  const { t } = await getServerI18n();
+  const copy = t.studio.users;
   const user = await currentUser();
   const admin = supabaseAdmin();
 
@@ -66,7 +69,7 @@ export default async function StudioUsersPage() {
         if (!name && !email) return null;
         return {
           spaceId: c.space_id as string,
-          projectTitle: titleById.get(c.space_id as string) ?? "Projekt",
+          projectTitle: titleById.get(c.space_id as string) ?? copy.projectFallback,
           name: name || "—",
           email,
           signed: !!c.client_signed_at,
@@ -75,20 +78,20 @@ export default async function StudioUsersPage() {
       .filter((c): c is ClientRow => c !== null);
   }
 
-  const ownerName = user?.fullName || user?.firstName || user?.username || "Du";
+  const ownerName = user?.fullName || user?.firstName || user?.username || copy.you;
   const ownerEmail = user?.primaryEmailAddress?.emailAddress ?? "";
   const ownerInitial = (ownerName || "S").slice(0, 1).toUpperCase();
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8 sm:py-14">
-      <h1 className="font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">Team & Kunden</h1>
+      <h1 className="font-brand text-[26px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[32px]">{copy.title}</h1>
       <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-black/55">
-        Wer arbeitet im Studio, und mit wem hast du Projekte vereinbart.
+        {copy.intro}
       </p>
 
       {/* Team */}
       <section className="mt-8 rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
-        <h2 className="text-[15px] font-semibold text-[#17171a]">Team</h2>
+        <h2 className="text-[15px] font-semibold text-[#17171a]">{copy.team}</h2>
         <div className="mt-4 flex items-center gap-3.5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-[15px] font-semibold text-[#17171a]" style={{ background: "linear-gradient(135deg,#8b7bff,#39d2b4)" }}>
             {user?.imageUrl ? (
@@ -100,7 +103,7 @@ export default async function StudioUsersPage() {
             <div className="truncate text-[14px] font-medium text-[#17171a]">{ownerName}</div>
             {ownerEmail && <div className="truncate text-[13px] text-black/45">{ownerEmail}</div>}
           </div>
-          <span className="mono ml-auto rounded-full border border-black/12 px-2.5 py-1 text-[10px] uppercase tracking-widest text-black/45">Inhaber:in</span>
+          <span className="mono ml-auto rounded-full border border-black/12 px-2.5 py-1 text-[10px] uppercase tracking-widest text-black/45">{copy.owner}</span>
         </div>
         {teamMembers.length > 0 ? (
           <div className="mt-4 space-y-2 border-t border-black/10 pt-4">
@@ -109,26 +112,26 @@ export default async function StudioUsersPage() {
                 <div className="grid h-8 w-8 place-items-center rounded-full bg-black/[0.06] text-[12px] font-semibold">{(member.display_name || member.email).slice(0, 1).toUpperCase()}</div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-medium">{member.display_name || member.email}</div>
-                  <div className="truncate text-[11px] text-black/40">{member.email} · {titleById.get(member.space_id) || "Projekt"}</div>
+                  <div className="truncate text-[11px] text-black/40">{member.email} · {titleById.get(member.space_id) || copy.projectFallback}</div>
                 </div>
-                <span className="mono text-[9px] uppercase tracking-widest text-black/35">{member.user_id ? "Aktiv" : "Eingeladen"}</span>
+                <span className="mono text-[9px] uppercase tracking-widest text-black/35">{member.user_id ? copy.active : copy.invited}</span>
               </a>
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-[13px] leading-relaxed text-black/35">Teammitglieder fügst du direkt über „Teilen“ in einem Projekt hinzu.</p>
+          <p className="mt-4 text-[13px] leading-relaxed text-black/35">{copy.teamHint}</p>
         )}
       </section>
 
       {/* Kunden */}
       <section className="mt-5 rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-[15px] font-semibold text-[#17171a]">Kunden</h2>
+          <h2 className="text-[15px] font-semibold text-[#17171a]">{copy.clients}</h2>
           <span className="mono text-[11px] tracking-widest text-black/35">{clients.length + clientMembers.length}</span>
         </div>
         {clients.length === 0 && clientMembers.length === 0 ? (
           <p className="mt-4 text-[13px] text-black/35">
-            Noch keine Kunden. Projektzugänge und Vertragskontakte erscheinen hier.
+            {copy.noClients}
           </p>
         ) : clients.length > 0 ? (
           <div className="mt-4 space-y-2">
@@ -142,9 +145,9 @@ export default async function StudioUsersPage() {
                   <div className="truncate text-[13px] text-black/45">{c.email || "—"} · {c.projectTitle}</div>
                 </div>
                 {c.signed ? (
-                  <span className="mono shrink-0 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest" style={{ border: "1px solid rgba(34,197,94,0.35)", color: "rgba(134,239,172,0.9)" }}>Unterschrieben</span>
+                  <span className="mono shrink-0 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest" style={{ border: "1px solid rgba(34,197,94,0.35)", color: "rgba(134,239,172,0.9)" }}>{copy.signed}</span>
                 ) : (
-                  <span className="mono shrink-0 rounded-full border border-black/12 px-2.5 py-1 text-[10px] uppercase tracking-widest text-black/40">Offen</span>
+                  <span className="mono shrink-0 rounded-full border border-black/12 px-2.5 py-1 text-[10px] uppercase tracking-widest text-black/40">{copy.open}</span>
                 )}
               </a>
             ))}
@@ -157,9 +160,9 @@ export default async function StudioUsersPage() {
                 <div className="grid h-8 w-8 place-items-center rounded-full bg-black/[0.06] text-[12px] font-semibold">{(member.display_name || member.email).slice(0, 1).toUpperCase()}</div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-medium">{member.display_name || member.email}</div>
-                  <div className="truncate text-[11px] text-black/40">{member.email} · {titleById.get(member.space_id) || "Projekt"}</div>
+                  <div className="truncate text-[11px] text-black/40">{member.email} · {titleById.get(member.space_id) || copy.projectFallback}</div>
                 </div>
-                <span className="mono text-[9px] uppercase tracking-widest text-black/35">{member.user_id ? "Zugang aktiv" : "Eingeladen"}</span>
+                <span className="mono text-[9px] uppercase tracking-widest text-black/35">{member.user_id ? copy.accessActive : copy.invited}</span>
               </a>
             ))}
           </div>

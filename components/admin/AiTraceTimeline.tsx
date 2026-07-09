@@ -7,6 +7,7 @@
  * (the old "ghost" inspector let an admin mutate content + join as a member).
  * Server component; expand/collapse via native <details>, no client JS.
  */
+import { de } from "@/lib/i18n/dictionaries/de";
 
 export interface AiTraceEvent {
   id: string;
@@ -25,8 +26,8 @@ export interface AiTraceEvent {
 }
 
 const LABELS: Record<string, string> = {
-  classify: "Projekt erstellt — Element-Auswahl",
-  clarify: "Rückfragen generiert",
+  classify: de.aiTrace.classify,
+  clarify: de.aiTrace.clarify,
   contract_draft: "Vertragsentwurf erzeugt",
   assistant_chat: "KI-Aktion (historisch)",
   regenerate: "Element neu generiert",
@@ -52,7 +53,7 @@ export function AiTraceTimeline({ events }: { events: AiTraceEvent[] }) {
   if (events.length === 0) {
     return (
       <div className="rounded-2xl border border-black/10 bg-white p-6 text-[14px] text-black/50">
-        Noch keine KI-/Daten-Ereignisse für dieses Projekt erfasst.
+        {de.aiTrace.noEvents}
       </div>
     );
   }
@@ -69,21 +70,21 @@ export function AiTraceTimeline({ events }: { events: AiTraceEvent[] }) {
                 ? { border: "1px solid rgba(220,38,38,0.35)", color: "rgb(185,28,28)" }
                 : { border: "1px solid rgba(34,197,94,0.35)", color: "rgb(21,128,61)" }}
             >
-              {e.status === "error" ? "Fehler" : "ok"}
+              {e.status === "error" ? de.aiTrace.error : "ok"}
             </span>
             <span className="mono ml-auto text-[11px] text-black/40">{fmt(e.created_at)}</span>
           </div>
 
           <div className="mono mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-black/45">
-            {e.model && <span>Modell: {e.model}</span>}
+            {e.model && <span>{de.aiTrace.model}: {e.model}</span>}
             {typeof e.latency_ms === "number" && <span>{e.latency_ms} ms</span>}
             {(e.tokens_in || e.tokens_out) && <span>Tokens: {e.tokens_in ?? 0}→{e.tokens_out ?? 0}</span>}
-            <span>Akteur: {e.user_id ? `user ${e.user_id.slice(-6)}` : e.anon_id ? `anon ${e.anon_id.slice(-6)}` : "—"}</span>
+            <span>{de.aiTrace.actor}: {e.user_id ? `user ${e.user_id.slice(-6)}` : e.anon_id ? `anon ${e.anon_id.slice(-6)}` : "—"}</span>
           </div>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <Payload title="Input (Grundlage)" body={pretty(e.input)} />
-            <Payload title="Output (Ergebnis)" body={pretty(e.output)} />
+            <Payload title={de.aiTrace.input} body={pretty(e.input)} />
+            <Payload title={de.aiTrace.output} body={pretty(e.output)} />
           </div>
         </div>
       ))}
@@ -97,7 +98,7 @@ function Payload({ title, body }: { title: string; body: string }) {
     <details className="group rounded-xl border border-black/10 bg-black/[0.015]" open={!long}>
       <summary className="mono cursor-pointer list-none px-3 py-2 text-[10px] uppercase tracking-widest text-black/45 marker:content-['']">
         {title}
-        <span className="ml-2 normal-case text-black/30 group-open:hidden">aufklappen</span>
+        <span className="ml-2 normal-case text-black/30 group-open:hidden">{de.aiTrace.expand}</span>
       </summary>
       <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words px-3 pb-3 text-[11px] leading-relaxed text-black/75">{body}</pre>
     </details>
