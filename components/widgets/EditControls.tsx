@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * Shared inline-edit commit controls — a floating ✓ save / × cancel
@@ -23,6 +24,7 @@ export function EditControls({
   onCancel: () => void;
   className?: string;
 }) {
+  const t = useT();
   return (
     <motion.div
       initial={{ opacity: 0, y: 2 }}
@@ -34,8 +36,8 @@ export function EditControls({
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onCancel}
-        aria-label="Bearbeitung abbrechen"
-        title="Abbrechen"
+        aria-label={t.elements.cancelEdit}
+        title={t.elements.cancel}
         className="mono text-[12px] w-6 h-6 rounded-full flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
         style={{ border: "1px solid var(--v-rule)", color: "var(--v-fg)", background: "var(--v-bg)" }}
       >
@@ -45,8 +47,8 @@ export function EditControls({
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onSave}
-        aria-label="Änderung speichern"
-        title="Speichern"
+        aria-label={t.elements.saveChange}
+        title={t.common.save}
         className="mono text-[12px] w-6 h-6 rounded-full flex items-center justify-center"
         style={{ background: "var(--v-fg)", color: "var(--v-bg)", border: "1px solid var(--v-fg)" }}
       >
