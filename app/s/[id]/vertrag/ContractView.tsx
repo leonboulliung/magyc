@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import Link from "next/link";
 import type { ContractDraft, ContractSection } from "@/lib/contractDraft";
 import type { HandoffInfo, ProjectStage } from "@/lib/types";
@@ -31,6 +32,7 @@ function fmt(ts: string): string {
 }
 
 export function ContractView({ id, spaceTitle, embedded = false }: { id: string; spaceTitle: string; embedded?: boolean }) {
+  const tr = useT();
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [accessRole, setAccessRole] = useState<"owner" | "editor" | "client" | "link">("link");
@@ -89,14 +91,14 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
     try {
       const res = await fetch(`/api/projects/${id}/contract/draft`, { method: "POST" });
       const json = await readApiJson(res);
-      if (!res.ok) { showApiError("Entwurf fehlgeschlagen", json, { fallback: "Der Vertragsentwurf konnte nicht erzeugt werden." }); return; }
+      if (!res.ok) { showApiError(tr.contract.draftFailed, json, { fallback: tr.contract.draftFailedMsg }); return; }
       const d = (json as { draft?: ContractDraft }).draft;
       if (d) {
         setDraft(d);
         setReleaseSignatureMode(null);
         await load();
       }
-    } catch (e) { showUnknownError("Entwurf fehlgeschlagen", e); }
+    } catch (e) { showUnknownError(tr.contract.draftFailed, e); }
     finally { setBusy(false); }
   }
 
@@ -155,10 +157,10 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
         }),
       });
       const json = await readApiJson(res);
-      if (!res.ok) { showApiError("Freigabe fehlgeschlagen", json, { fallback: "Der Vertrag konnte nicht freigegeben werden." }); return; }
-      showActionSuccess("Vertrag zur Unterschrift freigegeben");
+      if (!res.ok) { showApiError(tr.contract.releaseFailed, json, { fallback: tr.contract.contractReleaseFailed }); return; }
+      showActionSuccess(tr.contract.releasedForSignature);
       await load();
-    } catch (e) { showUnknownError("Freigabe fehlgeschlagen", e); }
+    } catch (e) { showUnknownError(tr.contract.releaseFailed, e); }
     finally { setBusy(false); }
   }
 
@@ -179,12 +181,12 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
       });
       const json = await readApiJson(res);
-      if (!res.ok) { showApiError("Freigabe fehlgeschlagen", json, { fallback: "Die Freigabe konnte nicht erfasst werden." }); return; }
+      if (!res.ok) { showApiError(tr.contract.releaseFailed, json, { fallback: tr.contract.approvalFailedMsg }); return; }
       const locked = (json as { locked?: boolean }).locked;
-      showActionSuccess(locked ? "Vertrag verbindlich abgeschlossen" : "Freigabe erfasst");
+      showActionSuccess(locked ? tr.contract.contractBinding : tr.contract.approvalRecorded);
       setAgreed(false); setSignName(""); setSigData(null); setSigPlace("");
       await load();
-    } catch (e) { showUnknownError("Freigabe fehlgeschlagen", e); }
+    } catch (e) { showUnknownError(tr.contract.releaseFailed, e); }
     finally { setBusy(false); }
   }
 
@@ -235,7 +237,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
         {/* Reference header */}
         <p className="mono text-[11px] uppercase tracking-[0.22em] text-black/40">Aus dem Projektplan</p>
         <h1 className="mt-2 font-brand text-[26px] font-bold tracking-[-0.02em] sm:text-[34px]">
-          {draft?.title || spaceTitle || "Vertrag"}
+          {draft?.title || spaceTitle || tr.contract.contract}
         </h1>
 
         {loading ? (
@@ -244,7 +246,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
           // Client, contract not yet released — show only a "wird vorbereitet" page.
           <div className="mt-8 rounded-2xl border border-black/12 bg-white p-6 sm:p-8 print:hidden">
             <div className="mono text-[10px] uppercase tracking-widest text-black/40">In Vorbereitung</div>
-            <h2 className="mt-2 text-[18px] font-semibold">Dein Vertrag wird gerade vorbereitet</h2>
+            <h2 className="mt-2 text-[18px] font-semibold">{tr.contract.contractBeingPrepared}</h2>
             <p className="mt-2 text-[14px] leading-relaxed text-black/60">
               Die Fotograf:in stellt den Vertrag zu diesem Projekt fertig. Sobald er
               freigegeben ist, kannst du ihn hier in Ruhe lesen und verbindlich freigeben.
@@ -262,7 +264,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
               unterbrochen wurde, kannst du sie hier erneut anstoßen.
             </p>
             <button type="button" onClick={generate} disabled={busy} className="mt-5 rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50">
-              {busy ? "Entwurf wird erzeugt …" : "Entwurf erneut vorbereiten"}
+              {busy ? tr.contract.generatingDraft : tr.contract.regenerateDraft}
             </button>
           </div>
         ) : (
@@ -275,7 +277,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                   {(contract.signers || []).map((s, i) => (
                     <div key={i}>
                       <div>
-                        {s.role === "photographer" ? "Fotograf:in" : "Kunde"}: <span className="text-black/85">{s.name}</span>
+                        {s.role === "photographer" ? tr.contract.photographer : tr.contract.client}: <span className="text-black/85">{s.name}</span>
                         {s.place ? ` · ${s.place}` : ""} · {fmt(s.signedAt)}
                       </div>
                       {s.signature && (
@@ -291,11 +293,11 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {/* Client, after signing — project in production, or closed (handoff). */}
             {contract?.locked && !isOwner && (
               <div className="mt-4 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
-                <div className="text-[15px] font-medium">{stage === "handoff" ? "Projekt abgeschlossen" : "Dein Projekt ist in Arbeit"}</div>
+                <div className="text-[15px] font-medium">{stage === "handoff" ? tr.contract.projectClosed : tr.contract.projectInProgress}</div>
                 <p className="mt-1 text-[13px] leading-relaxed text-black/60">
                   {stage === "handoff"
-                    ? "Das Projekt ist abgeschlossen. Unten findest du die finalen Referenzen; Vertrag und Projektplan bleiben einsehbar."
-                    : "Der Vertrag ist verbindlich abgeschlossen. Den unterschriebenen Vertrag und den Projektplan kannst du jederzeit hier einsehen."}
+                    ? tr.contract.closedOwnerHint
+                    : tr.contract.closedClientHint}
                 </p>
                 {(handoff.note || handoff.links.length > 0) && (
                   <div className="mt-4 space-y-3 border-t border-black/10 pt-4">
@@ -321,7 +323,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                   <PartyBlock title="Dienstleister" lines={[parties.photographer.studio || parties.photographer.name, parties.photographer.name, parties.photographer.email, parties.photographer.address, parties.photographer.vatId ? `USt-IdNr. ${parties.photographer.vatId}` : (parties.photographer.kleinunternehmer19 ? "Kleinunternehmer §19 UStG" : "")]} />
                   {editing ? (
                     <div className="bg-white p-4">
-                      <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Kunde</div>
+                      <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">{tr.contract.client}</div>
                       <div className="space-y-2">
                         <input value={parties.client.name} onChange={(e) => editClient("name", e.target.value)} placeholder="Name" className={fieldClass} />
                         <input value={parties.client.email} onChange={(e) => editClient("email", e.target.value)} placeholder="E-Mail" className={fieldClass} />
@@ -329,7 +331,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                       </div>
                     </div>
                   ) : (
-                    <PartyBlock title="Kunde" lines={[parties.client.name, parties.client.email, parties.client.address, parties.client.company]} />
+                    <PartyBlock title={tr.contract.client} lines={[parties.client.name, parties.client.email, parties.client.address, parties.client.company]} />
                   )}
                 </div>
               )}
@@ -349,7 +351,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                                 value={c.value}
                                 onChange={(e) => editClause(realIndex, ci, e.target.value)}
                                 rows={1}
-                                placeholder={c.source === "needs_input" ? (draft?.gaps.find((g) => g.clauseId === c.id)?.hint ?? "Angabe ergänzen") : "Vertragsinhalt ergänzen"}
+                                placeholder={c.source === "needs_input" ? (draft?.gaps.find((g) => g.clauseId === c.id)?.hint ?? tr.contract.addDetail) : tr.contract.addContractContent}
                                 className={`w-full resize-y rounded-lg border bg-white px-2.5 py-1.5 text-[14px] leading-snug text-[#17171a] outline-none focus:border-black/35 [field-sizing:content] min-h-[2.4rem] ${c.source === "needs_input" ? "border-amber-400/40" : "border-black/12"}`}
                               />
                             ) : (
@@ -368,25 +370,25 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {editing && (
               <div className="mt-5 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 {draft && draft.gaps.length > 0 && (
-                  <p className="mb-4 text-[13px] text-amber-700">{draft.gaps.length} Feld(er) brauchen noch deine Eingabe (gelb markiert).</p>
+                  <p className="mb-4 text-[13px] text-amber-700">{draft.gaps.length} {tr.contract.fieldsNeedInput}</p>
                 )}
-                <div className="text-[14px] font-medium">Wie wird unterschrieben?</div>
-                <p className="mt-1 text-[12px] leading-relaxed text-black/50">Diese Wahl gilt für Fotograf:in und Kund:in und wird im Prüfprotokoll dokumentiert.</p>
+                <div className="text-[14px] font-medium">{tr.contract.howToSign}</div>
+                <p className="mt-1 text-[12px] leading-relaxed text-black/50">{tr.contract.signChoiceHint}</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <button type="button" onClick={() => setReleaseSignatureMode("click")} className={`rounded-xl border px-4 py-3 text-left transition-colors ${releaseSignatureMode === "click" ? "border-[#17171a] bg-[#17171a] text-white" : "border-black/12 text-black/65 hover:border-black/30 hover:text-black"}`}>
-                    <span className="block text-[13px] font-medium">Textbestätigung</span>
-                    <span className={`mt-0.5 block text-[11px] ${releaseSignatureMode === "click" ? "text-white/65" : "text-black/40"}`}>Name, Zustimmung und Zeitstempel</span>
+                    <span className="block text-[13px] font-medium">{tr.contract.textConfirm}</span>
+                    <span className={`mt-0.5 block text-[11px] ${releaseSignatureMode === "click" ? "text-white/65" : "text-black/40"}`}>{tr.contract.nameConsentTimestamp}</span>
                   </button>
                   <button type="button" onClick={() => setReleaseSignatureMode("draw")} className={`rounded-xl border px-4 py-3 text-left transition-colors ${releaseSignatureMode === "draw" ? "border-[#17171a] bg-[#17171a] text-white" : "border-black/12 text-black/65 hover:border-black/30 hover:text-black"}`}>
                     <span className="block text-[13px] font-medium">Gezeichnete Unterschrift</span>
-                    <span className={`mt-0.5 block text-[11px] ${releaseSignatureMode === "draw" ? "text-white/65" : "text-black/40"}`}>Signatur, Ort und Zeitstempel</span>
+                    <span className={`mt-0.5 block text-[11px] ${releaseSignatureMode === "draw" ? "text-white/65" : "text-black/40"}`}>{tr.contract.signaturePlaceTimestamp}</span>
                   </button>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <button type="button" onClick={release} disabled={busy || !releaseSignatureMode} className="rounded-full bg-[#17171a] px-5 py-2.5 text-[14px] font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-35">
-                    {busy ? "…" : "Zur Unterschrift freigeben"}
+                    {busy ? "…" : tr.contract.releaseForSignature}
                   </button>
-                  <span className="mono text-[10px] tracking-widest text-black/35">Änderungen werden automatisch gespeichert</span>
+                  <span className="mono text-[10px] tracking-widest text-black/35">{tr.contract.autoSaved}</span>
                 </div>
               </div>
             )}
@@ -394,7 +396,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {/* Owner, contract prepared but not released — edit further or release for signing. */}
             {isOwner && preparing && !editing && (
               <div className="mt-6 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
-                <div className="text-[14px] font-medium">Bereit zur Freigabe</div>
+                <div className="text-[14px] font-medium">{tr.contract.readyToRelease}</div>
                 <p className="mt-1 text-[13px] leading-relaxed text-black/60">
                   Solange du nicht freigibst, sieht dein Kunde nur eine Vorbereitungs-Seite.
                   Mit der Freigabe wird der Vertrag für beide zur Unterschrift geöffnet.
@@ -411,20 +413,20 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {released && maySign && !editing && !iSigned && (
               <div className="mt-6 rounded-2xl border border-black/12 bg-white p-5 print:hidden">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[14px] font-medium">Verbindlich freigeben ({myRole === "photographer" ? "Fotograf:in" : "Kunde"})</div>
-                  <span className="mono text-[10px] uppercase tracking-widest text-black/35">{drawMode ? "Unterschrift" : "Textbestätigung"}</span>
+                  <div className="text-[14px] font-medium">{tr.contract.bindingRelease} ({myRole === "photographer" ? tr.contract.photographer : tr.contract.client})</div>
+                  <span className="mono text-[10px] uppercase tracking-widest text-black/35">{drawMode ? tr.contract.signature : tr.contract.textConfirm}</span>
                 </div>
-                <input value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Dein vollständiger Name" maxLength={120} className={`${fieldClass} mt-3`} />
+                <input value={signName} onChange={(e) => setSignName(e.target.value)} placeholder={tr.contract.fullNamePlaceholder} maxLength={120} className={`${fieldClass} mt-3`} />
 
                 {drawMode ? (
                   <div className="mt-3 space-y-3">
                     <SignaturePad onChange={setSigData} />
-                    <input value={sigPlace} onChange={(e) => setSigPlace(e.target.value)} placeholder="Ort (z. B. Köln)" maxLength={160} className={fieldClass} />
+                    <input value={sigPlace} onChange={(e) => setSigPlace(e.target.value)} placeholder={tr.contract.placePlaceholder} maxLength={160} className={fieldClass} />
                   </div>
                 ) : (
                   <button type="button" onClick={() => setAgreed((a) => !a)} className="mt-3 flex w-full items-start gap-2.5 text-left">
                     <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[12px] leading-none" style={{ border: `1.5px solid ${agreed ? "var(--studio-ink)" : "var(--studio-rule)"}`, background: agreed ? "var(--studio-ink)" : "transparent", color: "var(--studio-page)" }}>{agreed ? "✓" : ""}</span>
-                    <span className="text-[13px] leading-snug text-black/60">Ich habe den Vertrag gelesen und stimme ihm verbindlich zu.</span>
+                    <span className="text-[13px] leading-snug text-black/60">{tr.contract.readAndAgree}</span>
                   </button>
                 )}
 
@@ -433,8 +435,8 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
                 </button>
                 <p className="mono mt-2 text-[10px] leading-relaxed text-black/40">
                   {drawMode
-                    ? "Deine gezeichnete Signatur, Ort und Zeitstempel werden dokumentiert (verbindliche Freigabe, Textform)."
-                    : "Deine Zustimmung wird mit Name und Zeitstempel dokumentiert (verbindliche Freigabe, Textform)."}
+                    ? tr.contract.drawnSigDoc
+                    : tr.contract.consentDoc}
                 </p>
               </div>
             )}
@@ -442,7 +444,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
             {/* Waiting note */}
             {released && !editing && iSigned && (
               <p className="mt-6 text-[14px] text-black/55 print:hidden">
-                Deine Freigabe ist erfasst. {myRole === "photographer" ? "Warten auf die Freigabe des Kunden." : "Warten auf die Freigabe der Fotograf:in."}
+                {tr.contract.yourReleaseRecorded} {myRole === "photographer" ? tr.contract.waitingForClient : tr.contract.waitingForPhotographer}
               </p>
             )}
           </>
@@ -459,7 +461,7 @@ export function ContractView({ id, spaceTitle, embedded = false }: { id: string;
           <Link href={planHref} className="mono inline-flex items-center gap-1.5 text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">
             ← Zur Planung
           </Link>
-          <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">Vertrag</span>
+          <span className="mono text-[10px] uppercase tracking-[0.28em] text-black/40">{tr.contract.contract}</span>
           {contract ? (
             <button type="button" onClick={() => window.print()} className="mono rounded-full bg-[#17171a] px-3.5 py-1.5 text-[12px] tracking-widest text-white transition-colors hover:opacity-90">
               Als PDF
