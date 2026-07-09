@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
 import {
@@ -29,6 +30,7 @@ export function ShareDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const tr = useT();
   const [shared, setShared] = useState(initialShared);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -67,7 +69,7 @@ export function ShareDialog({
       });
       const json = await readApiJson(res);
       if (!res.ok || !json.invitation) {
-        showApiError("Einladung nicht gespeichert", json);
+        showApiError(tr.studio.inviteNotSaved, json);
         return;
       }
       setInvitations((current) => [
@@ -76,10 +78,10 @@ export function ShareDialog({
       ]);
       setEmail("");
       setDisplayName("");
-      showActionSuccess("Einladung erstellt", { description: "Zugriff entsteht erst nach der Annahme." });
+      showActionSuccess(tr.studio.inviteCreated, { description: tr.studio.accessAfterAccept });
       router.refresh();
     } catch (error) {
-      showUnknownError("Einladung nicht gespeichert", error);
+      showUnknownError(tr.studio.inviteNotSaved, error);
     } finally {
       setMemberBusy(false);
     }
@@ -102,7 +104,7 @@ export function ShareDialog({
     if (!res.ok) {
       setMembers(previousMembers);
       setInvitations(previousInvitations);
-      showApiError("Rolle nicht geändert", await readApiJson(res));
+      showApiError(tr.studio.roleNotChanged, await readApiJson(res));
     }
   }
 
@@ -120,7 +122,7 @@ export function ShareDialog({
     if (!res.ok) {
       setMembers(previousMembers);
       setInvitations(previousInvitations);
-      showApiError("Zugang nicht entfernt", await readApiJson(res));
+      showApiError(tr.studio.accessNotRemoved, await readApiJson(res));
     } else {
       router.refresh();
     }
@@ -142,19 +144,19 @@ export function ShareDialog({
         setShared(prev);
         showApiError(next ? "Teilen fehlgeschlagen" : "Privat-Schalten fehlgeschlagen", json, {
           fallback: next
-            ? "Der Projektlink konnte gerade nicht aktiviert werden."
-            : "Das Projekt konnte gerade nicht privat geschaltet werden.",
+            ? tr.studio.linkActivateFailed
+            : tr.studio.makePrivateFailed,
         });
       } else {
-        showActionSuccess(next ? "Projektlink aktiviert" : "Projekt ist privat");
+        showActionSuccess(next ? tr.studio.linkActivated : tr.studio.projectPrivate);
         router.refresh();
       }
     } catch (error) {
       setShared(prev);
       showUnknownError(next ? "Teilen fehlgeschlagen" : "Privat-Schalten fehlgeschlagen", error, {
         fallback: next
-          ? "Der Projektlink konnte gerade nicht aktiviert werden."
-          : "Das Projekt konnte gerade nicht privat geschaltet werden.",
+          ? tr.studio.linkActivateFailed
+          : tr.studio.makePrivateFailed,
       });
     } finally {
       setBusy(false);
@@ -168,18 +170,18 @@ export function ShareDialog({
       showActionSuccess("Link kopiert");
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
-      showActionError("Kopieren nicht möglich", {
-        description: "Der Link wird deshalb zum manuellen Kopieren angezeigt.",
+      showActionError(tr.studio.copyFailed, {
+        description: tr.studio.copyFailedDesc,
       });
       window.prompt("Link", link);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Projekt teilen" maxWidth={460}>
+    <Dialog open={open} onOpenChange={onOpenChange} title={tr.studio.shareProject} maxWidth={460}>
       <div className="overflow-hidden rounded-2xl border border-black/12 bg-white text-[#17171a] shadow-2xl">
         <div className="max-h-[85vh] overflow-y-auto p-6">
-        <h2 className="font-brand text-[20px] font-bold tracking-[-0.01em]">Projekt teilen</h2>
+        <h2 className="font-brand text-[20px] font-bold tracking-[-0.01em]">{tr.studio.shareProject}</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-black/60">
           Wer den Link hat, kann das Projekt sehen und mitarbeiten (kommentieren, abstimmen,
           hochladen). Struktur ändern kannst nur du.
@@ -198,7 +200,7 @@ export function ShareDialog({
               {shared ? "Geteilt" : "Privat"}
             </span>
             <span className="block text-[13px] text-black/55">
-              {shared ? "Über den Link erreichbar" : "Nur für dich sichtbar"}
+              {shared ? tr.studio.reachableViaLink : tr.studio.onlyVisibleToYou}
             </span>
           </span>
           {/* toggle pill */}
@@ -241,7 +243,7 @@ export function ShareDialog({
           <div className="flex items-baseline justify-between gap-3">
             <div>
               <h3 className="text-[14px] font-medium text-[#17171a]">Direkter Projektzugang</h3>
-              <p className="mt-0.5 text-[12px] text-black/45">Team bearbeitet die Planung, Kunden arbeiten an Auswahl und Feedback.</p>
+              <p className="mt-0.5 text-[12px] text-black/45">{tr.studio.teamClientHint}</p>
             </div>
             <span className="mono text-[10px] text-black/35">{members.length + invitations.length}</span>
           </div>
@@ -265,9 +267,9 @@ export function ShareDialog({
                     className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[11px] text-black/65 outline-none"
                   >
                     <option value="editor">Team</option>
-                    <option value="client">Kunde</option>
+                    <option value="client">{tr.studio.client}</option>
                   </select>
-                  <button type="button" onClick={() => void removeMember(member.id, member.kind)} aria-label={member.pending ? "Einladung zurückziehen" : "Zugang entfernen"} className="grid h-7 w-7 place-items-center text-[14px] text-black/35 hover:text-black">×</button>
+                  <button type="button" onClick={() => void removeMember(member.id, member.kind)} aria-label={member.pending ? tr.studio.withdrawInvite : tr.studio.removeAccess} className="grid h-7 w-7 place-items-center text-[14px] text-black/35 hover:text-black">×</button>
                 </div>
               ))}
             </div>
@@ -277,7 +279,7 @@ export function ShareDialog({
             <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="E-Mail-Adresse" className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
             <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Name (optional)" className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
             <select value={role} onChange={(event) => setRole(event.target.value as "editor" | "client")} className="rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none">
-              <option value="client">Kunde</option>
+              <option value="client">{tr.studio.client}</option>
               <option value="editor">Team</option>
             </select>
           </div>

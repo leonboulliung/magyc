@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShareDialog } from "@/components/studio/ShareDialog";
@@ -63,6 +64,7 @@ export function StudioProjectBar({
   const menuBg = light ? "#ffffff" : "#16181b";
   const menuBorder = light ? "border-black/10" : "border-white/12";
   const router = useRouter();
+  const tr = useT();
   const [current, setCurrent] = useState<ProjectStage>(stage ?? "brief");
   const [busy, setBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -91,7 +93,7 @@ export function StudioProjectBar({
     if (busy) return;
     setBusy(true);
     try {
-      showActionLoading("Phase wird gespeichert …", `stage-${id}`);
+      showActionLoading(tr.studio.savingStage, `stage-${id}`);
       const res = await fetch(`/api/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -99,13 +101,13 @@ export function StudioProjectBar({
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        showApiError("Phase nicht gespeichert", json, {
+        showApiError(tr.studio.stageNotSaved, json, {
           id: `stage-${id}`,
-          fallback: "Die Projektphase konnte nicht gespeichert werden.",
+          fallback: tr.studio.stageSaveFailed,
         });
         return;
       }
-      showActionSuccess(next === "production" ? "Vertrag vorbereitet" : "Phase gespeichert", {
+      showActionSuccess(next === "production" ? tr.studio.contractPrepared : tr.studio.stageSaved, {
         id: `stage-${id}`,
         description: next === "production" ? "Der Vertragsentwurf wurde automatisch angelegt." : undefined,
       });
@@ -113,9 +115,9 @@ export function StudioProjectBar({
       onAdvance(next); // workspace moves the view forward to the new stage
       router.refresh();
     } catch (error) {
-      showUnknownError("Phase nicht gespeichert", error, {
+      showUnknownError(tr.studio.stageNotSaved, error, {
         id: `stage-${id}`,
-        fallback: "Die Projektphase konnte nicht gespeichert werden.",
+        fallback: tr.studio.stageSaveFailed,
       });
     } finally {
       setBusy(false);
@@ -128,7 +130,7 @@ export function StudioProjectBar({
     <div className="fixed left-3 top-3 z-50 flex items-center gap-2 sm:left-4 sm:top-4">
       <Link
         href="/studio"
-        aria-label="Zurück zum Studio"
+        aria-label={tr.studio.backToStudio}
         className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] transition-colors ${chip}`}
       >
         <span aria-hidden>←</span>
@@ -183,7 +185,7 @@ export function StudioProjectBar({
               type="button"
               onClick={() => onTab(s.id)}
               disabled={busy || kind === "locked"}
-              title={kind === "locked" ? "Erst die vorige Phase abschließen" : undefined}
+              title={kind === "locked" ? tr.studio.finishPreviousStage : undefined}
               className={`mono rounded-full px-2.5 py-1 text-[10px] uppercase tracking-widest transition-colors disabled:cursor-not-allowed ${
                 active
                   ? activeTab
@@ -218,19 +220,19 @@ export function StudioProjectBar({
 
       <ShareDialog id={id} initialShared={shared} open={shareOpen} onOpenChange={setShareOpen} />
 
-      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={advancingToHandoff ? "Projekt abschließen" : "Vertrag vorbereiten"} maxWidth={420}>
+      <Dialog open={pendingStage !== null} onOpenChange={(o) => { if (!o) setPendingStage(null); }} title={advancingToHandoff ? tr.studio.finishProjectTitle : tr.studio.prepareContract} maxWidth={420}>
         <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#16181b] text-left shadow-2xl">
           <div className="space-y-3 p-5">
             <div className="mono text-[10px] uppercase tracking-widest text-amber-300/80">
-              {advancingToHandoff ? "Phase wird fixiert" : "Plan wird gesperrt"}
+              {advancingToHandoff ? tr.studio.stageFixed : tr.studio.planLocked}
             </div>
             <h2 className="text-[17px] font-semibold text-white">
-              {advancingToHandoff ? "Projekt abschließen?" : "Vertrag vorbereiten?"}
+              {advancingToHandoff ? tr.studio.finishProjectQ : tr.studio.prepareContractQ}
             </h2>
             <p className="text-[13px] leading-relaxed text-white/65">
               {advancingToHandoff
-                ? "Danach ist das Projekt abgeschlossen. Frühere Phasen kannst du weiter ansehen, aber die Phase lässt sich nicht mehr zurücksetzen."
-                : "Danach ist die Projektseite gesperrt und MAGYC erstellt automatisch den Vertragsentwurf. Du prüfst ihn, wählst die Unterschriftsart und gibst ihn anschließend frei."}
+                ? tr.studio.finishProjectDesc
+                : tr.studio.prepareContractDesc}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-white/10 bg-black/30 px-5 py-3.5">
@@ -248,7 +250,7 @@ export function StudioProjectBar({
               disabled={busy}
               className="rounded-full bg-white px-4 py-2 text-[13px] font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {advancingToHandoff ? "Abschließen" : "Sperren & fortfahren"}
+              {advancingToHandoff ? tr.studio.finish : tr.studio.lockAndContinue}
             </button>
           </div>
         </div>

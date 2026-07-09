@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import {
@@ -96,6 +97,7 @@ export function GridZone({
   // Without this the dropped item snapped back to its old slot (props
   // hadn't changed yet) and the real order then appeared abruptly after
   // the round-trip, with no transition.
+  const tr = useT();
   const [optimisticItems, setOptimisticItems] = useState<BodyItem[] | null>(null);
   // Order is tracked by module IDENTITY, not by position: a reorder swaps which
   // module sits at each index but the index set stays {3,4,5,…}, so a
@@ -150,13 +152,13 @@ export function GridZone({
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        throw new Error(apiFailureMessage(json, "Die neue Element-Reihenfolge konnte nicht gespeichert werden."));
+        throw new Error(apiFailureMessage(json, tr.studio.reorderFailed));
       }
       onRefresh();
     } catch (error) {
       setOptimisticItems(null);
-      showUnknownError("Reihenfolge nicht gespeichert", error, {
-          fallback: "Die neue Element-Reihenfolge konnte nicht gespeichert werden.",
+      showUnknownError(tr.studio.reorderFailedTitle, error, {
+          fallback: tr.studio.reorderFailed,
       });
     } finally {
       setBusy(false);
@@ -180,7 +182,7 @@ export function GridZone({
     if (!target) return;
     setBusy(true);
     try {
-      showActionLoading("Element wird entfernt …", `remove-${spaceId}-${target.index}`);
+      showActionLoading(tr.studio.removingElement, `remove-${spaceId}-${target.index}`);
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
@@ -188,18 +190,18 @@ export function GridZone({
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        showApiError("Element nicht entfernt", json, {
+        showApiError(tr.studio.elementNotRemoved, json, {
           id: `remove-${spaceId}-${target.index}`,
-          fallback: "Dieses Element konnte nicht entfernt werden.",
+          fallback: tr.studio.elementRemoveFailed,
         });
         return;
       }
       showActionSuccess("Element entfernt", { id: `remove-${spaceId}-${target.index}` });
       onRefresh();
     } catch (error) {
-      showUnknownError("Element nicht entfernt", error, {
+      showUnknownError(tr.studio.elementNotRemoved, error, {
         id: `remove-${spaceId}-${target.index}`,
-        fallback: "Dieses Element konnte nicht entfernt werden.",
+        fallback: tr.studio.elementRemoveFailed,
       });
     } finally {
       setBusy(false);
@@ -216,7 +218,7 @@ export function GridZone({
     setOptimisticItems([...visible, { module: widget, index: optimisticIndex }]);
     setBusy(true);
     try {
-      showActionLoading("Element wird hinzugefügt …", `add-${spaceId}`);
+      showActionLoading(tr.studio.addingElement, `add-${spaceId}`);
       const res = await fetch(`/api/spaces/${spaceId}/widgets`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -224,7 +226,7 @@ export function GridZone({
       });
       const json = await readApiJson(res) as { index?: number; modulesRev?: number };
       if (!res.ok) {
-        throw new Error(apiFailureMessage(json, "Element konnte nicht hinzugefügt werden."));
+        throw new Error(apiFailureMessage(json, tr.studio.elementAddFailed));
       }
       const realIndex = typeof json.index === "number" ? json.index : null;
       if (realIndex !== null && realIndex !== optimisticIndex) {
@@ -238,13 +240,13 @@ export function GridZone({
         const nextModulesRev = typeof json.modulesRev === "number" ? json.modulesRev : modulesRev + 1;
         await fillFromContext(realIndex, nextModulesRev);
       }
-      showActionSuccess("Element hinzugefügt", { id: `add-${spaceId}` });
+      showActionSuccess(tr.studio.elementAdded, { id: `add-${spaceId}` });
       onRefresh();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Element konnte nicht hinzugefügt werden.";
+      const message = error instanceof Error ? error.message : tr.studio.elementAddFailed;
       setOptimisticItems(previous);
       setAddError(message);
-      showActionError("Element nicht hinzugefügt", {
+      showActionError(tr.studio.elementNotAdded, {
         id: `add-${spaceId}`,
         description: message,
       });

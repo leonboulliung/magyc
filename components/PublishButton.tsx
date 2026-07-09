@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSpaceOwnerToken } from "@/lib/anonId";
@@ -29,6 +30,7 @@ export function PublishButton({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
+  const tr = useT();
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
@@ -43,13 +45,13 @@ export function PublishButton({
 
   function friendlyError(code: unknown): string {
     if (code === "owner_token_required" || code === "owner_token_mismatch") {
-      return "Dieser Entwurf kann in diesem Browser nicht mehr eindeutig zugeordnet werden.";
+      return tr.studio.draftUnassignable;
     }
-    if (code === "already_published") return "Dieses Projekt wurde bereits veröffentlicht.";
-    if (code === "claim_failed") return "Das Projekt konnte gerade nicht im Studio gespeichert werden.";
-    if (code === "publish_failed") return "Das Projekt konnte gerade nicht veröffentlicht werden.";
-    if (code === "unauthorized") return "Bitte melde dich an, um das Projekt zu speichern.";
-    return "Die Aktion konnte gerade nicht abgeschlossen werden.";
+    if (code === "already_published") return tr.studio.alreadyPublished;
+    if (code === "claim_failed") return tr.studio.claimFailed;
+    if (code === "publish_failed") return tr.studio.publishFailedMsg;
+    if (code === "unauthorized") return tr.studio.signInToSave;
+    return tr.studio.actionFailed;
   }
 
   async function saveToStudio() {
@@ -57,7 +59,7 @@ export function PublishButton({
     setBusy(true);
     setError("");
     try {
-      showActionLoading("Projekt wird im Studio gespeichert …", `claim-${space.id}`);
+      showActionLoading(tr.studio.savingToStudio, `claim-${space.id}`);
       const res = await fetch(`/api/spaces/${space.id}/claim`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -73,14 +75,14 @@ export function PublishButton({
         });
         return;
       }
-      showActionSuccess("Projekt gespeichert", {
+      showActionSuccess(tr.studio.projectSaved, {
         id: `claim-${space.id}`,
-        description: "Du wirst jetzt ins Studio weitergeleitet.",
+        description: tr.studio.redirectingToStudio,
       });
       setOpen(false);
       router.push(typeof json.redirectTo === "string" ? json.redirectTo : `/project/${space.id}`);
     } catch {
-      const message = "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
+      const message = tr.studio.networkError;
       setError(message);
       showActionError("Speichern fehlgeschlagen", {
         id: `claim-${space.id}`,
@@ -96,7 +98,7 @@ export function PublishButton({
     setBusy(true);
     setError("");
     try {
-      showActionLoading("Projekt wird veröffentlicht …", `publish-${space.id}`);
+      showActionLoading(tr.studio.publishing, `publish-${space.id}`);
       const res = await fetch(`/api/spaces/${space.id}/publish`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -106,19 +108,19 @@ export function PublishButton({
       if (!res.ok) {
         const message = friendlyError(json?.error);
         setError(message);
-        showActionError("Veröffentlichen fehlgeschlagen", {
+        showActionError(tr.studio.publishFailedTitle, {
           id: `publish-${space.id}`,
           description: message,
         });
         return;
       }
-      showActionSuccess("Projekt veröffentlicht", { id: `publish-${space.id}` });
+      showActionSuccess(tr.studio.projectPublished, { id: `publish-${space.id}` });
       setOpen(false);
       onChanged();
     } catch {
-      const message = "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
+      const message = tr.studio.networkError;
       setError(message);
-      showActionError("Veröffentlichen fehlgeschlagen", {
+      showActionError(tr.studio.publishFailedTitle, {
         id: `publish-${space.id}`,
         description: message,
       });
@@ -148,14 +150,14 @@ export function PublishButton({
           color: "var(--v-bg)",
         }}
       >
-        {signedOut || isAnonymousDraft ? "Im Studio speichern" : label(L, "publishCta")}
+        {signedOut || isAnonymousDraft ? tr.studio.saveToStudio : label(L, "publishCta")}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen} maxWidth={448} title={label(L, "publishTitle")}>
         <div className="w-full bg-white text-black p-6 rounded-[var(--v-radius)] space-y-5">
             <div className="space-y-1.5">
               <h2 className="font-black text-[22px] leading-snug">
-                {signedOut || isAnonymousDraft ? "Projekt im Studio speichern" : label(L, "publishTitle")}
+                {signedOut || isAnonymousDraft ? tr.studio.saveProjectToStudio : label(L, "publishTitle")}
               </h2>
               {signedOut || isAnonymousDraft ? (
                 <p className="text-[13px] opacity-70 leading-relaxed">
@@ -195,7 +197,7 @@ export function PublishButton({
                   disabled={busy}
                   className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white disabled:opacity-30"
                 >
-                  {busy ? "…" : isAnonymousDraft ? "Im Studio öffnen" : label(L, "publishConfirm")}
+                  {busy ? "…" : isAnonymousDraft ? tr.studio.openInStudio : label(L, "publishConfirm")}
                 </button>
               </div>
             </SignedIn>
