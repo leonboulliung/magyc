@@ -1,7 +1,9 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { deDE } from "@clerk/localizations";
+import { deDE, enUS } from "@clerk/localizations";
 import type { Metadata, Viewport } from "next";
 import { AppToaster } from "@/components/AppToaster";
+import { LocaleProvider } from "@/components/i18n/LocaleProvider";
+import { getServerLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const clerkAppearance = {
@@ -36,20 +38,23 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getServerLocale();
   return (
-    <html lang="de">
+    <html lang={locale}>
       <body className="min-h-screen bg-[#f4f4f1] text-[#17171a] antialiased">
         <ClerkProvider
           appearance={clerkAppearance}
-          localization={deDE}
+          localization={locale === "en" ? enUS : deDE}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
           signInFallbackRedirectUrl="/studio"
           signUpFallbackRedirectUrl="/studio"
         >
-          {children}
-          <AppToaster />
+          <LocaleProvider locale={locale}>
+            {children}
+            <AppToaster />
+          </LocaleProvider>
         </ClerkProvider>
       </body>
     </html>

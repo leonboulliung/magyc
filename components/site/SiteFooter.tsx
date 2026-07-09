@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { brand, FOOTER_GROUPS, LOCALES } from "@/lib/site";
+import { brand, FOOTER_GROUPS } from "@/lib/site";
 import { SiteTrustAnchors } from "@/components/site/SiteTrustAnchors";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 /**
  * SiteFooter — link columns + wordmark. Stable across the marketing site.
@@ -48,31 +49,8 @@ export function SiteFooter() {
               © {new Date().getFullYear()} MAGYC · magyc.site
             </span>
             <div className="flex items-center gap-4">
-              {/* Language switch — EN goes live in Phase 5 (real /en routes). */}
-              <div className="flex items-center gap-1.5" aria-label="Sprache">
-                {LOCALES.map((l, i) => (
-                  <span key={l.code} className="flex items-center gap-1.5">
-                    {i > 0 && <span style={{ color: brand.rule }}>·</span>}
-                    {l.enabled ? (
-                      <Link
-                        href={l.href}
-                        className="font-mono tracking-widest"
-                        style={{ fontSize: 11, color: brand.ink, opacity: 0.9 }}
-                      >
-                        {l.label}
-                      </Link>
-                    ) : (
-                      <span
-                        className="font-mono tracking-widest"
-                        title="Englisch folgt"
-                        style={{ fontSize: 11, color: brand.muted, opacity: 0.45, cursor: "not-allowed" }}
-                      >
-                        {l.label}
-                      </span>
-                    )}
-                  </span>
-                ))}
-              </div>
+              {/* Real DE / EN toggle (cookie-based i18n). */}
+              <LanguageSwitcher />
               <span className="font-mono tracking-widest" style={{ fontSize: 11, color: brand.muted }}>
                 Für kreative Arbeit gebaut
               </span>
