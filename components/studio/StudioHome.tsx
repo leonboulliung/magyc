@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
+import type { Dictionary } from "@/lib/i18n/dictionaries/de";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
@@ -42,11 +44,11 @@ export interface StudioProjectCard {
   accessRole: "owner" | "editor" | "client";
 }
 
-const STAGE_LABEL: Record<"brief" | "production" | "handoff", string> = {
-  brief: "Planung",
-  production: "Vertrag",
-  handoff: "Abgeschlossen",
-};
+const stageLabelMap = (t: Dictionary): Record<"brief" | "production" | "handoff", string> => ({
+  brief: t.studio.stageBrief,
+  production: t.studio.stageProduction,
+  handoff: t.studio.stageHandoff,
+});
 
 type CreateStage = "input" | "clarify" | "building";
 
@@ -99,6 +101,7 @@ export function StudioHome({
   const router = useRouter();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const t = useT();
   const [prompt, setPrompt] = useState("");
   const projectMode: ProjectModeId = "photo_shoot";
   const [busy, setBusy] = useState(false);
@@ -207,7 +210,7 @@ export function StudioHome({
     if (trimmed.length < 3) return;
     setBusy(true);
     setError("");
-    setStatusText("Rückfragen werden vorbereitet …");
+    setStatusText(t.create.preparingQuestions);
     try {
       const { res, json } = await fetchJsonWithTimeout("/api/spaces/clarify", {
         method: "POST",
@@ -290,8 +293,8 @@ export function StudioHome({
     setBusy(true);
     setStage("building");
     setError("");
-    setStatusText("Projekt wird erstellt …");
-    showActionLoading("Projekt wird erstellt …", "create-project");
+    setStatusText(t.studio.creatingProject);
+    showActionLoading(t.studio.creatingProject, "create-project");
 
     const payloadAnswers: Answer[] = steps
       .filter((s) => s.kind === "choice" || s.kind === "text")
@@ -322,17 +325,17 @@ export function StudioHome({
       const id = typeof json.id === "string" ? json.id : "";
       if (!res.ok || !id) {
         const description = formatFlowError(apiError(json, res.status), json as { retryInSeconds?: unknown });
-        showActionError("Projekt nicht erstellt", { id: "create-project", description });
+        showActionError(t.studio.projectNotCreated, { id: "create-project", description });
         setError(description);
         setStage(force ? "input" : "clarify");
         return;
       }
-      showActionSuccess("Projekt erstellt", { id: "create-project", description: "Die Planung wird geöffnet." });
+      showActionSuccess(t.studio.projectCreated, { id: "create-project", description: t.studio.openingPlanning });
       router.push(`/project/${id}`);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : "classify_failed";
       const description = formatFlowError(message);
-      showActionError("Projekt nicht erstellt", { id: "create-project", description });
+      showActionError(t.studio.projectNotCreated, { id: "create-project", description });
       setError(description);
       setStage(force ? "input" : "clarify");
     } finally {
@@ -409,7 +412,7 @@ export function StudioHome({
                     disabled={busy}
                     className="mono text-[9px] tracking-widest opacity-30 hover:opacity-60 disabled:opacity-20"
                   >
-                    {hasAnyAnswer(answers, configured) ? "Überspringen" : "Alle überspringen"}
+                    {hasAnyAnswer(answers, configured) ? t.create.skip : t.create.skipAll}
                   </button>
                 </div>
                 <div
@@ -469,7 +472,7 @@ export function StudioHome({
                           }}
                           rows={3}
                           maxLength={currentStep.maxLength ?? 240}
-                          placeholder={currentStep.placeholder ?? "Beschreibe deine Antwort kurz …"}
+                          placeholder={currentStep.placeholder ?? t.create.answerPlaceholder}
                           className="w-full resize-none rounded-[28px] p-4 text-[16px] leading-relaxed outline-none placeholder:text-black/28"
                           style={{ border: "1px solid var(--studio-rule)", background: "var(--studio-surface-soft)", color: "var(--studio-ink)" }}
                         />
@@ -522,7 +525,7 @@ export function StudioHome({
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && customDraft.trim()) goForward();
                             }}
-                            placeholder="Eigene Antwort"
+                            placeholder={t.create.customAnswer}
                             maxLength={120}
                             className="mono rounded-full bg-transparent px-3 py-1.5 text-[11px] tracking-widest outline-none"
                             style={{
@@ -551,7 +554,7 @@ export function StudioHome({
                 <motion.button
                   onClick={goForward}
                   disabled={busy}
-                  aria-label={isLastStep ? "Projekt erstellen" : "Nächste Rückfrage"}
+                  aria-label={isLastStep ? t.create.createProject : t.create.nextQuestion}
                   className="mono rounded-full bg-[#17171a] px-5 py-2 text-[11px] tracking-widest text-white disabled:opacity-30"
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}
@@ -604,7 +607,7 @@ export function StudioHome({
             <MoodGradient seed="willkommen" className="absolute inset-0 opacity-50" />
             <div className="absolute inset-0 bg-black/55" />
             <div className="relative">
-              <p className="font-brand text-[20px] font-bold text-white">Noch kein Projekt</p>
+              <p className="font-brand text-[20px] font-bold text-white">{t.studio.noProjectYet}</p>
               <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-white/65">
                 Schreib oben deine Idee — der erste Plan steht in Sekunden.
               </p>
@@ -629,6 +632,7 @@ export function StudioHome({
 }
 
 function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" | "archived" | "deleted" }) {
+  const t = useT();
   const dim = context !== "active";
   return (
     <div className={`group relative origin-center transform-gpu rounded-2xl transition-[transform,box-shadow] duration-200 ease-out hover:scale-[1.015] hover:shadow-[0_14px_34px_rgba(0,0,0,0.13)] ${dim ? "opacity-75" : ""}`}>
@@ -640,10 +644,10 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
         <div className="relative flex h-full flex-col justify-end p-4">
           <span className="mono text-[10px] uppercase tracking-widest text-white/70">
-            {p.stage ? STAGE_LABEL[p.stage] : "Projekt"}
+            {p.stage ? stageLabelMap(t)[p.stage] : t.studio.project}
           </span>
           <span className="mt-1 line-clamp-2 text-[16px] font-medium leading-snug text-white">
-            {p.title || "Unbenanntes Projekt"}
+            {p.title || t.studio.untitledProject}
           </span>
           <span className="mt-1 text-[12px] text-white/55">Aktiv {relTime(p.lastActivityAt)}</span>
           {(p.memberCount > 0 || p.uploadCount > 0) && (
@@ -661,7 +665,7 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
         </div>
       ) : (
         <span className="mono absolute right-2 top-2 rounded-full border border-white/15 bg-black/72 px-2 py-1 text-[9px] uppercase tracking-widest text-white/65">
-          {p.accessRole === "editor" ? "Du bist im Team" : "Du bist Kund:in"}
+          {p.accessRole === "editor" ? t.studio.youAreTeam : t.studio.youAreClient}
         </span>
       )}
     </div>

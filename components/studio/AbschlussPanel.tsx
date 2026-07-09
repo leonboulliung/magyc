@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import Link from "next/link";
 import type { HandoffInfo } from "@/lib/types";
 import type { ProjectFacts } from "@/lib/projectFacts";
@@ -32,6 +33,7 @@ export function AbschlussPanel({
   /** In the owner workspace, switch the embedded view instead of navigating. */
   onView?: (s: "brief" | "production") => void;
 }) {
+  const tr = useT();
   const [note, setNote] = useState(initial.note);
   const [links, setLinks] = useState(initial.links);
   const [label, setLabel] = useState("");
@@ -48,10 +50,10 @@ export function AbschlussPanel({
         body: JSON.stringify({ handoff: next }),
       });
       const json = await readApiJson(res);
-      if (!res.ok) { showApiError("Nicht gespeichert", json, { fallback: "Der Abschluss konnte nicht gespeichert werden." }); return; }
-      showActionSuccess("Abschluss gespeichert");
+      if (!res.ok) { showApiError(tr.studio.notSaved, json, { fallback: tr.studio.closeSaveFailed }); return; }
+      showActionSuccess(tr.studio.closeSaved);
       setDirty(false);
-    } catch (e) { showUnknownError("Nicht gespeichert", e); }
+    } catch (e) { showUnknownError(tr.studio.notSaved, e); }
     finally { setBusy(false); }
   }
 
@@ -75,19 +77,19 @@ export function AbschlussPanel({
     <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
       <div className="rounded-2xl p-5" style={{ border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.08)" }}>
         <div className="mono text-[10px] uppercase tracking-widest text-emerald-700">Abschluss</div>
-        <h1 className="mt-1.5 font-brand text-[24px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[30px]">Projekt abgeschlossen</h1>
+        <h1 className="mt-1.5 font-brand text-[24px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[30px]">{tr.studio.projectClosed}</h1>
         <p className="mt-2 text-[14px] leading-relaxed text-black/65">
           {isOwner
-            ? "Häng deinem Kunden hier die finalen Referenzen an — Galerie, Rechnung, Ordner. Er sieht sie über den Teilen-Link."
-            : "Das Projekt ist abgeschlossen. Unten findest du die finalen Referenzen deiner Fotograf:in."}
+            ? tr.studio.closeOwnerHint
+            : tr.studio.closeClientHint}
         </p>
       </div>
 
-      {facts && <ProjectFactsSummary facts={facts} title="Abschließender Projektstand" className="mt-6" />}
+      {facts && <ProjectFactsSummary facts={facts} title={tr.studio.finalProjectState} className="mt-6" />}
 
       {/* Note */}
       <div className="mt-5">
-        <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Abschluss-Notiz</div>
+        <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">{tr.studio.closeNote}</div>
         {isOwner ? (
           <textarea
             value={note}
@@ -95,7 +97,7 @@ export function AbschlussPanel({
             onBlur={() => { if (dirty) void save({ note, links }); }}
             rows={3}
             maxLength={2000}
-            placeholder="z. B. Vielen Dank für die Zusammenarbeit! Hier sind alle Ergebnisse …"
+            placeholder={tr.studio.closeNotePlaceholder}
             className={`${field} resize-none leading-relaxed`}
           />
         ) : note ? (
@@ -109,7 +111,7 @@ export function AbschlussPanel({
       <div className="mt-6">
         <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Referenzen & Links</div>
         <div className="space-y-2">
-          {links.length === 0 && !isOwner && <p className="text-[14px] text-black/35">Keine Links angehängt.</p>}
+          {links.length === 0 && !isOwner && <p className="text-[14px] text-black/35">{tr.studio.noLinksAttached}</p>}
           {links.map((l, i) => (
             <div key={i} className="group flex items-center gap-3 rounded-xl border border-black/10 bg-white px-3.5 py-2.5">
               <span aria-hidden className="text-black/30">↗</span>
@@ -136,12 +138,12 @@ export function AbschlussPanel({
         {onView ? (
           <>
             <button type="button" onClick={() => onView("brief")} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">Projektplan ansehen →</button>
-            <button type="button" onClick={() => onView("production")} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">Vertrag ansehen →</button>
+            <button type="button" onClick={() => onView("production")} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">{tr.studio.viewContract}</button>
           </>
         ) : (
           <>
             <Link href={planHref ?? "#"} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">Projektplan ansehen →</Link>
-            <Link href={contractHref ?? "#"} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">Vertrag ansehen →</Link>
+            <Link href={contractHref ?? "#"} className="mono text-[12px] tracking-widest text-black/55 transition-colors hover:text-[#17171a]">{tr.studio.viewContract}</Link>
           </>
         )}
       </div>

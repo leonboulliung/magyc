@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { createPortal } from "react-dom";
 import { useUser } from "@clerk/nextjs";
 import { Icon } from "@iconify/react";
@@ -16,6 +17,7 @@ export function SupportWidget({
   spaceId?: string | null;
   variant?: "studio" | "project";
 }) {
+  const tr = useT();
   const { isSignedIn } = useUser();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<SupportType>("problem");
@@ -51,16 +53,16 @@ export function SupportWidget({
       });
       const json = await readApiJson(res);
       if (!res.ok) {
-        showApiError("Support-Anfrage nicht gesendet", json);
+        showApiError(tr.support.requestNotSent, json);
         return;
       }
       setMessage("");
       setOpen(false);
-      showActionSuccess("Support-Anfrage gesendet", {
-        description: "Sie ist jetzt im Admin-Bereich sichtbar.",
+      showActionSuccess(tr.support.requestSent, {
+        description: tr.support.visibleInAdmin,
       });
     } catch (error) {
-      showUnknownError("Support-Anfrage nicht gesendet", error);
+      showUnknownError(tr.support.requestNotSent, error);
     } finally {
       setBusy(false);
     }
@@ -72,7 +74,7 @@ export function SupportWidget({
         type="button"
         onClick={() => setOpen(true)}
         title="Support"
-        aria-label="Support öffnen"
+        aria-label={tr.support.openSupport}
         className={variant === "studio"
           ? "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black/45 transition-colors hover:border-black/25 hover:bg-black/[0.04] hover:text-black"
           : "fixed bottom-4 left-4 z-40 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/80 text-white/60 transition-colors hover:border-white/30 hover:bg-black hover:text-white"}
@@ -95,7 +97,7 @@ export function SupportWidget({
                 type="button"
                 onClick={() => setOpen(false)}
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/15 text-black/55 transition-colors hover:bg-black/[0.05] hover:text-black"
-                aria-label="Support schließen"
+                aria-label={tr.support.closeSupport}
               >
                 <Icon icon="lucide:x" className="h-4 w-4" />
               </button>
@@ -123,7 +125,7 @@ export function SupportWidget({
               onChange={(event) => setMessage(event.target.value)}
               rows={6}
               className="mt-4 w-full resize-none rounded-[22px] border border-black/15 bg-white/70 p-4 text-base outline-none transition placeholder:text-black/35 focus:border-black/35"
-              placeholder="Beschreibe kurz den Fehler, die Frage oder den Wunsch."
+              placeholder={tr.support.placeholder}
             />
 
             <div className="mt-4 flex items-center justify-between gap-3">
