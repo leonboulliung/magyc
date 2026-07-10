@@ -129,7 +129,7 @@ export async function POST(req: Request) {
   // Anonymous marketing starts use the public German default. Once a Clerk
   // account is present, its Studio setting is authoritative on every entry
   // path, including a project started from the marketing homepage.
-  let language = body.language || "de";
+  let language = normalizeLocale(body.language);
   if (userId) {
     try {
       const { data: profile } = await admin
@@ -142,7 +142,8 @@ export async function POST(req: Request) {
       // Keep the safe public default if profile storage is temporarily absent.
     }
   }
-  const t = getDictionary(normalizeLocale(language));
+  language = normalizeLocale(language);
+  const t = getDictionary(language);
   const rules = workflowRules(
     presetName ? [t.apiCopy.selectedWorkflow.replace("{name}", presetName)] : [],
     presetPromptInjections,

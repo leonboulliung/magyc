@@ -121,7 +121,7 @@ export async function ensureProjectContractDraft({
     const idx = entry.moduleId ? idToIndex.get(entry.moduleId) : undefined;
     return idx === undefined || idx === entry.moduleIndex ? entry : { ...entry, moduleIndex: idx };
   });
-  const facts = buildProjectFacts(modules, state);
+  const facts = buildProjectFacts(modules, state, language);
 
   const started = Date.now();
   const draft = await draftContract({

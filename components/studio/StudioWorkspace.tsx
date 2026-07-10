@@ -30,10 +30,10 @@ export function StudioWorkspace({
 }) {
   const stage: ProjectStage = (space.stage ?? "brief") as ProjectStage;
   const [view, setView] = useState<ProjectStage>(stage);
-  const [projectFacts, setProjectFacts] = useState(() => buildProjectFacts(space.modules, space.state));
+  const [projectFacts, setProjectFacts] = useState(() => buildProjectFacts(space.modules, space.state, space.language));
   const handleProjectDataChange = useCallback((modules: Module[], state: ModuleStateEntry[]) => {
-    setProjectFacts(buildProjectFacts(modules, state));
-  }, []);
+    setProjectFacts(buildProjectFacts(modules, state, space.language));
+  }, [space.language]);
 
   return (
     <div className="studio-theme min-h-screen" data-theme={themeMode}>

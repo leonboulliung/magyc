@@ -7,6 +7,7 @@ import { parseBody } from "@/lib/api/validate";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { cleanSettings } from "@/lib/studioProfile";
+import { normalizeLocale } from "@/lib/i18n/locale";
 
 const lastCallAt = new Map<string, number>();
 const RATE_WINDOW_MS = 15_000;
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
     // Clarify can still run when observability/rate-limit storage is not ready.
   }
 
-  let language = typeof body.language === "string" ? body.language : "de";
+  let language = normalizeLocale(body.language);
   if (userId) {
     try {
       const admin = supabaseAdmin();
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
 
   const started = Date.now();
   try {
-    const result = await clarifyInput(input, { projectMode: body.projectMode, language });
+    const result = await clarifyInput(input, { projectMode: body.projectMode, language: normalizeLocale(language) });
     await recordAiEvent({
       userId,
       anonId: typeof body.anonToken === "string" ? body.anonToken.slice(0, 64) : null,

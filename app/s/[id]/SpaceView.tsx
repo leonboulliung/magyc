@@ -751,10 +751,10 @@ export function SpaceView({
             >
               <span className="mono flex items-center gap-2 text-[11px] tracking-widest" style={{ color: "var(--v-muted)" }}>
                 <span aria-hidden>⟡</span>
-                {space.stage === "handoff" ? "ABGESCHLOSSEN · PLAN GESPERRT" : "IM VERTRAG · PLAN GESPERRT"}
+                {space.stage === "handoff" ? t.contract.lockedDone : t.contract.lockedContract}
               </span>
               <span className="mono text-[11px] tracking-widest transition-transform group-hover:translate-x-0.5" style={{ color: "var(--v-fg)" }}>
-                Vertrag ansehen →
+                {t.studio.viewContract}
               </span>
             </Link>
           </div>

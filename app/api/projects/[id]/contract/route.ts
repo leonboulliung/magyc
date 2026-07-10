@@ -21,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const admin = supabaseAdmin();
   const { data: space } = await admin
     .from("spaces")
-    .select("id, owner_id, shared, title, stage")
+    .select("id, owner_id, shared, title, stage, language")
     .eq("id", id)
     .maybeSingle();
   if (!space) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -59,6 +59,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     canSign: accessRole === "owner" || accessRole === "client" || accessRole === "link",
     spaceTitle: space.title,
     stage: space.stage ?? null,
+    language: space.language ?? "de",
     handoff,
   });
 }

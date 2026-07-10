@@ -30,6 +30,7 @@ import {
 } from "@/lib/studioPresets";
 import { cleanFastPrompts, type FastPrompt } from "@/lib/studioProfile";
 import { withClarifyAnswer } from "@/lib/createPipeline";
+import { normalizeLocale, type Locale } from "@/lib/i18n/locale";
 
 export interface StudioProjectCard {
   id: string;
@@ -78,15 +79,15 @@ const slideVariants = {
   }),
 };
 
-function relTime(ts: number): string {
+function relTime(ts: number, t: Dictionary): string {
   const d = Math.max(0, Date.now() - ts);
   const day = 86_400_000;
-  if (d < day) return "heute";
+  if (d < day) return t.studio.today;
   const days = Math.floor(d / day);
-  if (days === 1) return "gestern";
-  if (days < 30) return `vor ${days} Tagen`;
+  if (days === 1) return t.studio.yesterday;
+  if (days < 30) return t.studio.daysAgo.replace("{count}", String(days));
   const months = Math.floor(days / 30);
-  return months === 1 ? "vor 1 Monat" : `vor ${months} Monaten`;
+  return months === 1 ? t.studio.oneMonthAgo : t.studio.monthsAgo.replace("{count}", String(months));
 }
 
 export function StudioHome({
@@ -119,7 +120,7 @@ export function StudioHome({
   const [presets, setPresets] = useState<StudioPreset[]>([]);
   const [presetId, setPresetId] = useState("none");
   const [fastPrompts, setFastPrompts] = useState<FastPrompt[]>([]);
-  const [defaultLanguage, setDefaultLanguage] = useState("de");
+  const [defaultLanguage, setDefaultLanguage] = useState<Locale>("de");
 
   const selectedPreset = useMemo(() => presets.find((p) => p.id === presetId) || null, [presetId, presets]);
   const totalSteps = steps.length;
@@ -163,7 +164,7 @@ export function StudioHome({
         if (!cancelled) {
           setFastPrompts(fps);
           const language = json?.profile?.settings?.defaultLanguage;
-          setDefaultLanguage(typeof language === "string" ? language : "de");
+          setDefaultLanguage(normalizeLocale(language));
         }
       } catch { /* optional */ }
     })();
@@ -348,11 +349,10 @@ export function StudioHome({
     <div className="mx-auto w-full max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
       {/* Prompt-first hero — the create field is the centre of the Studio */}
       <h1 className="font-brand text-[30px] font-bold tracking-[-0.02em] text-[#17171a] sm:text-[40px]">
-        Plane deinen nächsten Fotografie-Auftrag
+        {t.studio.startTitle}
       </h1>
       <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-black/55">
-        Füge die Kundenanfrage ein — Nachricht oder E-Mail. Oder beschreibe das Shooting
-        selbst: Standort(e), beteiligte Personen, Ziel, Ablaufphasen und geplante Termine.
+        {t.studio.startIntro}
       </p>
 
       <div className="mt-7">
@@ -649,12 +649,14 @@ function ProjectCard({ p, context }: { p: StudioProjectCard; context: "active" |
           <span className="mt-1 line-clamp-2 text-[16px] font-medium leading-snug text-white">
             {p.title || t.studio.untitledProject}
           </span>
-          <span className="mt-1 text-[12px] text-white/55">Aktiv {relTime(p.lastActivityAt)}</span>
+          <span className="mt-1 text-[12px] text-white/55">
+            {t.studio.activeSince.replace("{time}", relTime(p.lastActivityAt, t))}
+          </span>
           {(p.memberCount > 0 || p.uploadCount > 0) && (
             <span className="mono mt-2 text-[9px] uppercase tracking-widest text-white/45">
-              {p.memberCount > 0 ? `${p.memberCount} Beteiligte` : ""}
+              {p.memberCount > 0 ? t.studio.participantCount.replace("{count}", String(p.memberCount)) : ""}
               {p.memberCount > 0 && p.uploadCount > 0 ? " · " : ""}
-              {p.uploadCount > 0 ? `${p.uploadCount} Uploads` : ""}
+              {p.uploadCount > 0 ? t.studio.uploadCount.replace("{count}", String(p.uploadCount)) : ""}
             </span>
           )}
         </div>

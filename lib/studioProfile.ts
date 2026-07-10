@@ -1,3 +1,5 @@
+import { normalizeLocale, type Locale } from "@/lib/i18n/locale";
+
 /**
  * Account-level Studio profile + settings. Persisted on the `profiles` row
  * (see migration 014). The profile is the photographer's public-facing
@@ -24,7 +26,7 @@ export interface StudioSettings {
    *  field (e.g. a frequent shoot address). Free-form, account-configured. */
   fastPrompts: FastPrompt[];
   /** Default language for new projects. */
-  defaultLanguage: string;
+  defaultLanguage: Locale;
   /** New projects start shared (link-accessible) instead of private. */
   defaultShared: boolean;
   /** Canvas theme for the photographer's project pages (the "stage"). The
@@ -49,14 +51,9 @@ export interface StudioProfile {
   color: string | null;
 }
 
-export const LANGUAGE_OPTIONS = [
+export const LANGUAGE_OPTIONS: readonly { value: Locale; label: string }[] = [
   { value: "de", label: "Deutsch" },
   { value: "en", label: "English" },
-  { value: "fr", label: "Français" },
-  { value: "es", label: "Español" },
-  { value: "it", label: "Italiano" },
-  { value: "nl", label: "Nederlands" },
-  { value: "pt", label: "Português" },
 ] as const;
 
 // ── Conditions — the photographer's reusable contract "DNA" ──────────────
@@ -272,11 +269,10 @@ export function cleanFastPrompts(value: unknown): FastPrompt[] {
 
 export function cleanSettings(raw: unknown): StudioSettings {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const lang = typeof o.defaultLanguage === "string" ? o.defaultLanguage : DEFAULT_SETTINGS.defaultLanguage;
   return {
     rules: asStringArray(o.rules, 12),
     fastPrompts: cleanFastPrompts(o.fastPrompts),
-    defaultLanguage: LANGUAGE_OPTIONS.some((l) => l.value === lang) ? lang : DEFAULT_SETTINGS.defaultLanguage,
+    defaultLanguage: normalizeLocale(o.defaultLanguage),
     defaultShared: o.defaultShared === true,
     projectTheme: o.projectTheme === "dark" ? "dark" : "light",
     business: cleanBusiness(o.business),

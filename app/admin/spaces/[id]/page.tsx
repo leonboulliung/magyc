@@ -19,7 +19,7 @@ export default async function AdminSpaceInspectorPage({ params }: { params: Prom
   const space = await fetchSpaceByIdWithClient(admin, id).catch(() => null);
   if (!space) notFound();
   space.handoff = await fetchHandoffWithClient(admin, space.id);
-  const facts = buildProjectFacts(space.modules, space.state);
+  const facts = buildProjectFacts(space.modules, space.state, space.language);
 
   // Provenance: the AI/data-flow events recorded across this project's life.
   // Strictly read-only — no interactive SpaceView (that "ghost" view let an

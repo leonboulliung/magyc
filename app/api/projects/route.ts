@@ -15,7 +15,7 @@ import { takePersistentRateLimit } from "@/lib/server/uploadSecurity";
 import { fetchOwnedPreset, materializePresetState } from "@/lib/server/presetMaterialization";
 import { mergeSeededModules, workflowRules } from "@/lib/createPipeline";
 import { getDictionary } from "@/lib/i18n";
-import { normalizeLocale } from "@/lib/i18n/locale";
+import { normalizeLocale, type Locale } from "@/lib/i18n/locale";
 import type { Dictionary } from "@/lib/i18n";
 
 // The classifier makes two gpt-4o-mini calls + geocoding — give headroom.
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
   // the photographer's preferences don't have to be re-prompted each time.
   let studioRules: string[] = [];
   let defaultShared = false;
-  let defaultLanguage = "de";
+  let defaultLanguage: Locale = "de";
   try {
     const { data: prof } = await admin.from("profiles").select("settings").eq("id", userId).maybeSingle();
     const s = cleanSettings(prof?.settings ?? {});
@@ -170,7 +170,8 @@ export async function POST(req: Request) {
 
   // Create works with a prompt, with structured fields, or with NOTHING
   // (an empty "just give me a starter project" path).
-  const t = getDictionary(normalizeLocale(defaultLanguage));
+  defaultLanguage = normalizeLocale(defaultLanguage);
+  const t = getDictionary(defaultLanguage);
   const inputBase = buildBriefInput(str(b.prompt), t, fields);
   const input = inputBase;
   const rules = workflowRules(

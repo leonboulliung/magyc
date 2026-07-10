@@ -16,6 +16,7 @@ import type {
   ContractParties,
   ClauseSource,
 } from "@/lib/contractDraft";
+import { normalizeLocale, type Locale } from "@/lib/i18n/locale";
 
 /**
  * The agentic contract drafter. Turns {studio conditions + business} +
@@ -30,31 +31,166 @@ import type {
 
 const MODEL = "gpt-4o-mini";
 
-function labelOf(list: { value: string; label: string }[], value: string): string {
-  return list.find((o) => o.value === value)?.label ?? value;
+const CONTRACT_COPY = {
+  de: {
+    due: "fällig",
+    more: "weitere",
+    setup: "Setup",
+    location: "Ort",
+    untilDaysBefore: "bis {days} Tage vorher: {percent}%",
+    serviceProvider: "Dienstleister",
+    studio: "Studio",
+    contact: "Ansprechpartner:in",
+    address: "Anschrift",
+    businessAddressMissing: "Geschäftsanschrift fehlt — in den Einstellungen ergänzen.",
+    tax: "Steuer",
+    smallBusiness: "Kleinunternehmer gem. §19 UStG — keine USt. ausgewiesen.",
+    client: "Kunde",
+    name: "Name",
+    clientNameMissing: "Kundenname fehlt — wird bei der Freigabe ergänzt.",
+    clientEmailMissing: "E-Mail des Kunden fehlt.",
+    company: "Firma",
+    projectDetails: "Projekt-Einzelheiten",
+    project: "Projekt",
+    projectFallback: "Projekt",
+    contractFallback: "Vertrag",
+    serviceDescription: "Leistungsbeschreibung",
+    dates: "Termin(e)",
+    datesMissing: "Kein Shooting-Termin im Plan — bitte ergänzen.",
+    places: "Ort(e)",
+    servicesDelivery: "Leistungen & Lieferung",
+    formats: "Formate",
+    editing: "Bearbeitung",
+    turnaround: "Lieferfrist",
+    crew: "Beteiligte",
+    visualDirection: "Visuelle Richtung",
+    approvals: "Freigaben",
+    approved: "freigegeben",
+    preparation: "Vorbereitung",
+    done: "erledigt",
+    referencesAttachments: "Referenzen & Anhänge",
+    files: "Dateien",
+    selected: "ausgewählt",
+    parts: "Utensilien / Technik",
+    conditions: "Konditionen",
+    license: "Nutzungsrechte",
+    credit: "mit Urhebernennung",
+    fee: "Honorar",
+    feeMissing: "Honorar fehlt — bitte Betrag ergänzen.",
+    payment: "Zahlungsbedingungen",
+    deposit: "Anzahlung",
+    paymentTerm: "Zahlungsziel",
+    days: "Tage",
+    vatAdd: "zzgl.",
+    vat: "MwSt.",
+    cancellation: "Stornostaffel",
+    photographerCancel: "Ausfall durch Fotograf:in",
+    forceMajeure: "Höhere Gewalt",
+    miscellaneous: "Sonstiges",
+    terms: "AGB",
+    privacy: "Datenschutz",
+    retention: "Aufbewahrung",
+    jurisdiction: "Gerichtsstand / Recht",
+  },
+  en: {
+    due: "due",
+    more: "more",
+    setup: "Setup",
+    location: "Location",
+    untilDaysBefore: "up to {days} days before: {percent}%",
+    serviceProvider: "Service provider",
+    studio: "Studio",
+    contact: "Contact",
+    address: "Address",
+    businessAddressMissing: "Business address is missing — add it in settings.",
+    tax: "Tax",
+    smallBusiness: "Small business according to §19 UStG — no VAT shown.",
+    client: "Client",
+    name: "Name",
+    clientNameMissing: "Client name is missing — it will be added before release.",
+    clientEmailMissing: "Client email is missing.",
+    company: "Company",
+    projectDetails: "Project details",
+    project: "Project",
+    projectFallback: "Project",
+    contractFallback: "Contract",
+    serviceDescription: "Service description",
+    dates: "Date(s)",
+    datesMissing: "No shoot date in the plan — please add one.",
+    places: "Location(s)",
+    servicesDelivery: "Services & delivery",
+    formats: "Formats",
+    editing: "Editing",
+    turnaround: "Turnaround",
+    crew: "People involved",
+    visualDirection: "Visual direction",
+    approvals: "Approvals",
+    approved: "approved",
+    preparation: "Preparation",
+    done: "done",
+    referencesAttachments: "References & attachments",
+    files: "files",
+    selected: "selected",
+    parts: "Props / equipment",
+    conditions: "Conditions",
+    license: "Usage rights",
+    credit: "with credit",
+    fee: "Fee",
+    feeMissing: "Fee is missing — please add an amount.",
+    payment: "Payment terms",
+    deposit: "Deposit",
+    paymentTerm: "Payment term",
+    days: "days",
+    vatAdd: "plus",
+    vat: "VAT",
+    cancellation: "Cancellation scale",
+    photographerCancel: "Photographer cancellation",
+    forceMajeure: "Force majeure",
+    miscellaneous: "Miscellaneous",
+    terms: "Terms",
+    privacy: "Privacy",
+    retention: "Retention",
+    jurisdiction: "Jurisdiction / law",
+  },
+} as const;
+
+function optionLabel(type: "licenseScope" | "licenseDuration" | "editLevel", value: string, locale: Locale): string {
+  if (locale === "de") {
+    const list = type === "licenseScope" ? LICENSE_SCOPES : type === "licenseDuration" ? LICENSE_DURATIONS : EDIT_LEVELS;
+    return list.find((o) => o.value === value)?.label ?? value;
+  }
+  const labels: Record<typeof type, Record<string, string>> = {
+    licenseScope: { private: "Private", commercial: "Commercial", editorial: "Editorial", unlimited: "Unlimited" },
+    licenseDuration: { unbefristet: "Unlimited", "1J": "1 year", "2J": "2 years", "5J": "5 years" },
+    editLevel: { basic: "Selection", standard: "Standard", advanced: "Retouching" },
+  };
+  return labels[type][value] ?? value;
 }
 
-function itemLine(item: { label: string; quantity?: string; format?: string; due?: string; status?: string; details?: string }): string {
+function itemLine(item: { label: string; quantity?: string; format?: string; due?: string; status?: string; details?: string }, localeInput: unknown = "de"): string {
+  const t = CONTRACT_COPY[normalizeLocale(localeInput)];
   return [
     item.quantity ? `${item.quantity}× ${item.label}` : item.label,
     item.format,
-    item.due ? `fällig ${item.due}` : "",
+    item.due ? `${t.due} ${item.due}` : "",
     item.status,
     item.details,
   ].filter(Boolean).join(" · ");
 }
 
-function listPreview(values: string[], max = 8): string {
+function listPreview(values: string[], max = 8, localeInput: unknown = "de"): string {
+  const t = CONTRACT_COPY[normalizeLocale(localeInput)];
   if (values.length <= max) return values.join(", ");
-  return `${values.slice(0, max).join(", ")} + ${values.length - max} weitere`;
+  return `${values.slice(0, max).join(", ")} + ${values.length - max} ${t.more}`;
 }
 
-function shotPreview(facts: ProjectFacts): string {
+function shotPreview(facts: ProjectFacts, localeInput: unknown = "de"): string {
+  const t = CONTRACT_COPY[normalizeLocale(localeInput)];
   return facts.shots.slice(0, 10).map((shot) => [
     shot.label,
     shot.purpose,
-    shot.setup ? `Setup: ${shot.setup}` : "",
-    shot.location ? `Ort: ${shot.location}` : "",
+    shot.setup ? `${t.setup}: ${shot.setup}` : "",
+    shot.location ? `${t.location}: ${shot.location}` : "",
     shot.priority,
     shot.status,
   ].filter(Boolean).join(" · ")).join(" | ");
@@ -109,7 +245,9 @@ export interface DraftInput {
 
 export async function draftContract(input: DraftInput): Promise<ContractDraft> {
   const { modules, conditions: c, parties, language } = input;
-  const facts = input.facts ?? buildProjectFacts(modules);
+  const locale = normalizeLocale(language);
+  const t = CONTRACT_COPY[locale];
+  const facts = input.facts ?? buildProjectFacts(modules, [], locale);
   const projectSummary = await draftProse(facts, c, language);
 
   const gaps: { clauseId: string; hint: string }[] = [];
@@ -122,11 +260,13 @@ export async function draftContract(input: DraftInput): Promise<ContractDraft> {
   // keep only non-empty optional clauses
   const compact = (list: (ContractClause | null)[]): ContractClause[] => list.filter((x): x is ContractClause => !!x);
 
-  const scopeLabel = labelOf(LICENSE_SCOPES, c.license.scope);
-  const durationLabel = labelOf(LICENSE_DURATIONS, c.license.duration);
-  const editLabel = labelOf(EDIT_LEVELS, c.deliverables.editLevel);
-  const stornoText = c.cancellation.tiers.map((t) => `bis ${t.untilDaysBefore} Tage vorher: ${t.percent}%`).join(" · ");
-  const deliverables = facts.deliverables.map(itemLine);
+  const scopeLabel = optionLabel("licenseScope", c.license.scope, locale);
+  const durationLabel = optionLabel("licenseDuration", c.license.duration, locale);
+  const editLabel = optionLabel("editLevel", c.deliverables.editLevel, locale);
+  const stornoText = c.cancellation.tiers
+    .map((tier) => t.untilDaysBefore.replace("{days}", String(tier.untilDaysBefore)).replace("{percent}", String(tier.percent)))
+    .join(" · ");
+  const deliverables = facts.deliverables.map((item) => itemLine(item, locale));
   const approvedCount = facts.approvals.filter((item) => item.approved || item.status === "approved").length;
   const checklistDone = facts.checklist.filter((item) => item.checked).length;
   const selectedCount = facts.selectedUploads.length;
@@ -134,118 +274,118 @@ export async function draftContract(input: DraftInput): Promise<ContractDraft> {
   const sections: ContractSection[] = [
     {
       id: "dienstleister",
-      title: "Dienstleister",
+      title: t.serviceProvider,
       clauses: compact([
-        clause("dl_studio", "Studio", parties.photographer.studio || parties.photographer.name, "conditions"),
-        clause("dl_kontakt", "Ansprechpartner:in", [parties.photographer.name, parties.photographer.email].filter(Boolean).join(" · "), "conditions"),
+        clause("dl_studio", t.studio, parties.photographer.studio || parties.photographer.name, "conditions"),
+        clause("dl_kontakt", t.contact, [parties.photographer.name, parties.photographer.email].filter(Boolean).join(" · "), "conditions"),
         parties.photographer.address
-          ? clause("dl_anschrift", "Anschrift", parties.photographer.address, "conditions")
-          : gap("dl_anschrift", "Anschrift", "Geschäftsanschrift fehlt — in den Einstellungen ergänzen."),
+          ? clause("dl_anschrift", t.address, parties.photographer.address, "conditions")
+          : gap("dl_anschrift", t.address, t.businessAddressMissing),
         parties.photographer.vatId
-          ? clause("dl_steuer", "Steuer", `USt-IdNr. ${parties.photographer.vatId}`, "conditions")
+          ? clause("dl_steuer", t.tax, `USt-IdNr. ${parties.photographer.vatId}`, "conditions")
           : parties.photographer.kleinunternehmer19
-            ? clause("dl_steuer", "Steuer", "Kleinunternehmer gem. §19 UStG — keine USt. ausgewiesen.", "conditions")
+            ? clause("dl_steuer", t.tax, t.smallBusiness, "conditions")
             : null,
       ]),
     },
     {
       id: "kunde",
-      title: "Kunde",
+      title: t.client,
       clauses: compact([
         parties.client.name
-          ? clause("ku_name", "Name", parties.client.name, "module")
-          : gap("ku_name", "Name", "Kundenname fehlt — wird bei der Freigabe ergänzt."),
+          ? clause("ku_name", t.name, parties.client.name, "module")
+          : gap("ku_name", t.name, t.clientNameMissing),
         parties.client.email
           ? clause("ku_email", "E-Mail", parties.client.email, "client")
-          : gap("ku_email", "E-Mail", "E-Mail des Kunden fehlt."),
-        parties.client.address ? clause("ku_anschrift", "Anschrift", parties.client.address, "client") : null,
-        parties.client.company ? clause("ku_firma", "Firma", parties.client.company, "client") : null,
+          : gap("ku_email", "E-Mail", t.clientEmailMissing),
+        parties.client.address ? clause("ku_anschrift", t.address, parties.client.address, "client") : null,
+        parties.client.company ? clause("ku_firma", t.company, parties.client.company, "client") : null,
       ]),
     },
     {
       id: "projekt",
-      title: "Projekt-Einzelheiten",
+      title: t.projectDetails,
       clauses: compact([
-        facts.title ? clause("pr_titel", "Projekt", facts.title, "module") : null,
-        clause("pr_leistung", "Leistungsbeschreibung", projectSummary, projectSummary === c.service.description ? "conditions" : "generated"),
+        facts.title ? clause("pr_titel", t.project, facts.title, "module") : null,
+        clause("pr_leistung", t.serviceDescription, projectSummary, projectSummary === c.service.description ? "conditions" : "generated"),
         facts.dates.length
-          ? clause("pr_termine", "Termin(e)", facts.dates.join(" · "), "module")
-          : gap("pr_termine", "Termin(e)", "Kein Shooting-Termin im Plan — bitte ergänzen."),
-        facts.locations.length ? clause("pr_orte", "Ort(e)", facts.locations.join(" · "), "module") : null,
+          ? clause("pr_termine", t.dates, facts.dates.join(" · "), "module")
+          : gap("pr_termine", t.dates, t.datesMissing),
+        facts.locations.length ? clause("pr_orte", t.places, facts.locations.join(" · "), "module") : null,
         clause(
           "pr_deliverables",
-          "Leistungen & Lieferung",
+          t.servicesDelivery,
           [
             deliverables.length ? deliverables.join(", ") : "",
-            `Formate: ${c.deliverables.formats.join(", ")}`,
-            `Bearbeitung: ${editLabel}`,
-            `Lieferfrist: ${c.deliverables.turnaround}`,
+            `${t.formats}: ${c.deliverables.formats.join(", ")}`,
+            `${t.editing}: ${editLabel}`,
+            `${t.turnaround}: ${c.deliverables.turnaround}`,
           ].filter(Boolean).join(" · "),
           deliverables.length ? "module" : "conditions",
         ),
-        facts.crew.length ? clause("pr_crew", "Beteiligte", facts.crew.join(", "), "module") : null,
-        facts.shots.length ? clause("pr_shotlist", "Shotlist", shotPreview(facts), "module") : null,
+        facts.crew.length ? clause("pr_crew", t.crew, facts.crew.join(", "), "module") : null,
+        facts.shots.length ? clause("pr_shotlist", "Shotlist", shotPreview(facts, locale), "module") : null,
         facts.moodboard.length
-          ? clause("pr_moodboard", "Visuelle Richtung", facts.moodboard.map((item) => [
+          ? clause("pr_moodboard", t.visualDirection, facts.moodboard.map((item) => [
               item.label,
               item.status,
               item.note,
             ].filter(Boolean).join(" · ")).join(" | "), "module")
           : null,
         facts.approvals.length
-          ? clause("pr_freigaben", "Freigaben", `${approvedCount}/${facts.approvals.length} freigegeben · ${facts.approvals.map((item) => [
+          ? clause("pr_freigaben", t.approvals, `${approvedCount}/${facts.approvals.length} ${t.approved} · ${facts.approvals.map((item) => [
               item.label,
               item.status,
-              item.due ? `fällig ${item.due}` : "",
+              item.due ? `${t.due} ${item.due}` : "",
             ].filter(Boolean).join(" · ")).join(" | ")}`, "module")
           : null,
         facts.checklist.length
-          ? clause("pr_vorbereitung", "Vorbereitung", `${checklistDone}/${facts.checklist.length} erledigt · ${listPreview(facts.checklist.map((item) => `${item.checked ? "✓" : "○"} ${item.label}`), 10)}`, "module")
+          ? clause("pr_vorbereitung", t.preparation, `${checklistDone}/${facts.checklist.length} ${t.done} · ${listPreview(facts.checklist.map((item) => `${item.checked ? "✓" : "○"} ${item.label}`), 10, locale)}`, "module")
           : null,
         facts.uploads.length
-          ? clause("pr_uploads", "Referenzen & Anhänge", `${facts.uploads.length} Dateien${selectedCount ? ` · ${selectedCount} ausgewählt` : ""}: ${listPreview(facts.uploads.map((upload) => upload.name), 12)}`, "module")
+          ? clause("pr_uploads", t.referencesAttachments, `${facts.uploads.length} ${t.files}${selectedCount ? ` · ${selectedCount} ${t.selected}` : ""}: ${listPreview(facts.uploads.map((upload) => upload.name), 12, locale)}`, "module")
           : null,
         facts.parts.length
-          ? clause("pr_utensilien", "Utensilien / Technik", listPreview(facts.parts.map((item) => [
+          ? clause("pr_utensilien", t.parts, listPreview(facts.parts.map((item) => [
               item.quantity,
               item.name,
-            ].filter(Boolean).join(" ")), 12), "module")
+            ].filter(Boolean).join(" ")), 12, locale), "module")
           : null,
       ]),
     },
     {
       id: "konditionen",
-      title: "Konditionen",
+      title: t.conditions,
       clauses: compact([
-        clause("ko_lizenz", "Nutzungsrechte", `${scopeLabel}, ${durationLabel}${c.license.creditRequired ? ", mit Urhebernennung" : ""}`, "conditions"),
-        gap("ko_honorar", "Honorar", "Honorar fehlt — bitte Betrag ergänzen."),
+        clause("ko_lizenz", t.license, `${scopeLabel}, ${durationLabel}${c.license.creditRequired ? `, ${t.credit}` : ""}`, "conditions"),
+        gap("ko_honorar", t.fee, t.feeMissing),
         clause(
           "ko_zahlung",
-          "Zahlungsbedingungen",
-          `Anzahlung ${c.payment.depositPercent}% · Zahlungsziel ${c.payment.paymentTermDays} Tage · ` +
-            (c.payment.kleinunternehmer19 ? "Kleinunternehmer gem. §19 UStG (keine USt.)" : `zzgl. ${c.payment.vatRate}% MwSt.`),
+          t.payment,
+          `${t.deposit} ${c.payment.depositPercent}% · ${t.paymentTerm} ${c.payment.paymentTermDays} ${t.days} · ` +
+            (c.payment.kleinunternehmer19 ? t.smallBusiness : `${t.vatAdd} ${c.payment.vatRate}% ${t.vat}`),
           "conditions",
         ),
-        stornoText ? clause("ko_storno", "Stornostaffel", stornoText, "conditions") : null,
-        c.cancellation.photographerCancelClause ? clause("ko_ausfall", "Ausfall durch Fotograf:in", c.cancellation.photographerCancelClause, "conditions") : null,
-        c.cancellation.forceMajeureClause ? clause("ko_gewalt", "Höhere Gewalt", c.cancellation.forceMajeureClause, "conditions") : null,
+        stornoText ? clause("ko_storno", t.cancellation, stornoText, "conditions") : null,
+        c.cancellation.photographerCancelClause ? clause("ko_ausfall", t.photographerCancel, c.cancellation.photographerCancelClause, "conditions") : null,
+        c.cancellation.forceMajeureClause ? clause("ko_gewalt", t.forceMajeure, c.cancellation.forceMajeureClause, "conditions") : null,
       ]),
     },
     {
       id: "sonstiges",
-      title: "Sonstiges",
+      title: t.miscellaneous,
       clauses: compact([
-        c.legal.agbRef ? clause("so_agb", "AGB", c.legal.agbRef, "conditions") : null,
-        c.privacy.dataProtectionClause ? clause("so_datenschutz", "Datenschutz", c.privacy.dataProtectionClause, "conditions") : null,
-        c.privacy.retention ? clause("so_aufbewahrung", "Aufbewahrung", c.privacy.retention, "conditions") : null,
-        c.legal.jurisdiction ? clause("so_recht", "Gerichtsstand / Recht", c.legal.jurisdiction, "conditions") : null,
+        c.legal.agbRef ? clause("so_agb", t.terms, c.legal.agbRef, "conditions") : null,
+        c.privacy.dataProtectionClause ? clause("so_datenschutz", t.privacy, c.privacy.dataProtectionClause, "conditions") : null,
+        c.privacy.retention ? clause("so_aufbewahrung", t.retention, c.privacy.retention, "conditions") : null,
+        c.legal.jurisdiction ? clause("so_recht", t.jurisdiction, c.legal.jurisdiction, "conditions") : null,
       ]),
     },
   ];
 
   return {
     language,
-    title: facts.title || parties.client.name ? `${facts.title || "Projekt"}${parties.client.name ? ` — ${parties.client.name}` : ""}` : "Vertrag",
+    title: facts.title || parties.client.name ? `${facts.title || t.projectFallback}${parties.client.name ? ` — ${parties.client.name}` : ""}` : t.contractFallback,
     parties,
     sections,
     gaps,

@@ -3,9 +3,10 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReverification, useUser } from "@clerk/nextjs";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { useStudioProfile } from "@/components/studio/useStudioProfile";
 import { LANGUAGE_OPTIONS } from "@/lib/studioProfile";
+import { normalizeLocale } from "@/lib/i18n/locale";
 import { PageHeader, Card, Field, Input, Textarea, TagEditor, Segmented, Select, Toggle } from "@/components/studio/formKit";
 import { showActionError, showActionSuccess, showUnknownError } from "@/lib/client/feedback";
 
@@ -21,7 +22,7 @@ function interpolate(template: string, values: Record<string, string | number>):
  * useStudioProfile.
  */
 export default function StudioKontoPage() {
-  const t = useT();
+  const { t, setLocale } = useLocale();
   const router = useRouter();
   const { profile, status, update } = useStudioProfile();
   const { user } = useUser();
@@ -46,6 +47,11 @@ export default function StudioKontoPage() {
     document.documentElement.style.colorScheme = projectTheme;
     set({ projectTheme });
     window.setTimeout(() => router.refresh(), 900);
+  };
+  const setDefaultLanguage = (value: string) => {
+    const language = normalizeLocale(value);
+    set({ defaultLanguage: language });
+    setLocale(language);
   };
 
   async function uploadAvatar(file: File | null) {
@@ -291,8 +297,11 @@ export default function StudioKontoPage() {
                   <Field label={t.studio.account.defaultLanguage} hint={t.studio.account.defaultLanguageHint}>
                     <Select
                       value={settings.defaultLanguage}
-                      onChange={(e) => set({ defaultLanguage: e.target.value })}
-                      options={LANGUAGE_OPTIONS.map((l) => ({ value: l.value, label: l.label }))}
+                      onChange={(e) => setDefaultLanguage(e.target.value)}
+                      options={LANGUAGE_OPTIONS.map((l) => ({
+                        value: l.value,
+                        label: l.value === "de" ? t.language.german : t.language.english,
+                      }))}
                     />
                   </Field>
                   <div className="h-px bg-black/[0.06]" />

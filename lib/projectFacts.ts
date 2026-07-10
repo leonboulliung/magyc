@@ -1,4 +1,5 @@
 import type { Module, ModuleStateEntry } from "./types";
+import { normalizeLocale, type Locale } from "@/lib/i18n/locale";
 
 export interface ProjectFactShot {
   label: string;
@@ -42,11 +43,18 @@ export interface ProjectFacts {
 const clean = (value: unknown, max = 240): string =>
   typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "";
 
-const uniq = (values: string[]): string[] => {
+const localeTag = (locale: Locale) => (locale === "en" ? "en-US" : "de-DE");
+const fallbackName = (locale: Locale, kind: "image" | "file") => (
+  locale === "en"
+    ? (kind === "image" ? "Image" : "File")
+    : (kind === "image" ? "Bild" : "Datei")
+);
+
+const uniq = (values: string[], locale: Locale): string[] => {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const value of values) {
-    const key = value.toLocaleLowerCase("de-DE");
+    const key = value.toLocaleLowerCase(localeTag(locale));
     if (!value || seen.has(key)) continue;
     seen.add(key);
     out.push(value);
@@ -54,11 +62,11 @@ const uniq = (values: string[]): string[] => {
   return out;
 };
 
-function fmtDate(iso: string): string {
+function fmtDate(iso: string, locale: Locale): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   const hasTime = /\d{2}:\d{2}/.test(iso);
-  return d.toLocaleString("de-DE", hasTime ? { dateStyle: "long", timeStyle: "short" } : { dateStyle: "long" });
+  return d.toLocaleString(localeTag(locale), hasTime ? { dateStyle: "long", timeStyle: "short" } : { dateStyle: "long" });
 }
 
 function stateFor(state: ModuleStateEntry[], moduleIndex: number): ModuleStateEntry[] {
@@ -118,7 +126,8 @@ function moduleTitle(module: Module): string {
   return clean(module.microTitle || module.description || module.type, 80);
 }
 
-export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] = []): ProjectFacts {
+export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] = [], localeInput: unknown = "de"): ProjectFacts {
+  const locale = normalizeLocale(localeInput);
   const facts: ProjectFacts = {
     title: "",
     description: "",
@@ -153,14 +162,14 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
         facts.tags.push(...module.tags.map((tag) => clean(tag, 80)).filter(Boolean));
         break;
       case "date":
-        if (module.date) facts.dates.push(fmtDate(module.date));
+        if (module.date) facts.dates.push(fmtDate(module.date, locale));
         break;
       case "appointment":
-        if (module.datetime) facts.dates.push(fmtDate(module.datetime));
+        if (module.datetime) facts.dates.push(fmtDate(module.datetime, locale));
         break;
       case "appointments":
         for (const entry of module.entries) {
-          if (entry.datetime) facts.dates.push([clean(entry.label, 80), fmtDate(entry.datetime)].filter(Boolean).join(": "));
+          if (entry.datetime) facts.dates.push([clean(entry.label, 80), fmtDate(entry.datetime, locale)].filter(Boolean).join(": "));
         }
         break;
       case "range":
@@ -286,7 +295,7 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
         }));
         facts.moodboard.push(...directions.map(({ id: _id, ...direction }) => direction));
         facts.uploads.push(...liveUploads(state, moduleIndex).map((entry) => ({
-          name: clean(entry.data.name, 220) || "Bild",
+          name: clean(entry.data.name, 220) || fallbackName(locale, "image"),
           mimeType: clean(entry.data.mimeType, 120) || undefined,
           size: typeof entry.data.size === "number" ? entry.data.size : undefined,
           moduleType: module.type,
@@ -402,7 +411,7 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
       case "audio":
       case "selection":
         facts.uploads.push(...liveUploads(state, moduleIndex).map((entry) => ({
-          name: clean(entry.data.name, 220) || "Datei",
+          name: clean(entry.data.name, 220) || fallbackName(locale, "file"),
           mimeType: clean(entry.data.mimeType, 120) || undefined,
           size: typeof entry.data.size === "number" ? entry.data.size : undefined,
           moduleType: module.type,
@@ -424,12 +433,12 @@ export function buildProjectFacts(modules: Module[], state: ModuleStateEntry[] =
     }
   });
 
-  facts.tags = uniq(facts.tags);
-  facts.dates = uniq(facts.dates);
-  facts.locations = uniq(facts.locations);
-  facts.crew = uniq(facts.crew);
-  facts.workPackages = uniq(facts.workPackages);
-  facts.selectedUploads = uniq(facts.selectedUploads);
+  facts.tags = uniq(facts.tags, locale);
+  facts.dates = uniq(facts.dates, locale);
+  facts.locations = uniq(facts.locations, locale);
+  facts.crew = uniq(facts.crew, locale);
+  facts.workPackages = uniq(facts.workPackages, locale);
+  facts.selectedUploads = uniq(facts.selectedUploads, locale);
 
   return facts;
 }
