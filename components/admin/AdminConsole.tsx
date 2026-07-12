@@ -324,7 +324,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                 placeholder={t.admin.searchPlaceholder}
                 className="min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black/35"
               />
-              <button type="submit" className="rounded-lg bg-[#17171a] px-4 py-2 text-sm text-white">Suchen</button>
+              <button type="submit" className="rounded-lg bg-[#17171a] px-4 py-2 text-sm text-white">{t.admin.search}</button>
             </form>
             <span className="mono shrink-0 text-[10px] uppercase tracking-[0.18em] text-black/40">
               {initialData.pagination.total} Accounts · Seite {initialData.pagination.page}/{pageCount}
@@ -434,11 +434,11 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                 <div className="grid grid-cols-2 gap-2">
                   <MiniMetric label="Plan" value={planLabel(selectedUser.plan)} />
                   <MiniMetric label="Status" value={statusLabel(selectedUser.accountStatus)} />
-                  <MiniMetric label="Projekte" value={modalSpaces.length} />
+                  <MiniMetric label={t.admin.projects} value={modalSpaces.length} />
                   <MiniMetric label="Support" value={modalTickets.length} />
                 </div>
                 <div className="rounded-[24px] border border-black/10 bg-white/55 p-4">
-                  <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Projekte</h3>
+                  <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">{t.admin.projects}</h3>
                   <div className="mt-3 space-y-2">
                     {modalSpaces.map((space) => (
                       <Link key={space.id} href={`/admin/spaces/${space.id}`} className="block rounded-[18px] border border-black/8 px-4 py-3 hover:bg-white">
@@ -448,13 +448,13 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                         </div>
                       </Link>
                     ))}
-                    {modalSpaces.length === 0 && <p className="text-sm text-black/45">Keine Projekte.</p>}
+                    {modalSpaces.length === 0 && <p className="text-sm text-black/45">{t.admin.noProjects}</p>}
                   </div>
                 </div>
               </div>
               <div className="space-y-5">
                 <div className="rounded-[24px] border border-black/10 bg-white/55 p-4">
-                  <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">Aktivitaet</h3>
+                  <h3 className="mono text-[11px] uppercase tracking-[0.22em] text-black/45">{t.admin.activity}</h3>
                   <Timeline entries={modalTimeline} />
                 </div>
                 <div className="rounded-[24px] border border-black/10 bg-white/55 p-4">
@@ -469,7 +469,7 @@ export function AdminConsole({ initialData }: { initialData: AdminConsoleData })
                         <p className="mt-2 whitespace-pre-wrap text-sm text-black/65">{ticket.message}</p>
                       </div>
                     ))}
-                    {modalTickets.length === 0 && <p className="text-sm text-black/45">Keine Tickets.</p>}
+                    {modalTickets.length === 0 && <p className="text-sm text-black/45">{t.admin.noTickets}</p>}
                   </div>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthWidget } from "@/components/auth/AuthWidget";
+import { getServerI18n } from "@/lib/i18n/server";
 
 /**
  * Native sign-up page. `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` points Clerk
@@ -8,7 +9,10 @@ import { AuthWidget } from "@/components/auth/AuthWidget";
  * Public — the middleware only protects /studio. Wrapped in AuthShell so cold
  * ad-email traffic sees the product promise beside the form.
  */
-export const metadata = { title: "Registrieren — MAGYC", robots: { index: false } };
+export async function generateMetadata() {
+  const { t } = await getServerI18n();
+  return { title: `${t.auth.registerFree} — MAGYC`, robots: { index: false } };
+}
 
 export default function SignUpPage() {
   return (

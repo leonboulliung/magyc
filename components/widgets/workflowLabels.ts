@@ -41,7 +41,7 @@ const WORKFLOW_LABELS: Record<string, WorkflowLexicon> = {
     assign: "uebernehmen",
     release: "freigeben", // i18n-ignore: project-language content
     due: "faellig",
-    client: "kunde",
+    client: "kunde", // i18n-ignore: project-language lexicon token
     internal: "intern",
   },
   fr: {

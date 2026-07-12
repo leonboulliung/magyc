@@ -10,6 +10,7 @@
  * app/(site)/<slug>/page.tsx. Imagery is optional — without it the work
  * band renders labelled placeholders (no stock photos).
  */
+import { normalizeLocale } from "@/lib/i18n/locale";
 
 export interface SampleImage {
   src: string;
@@ -466,9 +467,294 @@ const FASHION: Segment = {
   cta: { headline: "Starte deine nächste Strecke in MAGYC.", button: "Kostenlos testen" },
 };
 
+const POSITIONING_EN = {
+  eyebrow: "Where AI helps",
+  heading: "AI handles the admin. You keep the craft.",
+  sub:
+    "MAGYC does not touch your images or your style. It takes over structure, admin and handover — the invisible hours between shoots. The shoot stays yours, and so does the final decision.",
+};
+
+const PRESENT_SHARED_EN = {
+  eyebrow: "When the shoot is clear",
+  heading: "The same project, reborn as a presentation.",
+  fromLabel: "PLAN",
+  toLabel: "PRESENT",
+  mediaLabel: "Auto-generated presentation page",
+  mediaCaption: "Annotated example · coming soon",
+};
+
+const PRODUCT_EN: Segment = {
+  slug: "product",
+  label: "Product photography",
+  meta: {
+    title: "MAGYC for product photographers",
+    description:
+      "From the first client email to the final handover — one place that forms around the shoot. Enter it once; never retype the same briefing again.",
+  },
+  hero: {
+    eyebrow: "For product & commercial photographers",
+    headline: "The photo is the easy part.",
+    sub:
+      "The briefing, usage rights, shotlist, approvals and handover are where margin appears or disappears. MAGYC turns the first client email into a shared project and the finished shoot into a clean presentation.",
+    ctaPrimary: "Start project",
+    ctaSecondary: "View example project →",
+    image: { src: "/media/hero-bts.jpg", alt: "Product shoot in a dark studio with tethered camera, laptop and sweep", caption: "Set · Product shoot" },
+  },
+  problem: {
+    eyebrow: "The real job",
+    heading: "A commercial shoot is a coordination problem with a camera.",
+    cards: [
+      { big: "2–6 tools", small: "CRM, gallery, email, spreadsheet, contract — and the same data gets typed into each one." },
+      { big: "Invisible hours", small: "Briefing, usage rights, approvals and delivery setup quietly eat into the margin." },
+      { big: "Built again every time", small: "The handover and case study are assembled by hand after every project." },
+    ],
+  },
+  work: {
+    eyebrow: "Made for work like this",
+    heading: "From still life to beauty to tech.",
+    lead: "MAGYC carries the project — you make the images.",
+    images: PRODUCT.work.images,
+    footnote: "Example product photography · no stock images",
+  },
+  lifecycle: {
+    eyebrow: "One project, three phases",
+    heading: "The same project — carried from briefing to handover.",
+    steps: [
+      { n: "01", title: "Briefing", lead: "Forward the client email or type the job in one sentence. MAGYC builds deliverables, usage, shoot date, location and crew.", note: "The briefing no longer lives in the inbox." },
+      { n: "02", title: "Production", lead: "A shared room for the shoot. Client, assistants, styling and retouching work in the same structure.", note: "Everyone sees the same truth." },
+      { n: "03", title: "Presentation", lead: "When the shoot is done, one click turns the same project into a branded handover page.", note: "From planning surface to presentation, automatically." },
+    ],
+  },
+  blocks: {
+    eyebrow: "The building blocks",
+    heading: "No template. A kit of small, sharp parts.",
+    lead: "MAGYC assembles each project from focused blocks and chooses what your shoot actually needs.",
+    items: [
+      { icon: "deliverables", name: "Deliverables", role: "Every asset, format and quantity the client expects." },
+      { icon: "approvals", name: "Approvals", role: "Sign-off points the client or team can confirm." },
+      { icon: "crew", name: "Crew & roles", role: "Assistant, styling, retouching, agency — claimed, not chased." },
+      { icon: "packages", name: "Work packages", role: "Set, edit and delivery split into manageable parts." },
+      { icon: "shotlist", name: "Shotlist", role: "Every angle and setup, checked off on set." },
+      { icon: "schedule", name: "Dates", role: "Shoot day, review call and delivery date in context." },
+      { icon: "location", name: "Location", role: "Studio or set pinned on the map." },
+      { icon: "moodboard", name: "Moodboard", role: "References and inspiration in one frame." },
+      { icon: "files", name: "Files", role: "Briefings, contracts and specs attached where they belong." },
+      { icon: "notes", name: "Notes", role: "Everything that does not fit a box." },
+      { icon: "qa", name: "Q&A", role: "Open questions answered by client or team." },
+      { icon: "qa", name: "Open questions", role: "Clarification stays visible directly on the project." },
+    ],
+    footnote: "…and more — MAGYC chooses, configures and orders them for each job.",
+  },
+  present: {
+    ...PRESENT_SHARED_EN,
+    sub: "Locations, crew, deliverables and final selects are already in the system. One click turns them into a branded recap and handover page.",
+  },
+  positioning: POSITIONING_EN,
+  cta: { headline: "Start your next shoot in MAGYC.", button: "Try for free" },
+};
+
+const CORPORATE_EN: Segment = {
+  slug: "corporate",
+  label: "Corporate photography",
+  meta: {
+    title: "MAGYC for corporate photography",
+    description:
+      "Headshot days, multiple locations, many stakeholders, usage rights and a consistent look. MAGYC carries the whole project.",
+  },
+  hero: {
+    eyebrow: "For corporate & business photography",
+    headline: "The portrait takes minutes. The coordination takes weeks.",
+    sub:
+      "Headshot days across locations, HR and marketing stakeholders, usage rights and one consistent look. MAGYC turns the first email into a shared project and the finished images into a clean handover.",
+    ctaPrimary: "Start project",
+    ctaSecondary: "View example project →",
+    placeholderLabel: "Corporate shoot · Hero",
+  },
+  problem: {
+    eyebrow: "The real job",
+    heading: "The hard part of a corporate shoot is not the light.",
+    cards: [
+      { big: "Many stakeholders", small: "HR, marketing, office, management — everyone is involved, nobody has the full overview." },
+      { big: "Rights & consistency", small: "Where may the images be used, for how long, and does every office look consistent?" },
+      { big: "Dates across locations", small: "Headshot days, availability and rooms take more time than the shoot." },
+    ],
+  },
+  work: {
+    eyebrow: "Made for work like this",
+    heading: "From headshots to teams to offices.",
+    lead: "MAGYC carries the project — you make the images.",
+    placeholderLabels: ["Headshot", "Team", "Portrait", "Office", "Location", "Detail"],
+    footnote: "Real corporate images · coming soon",
+  },
+  lifecycle: {
+    eyebrow: "One project, three phases",
+    heading: "The same project — from HR email to handover.",
+    steps: [
+      { n: "01", title: "Briefing", lead: "Forward the email from HR or marketing. MAGYC builds people, locations, rights, dates and contacts.", note: "The briefing no longer lives in an email thread." },
+      { n: "02", title: "Production", lead: "A shared room for everyone involved: shot list, dates, open questions and approvals.", note: "One place instead of twenty email threads." },
+      { n: "03", title: "Handover", lead: "When the images are ready, the same project becomes a branded handover page with the right formats and usage notes.", note: "One clean source for the whole company." },
+    ],
+  },
+  blocks: {
+    eyebrow: "The building blocks",
+    heading: "No template. A kit of small, sharp parts.",
+    lead: "MAGYC assembles each project from focused blocks and chooses what this job actually needs.",
+    items: [
+      { icon: "deliverables", name: "Deliverables", role: "Headshots, web and print formats, quantities by department." },
+      { icon: "approvals", name: "Approvals", role: "Sign-off from HR, marketing and management." },
+      { icon: "crew", name: "Contacts", role: "Who decides what — HR, marketing and office in one place." },
+      { icon: "shotlist", name: "Shot list", role: "Every person, team and room checked off on the day." },
+      { icon: "schedule", name: "Dates", role: "Headshot slots and availability across locations." },
+      { icon: "location", name: "Locations", role: "Multiple offices pinned on the map." },
+      { icon: "packages", name: "Work packages", role: "By location or department." },
+      { icon: "files", name: "Files", role: "Brand guidelines, contracts and releases where they belong." },
+      { icon: "moodboard", name: "Moodboard", role: "The desired look, visible to everyone." },
+      { icon: "notes", name: "Notes", role: "Everything that does not fit a box." },
+      { icon: "qa", name: "Q&A", role: "Open questions answered by HR or team." },
+      { icon: "qa", name: "Open questions", role: "Clarification stays visible directly on the project." },
+    ],
+    footnote: "…and more — MAGYC chooses, configures and orders them for each job.",
+  },
+  present: { ...PRESENT_SHARED_EN, heading: "The same project, reborn as a handover.", sub: "Locations, contacts, formats and final images are already in the system. One click creates a branded handover page every department understands." },
+  positioning: POSITIONING_EN,
+  cta: { headline: "Start your next corporate shoot in MAGYC.", button: "Try for free" },
+};
+
+const EVENT_EN: Segment = {
+  slug: "event",
+  label: "Event photography",
+  meta: { title: "MAGYC for event photography", description: "Hundreds of images, many stakeholders, delivery against the clock. MAGYC carries the event project from key facts to gallery." },
+  hero: {
+    eyebrow: "For event photography",
+    headline: "The event is over before the gallery is online?",
+    sub: "Hundreds of images, must-have moments, organisers and sponsors with their own needs — and everyone wants fast delivery. MAGYC turns event details into a shared project and the finished day into a gallery.",
+    ctaPrimary: "Start project",
+    ctaSecondary: "View example project →",
+    image: { src: "/media/showcase-05.jpg", alt: "Event in a large hall", caption: "Event" },
+  },
+  problem: { eyebrow: "The real job", heading: "Events reward whoever delivers first.", cards: [
+    { big: "Hundreds of images", small: "In hours, not days — selection, tagging and approval under pressure." },
+    { big: "Many stakeholders", small: "Organiser, agency, sponsors — everyone needs different images quickly." },
+    { big: "Delivery against the clock", small: "Press photos, social cuts and gallery, ideally the same evening." },
+  ] },
+  work: { eyebrow: "Made for work like this", heading: "From stage to audience.", lead: "MAGYC carries the project — you make the images.", placeholderLabels: ["Stage", "Audience", "Speaker", "Networking", "Detail", "Catering"], footnote: "Real event images · coming soon" },
+  lifecycle: { eyebrow: "One project, three phases", heading: "The same project — from key facts to gallery.", steps: [
+    { n: "01", title: "Briefing", lead: "Event facts in: schedule, must-have shots, sponsor needs and deadlines. MAGYC builds the project.", note: "All wishes in one place." },
+    { n: "02", title: "Production", lead: "A shared room for the day — shotlist, sponsor images and fast approvals while it is happening.", note: "No required shot forgotten." },
+    { n: "03", title: "Handover", lead: "When the day is captured, one click turns the project into a branded gallery with the right formats.", note: "Fast delivery instead of night work." },
+  ] },
+  blocks: { eyebrow: "The building blocks", heading: "No template. A kit of small, sharp parts.", lead: "MAGYC assembles each project from focused blocks and chooses what your event actually needs.", items: [
+    { icon: "deliverables", name: "Deliverables", role: "Press photos, social formats and gallery quantities." },
+    { icon: "shotlist", name: "Shotlist", role: "Must-have moments checked off during the event." },
+    { icon: "schedule", name: "Programme", role: "Agenda points and slots in context." },
+    { icon: "approvals", name: "Approvals", role: "Fast sign-offs from organiser and agency." },
+    { icon: "crew", name: "Team & contacts", role: "Who decides on site." },
+    { icon: "location", name: "Location", role: "Venue pinned on the map." },
+    { icon: "packages", name: "Work packages", role: "Day, selection and delivery split clearly." },
+    { icon: "files", name: "Files", role: "Schedule, sponsor logos and specs." },
+    { icon: "moodboard", name: "Moodboard", role: "The desired event look." },
+    { icon: "notes", name: "Notes", role: "Everything that does not fit a box." },
+    { icon: "qa", name: "Q&A", role: "Open questions answered by the organiser." },
+    { icon: "qa", name: "Open questions", role: "Clarification stays visible directly on the project." },
+  ], footnote: "…and more — MAGYC chooses, configures and orders them for each job." },
+  present: { ...PRESENT_SHARED_EN, heading: "The same project, reborn as a gallery.", sub: "The programme, people, required shots and best images are already in the system. One click creates a branded gallery." },
+  positioning: POSITIONING_EN,
+  cta: { headline: "Start your next event in MAGYC.", button: "Try for free" },
+};
+
+const WEDDING_EN: Segment = {
+  slug: "wedding",
+  label: "Wedding photography",
+  meta: { title: "MAGYC for wedding photography", description: "One day, no second attempt. MAGYC keeps timeline, group lists, people and wishes together." },
+  hero: {
+    eyebrow: "For wedding photography",
+    headline: "A day that cannot be repeated.",
+    sub: "From getting ready to the last dance: families, group photo lists, locations and vendors. MAGYC keeps timeline, wishes and people together from first call to gallery.",
+    ctaPrimary: "Start project",
+    ctaSecondary: "View example project →",
+    image: { src: "/media/showcase-06.jpg", alt: "Wedding couple holding hands", caption: "Wedding" },
+  },
+  problem: { eyebrow: "The real job", heading: "A wedding does not forgive missed moments.", cards: [
+    { big: "One timeline", small: "From getting ready to dance — every point matters." },
+    { big: "Families & wishes", small: "Group lists, special wishes and contacts on both sides." },
+    { big: "Months of context", small: "Everything stays in one place between booking and gallery." },
+  ] },
+  work: { eyebrow: "Made for work like this", heading: "From first look to last dance.", lead: "MAGYC carries the project — you make the images.", placeholderLabels: ["Ceremony", "Couple", "Details", "Groups", "Party", "Location"], footnote: "Real wedding images · coming soon" },
+  lifecycle: { eyebrow: "One project, three phases", heading: "The same project — from first call to gallery.", steps: [
+    { n: "01", title: "Briefing", lead: "From the first conversation: timeline, group photo list, locations, vendors and special wishes.", note: "The planning call no longer lives in the inbox." },
+    { n: "02", title: "Production", lead: "A shared room for timeline, wish list and contacts before and during the day.", note: "Nothing gets lost in the rush." },
+    { n: "03", title: "Handover", lead: "When everything is captured, one click turns the project into a branded gallery for the couple.", note: "A handover that feels special." },
+  ] },
+  blocks: { eyebrow: "The building blocks", heading: "No template. A kit of small, sharp parts.", lead: "MAGYC assembles each project from focused blocks and chooses what your wedding actually needs.", items: [
+    { icon: "schedule", name: "Timeline", role: "From getting ready to dance." },
+    { icon: "shotlist", name: "Group photo list", role: "Every constellation checked off." },
+    { icon: "crew", name: "People involved", role: "Witnesses, planner and vendors." },
+    { icon: "location", name: "Locations", role: "Ceremony, venue and photo spots." },
+    { icon: "deliverables", name: "Deliverables", role: "Preview, gallery, album, quantities and formats." },
+    { icon: "approvals", name: "Preselection", role: "The couple marks favourites and approves." },
+    { icon: "moodboard", name: "Style & references", role: "The desired look, visible to everyone." },
+    { icon: "files", name: "Files", role: "Contracts, timeline and wish lists." },
+    { icon: "packages", name: "Work packages", role: "Day, selection and album." },
+    { icon: "notes", name: "Notes", role: "Everything that does not fit a box." },
+    { icon: "qa", name: "Q&A", role: "Open questions answered by the couple." },
+    { icon: "qa", name: "Open questions", role: "Clarification stays visible directly on the project." },
+  ], footnote: "…and more — MAGYC chooses, configures and orders them for each job." },
+  present: { ...PRESENT_SHARED_EN, heading: "The same project, reborn as a gallery for the couple.", sub: "Timeline, people, locations and best images are already in the system. One click creates a branded gallery." },
+  positioning: POSITIONING_EN,
+  cta: { headline: "Start your next wedding in MAGYC.", button: "Try for free" },
+};
+
+const FASHION_EN: Segment = {
+  slug: "fashion",
+  label: "Fashion photography",
+  meta: { title: "MAGYC for fashion & editorial photography", description: "Model, styling, MUA, art direction, looks and rights. MAGYC keeps crew, references and approvals together." },
+  hero: {
+    eyebrow: "For fashion & editorial photography",
+    headline: "A look is not created alone.",
+    sub: "Model, styling, make-up and art direction all need the same look, on the same day, under pressure. MAGYC keeps looks, crew, references and approvals together.",
+    ctaPrimary: "Start project",
+    ctaSecondary: "View example project →",
+    image: { src: "/media/showcase-09.jpg", alt: "Editorial portrait with shadow", caption: "Editorial" },
+  },
+  problem: { eyebrow: "The real job", heading: "Fashion is teamwork under time pressure.", cards: [
+    { big: "Many crafts", small: "Model, styling, MUA, art director — everyone needs the same look." },
+    { big: "Looks & references", small: "Outfits, moods and poses spread across chats and boards." },
+    { big: "Rights & delivery", small: "Who may use the images, where, and in which formats?" },
+  ] },
+  work: { eyebrow: "Made for work like this", heading: "From concept to editorial.", lead: "MAGYC carries the project — you make the images.", images: FASHION.work.images, footnote: "Example editorial photography" },
+  lifecycle: { eyebrow: "One project, three phases", heading: "The same project — from concept to editorial.", steps: [
+    { n: "01", title: "Concept", lead: "From idea to project: looks, crew, references, rights, date and location.", note: "One shared concept instead of scattered boards." },
+    { n: "02", title: "Production", lead: "A shared space on set: looks, crew, references and approvals.", note: "Everyone knows the look." },
+    { n: "03", title: "Handover", lead: "When the editorial is finished, one click turns the project into a branded lookbook with usage notes.", note: "From planning to editorial, automatically." },
+  ] },
+  blocks: { eyebrow: "The building blocks", heading: "No template. A kit of small, sharp parts.", lead: "MAGYC assembles each project from focused blocks and chooses what your editorial actually needs.", items: [
+    { icon: "crew", name: "Crew", role: "Model, styling, MUA and art direction." },
+    { icon: "moodboard", name: "Looks & references", role: "Outfits, moods and poses in one frame." },
+    { icon: "shotlist", name: "Looks & shotlist", role: "Every look and setup checked off." },
+    { icon: "deliverables", name: "Deliverables", role: "Editorial, formats and usage rights." },
+    { icon: "approvals", name: "Approvals", role: "Sign-off from art director and client." },
+    { icon: "schedule", name: "Dates", role: "Look timing, shoot day and delivery." },
+    { icon: "location", name: "Location", role: "Studio or set on the map." },
+    { icon: "files", name: "Files", role: "Usage, contracts and releases." },
+    { icon: "packages", name: "Work packages", role: "Set, edit and delivery." },
+    { icon: "notes", name: "Notes", role: "Everything that does not fit a box." },
+    { icon: "qa", name: "Q&A", role: "Open questions answered by the client." },
+    { icon: "qa", name: "Open questions", role: "Clarification stays visible directly on the project." },
+  ], footnote: "…and more — MAGYC chooses, configures and orders them for each job." },
+  present: { ...PRESENT_SHARED_EN, heading: "The same project, reborn as an editorial.", sub: "Crew, looks, references and final images are already in the system. One click creates a branded lookbook." },
+  positioning: POSITIONING_EN,
+  cta: { headline: "Start your next editorial in MAGYC.", button: "Try for free" },
+};
+
+const SEGMENTS_EN: Segment[] = [PRODUCT_EN, EVENT_EN, WEDDING_EN, CORPORATE_EN, FASHION_EN];
+
 // Order = adjacency (see docs/STRATEGY.md §11), matches USE_CASES in lib/site.ts.
 export const SEGMENTS: Segment[] = [PRODUCT, EVENT, WEDDING, CORPORATE, FASHION];
 
-export function segmentBySlug(slug: string): Segment | undefined {
-  return SEGMENTS.find((s) => s.slug === slug);
+export function segmentsForLocale(localeInput: unknown): Segment[] {
+  return normalizeLocale(localeInput) === "en" ? SEGMENTS_EN : SEGMENTS;
+}
+
+export function segmentBySlug(slug: string, localeInput: unknown = "de"): Segment | undefined {
+  return segmentsForLocale(localeInput).find((s) => s.slug === slug);
 }

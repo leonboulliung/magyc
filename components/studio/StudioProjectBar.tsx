@@ -71,7 +71,12 @@ export function StudioProjectBar({
   const [pendingStage, setPendingStage] = useState<ProjectStage | null>(null);
   const [stageMenuOpen, setStageMenuOpen] = useState(false);
   const currentIdx = PROJECT_STAGE_ORDER.indexOf(current);
-  const viewLabel = PROJECT_STAGE_LABELS.find((s) => s.id === view)?.label ?? "Planung";
+  const labels: Record<ProjectStage, string> = {
+    brief: tr.studio.stageBrief,
+    production: tr.studio.stageProduction,
+    handoff: tr.studio.stageHandoff,
+  };
+  const viewLabel = labels[view] ?? tr.studio.stageBrief;
 
   /** What a tab does: view a reached stage, advance to the next, or nothing. */
   function tabKind(s: ProjectStage): "view" | "advance" | "locked" {
@@ -109,7 +114,7 @@ export function StudioProjectBar({
       }
       showActionSuccess(next === "production" ? tr.studio.contractPrepared : tr.studio.stageSaved, {
         id: `stage-${id}`,
-        description: next === "production" ? "Der Vertragsentwurf wurde automatisch angelegt." : undefined,
+        description: next === "production" ? tr.studio.contractAutoDrafted : undefined,
       });
       setCurrent(next);
       onAdvance(next); // workspace moves the view forward to the new stage
@@ -164,7 +169,7 @@ export function StudioProjectBar({
                     className={`mono block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-widest transition-colors disabled:opacity-30 ${active ? (light ? "text-black" : "text-white") : (light ? "text-black/55 hover:text-black" : "text-white/50 hover:text-white")}`}
                   >
                     {active && <span className="mr-2 text-[8px]">●</span>}
-                    {s.label}
+                    {labels[s.id]}
                     {kind === "advance" && <span className={`ml-2 ${arrowMuted}`}>→</span>}
                   </button>
                 );
@@ -194,7 +199,7 @@ export function StudioProjectBar({
                     : inactiveTab
               }`}
             >
-              {s.label}
+              {labels[s.id]}
               {kind === "advance" && <span aria-hidden className="ml-1.5 opacity-60">→</span>}
             </button>
           );
@@ -208,7 +213,7 @@ export function StudioProjectBar({
           className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] transition-colors ${chip}`}
         >
           <span aria-hidden>↗</span>
-          <span className="hidden sm:inline">{shared ? "Geteilt" : "Teilen"}</span>
+          <span className="hidden sm:inline">{shared ? tr.studio.shared : tr.studio.share}</span>
         </button>
       )}
 
@@ -242,7 +247,7 @@ export function StudioProjectBar({
               disabled={busy}
               className="rounded-full px-4 py-2 text-[13px] text-white/65 transition-colors hover:text-white disabled:opacity-50"
             >
-              Abbrechen
+              {tr.common.cancel}
             </button>
             <button
               type="button"

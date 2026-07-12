@@ -154,7 +154,7 @@ export function ShotListRenderer({
               className="mono rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              + Eintrag hinzufügen
+              {tr.elements.addEntry}
             </button>
           )}
         </div>

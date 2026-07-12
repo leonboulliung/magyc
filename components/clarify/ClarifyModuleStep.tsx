@@ -515,7 +515,7 @@ function PhasesEditor({
         className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full opacity-50 hover:opacity-100"
         style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
       >
-        + Phase hinzufügen
+        {t.elements.addPhase}
       </button>
     </div>
   );

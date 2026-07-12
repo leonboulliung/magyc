@@ -216,7 +216,7 @@ export function WorkPackagesRenderer({
             className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest transition-opacity hover:opacity-100"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)", opacity: 0.72 }}
           >
-            + Eintrag hinzufügen
+            {tr.elements.addEntry}
           </button>
         )}
       </WidgetCard>

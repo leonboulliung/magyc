@@ -307,7 +307,7 @@ export function ApprovalsRenderer({
               className="mono text-[10px] tracking-widest px-3 py-1 rounded-full opacity-60 hover:opacity-100 transition-opacity"
               style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
             >
-              + Eintrag hinzufügen
+              {tr.elements.addEntry}
             </button>
           )}
         </div>

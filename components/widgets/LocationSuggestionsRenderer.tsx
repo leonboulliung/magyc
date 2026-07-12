@@ -191,7 +191,7 @@ export function LocationSuggestionsRenderer({
             className="mono mt-3 rounded-full px-3 py-1 text-[10px] tracking-widest opacity-70 transition-opacity hover:opacity-100"
             style={{ border: "1px dashed var(--v-rule)", color: "var(--v-fg)" }}
           >
-            + Vorschlag hinzufügen
+            {tr.elements.addSuggestion}
           </button>
         )}
       </WidgetCard>

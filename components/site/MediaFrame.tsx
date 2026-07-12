@@ -1,4 +1,5 @@
 import { SITE_MEDIA, type MediaKey } from "@/lib/siteMedia";
+import { useT } from "@/components/i18n/LocaleProvider";
 import { SiteImage } from "./SiteImage";
 import { SiteVideo } from "./SiteVideo";
 import { MediaPlaceholder } from "./MediaPlaceholder";
@@ -23,12 +24,16 @@ export function MediaFrame({
   priority?: boolean;
   sizes?: string;
 }) {
+  const tr = useT();
+  const localized = tr.marketing.media[media];
   const m = SITE_MEDIA[media];
+  const alt = localized?.alt ?? m.alt;
+  const label = localized?.label ?? m.label;
   if (m.src) {
     if (m.kind === "video") {
-      return <SiteVideo src={m.src} alt={m.alt} ratio={ratio} caption={caption} className={className} posterSrc={m.posterSrc} />;
+      return <SiteVideo src={m.src} alt={alt} ratio={ratio} caption={caption} className={className} posterSrc={m.posterSrc} />;
     }
-    return <SiteImage src={m.src} alt={m.alt} ratio={ratio} caption={caption} className={className} priority={priority} sizes={sizes} />;
+    return <SiteImage src={m.src} alt={alt} ratio={ratio} caption={caption} className={className} priority={priority} sizes={sizes} />;
   }
-  return <MediaPlaceholder label={m.label} ratio={ratio} caption={caption} className={className} />;
+  return <MediaPlaceholder label={label} ratio={ratio} caption={caption} className={className} />;
 }

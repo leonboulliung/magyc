@@ -93,12 +93,12 @@ type SupportTicketRow = {
 };
 
 function phaseLabel(space: SpaceRow): string {
-  if (space.deleted_at) return "Geloescht";
-  if (space.archived_at) return "Archiviert";
-  if (space.stage === "brief") return "Planung";
+  if (space.deleted_at) return de.admin.phaseDeleted;
+  if (space.archived_at) return de.admin.phaseArchived;
+  if (space.stage === "brief") return de.admin.phasePlanning;
   if (space.stage === "production") return de.admin.contractStage;
-  if (space.stage === "handoff") return "Abgeschlossen";
-  return "Entwurf";
+  if (space.stage === "handoff") return de.admin.phaseClosed;
+  return de.admin.phaseDraft;
 }
 
 function stateSize(row: StateRow): number {

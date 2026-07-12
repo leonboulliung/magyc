@@ -47,7 +47,7 @@ export function ProjectCardActions({
       if (!res.ok) {
         const msg = json.error === "contract_signed"
           ? tr.studio.onlyArchive
-          : "Bitte erneut versuchen.";
+          : tr.studio.tryAgain;
         showActionError(fail, { description: msg });
         return;
       }
@@ -64,11 +64,11 @@ export function ProjectCardActions({
     try {
       const res = await fetch(`/api/projects/${id}/duplicate`, { method: "POST" });
       const json = await readApiJson(res) as { id?: string };
-      if (!res.ok) { showActionError("Nicht dupliziert", { description: "Bitte erneut versuchen." }); return; }
+      if (!res.ok) { showActionError(tr.studio.notDuplicated, { description: tr.studio.tryAgain }); return; }
       showActionSuccess(tr.studio.projectDuplicated);
       router.refresh();
       void json;
-    } catch (e) { showUnknownError("Nicht dupliziert", e); }
+    } catch (e) { showUnknownError(tr.studio.notDuplicated, e); }
     finally { setBusy(false); }
   }
 
@@ -108,21 +108,21 @@ export function ProjectCardActions({
             style={{ background: "#ffffff" }}
           >
             {context === "deleted" ? (
-              <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ deleted: false }, "Wiederhergestellt", "Nicht wiederhergestellt")}>Wiederherstellen</button>
+              <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ deleted: false }, tr.studio.restored, tr.studio.notRestored)}>{tr.studio.restore}</button>
             ) : context === "archived" ? (
               <>
-                <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: false }, "Wiederhergestellt", "Nicht wiederhergestellt")}>Wiederherstellen</button>
-                <button type="button" disabled={busy} className={itemClass} onClick={rename}>Umbenennen</button>
-                <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>Duplizieren</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: false }, tr.studio.restored, tr.studio.notRestored)}>{tr.studio.restore}</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={rename}>{tr.studio.rename}</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>{tr.studio.duplicate}</button>
                 <div className="h-px bg-black/10" />
                 <button type="button" disabled={busy} className={`${itemClass} hover:!text-red-300`} onClick={remove}>{tr.common.delete}</button>
               </>
             ) : (
               <>
-                <button type="button" disabled={busy} className={itemClass} onClick={rename}>Umbenennen</button>
-                <button type="button" disabled={busy} className={itemClass} onClick={() => { setOpen(false); setShareOpen(true); }}>Teilen …</button>
-                <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>Duplizieren</button>
-                <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: true }, "Archiviert", "Nicht archiviert")}>Archivieren</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={rename}>{tr.studio.rename}</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={() => { setOpen(false); setShareOpen(true); }}>{tr.studio.shareEllipsis}</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={duplicate}>{tr.studio.duplicate}</button>
+                <button type="button" disabled={busy} className={itemClass} onClick={() => patch({ archived: true }, tr.studio.archived, tr.studio.notArchived)}>{tr.studio.archive}</button>
                 <div className="h-px bg-black/10" />
                 <button type="button" disabled={busy} className={`${itemClass} hover:!text-red-300`} onClick={remove}>{tr.common.delete}</button>
               </>

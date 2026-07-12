@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/client/errors";
+import { activeClientDictionary } from "@/lib/client/locale";
 
 export type ApiJson = Record<string, unknown>;
 
@@ -17,7 +18,7 @@ export function messageFromUnknown(error: unknown, fallback: string): string {
 
 export function apiFailureMessage(
   json: unknown,
-  fallback = "Aktion fehlgeschlagen. Bitte erneut versuchen.",
+  fallback = activeClientDictionary().apiErrors.actionFailed,
 ): string {
   return apiErrorMessage(json, fallback);
 }
@@ -63,7 +64,7 @@ export function showUnknownError(
 ): string {
   const description = messageFromUnknown(
     error,
-    options?.fallback ?? "Aktion fehlgeschlagen. Bitte erneut versuchen.",
+    options?.fallback ?? activeClientDictionary().apiErrors.actionFailed,
   );
   showActionError(title, { id: options?.id, description });
   return description;

@@ -126,19 +126,19 @@ export function TableRenderer({
         {ctx.isOwner && (
           <div className="mt-3 flex gap-2 flex-wrap">
             {m.columns.length > 0 && <button onClick={addRow} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)" }}>
-              + Zeile hinzufügen
+              {tr.elements.addRow}
             </button>}
             <button onClick={addColumn} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-70 hover:opacity-100" style={{ border: "1px dashed var(--v-rule)" }}>
               {m.columns.length === 0 ? tr.elements.addFirstColumn : tr.elements.addColumn}
             </button>
             {m.rows.length > 0 && (
               <button onClick={() => removeRow(m.rows.length - 1)} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-50 hover:opacity-100">
-                − Zeile
+                {tr.elements.removeRow}
               </button>
             )}
             {m.columns.length > 1 && (
               <button onClick={() => removeColumn(m.columns.length - 1)} className="mono text-[10px] tracking-widest px-2.5 py-1 rounded-full opacity-50 hover:opacity-100">
-                − Spalte
+                {tr.elements.removeColumn}
               </button>
             )}
           </div>

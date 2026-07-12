@@ -88,9 +88,9 @@ export function SupportWidget({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="mono text-[11px] uppercase tracking-[0.28em] text-black/45">Support</p>
-                <h2 className="mt-2 text-2xl font-semibold">Was hakt gerade?</h2>
+                <h2 className="mt-2 text-2xl font-semibold">{tr.support.title}</h2>
                 <p className="mt-2 max-w-md text-sm leading-6 text-black/55">
-                  Schick kurz ab, was passiert ist. Ich sehe es im Admin und melde mich manuell per Mail.
+                  {tr.support.body}
                 </p>
               </div>
               <button

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * Shared full-screen overlay for widgets that need room to breathe
@@ -19,6 +20,8 @@ export function FullscreenOverlay({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const tr = useT();
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -53,7 +56,7 @@ export function FullscreenOverlay({
           className="mono text-[11px] tracking-widest px-3 py-1.5 rounded-full"
           style={{ background: "var(--v-fg)", color: "var(--v-bg)" }}
         >
-          Schließen
+          {tr.common.close}
         </button>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>

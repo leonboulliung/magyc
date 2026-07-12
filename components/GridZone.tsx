@@ -554,6 +554,7 @@ function WidgetPickerOverlay({
   const [target, setTarget] = useState<Element | null>(null);
   const [themeStyle, setThemeStyle] = useState<React.CSSProperties>({});
   const isMobile = useIsMobile();
+  const t = useT();
 
   // Portal to <body>, NOT into .vibe-root: a transformed ancestor of the
   // workspace makes `position: fixed` anchor to that box instead of the
@@ -599,7 +600,7 @@ function WidgetPickerOverlay({
     <div style={themeStyle}>
       <motion.button
         type="button"
-        aria-label="close widget picker"
+        aria-label={t.common.close}
         className="fixed inset-0 z-50 cursor-default"
         style={{ background: "rgba(0,0,0,0.42)" }}
         initial={{ opacity: 0 }}
@@ -614,7 +615,7 @@ function WidgetPickerOverlay({
         <motion.div
           role="dialog"
           aria-modal="true"
-          aria-label="add widget"
+          aria-label={t.elements.addWidget}
           initial={{ opacity: 0, y: isMobile ? 28 : 10, scale: isMobile ? 1 : 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: isMobile ? 28 : 10, scale: isMobile ? 1 : 0.97 }}
@@ -633,12 +634,12 @@ function WidgetPickerOverlay({
             style={{ borderBottom: "1px solid var(--v-rule)" }}
           >
             <div className="mono text-[10px] uppercase tracking-[0.22em]" style={{ color: "var(--v-muted)" }}>
-              Baustein hinzufügen
+              {t.elements.addWidget}
             </div>
             <button
               type="button"
               onClick={onClose}
-              aria-label="close"
+              aria-label={t.common.close}
               className="mono rounded-full px-2 py-1 text-[11px]"
               style={{ color: "var(--v-muted)", border: "1px solid var(--v-rule)" }}
             >

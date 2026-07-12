@@ -44,61 +44,6 @@ const TRANSLATIONS: Record<string, LangMap> = {
     table: "Tabelle", shot_list: "Shotlist", parts_list: "Utensilien", // i18n-ignore: project-language widget labels
     attachments: "Anhänge", images: "Bilder", moodboard: "Moodboard", selection: "Auswahl", audio: "Audio", sketch: "Skizze", // i18n-ignore: project-language widget labels
   },
-  fr: {
-    ai_summary: "Synthèse IA", icon: "Icône", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notes", qa: "Questions", poll: "Sondage",
-    crew: "Équipe", work_packages: "Tâches", deliverables: "Livrables", approvals: "Validations", checklist: "Liste",
-    date: "Date", appointment: "Rendez-vous", appointments: "Planning",
-    range: "De – À", phases: "Phases",
-    location_single: "Lieu", locations_multi: "Lieux",
-    location_suggestions: "Suggestions", route: "Itinéraire",
-    table: "Tableau", shot_list: "Plan de prises", parts_list: "Matériel",
-    attachments: "Fichiers", images: "Images", moodboard: "Moodboard", audio: "Audio", sketch: "Esquisse",
-  },
-  es: {
-    ai_summary: "Resumen IA", icon: "Ícono", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notas", qa: "Preguntas", poll: "Encuesta",
-    crew: "Equipo", work_packages: "Tareas", deliverables: "Entregables", approvals: "Aprobaciones", checklist: "Lista",
-    date: "Fecha", appointment: "Cita", appointments: "Agenda",
-    range: "De – A", phases: "Fases",
-    location_single: "Lugar", locations_multi: "Lugares",
-    location_suggestions: "Sugerencias", route: "Ruta",
-    table: "Tabla", shot_list: "Lista de tomas", parts_list: "Materiales",
-    attachments: "Archivos", images: "Imágenes", moodboard: "Moodboard", audio: "Audio", sketch: "Boceto",
-  },
-  it: {
-    ai_summary: "Sintesi IA", icon: "Icona", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Note", qa: "Domande", poll: "Sondaggio",
-    crew: "Team", work_packages: "Compiti", deliverables: "Deliverable", approvals: "Approvazioni", checklist: "Lista",
-    date: "Data", appointment: "Appuntamento", appointments: "Agenda",
-    range: "Da – A", phases: "Fasi",
-    location_single: "Luogo", locations_multi: "Luoghi",
-    location_suggestions: "Suggerimenti", route: "Percorso",
-    table: "Tabella", shot_list: "Shotlist", parts_list: "Materiali",
-    attachments: "File", images: "Immagini", moodboard: "Moodboard", audio: "Audio", sketch: "Schizzo",
-  },
-  pt: {
-    ai_summary: "Resumo IA", icon: "Ícone", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notas", qa: "Perguntas", poll: "Enquete",
-    crew: "Equipe", work_packages: "Tarefas", deliverables: "Entregas", approvals: "Aprovações", checklist: "Lista",
-    date: "Data", appointment: "Compromisso", appointments: "Agenda",
-    range: "De – A", phases: "Fases",
-    location_single: "Local", locations_multi: "Locais",
-    location_suggestions: "Sugestões", route: "Rota",
-    table: "Tabela", shot_list: "Lista de fotos", parts_list: "Materiais",
-    attachments: "Arquivos", images: "Imagens", moodboard: "Moodboard", audio: "Áudio", sketch: "Esboço",
-  },
-  nl: {
-    ai_summary: "AI samenvatting", icon: "Icoon", wikipedia: "Wikipedia", gif: "GIF",
-    notes: "Notities", qa: "Vragen", poll: "Enquête",
-    crew: "Team", work_packages: "Taken", deliverables: "Deliverables", approvals: "Goedkeuringen", checklist: "Checklist",
-    date: "Datum", appointment: "Afspraak", appointments: "Agenda",
-    range: "Van – Tot", phases: "Fasen",
-    location_single: "Locatie", locations_multi: "Locaties",
-    location_suggestions: "Ideeën", route: "Route",
-    table: "Tabel", shot_list: "Shotlist", parts_list: "Materialen",
-    attachments: "Bestanden", images: "Afbeeldingen", moodboard: "Moodboard", audio: "Audio", sketch: "Schets",
-  },
 };
 
 function getLangMap(lang: string): LangMap {
@@ -173,7 +118,7 @@ export function WidgetPickerContent({
       </div>
       {groups.length === 0 && (
         <div className="px-3 py-6 text-center mono text-[11px] tracking-widest opacity-45" style={{ color: "var(--v-muted)" }}>
-          Kein Element gefunden
+          {t.elements.noElementFound}
         </div>
       )}
       {groups.map((group, gi) => (
@@ -212,7 +157,7 @@ export function WidgetPickerContent({
         className="px-3 py-2 mono text-[9px] tracking-widest opacity-45"
         style={{ borderTop: "1px solid var(--v-rule)", color: "var(--v-muted)" }}
       >
-        heading + text + tags stay fixed at the top
+        {t.elements.pickerHint}
       </div>
     </div>
   );

@@ -307,17 +307,17 @@ export function MoodboardRenderer({
               className="mono inline-flex items-center gap-1 text-[11px] tracking-widest opacity-75 transition-opacity hover:opacity-100"
               style={{ color: "var(--v-accent, var(--v-fg))" }}
             >
-              + Eintrag hinzufügen
+              {tr.elements.addMoodboardEntry}
             </button>
             {!empty && ctx.mode !== "preset" && (
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                title="Im Vollbild ansehen"
+                title={tr.elements.viewFullscreen}
                 className="mono ml-auto inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] tracking-widest transition-colors hover:brightness-110"
                 style={{ background: "rgba(255,255,255,0.07)", border: "1px solid var(--v-rule)", color: "var(--v-fg)" }}
               >
-                <span aria-hidden>⤢</span> Vollbild
+                <span aria-hidden>⤢</span> {tr.common.fullscreen}
               </button>
             )}
           </div>
@@ -425,7 +425,7 @@ export function MoodboardRenderer({
                     className="mono inline-flex items-center gap-1 pt-1 text-[11px] tracking-widest opacity-75 transition-opacity hover:opacity-100"
                     style={{ color: "var(--v-accent, var(--v-fg))" }}
                   >
-                    + Eintrag hinzufügen
+                    {tr.elements.addMoodboardEntry}
                   </button>
                 )}
               </div>

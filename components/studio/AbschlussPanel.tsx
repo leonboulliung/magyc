@@ -109,7 +109,7 @@ export function AbschlussPanel({
 
       {/* Links */}
       <div className="mt-6">
-        <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">Referenzen & Links</div>
+        <div className="mono mb-2 text-[10px] uppercase tracking-widest text-black/40">{tr.studio.closeReferences}</div>
         <div className="space-y-2">
           {links.length === 0 && !isOwner && <p className="text-[14px] text-black/35">{tr.studio.noLinksAttached}</p>}
           {links.map((l, i) => (
@@ -117,17 +117,17 @@ export function AbschlussPanel({
               <span aria-hidden className="text-black/30">↗</span>
               <a href={l.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-[14px] text-black/85 hover:text-[#17171a]">{l.label}</a>
               {isOwner && (
-                <button type="button" onClick={() => removeLink(i)} aria-label="Entfernen" className="text-black/30 opacity-0 transition-opacity hover:text-[#17171a] group-hover:opacity-100">×</button>
+                <button type="button" onClick={() => removeLink(i)} aria-label={tr.common.remove} className="text-black/30 opacity-0 transition-opacity hover:text-[#17171a] group-hover:opacity-100">×</button>
               )}
             </div>
           ))}
         </div>
         {isOwner && (
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Bezeichnung (optional)" maxLength={120} className={`${field} sm:w-1/3`} />
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={tr.studio.linkLabelPlaceholder} maxLength={120} className={`${field} sm:w-1/3`} />
             <input value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }} placeholder="https://…" maxLength={600} className={field} />
             <button type="button" onClick={addLink} disabled={!url.trim() || busy} className="shrink-0 rounded-lg bg-[#17171a] px-4 py-2 text-[14px] font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40">
-              Hinzufügen
+              {tr.studio.addLink}
             </button>
           </div>
         )}

@@ -1,3 +1,5 @@
+import { activeClientDictionary } from "@/lib/client/locale";
+
 /**
  * Home create-flow helpers — pure utilities shared by the landing page's
  * input → clarify → build orchestration. Extracted from app/page.tsx to keep
@@ -37,16 +39,17 @@ export async function fetchJsonWithTimeout(url: string, init: RequestInit, timeo
   }
 }
 
-/** Map a flow error code to a clear German sentence. */
+/** Map a flow error code to a clear localized sentence. */
 export function formatFlowError(message: string, extra?: { retryInSeconds?: unknown }): string {
-  if (message === "timeout") return "Das hat zu lange gedauert. Bitte versuche es erneut.";
+  const errors = activeClientDictionary().flowErrors;
+  if (message === "timeout") return errors.timeout;
   if (message === "rate_limited" && typeof extra?.retryInSeconds === "number") {
-    return `Bitte warte ${extra.retryInSeconds} Sekunden und versuche es erneut.`;
+    return errors.waitSeconds.replace("{seconds}", String(extra.retryInSeconds));
   }
-  if (message === "input_too_short") return "Beschreibe den Fotografie-Auftrag bitte etwas genauer.";
-  if (message === "input_not_photography_project") return "MAGYC plant Fotografie-Aufträge. Beschreibe bitte das Shooting, die Bildidee oder die gewünschte Übergabe.";
-  if (message === "ai_not_configured") return "Die KI-Verbindung ist noch nicht eingerichtet.";
-  if (message === "openai_rate_limited") return "Die KI ist gerade ausgelastet. Bitte versuche es erneut.";
-  if (message === "clarify_failed" || message === "classify_failed") return "Die Anfrage konnte nicht verarbeitet werden. Bitte versuche es erneut.";
+  if (message === "input_too_short") return errors.inputTooShort;
+  if (message === "input_not_photography_project") return errors.notPhotography;
+  if (message === "ai_not_configured") return errors.aiNotConfigured;
+  if (message === "openai_rate_limited") return errors.aiBusy;
+  if (message === "clarify_failed" || message === "classify_failed") return errors.requestFailed;
   return message;
 }

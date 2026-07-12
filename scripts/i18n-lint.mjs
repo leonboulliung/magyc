@@ -17,7 +17,16 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
-const ROOTS = ["app", "components", "lib/site.ts", "lib/studioPresets.ts", "lib/projectModes.ts"];
+const ROOTS = [
+  "app",
+  "components",
+  "lib/site.ts",
+  "lib/studioPresets.ts",
+  "lib/projectModes.ts",
+  "lib/client/errors.ts",
+  "lib/client/feedback.ts",
+  "lib/home/flow.ts",
+];
 const EXCLUDE_DIRS = new Set(["node_modules", ".next", "dev"]);
 const EXCLUDE_FILE = (p) =>
   p.includes("/i18n/") ||
@@ -50,8 +59,32 @@ const GERMAN_WORDS = [
   "Kunde", "Kunden", "Fotograf", "Anfrage", "Nachricht", "Übersicht", "Zurück",
   "Einstellungen", "Abbrechen", "Bearbeiten", "Punkt", "Stimme", "Vorschau",
 ];
-const wordRe = new RegExp(`\\b(${GERMAN_WORDS.join("|")})\\b`);
+const wordRe = new RegExp(`\\b(${GERMAN_WORDS.join("|")})\\b`, "i");
 const umlautRe = /[äöüÄÖÜß]/;
+const UI_FRAGMENTS = [
+  "Baustein hinzufügen",
+  "Eintrag hinzufügen",
+  "Vollbild",
+  "Hier unterschreiben",
+  "Zurücksetzen",
+  "Deine Projekte",
+  "Speichern fehlgeschlagen",
+  "Teilen fehlgeschlagen",
+  "Anmelden / Account anlegen",
+  "In Vorbereitung",
+  "Projekttitel eingeben",
+  "Kein Element gefunden",
+  "Archiviert",
+  "Abgeschlossen",
+  "Entwurf",
+  "Wiederherstellen",
+  "Duplizieren",
+  "Umbenennen",
+  "Einladung senden",
+  "Direkter Projektzugang",
+  "Einladung ausstehend",
+];
+const fragmentRe = new RegExp(UI_FRAGMENTS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"));
 
 function* walk(path) {
   let st;
@@ -70,18 +103,27 @@ function isCommentOnly(line) {
   return t.startsWith("//") || t.startsWith("*") || t.startsWith("/*");
 }
 
+function isTechnicalGermanIdentifier(line) {
+  return line.includes("/vertrag") ||
+    line.includes("/studio/konto") ||
+    line.includes("/studio/vertragsinhalte") ||
+    line.includes("s.id !== \"dienstleister\"") ||
+    line.includes("s.id !== \"kunde\"");
+}
+
 const findings = [];
 for (const root of ROOTS) {
   for (const file of walk(root)) {
     const lines = readFileSync(file, "utf8").split("\n");
     lines.forEach((line, i) => {
-      if (line.includes("i18n-ignore") || isCommentOnly(line)) return;
+      if (line.includes("i18n-ignore") || isCommentOnly(line) || isTechnicalGermanIdentifier(line)) return;
       // Only consider text that lives in a quote or JSX text node.
       const hasQuotedOrJsx = /["'`][^"'`]*[äöüÄÖÜß][^"'`]*["'`]|>[^<>{}]*[äöüÄÖÜß][^<>{}]*</.test(line)
         || (/["'`]/.test(line) && wordRe.test(line))
-        || (/>[^<>{}]{3,}</.test(line) && wordRe.test(line));
+        || (/>[^<>{}]{3,}</.test(line) && wordRe.test(line))
+        || ((/["'`]/.test(line) || />[^<>{}]{3,}</.test(line)) && fragmentRe.test(line));
       if (!hasQuotedOrJsx) return;
-      if (!umlautRe.test(line) && !wordRe.test(line)) return;
+      if (!umlautRe.test(line) && !wordRe.test(line) && !fragmentRe.test(line)) return;
       findings.push({ file, line: i + 1, text: line.trim().slice(0, 100) });
     });
   }

@@ -180,7 +180,7 @@ export function PartsListRenderer({
                   className="mono ml-auto rounded-full px-3 py-1 text-[10px] tracking-widest disabled:opacity-30"
                   style={{ background: "var(--v-fg)", color: "var(--v-bg)" }}
                 >
-                  Speichern
+                  {tr.common.save}
                 </button>
               </div>
             </div>

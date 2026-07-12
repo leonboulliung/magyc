@@ -5,6 +5,7 @@ import type { HeadingWidget } from "@/lib/types";
 import { WidgetShell } from "./WidgetShell";
 import { EditControls } from "./EditControls";
 import { useInlineEdit } from "./useInlineEdit";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * Heading widget renderer.
@@ -24,6 +25,7 @@ export function HeadingRenderer({
   module: HeadingWidget;
   index: number;
 }) {
+  const tr = useT();
   const ctx = useWidgetContext();
   const { editing, setEditing, cancel, commit, editProps } = useInlineEdit<HTMLTextAreaElement>({
     value: m.text,
@@ -44,7 +46,7 @@ export function HeadingRenderer({
         <div className="relative">
           <textarea
             {...editProps}
-            placeholder={m.placeholder ?? "Projekttitel eingeben"}
+            placeholder={m.placeholder ?? tr.elements.projectTitlePlaceholder}
             maxLength={200}
             rows={1}
             className={`vibe-heading font-black ${sizeClass} leading-[0.95] w-full bg-transparent border-0 outline-none resize-none overflow-hidden`}
@@ -58,7 +60,7 @@ export function HeadingRenderer({
           className={`vibe-heading font-black ${sizeClass} leading-[0.95] ${ctx.isOwner ? "cursor-text" : ""}`}
           style={{ color: empty ? "var(--v-muted)" : "var(--v-fg)" }}
         >
-          {empty ? (m.placeholder ?? "Projekttitel eingeben") : m.text}
+          {empty ? (m.placeholder ?? tr.elements.projectTitlePlaceholder) : m.text}
         </h1>
       )}
     </WidgetShell>

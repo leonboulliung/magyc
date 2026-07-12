@@ -142,7 +142,7 @@ export function ShareDialog({
       const json = await readApiJson(res);
       if (!res.ok) {
         setShared(prev);
-        showApiError(next ? "Teilen fehlgeschlagen" : "Privat-Schalten fehlgeschlagen", json, {
+        showApiError(next ? tr.studio.shareFailed : tr.studio.makePrivateFailedTitle, json, {
           fallback: next
             ? tr.studio.linkActivateFailed
             : tr.studio.makePrivateFailed,
@@ -153,7 +153,7 @@ export function ShareDialog({
       }
     } catch (error) {
       setShared(prev);
-      showUnknownError(next ? "Teilen fehlgeschlagen" : "Privat-Schalten fehlgeschlagen", error, {
+      showUnknownError(next ? tr.studio.shareFailed : tr.studio.makePrivateFailedTitle, error, {
         fallback: next
           ? tr.studio.linkActivateFailed
           : tr.studio.makePrivateFailed,
@@ -167,7 +167,7 @@ export function ShareDialog({
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
-      showActionSuccess("Link kopiert");
+      showActionSuccess(tr.studio.linkCopied);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
       showActionError(tr.studio.copyFailed, {
@@ -183,8 +183,7 @@ export function ShareDialog({
         <div className="max-h-[85vh] overflow-y-auto p-6">
         <h2 className="font-brand text-[20px] font-bold tracking-[-0.01em]">{tr.studio.shareProject}</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-black/60">
-          Wer den Link hat, kann das Projekt sehen und mitarbeiten (kommentieren, abstimmen,
-          hochladen). Struktur ändern kannst nur du.
+          {tr.studio.shareIntro}
         </p>
 
         <button
@@ -197,7 +196,7 @@ export function ShareDialog({
         >
           <span>
             <span className="block text-[15px] font-medium text-[#17171a]">
-              {shared ? "Geteilt" : "Privat"}
+              {shared ? tr.studio.shared : tr.studio.projectPrivate}
             </span>
             <span className="block text-[13px] text-black/55">
               {shared ? tr.studio.reachableViaLink : tr.studio.onlyVisibleToYou}
@@ -233,7 +232,7 @@ export function ShareDialog({
                 onClick={copy}
                 className="shrink-0 rounded-xl bg-[#17171a] px-4 py-2.5 text-[13px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98]"
               >
-                {copied ? "Kopiert ✓" : "Kopieren"}
+                {copied ? tr.studio.copied : tr.studio.copy}
               </button>
             </div>
           </div>
@@ -242,7 +241,7 @@ export function ShareDialog({
         <div className="mt-5 border-t border-black/10 pt-5">
           <div className="flex items-baseline justify-between gap-3">
             <div>
-              <h3 className="text-[14px] font-medium text-[#17171a]">Direkter Projektzugang</h3>
+              <h3 className="text-[14px] font-medium text-[#17171a]">{tr.studio.directProjectAccess}</h3>
               <p className="mt-0.5 text-[12px] text-black/45">{tr.studio.teamClientHint}</p>
             </div>
             <span className="mono text-[10px] text-black/35">{members.length + invitations.length}</span>
@@ -258,7 +257,7 @@ export function ShareDialog({
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium text-[#17171a]">{member.display_name || member.email}</div>
                     <div className="truncate text-[11px] text-black/40">
-                      {member.email} · {member.pending ? "Einladung ausstehend" : "Zugang aktiv"}
+                      {member.email} · {member.pending ? tr.studio.invitationPending : tr.studio.users.accessActive}
                     </div>
                   </div>
                   <select
@@ -266,7 +265,7 @@ export function ShareDialog({
                     onChange={(event) => void updateMember(member.id, event.target.value as "editor" | "client", member.kind)}
                     className="rounded-lg border border-black/10 bg-white px-2 py-1.5 text-[11px] text-black/65 outline-none"
                   >
-                    <option value="editor">Team</option>
+                    <option value="editor">{tr.studio.users.team}</option>
                     <option value="client">{tr.studio.client}</option>
                   </select>
                   <button type="button" onClick={() => void removeMember(member.id, member.kind)} aria-label={member.pending ? tr.studio.withdrawInvite : tr.studio.removeAccess} className="grid h-7 w-7 place-items-center text-[14px] text-black/35 hover:text-black">×</button>
@@ -276,15 +275,15 @@ export function ShareDialog({
           )}
 
           <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="E-Mail-Adresse" className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
-            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Name (optional)" className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder={tr.studio.emailPlaceholder} className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
+            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder={tr.studio.nameOptionalPlaceholder} className="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none focus:border-black/30" />
             <select value={role} onChange={(event) => setRole(event.target.value as "editor" | "client")} className="rounded-xl border border-black/12 bg-white px-3 py-2 text-[12px] text-[#17171a] outline-none">
               <option value="client">{tr.studio.client}</option>
-              <option value="editor">Team</option>
+              <option value="editor">{tr.studio.users.team}</option>
             </select>
           </div>
           <button type="button" onClick={() => void addMember()} disabled={memberBusy || !email.trim()} className="mt-2 rounded-full bg-[#17171a] px-4 py-2 text-[12px] font-medium text-white disabled:opacity-35">
-            Einladung senden
+            {tr.studio.sendInvitation}
           </button>
         </div>
 
@@ -294,7 +293,7 @@ export function ShareDialog({
             onClick={() => onOpenChange(false)}
             className="mono text-[12px] uppercase tracking-widest text-black/55 hover:text-[#17171a]"
           >
-            Schließen
+            {tr.common.close}
           </button>
         </div>
         </div>

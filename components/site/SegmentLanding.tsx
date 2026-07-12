@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useT } from "@/components/i18n/LocaleProvider";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { Container } from "@/components/site/sections";
 import { SiteReveal } from "@/components/site/SiteReveal";
-import { SEGMENTS, type Segment } from "@/lib/segments";
+import { segmentsForLocale, type Segment } from "@/lib/segments";
 
 const BLOCK_ICONS: Record<string, string> = {
   deliverables: "ph:package",
@@ -40,11 +40,12 @@ function Eyebrow({ children, light = false }: { children: React.ReactNode; light
 }
 
 export function SegmentLanding({ segment }: { segment: Segment }) {
-  const t = useT();
-  const others = SEGMENTS.filter((item) => item.slug !== segment.slug);
-  const heroSrc = segment.hero.image?.src ?? FALLBACK_HERO[segment.slug] ?? "/media/marketing/hero-footage.jpg";
-  const heroAlt = segment.hero.image?.alt ?? `${segment.label} ${t.marketing.inUse}`;
-  const workMedia = segment.work.images?.map((item) => item.src).slice(0, 3) ?? WORK_MEDIA[segment.slug] ?? [];
+  const { locale, t } = useLocale();
+  const localizedSegment = segmentsForLocale(locale).find((item) => item.slug === segment.slug) ?? segment;
+  const others = segmentsForLocale(locale).filter((item) => item.slug !== localizedSegment.slug);
+  const heroSrc = localizedSegment.hero.image?.src ?? FALLBACK_HERO[localizedSegment.slug] ?? "/media/marketing/hero-footage.jpg";
+  const heroAlt = localizedSegment.hero.image?.alt ?? `${localizedSegment.label} ${t.marketing.inUse}`;
+  const workMedia = localizedSegment.work.images?.map((item) => item.src).slice(0, 3) ?? WORK_MEDIA[localizedSegment.slug] ?? [];
 
   return (
     <div className="text-[#17171a]">
@@ -53,17 +54,17 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
         <div className="absolute inset-0 bg-black/55" aria-hidden />
         <Container className="relative flex min-h-[560px] flex-col justify-end pb-12 pt-24 sm:min-h-[620px] sm:pb-16">
           <SiteReveal>
-            <Eyebrow light>{segment.hero.eyebrow}</Eyebrow>
+            <Eyebrow light>{localizedSegment.hero.eyebrow}</Eyebrow>
             <h1 className="mt-4 max-w-4xl font-brand text-[40px] font-bold leading-[1.02] text-white sm:text-[68px]">
-              {segment.hero.headline}
+              {localizedSegment.hero.headline}
             </h1>
-            <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/75 sm:text-[18px]">{segment.hero.sub}</p>
+            <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/75 sm:text-[18px]">{localizedSegment.hero.sub}</p>
             <div className="mt-7 flex flex-wrap items-center gap-5">
               <Link href="/#start" className="rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">
-                {segment.hero.ctaPrimary}
+                {localizedSegment.hero.ctaPrimary}
               </Link>
               <Link href="/how-it-works" className="text-[14px] font-medium text-white/75 transition-colors hover:text-white">
-                So funktioniert&apos;s <span aria-hidden>→</span>
+                {t.nav.howItWorks} <span aria-hidden>→</span>
               </Link>
             </div>
           </SiteReveal>
@@ -72,11 +73,11 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
 
       <Container className="py-20 sm:py-28">
         <SiteReveal>
-          <Eyebrow>{segment.problem.eyebrow}</Eyebrow>
-          <h2 className="mt-4 max-w-4xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.problem.heading}</h2>
+          <Eyebrow>{localizedSegment.problem.eyebrow}</Eyebrow>
+          <h2 className="mt-4 max-w-4xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{localizedSegment.problem.heading}</h2>
         </SiteReveal>
         <div className="mt-10 grid border-y border-black/10 sm:grid-cols-3">
-          {segment.problem.cards.map((card, index) => (
+          {localizedSegment.problem.cards.map((card, index) => (
             <SiteReveal key={card.big} delay={index * 0.06} className="h-full">
               <div className="h-full px-0 py-7 sm:border-l sm:border-black/10 sm:px-7 sm:first:border-l-0">
                 <span className="mono text-[10px] tracking-widest text-black/35">0{index + 1}</span>
@@ -91,17 +92,17 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
       <section className="bg-[#e9e8e3] py-20 sm:py-28">
         <Container>
           <SiteReveal>
-            <Eyebrow>{segment.work.eyebrow}</Eyebrow>
+            <Eyebrow>{localizedSegment.work.eyebrow}</Eyebrow>
             <div className="mt-4 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-              <h2 className="max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.work.heading}</h2>
-              <p className="max-w-sm text-[15px] leading-relaxed text-black/55">{segment.work.lead}</p>
+              <h2 className="max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{localizedSegment.work.heading}</h2>
+              <p className="max-w-sm text-[15px] leading-relaxed text-black/55">{localizedSegment.work.lead}</p>
             </div>
           </SiteReveal>
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {workMedia.map((src, index) => (
               <SiteReveal key={src} delay={index * 0.06}>
                 <div className="relative aspect-[4/5] overflow-hidden bg-black">
-                  <Image src={src} alt={`${segment.label}, Arbeitsbeispiel ${index + 1}`} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition-transform duration-700 hover:scale-[1.025]" />
+                  <Image src={src} alt={`${localizedSegment.label}, ${t.marketing.inUse} ${index + 1}`} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition-transform duration-700 hover:scale-[1.025]" />
                 </div>
               </SiteReveal>
             ))}
@@ -134,12 +135,12 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
       <section className="bg-white py-20 sm:py-28">
         <Container>
           <SiteReveal>
-            <Eyebrow>{segment.blocks.eyebrow}</Eyebrow>
-            <h2 className="mt-4 max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.blocks.heading}</h2>
-            <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-black/55">{segment.blocks.lead}</p>
+            <Eyebrow>{localizedSegment.blocks.eyebrow}</Eyebrow>
+            <h2 className="mt-4 max-w-3xl font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{localizedSegment.blocks.heading}</h2>
+            <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-black/55">{localizedSegment.blocks.lead}</p>
           </SiteReveal>
           <div className="mt-10 grid gap-px overflow-hidden border border-black/10 bg-black/10 sm:grid-cols-2 lg:grid-cols-3">
-            {segment.blocks.items.map((item, index) => (
+            {localizedSegment.blocks.items.map((item, index) => (
               <SiteReveal key={`${item.name}-${index}`} delay={(index % 3) * 0.04} className="h-full bg-white">
                 <div className="h-full p-6">
                   <span className="grid h-10 w-10 place-items-center rounded-full bg-[#17171a] text-white">
@@ -157,9 +158,9 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
       <Container className="py-20 sm:py-28">
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <SiteReveal>
-            <Eyebrow>{segment.present.eyebrow}</Eyebrow>
-            <h2 className="mt-4 font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{segment.present.heading}</h2>
-            <p className="mt-5 text-[16px] leading-relaxed text-black/55">{segment.present.sub}</p>
+            <Eyebrow>{localizedSegment.present.eyebrow}</Eyebrow>
+            <h2 className="mt-4 font-brand text-[32px] font-bold leading-[1.08] sm:text-[48px]">{localizedSegment.present.heading}</h2>
+            <p className="mt-5 text-[16px] leading-relaxed text-black/55">{localizedSegment.present.sub}</p>
           </SiteReveal>
           <SiteReveal delay={0.08}>
             <div className="relative aspect-[16/10] overflow-hidden bg-black">
@@ -173,12 +174,12 @@ export function SegmentLanding({ segment }: { segment: Segment }) {
         <SiteReveal>
           <div className="grid bg-[#17171a] text-white lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="p-7 sm:p-11">
-              <Eyebrow light>{segment.positioning.eyebrow}</Eyebrow>
-              <h2 className="mt-4 max-w-3xl font-brand text-[30px] font-bold leading-[1.08] sm:text-[46px]">{segment.cta.headline}</h2>
-              <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-white/65">{segment.positioning.sub}</p>
+              <Eyebrow light>{localizedSegment.positioning.eyebrow}</Eyebrow>
+              <h2 className="mt-4 max-w-3xl font-brand text-[30px] font-bold leading-[1.08] sm:text-[46px]">{localizedSegment.cta.headline}</h2>
+              <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-white/65">{localizedSegment.positioning.sub}</p>
             </div>
             <div className="p-7 pt-0 sm:p-11 sm:pt-0 lg:pt-11">
-              <Link href="/#start" className="inline-flex rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">{segment.cta.button}</Link>
+              <Link href="/#start" className="inline-flex rounded-full bg-white px-5 py-3 text-[14px] font-medium text-[#17171a] transition-transform hover:-translate-y-0.5">{localizedSegment.cta.button}</Link>
             </div>
           </div>
           <div className="mt-10 flex flex-wrap items-center gap-2">

@@ -69,7 +69,7 @@ export function PublishButton({
       if (!res.ok) {
         const message = friendlyError(json?.error);
         setError(message);
-        showActionError("Speichern fehlgeschlagen", {
+        showActionError(tr.studio.saveFailedTitle, {
           id: `claim-${space.id}`,
           description: message,
         });
@@ -84,7 +84,7 @@ export function PublishButton({
     } catch {
       const message = tr.studio.networkError;
       setError(message);
-      showActionError("Speichern fehlgeschlagen", {
+      showActionError(tr.studio.saveFailedTitle, {
         id: `claim-${space.id}`,
         description: message,
       });
@@ -161,7 +161,7 @@ export function PublishButton({
               </h2>
               {signedOut || isAnonymousDraft ? (
                 <p className="text-[13px] opacity-70 leading-relaxed">
-                  Melde dich an, um diesen Entwurf als privates Studio-Projekt zu übernehmen. Danach kannst du Planung, Vertrag und Abschluss weiterführen.
+                  {tr.studio.saveDraftToStudioBody}
                 </p>
               ) : label(L, "publishExplanation") && (
                 <p className="text-[13px] opacity-70 leading-relaxed">
@@ -221,7 +221,7 @@ export function PublishButton({
                     onClick={() => window.sessionStorage.setItem(claimIntentKey, "1")}
                     className="mono text-[11px] tracking-widest px-5 py-2 rounded-full bg-black text-white"
                   >
-                    Anmelden / Account anlegen
+                    {tr.studio.signInOrCreateAccount}
                   </button>
                 </SignInButton>
               </div>

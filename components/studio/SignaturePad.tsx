@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 /**
  * SignaturePad — a small canvas the photographer can draw a signature on
@@ -8,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
  * whether anything has been drawn. Purely local; the parent persists it.
  */
 export function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void }) {
+  const t = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -83,12 +85,12 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) 
         />
         {!hasInk && (
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[13px] text-black/30">
-            Hier unterschreiben
+            {t.elements.signHere}
           </span>
         )}
       </div>
       <button type="button" onClick={clear} className="mono mt-1.5 text-[10px] uppercase tracking-widest text-black/45 transition-colors hover:text-black">
-        Zurücksetzen
+        {t.common.reset}
       </button>
     </div>
   );

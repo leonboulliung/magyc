@@ -596,7 +596,7 @@ export function StudioHome({
       {stage === "input" && <div className="mt-12">
         <ProjectInvitations />
         <div className="mb-4 flex items-center justify-between">
-          <p className="mono text-[11px] uppercase tracking-[0.2em] text-black/45">Deine Projekte</p>
+          <p className="mono text-[11px] uppercase tracking-[0.2em] text-black/45">{t.studio.projectsTitle}</p>
           {projects.length > 0 && (
             <span className="mono text-[11px] tabular-nums text-black/35">{projects.length}</span>
           )}
@@ -609,7 +609,7 @@ export function StudioHome({
             <div className="relative">
               <p className="font-brand text-[20px] font-bold text-white">{t.studio.noProjectYet}</p>
               <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-white/65">
-                Schreib oben deine Idee — der erste Plan steht in Sekunden.
+                {t.studio.emptyProjectHint}
               </p>
             </div>
           </div>
@@ -621,10 +621,10 @@ export function StudioHome({
 
         {/* Archive + trash — collapsible so they never crowd the active work. */}
         {archived.length > 0 && (
-          <Accordion title="Archiviert" count={archived.length} items={archived} context="archived" />
+          <Accordion title={t.studio.archived} count={archived.length} items={archived} context="archived" />
         )}
         {deleted.length > 0 && (
-          <Accordion title="Papierkorb" count={deleted.length} items={deleted} context="deleted" note="30 Tage wiederherstellbar" />
+          <Accordion title={t.studio.trash} count={deleted.length} items={deleted} context="deleted" note={t.studio.trashRecoverable} />
         )}
       </div>}
     </div>
